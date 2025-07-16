@@ -166,16 +166,18 @@ git commit -m "🎯 Initial commit - Jarvis SaaS Platform
 
 ✨ Features:
 - 🤖 Compagnon vocal intelligent pour salles de sport
-- 📊 Dashboard admin multitenant (Gérant/Franchise/Admin)
+- 📊 Dashboard admin multitenant hiérarchique (Franchise → Salle → Kiosque)
 - 🎙️ Interface conversation vocale avec OpenAI Realtime
 - 💾 Backend API complet avec PostgreSQL
-- 🔐 Système d'authentification sécurisé
+- 🔐 Système d'authentification sécurisé avec JWT
 - 📱 Interface responsive React/TypeScript
 - 🐳 Configuration Docker pour déploiement
+- 🏋️ Gestion des salles de sport avec interface compagnon
+- 🎫 Système de badges RFID pour l'authentification utilisateur
 
 🏗️ Architecture:
 - API: Node.js + Express + Prisma + PostgreSQL
-- Frontend: React + TypeScript + Vite
+- Frontend: React + TypeScript + Vite + Navigation hiérarchique
 - Vocal: OpenAI Realtime API + WebRTC
 - Auth: JWT + bcrypt + middleware sécurisé
 - Deploy: Docker Compose + multi-services
@@ -187,7 +189,12 @@ qui transforme chaque conversation en data actionnable et revenus publicitaires.
 💰 Modèle économique:
 - Salles individuelles: 1,600€/mois
 - Franchises: Revenue sharing sur publicité ciblée
-- Objectif: Rendre Jarvis gratuit et profitable pour les franchises"
+- Objectif: Rendre Jarvis gratuit et profitable pour les franchises
+
+🚀 Démarrage:
+- Exécuter ./start-jarvis.sh pour lancer tous les services
+- Dashboard admin: http://localhost:3002
+- API Backend: http://localhost:3001"
 
 echo "✅ Commit créé"
 

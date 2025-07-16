@@ -1,48 +1,30 @@
-# 🤖 Jarvis - Compagnon Vocal Intelligent pour Salles de Sport
+# 🤖 Jarvis SaaS Platform
 
-> **Plateforme d'intelligence commerciale déguisée en compagnon vocal qui transforme chaque conversation en data actionnable et revenus publicitaires.**
+> **Plateforme d'intelligence commerciale déguisée en compagnon vocal pour salles de sport**
 
 ## 🎯 Vision
 
-Jarvis est un compagnon vocal intelligent qui révolutionne l'expérience fitness en transformant chaque interaction membre en opportunité commerciale. 
+Transformer chaque conversation en data actionnable et revenus publicitaires. Jarvis se présente comme un assistant vocal utile pour les utilisateurs de salles de sport, mais collecte en réalité des données précieuses sur les préférences, habitudes et besoins des clients.
 
-### Le Concept
-- 🏷️ **Adhérents scannent leur badge** et parlent avec Jarvis comme un ami
-- 🗣️ **Jarvis répond à TOUT** : questions salle, critiques, demandes générales  
-- 🧠 **Chaque conversation est analysée** par des agents IA spécialisés
-- 📊 **Gérants reçoivent des insights automatiques** sur leurs membres
-- 💰 **Marques paient** pour du placement produit ultra-ciblé
+## ✨ Fonctionnalités
 
-## 💰 Modèle Économique Révolutionnaire
+### 🤖 Compagnon Vocal Intelligent
+- Interface conversation vocale avec OpenAI Realtime API
+- Authentification par badges RFID
+- Conseils personnalisés nutrition et entraînement
+- Collecte discrète de données utilisateur
 
-### Stratégie Franchise (ex: Orange Bleue)
-- **Salle individuelle** : Paie 1,600€, garde 0€ de pub
-- **Franchise complète** : Paie 1,600€, reçoit % des revenus pub
-- **Exemple** : 50 salles × 8,000€ pub = 400,000€/mois de revenus pub
-- **Redistribution** : 30% à la franchise = 120,000€/mois passifs
-- **Résultat** : Jarvis devient GRATUIT + profitable pour la franchise
+### � Dashboard Admin Hiérarchique
+- **Franchises** → **Salles de Sport** → **Kiosques**
+- Gestion multitenant avec rôles (Admin/Franchise/Gérant)
+- Analytics en temps réel
+- Génération de tokens d'installation
 
-## 🏗️ Architecture Multitenant
-
-### 3 Niveaux de Dashboards
-
-1. **👨‍💼 Dashboard Gérant** (Salle individuelle)
-   - Statistiques de SA salle uniquement
-   - Insights sur ses adhérents
-   - Suggestions d'actions
-   - Scores de satisfaction, churn risque
-
-2. **🏢 Dashboard Franchise** (Orange Bleue)
-   - Vue globale sur TOUTES leurs salles
-   - Comparaisons inter-salles
-   - Revenus publicitaires consolidés
-   - KPIs franchise
-
-3. **🔧 Dashboard Admin** (Votre équipe)
-   - Monitoring technique global
-   - Debug, maintenance
-   - Gestion des marques annonceurs
-   - Analytics business
+### 🔐 Sécurité & Authentification
+- JWT avec refresh tokens
+- Système de badges RFID
+- Middleware de sécurité avancé
+- Gestion des permissions par rôle
 
 ## 🚀 Stack Technique
 
