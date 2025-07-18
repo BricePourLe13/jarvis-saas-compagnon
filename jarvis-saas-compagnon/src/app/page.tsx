@@ -1,110 +1,279 @@
-import Link from 'next/link'
-import { Metadata } from 'next'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'JARVIS SaaS Compagnon - Assistant IA pour Salles de Sport',
-  description: 'Solution SaaS complète avec assistant IA pour optimiser l\'expérience en salle de sport',
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  Box,
+  Button,
+  Input,
+  VStack,
+  HStack,
+  Text,
+  Heading,
+  Spinner,
+  Center,
+  Icon,
+  Flex,
+} from '@chakra-ui/react'
+import { Shield, Zap } from 'lucide-react'
+
+// Import dynamique pour éviter les problèmes de build
+let createClient: any = null
+
+async function loadSupabaseClient() {
+  try {
+    const supabaseModule = await import('../lib/supabase-simple')
+    createClient = supabaseModule.createClient
+    return { createClient }
+  } catch (error) {
+    console.error('Failed to load Supabase:', error)
+    return null
+  }
 }
 
-export default function HomePage() {
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [supabaseReady, setSupabaseReady] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    initializeSupabase()
+  }, [])
+
+  const initializeSupabase = async () => {
+    const supabaseModules = await loadSupabaseClient()
+    if (supabaseModules) {
+      setSupabaseReady(true)
+    } else {
+      setError('Impossible de charger Supabase')
+    }
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!supabaseReady || !createClient) {
+      setError('Supabase n\'est pas encore prêt')
+      return
+    }
+    
+    setLoading(true)
+    setError('')
+
+    try {
+      console.log('Tentative de connexion avec:', { email })
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        console.error('Erreur d\'authentification:', error)
+        setError(`Erreur de connexion: ${error.message}`)
+        return
+      }
+
+      console.log('Connexion réussie:', data.user?.email)
+
+      if (data.user) {
+        console.log('✅ Authentification réussie pour:', data.user.email)
+        
+        // Note: Éviter les requêtes vers la table users à cause des politiques RLS
+        // Le profil sera créé côté dashboard à partir des données d'auth
+        
+        // Redirection directe vers le dashboard
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      setError('Une erreur est survenue lors de la connexion')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full filter blur-3xl opacity-20 animate-pulse delay-1000"></div>
-      </div>
+    <Box minH="100vh" bg="linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%)">
+      <Flex minH="100vh" align="center" justify="center" p={4}>
+        
+        {/* Container principal */}
+        <Box maxW="4xl" w="full">
+          <Flex 
+            bg="whiteAlpha.100" 
+            borderRadius="2xl" 
+            backdropFilter="blur(10px)"
+            border="1px solid"
+            borderColor="whiteAlpha.200"
+            overflow="hidden"
+            direction={{ base: 'column', lg: 'row' }}
+            minH="500px"
+          >
+            
+            {/* Left side - Branding */}
+            <Box
+              flex="1"
+              bg="linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%)"
+              p={10}
+              display={{ base: 'none', lg: 'flex' }}
+              flexDirection="column"
+              justifyContent="space-between"
+              position="relative"
+            >
+              <VStack align="start" gap={4}>
+                <HStack>
+                  <Icon as={Shield} boxSize={6} color="white" />
+                  <Text fontSize="lg" fontWeight="medium" color="white">
+                    JARVIS SaaS Platform
+                  </Text>
+                </HStack>
+              </VStack>
+              
+              <Box>
+                <Text fontSize="lg" color="white" mb={4}>
+                  "L'assistant IA révolutionnaire qui transforme chaque interaction membre en data précieuse et opportunité commerciale."
+                </Text>
+                <Text fontSize="sm" color="whiteAlpha.800">
+                  JARVIS Team
+                </Text>
+              </Box>
+            </Box>
 
-      <div className="relative z-10 container mx-auto px-4 py-16 min-h-screen flex flex-col justify-center">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              JARVIS
-            </span>
-            <br />
-            <span className="text-3xl md:text-4xl">SaaS Compagnon</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            L&apos;assistant IA révolutionnaire qui transforme l&apos;expérience de vos membres en salle de sport
-          </p>
-        </div>
+            {/* Right side - Login Form */}
+            <Box flex="1" p={8}>
+              <VStack gap={6} align="stretch" maxW="350px" mx="auto" justify="center" h="full">
+                
+                {/* Header */}
+                <VStack gap={4} align="center">
+                  <HStack>
+                    <Box
+                      p={2}
+                      bg="linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)"
+                      borderRadius="lg"
+                    >
+                      <Icon as={Zap} boxSize={6} color="white" />
+                    </Box>
+                    <Text
+                      fontSize="2xl"
+                      fontWeight="bold"
+                      bgGradient="linear(to-r, purple.400, blue.400)"
+                      bgClip="text"
+                    >
+                      JARVIS
+                    </Text>
+                  </HStack>
+                  <Heading size="lg" color="white" textAlign="center">
+                    Connexion Plateforme
+                  </Heading>
+                  <Text color="whiteAlpha.700" textAlign="center">
+                    Accédez à votre dashboard JARVIS
+                  </Text>
+                </VStack>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-4">IA Conversationnelle</h3>
-            <p className="text-gray-300">
-              Assistant vocal intelligent pour répondre aux questions des membres en temps réel
-            </p>
-          </div>
+                {/* Login Form */}
+                <Box
+                  bg="whiteAlpha.50"
+                  border="1px solid"
+                  borderColor="whiteAlpha.200"
+                  backdropFilter="blur(10px)"
+                  borderRadius="xl"
+                  p={6}
+                >
+                  <form onSubmit={handleLogin}>
+                    <VStack gap={4}>
+                      
+                      {error && (
+                        <Box 
+                          bg="red.500" 
+                          color="white" 
+                          p={3} 
+                          borderRadius="md" 
+                          w="full"
+                          textAlign="center"
+                        >
+                          {error}
+                        </Box>
+                      )}
 
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-purple-500 rounded-lg flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Gestion Centralisée</h3>
-            <p className="text-gray-300">
-              Dashboard admin pour gérer toutes vos franchises depuis une interface unique
-            </p>
-          </div>
+                      <Box w="full">
+                        <Text color="white" mb={2} fontSize="sm" fontWeight="medium">
+                          Email
+                        </Text>
+                        <Input
+                          type="email"
+                          placeholder="admin@jarvis.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          disabled={loading}
+                          bg="whiteAlpha.100"
+                          border="1px solid"
+                          borderColor="whiteAlpha.300"
+                          color="white"
+                          _placeholder={{ color: 'whiteAlpha.600' }}
+                          _focus={{
+                            borderColor: 'purple.400',
+                            boxShadow: '0 0 0 1px var(--chakra-colors-purple-400)',
+                          }}
+                        />
+                      </Box>
 
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-8 border border-white/20 text-center">
-            <div className="w-16 h-16 bg-green-500 rounded-lg flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-4">Déploiement Rapide</h3>
-            <p className="text-gray-300">
-              Solution SaaS prête à l&apos;emploi, installation en quelques minutes
-            </p>
-          </div>
-        </div>
+                      <Box w="full">
+                        <Text color="white" mb={2} fontSize="sm" fontWeight="medium">
+                          Mot de passe
+                        </Text>
+                        <Input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          disabled={loading}
+                          bg="whiteAlpha.100"
+                          border="1px solid"
+                          borderColor="whiteAlpha.300"
+                          color="white"
+                          _focus={{
+                            borderColor: 'purple.400',
+                            boxShadow: '0 0 0 1px var(--chakra-colors-purple-400)',
+                          }}
+                        />
+                      </Box>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
-          <Link href="/admin">
-            <button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg min-w-[200px]">
-              <span className="flex items-center justify-center space-x-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span>Interface Admin</span>
-              </span>
-            </button>
-          </Link>
+                      <Button
+                        type="submit"
+                        w="full"
+                        bgGradient="linear(to-r, purple.500, blue.500)"
+                        color="white"
+                        _hover={{
+                          bgGradient: "linear(to-r, purple.600, blue.600)",
+                        }}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <HStack>
+                            <Spinner size="sm" />
+                            <Text>Connexion...</Text>
+                          </HStack>
+                        ) : (
+                          'Se connecter'
+                        )}
+                      </Button>
+                    </VStack>
+                  </form>
 
-          <Link href="/kiosk">
-            <button className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg min-w-[200px]">
-              <span className="flex items-center justify-center space-x-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-                <span>Kiosk IA</span>
-              </span>
-            </button>
-          </Link>
-        </div>
-
-        {/* Footer Info */}
-        <div className="text-center mt-16">
-          <p className="text-gray-400">
-            Propulsé par{' '}
-            <span className="text-blue-400 font-semibold">OpenAI GPT-4o Mini</span>
-            {' '}&{' '}
-            <span className="text-green-400 font-semibold">Supabase</span>
-          </p>
-        </div>
-      </div>
-    </div>
+                  <Center mt={6}>
+                    <Text fontSize="sm" color="whiteAlpha.600">
+                      Besoin d'aide ? Contactez votre administrateur
+                    </Text>
+                  </Center>
+                </Box>
+              </VStack>
+            </Box>
+          </Flex>
+        </Box>
+      </Flex>
+    </Box>
   )
 }

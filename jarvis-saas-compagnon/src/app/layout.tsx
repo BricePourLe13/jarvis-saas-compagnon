@@ -1,5 +1,5 @@
-import './globals.css'
 import type { Metadata } from 'next'
+import { ChakraProviders } from '../components/ChakraProviders'
 
 export const metadata: Metadata = {
   title: 'JARVIS SaaS Compagnon',
@@ -13,7 +13,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        <ChakraProviders>
+          {children}
+        </ChakraProviders>
+      </body>
     </html>
   )
 }
