@@ -46,7 +46,7 @@ CREATE TABLE franchises (
 CREATE TABLE users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255),
     avatar_url TEXT,
     role user_role DEFAULT 'member',
     franchise_id UUID REFERENCES franchises(id) ON DELETE SET NULL,
@@ -173,13 +173,23 @@ CREATE POLICY "Nouvelles sessions kiosk par franchise"
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO users (id, email, full_name)
+    INSERT INTO users (id, email, full_name, avatar_url)
     VALUES (
         NEW.id,
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1))
+        COALESCE(
+            NEW.raw_user_meta_data->>'full_name',
+            NEW.raw_user_meta_data->>'name', 
+            split_part(NEW.email, '@', 1)
+        ),
+        NEW.raw_user_meta_data->>'avatar_url'
     );
     RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Log l'erreur mais ne fait pas échouer l'inscription
+        RAISE WARNING 'Erreur lors de la création du profil utilisateur: %', SQLERRM;
+        RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
