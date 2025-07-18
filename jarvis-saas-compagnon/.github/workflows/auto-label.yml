@@ -1,0 +1,96 @@
+name: Auto Label Issues
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  auto-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto Label Bug Reports
+        if: contains(github.event.issue.title, '[BUG]') || contains(github.event.issue.title, 'bug')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: |
+            bug
+            status/needs-triage
+
+      - name: Auto Label Feature Requests
+        if: contains(github.event.issue.title, '[FEATURE]') || contains(github.event.issue.title, 'feature')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: |
+            enhancement
+            status/needs-review
+
+      - name: Auto Label Questions
+        if: contains(github.event.issue.title, '[QUESTION]') || contains(github.event.issue.title, 'question')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: |
+            question
+            help-wanted
+
+      - name: Auto Label Admin Issues
+        if: contains(github.event.issue.body, 'admin') || contains(github.event.issue.title, 'admin')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: admin
+
+      - name: Auto Label Kiosk Issues
+        if: contains(github.event.issue.body, 'kiosk') || contains(github.event.issue.title, 'kiosk')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: kiosk
+
+      - name: Auto Label API Issues
+        if: contains(github.event.issue.body, 'api') || contains(github.event.issue.title, 'api')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: api
+
+      - name: Auto Label Database Issues
+        if: contains(github.event.issue.body, 'database') || contains(github.event.issue.body, 'supabase')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: database
+
+      - name: Welcome First Time Contributors
+        if: github.event.action == 'opened' && github.event.pull_request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pulls } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              creator: context.payload.pull_request.user.login
+            });
+
+            if (pulls.length === 1) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `🎉 Merci pour votre première contribution à JARVIS ! 
+
+                Nous apprécions votre aide pour améliorer le projet. 
+                
+                Quelques points à vérifier avant la fusion :
+                - [ ] Tous les tests passent
+                - [ ] Le code suit nos conventions
+                - [ ] La documentation est à jour si nécessaire
+                
+                Un membre de l'équipe va réviser votre PR sous peu. N'hésitez pas à nous poser des questions ! 🚀`
+              });
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                labels: ['first-contribution']
+              });
+            }
