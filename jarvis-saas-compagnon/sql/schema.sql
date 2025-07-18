@@ -199,9 +199,12 @@ CREATE INDEX idx_kiosk_sessions_created_at ON kiosk_sessions(created_at);
 CREATE INDEX idx_kiosk_sessions_user_id ON kiosk_sessions(user_id);
 
 -- 15. Données de test (optionnel)
-INSERT INTO franchises (name, address, phone, email, city, postal_code, owner_id) VALUES 
-('FitGym Paris Centre', '123 Rue de Rivoli', '01.23.45.67.89', 'paris@fitgym.fr', 'Paris', '75001', auth.uid()),
-('PowerGym Lyon', '456 Cours Lafayette', '04.78.90.12.34', 'lyon@powergym.fr', 'Lyon', '69003', auth.uid());
+-- Note: Ces données seront créées après authentification d'un utilisateur
+-- Pour créer des franchises de test, connectez-vous d'abord puis exécutez :
+-- 
+-- INSERT INTO franchises (name, address, phone, email, city, postal_code, owner_id) VALUES 
+-- ('FitGym Paris Centre', '123 Rue de Rivoli', '01.23.45.67.89', 'paris@fitgym.fr', 'Paris', '75001', auth.uid()),
+-- ('PowerGym Lyon', '456 Cours Lafayette', '04.78.90.12.34', 'lyon@powergym.fr', 'Lyon', '69003', auth.uid());
 
 -- 16. Commentaires pour documentation
 COMMENT ON TABLE franchises IS 'Table des franchises/salles de sport';

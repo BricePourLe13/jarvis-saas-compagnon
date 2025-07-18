@@ -12,10 +12,15 @@
    - Dans le menu de gauche, cliquez sur "SQL Editor"
    - Ou allez directement sur : https://supabase.com/dashboard/project/vurnokaxnvittopqteno/sql
 
-3. **Exécutez le schéma** :
+3. **Exécutez le schéma principal** :
    - Copiez tout le contenu du fichier `sql/schema.sql`
    - Collez-le dans l'éditeur SQL
    - Cliquez sur "Run" pour exécuter
+
+4. **Ajoutez des données de test (optionnel)** :
+   - Connectez-vous d'abord à votre application web
+   - Ensuite, copiez le contenu de `sql/test-data.sql`
+   - Exécutez-le dans l'éditeur SQL pour créer des franchises de test
 
 ### 2. 🔐 Configuration de l'authentification
 
@@ -70,10 +75,10 @@ Une fois le schéma déployé, vous pouvez tester :
 
 ### 7. 📝 Prochaines étapes
 
-- [ ] Déployer le schéma SQL
+- [x] Déployer le schéma SQL principal
 - [ ] Configurer l'authentification OAuth
 - [ ] Tester l'authentification sur le site
-- [ ] Ajouter les premières données de test
+- [ ] Ajouter les données de test (`sql/test-data.sql`)
 - [ ] Configurer les webhooks (optionnel)
 
 ---
