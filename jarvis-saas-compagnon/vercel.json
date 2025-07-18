@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "name": "jarvis-saas-compagnon",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/admin/(.*)",
+      "dest": "/admin/$1"
+    },
+    {
+      "src": "/kiosk/(.*)",
+      "dest": "/kiosk/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "runtime": "@vercel/node"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/admin/:path*",
+      "destination": "/admin/:path*"
+    },
+    {
+      "source": "/kiosk/:path*", 
+      "destination": "/kiosk/:path*"
+    }
+  ]
+}
