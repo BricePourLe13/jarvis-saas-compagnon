@@ -107,7 +107,29 @@ docker-compose up -d
 
 ### Structure du Projet
 ```
-jarvis-saas-platforrm/
+# 🤖 JARVIS SaaS Platform
+
+Assistant IA conversationnel pour salles de sport.
+
+## 🚀 Application Principale
+
+**[jarvis-saas-compagnon/](./jarvis-saas-compagnon/)** - Interface web SaaS avec Supabase et OpenAI
+
+### Démarrage rapide
+
+```bash
+cd jarvis-saas-compagnon
+npm install
+npm run dev
+```
+
+### 🔗 Liens
+
+- **Production**: [https://jarvis-saas-compagnon-dhb3s92md-jarvis-projects-64c74b6d.vercel.app](https://jarvis-saas-compagnon-dhb3s92md-jarvis-projects-64c74b6d.vercel.app)
+- **Documentation**: [jarvis-saas-compagnon/README.md](./jarvis-saas-compagnon/README.md)
+
+---
+*Développé par JARVIS Group*/
 ├── 📄 project.md              # Vision et spécifications
 ├── 📄 INSTRUCTIONS.md         # Instructions détaillées
 ├── 📁 docs/                   # Documentation technique

@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
+  "name": "jarvis-saas-compagnon",
+  "buildCommand": "cd jarvis-saas-compagnon && npm run build",
+  "outputDirectory": "jarvis-saas-compagnon/.next",
+  "installCommand": "cd jarvis-saas-compagnon && npm install",
   "framework": "nextjs",
-  "installCommand": "npm install",
+  "rootDirectory": "jarvis-saas-compagnon",
   "rewrites": [
     {
       "source": "/admin/:path*",
@@ -25,12 +27,13 @@
         {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "origin-when-cross-origin"
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "runtime": "@vercel/node@3"
+    }
+  }
 }
