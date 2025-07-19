@@ -9,7 +9,7 @@ let createClient: any = null
 
 async function loadSupabaseClient() {
   try {
-    const module = await import('../../lib/supabase')
+    const module = await import('../../lib/supabase-simple')
     return module.createClient
   } catch (error) {
     console.error('Failed to load Supabase client:', error)
