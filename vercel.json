@@ -5,7 +5,6 @@
   "outputDirectory": "jarvis-saas-compagnon/.next",
   "installCommand": "cd jarvis-saas-compagnon && npm install",
   "framework": "nextjs",
-  "rootDirectory": "jarvis-saas-compagnon",
   "rewrites": [
     {
       "source": "/admin/:path*",
@@ -30,10 +29,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "runtime": "@vercel/node@3"
-    }
-  }
+  ]
 }
