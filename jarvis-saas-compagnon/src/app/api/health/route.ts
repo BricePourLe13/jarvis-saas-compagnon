@@ -33,7 +33,11 @@ interface HealthStatus {
   version: string
 }
 
-async function checkDatabaseHealth() {
+async function checkDatabaseHealth(): Promise<{
+  status: 'up' | 'down' | 'degraded'
+  latency?: number
+  error?: string
+}> {
   try {
     const startTime = Date.now()
     
@@ -49,24 +53,27 @@ async function checkDatabaseHealth() {
     
     if (response.ok) {
       return {
-        status: latency > 1000 ? 'degraded' : 'up' as const,
+        status: latency > 1000 ? 'degraded' : 'up',
         latency
       }
     } else {
       return {
-        status: 'down' as const,
+        status: 'down',
         error: `HTTP ${response.status}`
       }
     }
   } catch (error) {
     return {
-      status: 'down' as const,
+      status: 'down',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
 }
 
-async function checkAuthHealth() {
+async function checkAuthHealth(): Promise<{
+  status: 'up' | 'down'
+  error?: string
+}> {
   try {
     // Test simple de l'endpoint auth
     const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`, {
@@ -76,12 +83,12 @@ async function checkAuthHealth() {
     })
     
     return {
-      status: response.ok ? 'up' : 'down' as const,
+      status: response.ok ? 'up' : 'down',
       error: response.ok ? undefined : `HTTP ${response.status}`
     }
   } catch (error) {
     return {
-      status: 'down' as const,
+      status: 'down',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
