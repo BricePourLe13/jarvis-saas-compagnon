@@ -133,14 +133,12 @@ export default function DashboardPage() {
 
       if (error) {
         console.error('❌ Erreur chargement franchises:', error)
-        console.log('🔍 Type d\'erreur:', typeof error)
-        console.log('🔍 Code d\'erreur:', error?.code)
-        console.log('🔍 Message d\'erreur:', error?.message)
-        console.log('🔍 Détails d\'erreur:', error?.details)
         
-        // Si erreur de récursion RLS, créer des données de démonstration
+        // Gestion spécifique des erreurs RLS avec logging sécurisé
         if (error?.code === '42P17' || error?.message?.includes('infinite recursion')) {
-          console.log('⚠️ RLS bloque les franchises, utilisation de données de démo')
+          console.warn('⚠️ [SÉCURITÉ] RLS récursion détectée - Mode démo activé')
+          // TODO: Alerter l'équipe sécurité de cette erreur RLS
+          
           const demoFranchises = [
             {
               id: 'demo-1',
@@ -171,8 +169,15 @@ export default function DashboardPage() {
           return
         }
         
-        // Pour toute autre erreur, utiliser les données de démo par sécurité
-        console.log('⚠️ Erreur inconnue, utilisation de données de démo par sécurité')
+        // Pour les erreurs d'autorisation, redirection sécurisée
+        if (error?.code === 'PGRST301' || error?.message?.includes('permission denied')) {
+          console.warn('⚠️ [SÉCURITÉ] Accès non autorisé détecté')
+          router.push('/')
+          return
+        }
+        
+        // Autres erreurs - mode démo par sécurité
+        console.warn('⚠️ [SÉCURITÉ] Erreur DB inconnue - Mode démo par sécurité')
         const demoFranchises = [
           {
             id: 'demo-1',
@@ -185,18 +190,6 @@ export default function DashboardPage() {
             is_active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          },
-          {
-            id: 'demo-2',
-            name: 'Franchise Demo Lyon',
-            address: '456 Rue de la République',
-            city: 'Lyon',
-            postal_code: '69002',
-            email: 'lyon@demo.com',
-            phone: '04 12 34 56 78',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
           }
         ]
         setFranchises(demoFranchises)
@@ -206,11 +199,9 @@ export default function DashboardPage() {
       console.log('✅ Franchises chargées avec succès:', data?.length || 0, 'franchises')
       setFranchises(data || [])
     } catch (error) {
-      console.error('❌ Erreur inattendue:', error)
-      console.log('🔍 Type d\'erreur inattendue:', typeof error)
+      console.error('❌ [SÉCURITÉ] Erreur critique:', error)
       
-      // En cas d'erreur inattendue, utiliser des données de démo
-      console.log('⚠️ Utilisation de données de démo suite à erreur inattendue')
+      // En cas d'erreur critique, mode démo minimal
       const demoFranchises = [
         {
           id: 'demo-1',
@@ -220,18 +211,6 @@ export default function DashboardPage() {
           postal_code: '75008',
           email: 'paris@demo.com',
           phone: '01 23 45 67 89',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'demo-2',
-          name: 'Franchise Demo Lyon',
-          address: '456 Rue de la République',
-          city: 'Lyon',
-          postal_code: '69002',
-          email: 'lyon@demo.com',
-          phone: '04 12 34 56 78',
           is_active: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
