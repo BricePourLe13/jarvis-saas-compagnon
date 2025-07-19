@@ -1,4 +1,5 @@
 // Test unitaire pour vérifier les imports de Supabase
+import { describe, test, expect } from '@jest/globals'
 import { createClient } from '../src/lib/supabase-simple'
 import type { Database } from '../src/types/database'
 
