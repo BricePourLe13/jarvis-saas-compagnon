@@ -60,11 +60,24 @@ export default function DashboardPage() {
   const [franchises, setFranchises] = useState<Franchise[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    loadTime: 0,
+    apiLatency: 0,
+    lastUpdate: new Date().toISOString()
+  })
 
   const router = useRouter()
 
   useEffect(() => {
-    initializeAndCheckAuth()
+    const startTime = performance.now()
+    initializeAndCheckAuth().finally(() => {
+      const endTime = performance.now()
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        loadTime: Math.round(endTime - startTime),
+        lastUpdate: new Date().toISOString()
+      }))
+    })
   }, [])
 
   const initializeAndCheckAuth = async () => {
@@ -124,12 +137,20 @@ export default function DashboardPage() {
   }
 
   const loadFranchises = async (supabase: any) => {
+    const apiStartTime = performance.now()
+    
     try {
       console.log('🔍 Tentative de chargement des franchises...')
       const { data, error } = await supabase
         .from('franchises')
         .select('*')
         .order('created_at', { ascending: false })
+
+      const apiEndTime = performance.now()
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        apiLatency: Math.round(apiEndTime - apiStartTime)
+      }))
 
       if (error) {
         console.error('❌ Erreur chargement franchises:', error)
@@ -315,7 +336,7 @@ export default function DashboardPage() {
           </VStack>
 
           {/* Statistiques rapides */}
-          <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={6} w="full">
+          <Grid templateColumns={{ base: "1fr", md: "repeat(4, 1fr)" }} gap={6} w="full">
             <GridItem>
               <Box
                 bg="whiteAlpha.100"
@@ -373,9 +394,32 @@ export default function DashboardPage() {
               >
                 <VStack align="start" gap={2}>
                   <Text fontSize="lg" fontWeight="semibold" color="white">
-                    Votre Rôle
+                    Performance
                   </Text>
                   <Text fontSize="3xl" fontWeight="bold" color="purple.400">
+                    {performanceMetrics.apiLatency}ms
+                  </Text>
+                  <Text fontSize="sm" color="whiteAlpha.600">
+                    Latence API
+                  </Text>
+                </VStack>
+              </Box>
+            </GridItem>
+
+            <GridItem>
+              <Box
+                bg="whiteAlpha.100"
+                backdropFilter="blur(10px)"
+                borderRadius="xl"
+                p={6}
+                border="1px solid"
+                borderColor="orange.500/20"
+              >
+                <VStack align="start" gap={2}>
+                  <Text fontSize="lg" fontWeight="semibold" color="white">
+                    Votre Rôle
+                  </Text>
+                  <Text fontSize="3xl" fontWeight="bold" color="orange.400">
                     {userProfile?.role === 'super_admin' ? '👑' : 
                      userProfile?.role === 'franchise_owner' ? '🏢' : '👤'}
                   </Text>

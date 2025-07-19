@@ -1,7 +1,44 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { apiLimiter, authLimiter, adminLimiter, getClientIdentifier } from './lib/rate-limiter'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // 🛡️ Rate Limiting par endpoint
+  const clientId = getClientIdentifier(request)
+  
+  // Rate limiting spécialisé par route
+  let rateLimitResult
+  if (pathname.startsWith('/api/auth')) {
+    rateLimitResult = authLimiter.isAllowed(clientId)
+  } else if (pathname.startsWith('/admin')) {
+    rateLimitResult = adminLimiter.isAllowed(clientId)
+  } else if (pathname.startsWith('/api/')) {
+    rateLimitResult = apiLimiter.isAllowed(clientId)
+  }
+
+  // Bloquer si rate limit dépassé
+  if (rateLimitResult && !rateLimitResult.allowed) {
+    console.warn(`🚨 [SÉCURITÉ] Rate limit dépassé pour ${clientId} sur ${pathname}`)
+    
+    return new NextResponse(
+      JSON.stringify({
+        error: 'Rate limit exceeded',
+        message: 'Trop de requêtes. Veuillez patienter.',
+        resetTime: rateLimitResult.resetTime
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RateLimit-Reset': rateLimitResult.resetTime?.toString() || '',
+          'Retry-After': Math.ceil((rateLimitResult.resetTime! - Date.now()) / 1000).toString()
+        }
+      }
+    )
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
