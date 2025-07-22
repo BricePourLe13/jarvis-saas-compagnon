@@ -94,8 +94,8 @@ export async function middleware(request: NextRequest) {
   // Rafraîchir la session si nécessaire
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Protéger les routes admin
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  // Protéger les routes admin et dashboard
+  if (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/dashboard')) {
     if (!session) {
       // Rediriger vers la page d'accueil avec un paramètre pour ouvrir la modal de connexion
       const redirectUrl = new URL('/', request.url)
@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
-    // Vérifier le rôle pour les routes admin
+    // Vérifier le rôle pour les routes admin et dashboard
     if (session.user) {
       const { data: userProfile } = await supabase
         .from('users')
@@ -112,8 +112,8 @@ export async function middleware(request: NextRequest) {
         .single()
 
       if (!userProfile || !['super_admin', 'franchise_owner', 'franchise_admin'].includes(userProfile.role)) {
-        // Pas autorisé à accéder à l'admin
-        return NextResponse.redirect(new URL('/unauthorized', request.url))
+        // Pas autorisé à accéder à l'admin/dashboard
+        return NextResponse.redirect(new URL('/', request.url))
       }
     }
   }

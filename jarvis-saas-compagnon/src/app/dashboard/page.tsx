@@ -1,587 +1,532 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
-import {
-  Box,
-  Button,
+"use client"
+import { useEffect, useState } from "react"
+import { 
+  Box, 
+  Container, 
+  Heading, 
+  Text, 
+  SimpleGrid, 
+  Stat, 
+  StatLabel, 
+  StatNumber, 
+  StatHelpText,
   VStack,
   HStack,
-  Text,
-  Heading,
-  Spinner,
-  Center,
-  Flex,
-  Grid,
-  GridItem,
+  Icon,
   Badge,
+  Flex,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Spinner,
+  useToast
 } from '@chakra-ui/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  TrendingUp, 
+  Users, 
+  Activity, 
+  Clock, 
+  Building2, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  ArrowLeft, 
+  ChevronRight 
+} from 'lucide-react'
+import { createClient } from '../../lib/supabase-simple'
+import type { Database } from '../../types/database'
 
-// Import dynamique pour éviter les problèmes de build
-let createClient: any = null
+type Franchise = Database['public']['Tables']['franchises']['Row']
 
-async function loadSupabaseClient() {
-  try {
-    const supabaseModule = await import('../../lib/supabase-simple')
-    createClient = supabaseModule.createClient
-    return { createClient }
-  } catch (error) {
-    console.error('Failed to load Supabase:', error)
-    return null
+// Données de démonstration pour les stats globales
+const stats = [
+  { 
+    label: "Franchises", 
+    value: 12, 
+    change: "+12%", 
+    trend: "up",
+    icon: TrendingUp,
+    color: "brand.500"
+  },
+  { 
+    label: "Franchises actives", 
+    value: 10, 
+    change: "+8%", 
+    trend: "up",
+    icon: Activity,
+    color: "green.500"
+  },
+  { 
+    label: "Utilisateurs", 
+    value: 134, 
+    change: "+24%", 
+    trend: "up",
+    icon: Users,
+    color: "blue.500"
+  },
+  { 
+    label: "Latence API", 
+    value: "120ms", 
+    change: "-15%", 
+    trend: "down",
+    icon: Clock,
+    color: "purple.500"
+  },
+]
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.5, 
+      ease: [0.25, 0.1, 0.25, 1] as any
+    } 
   }
 }
 
-type Franchise = {
-  id: string
-  name: string
-  address: string
-  city: string
-  postal_code: string
-  email: string
-  phone: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
+const stagger = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
 }
 
-type UserProfile = {
-  id: string
-  email: string
-  full_name: string | null
-  role: string
-  created_at: string
-  updated_at: string
-}
+const MotionBox = motion(Box)
+const MotionCard = motion(Card)
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [mounted, setMounted] = useState(false)
   const [franchises, setFranchises] = useState<Franchise[]>([])
+  const [selectedFranchise, setSelectedFranchise] = useState<Franchise | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [performanceMetrics, setPerformanceMetrics] = useState({
-    loadTime: 0,
-    apiLatency: 0,
-    lastUpdate: new Date().toISOString()
-  })
+  const [view, setView] = useState<'overview' | 'franchise-details'>('overview')
+  const toast = useToast()
 
-  const router = useRouter()
-
-  useEffect(() => {
-    const startTime = performance.now()
-    initializeAndCheckAuth().finally(() => {
-      const endTime = performance.now()
-      setPerformanceMetrics(prev => ({
-        ...prev,
-        loadTime: Math.round(endTime - startTime),
-        lastUpdate: new Date().toISOString()
-      }))
-    })
+  const supabase = createClient()
+  
+  useEffect(() => { 
+    setMounted(true)
+    loadFranchises()
   }, [])
 
-  const initializeAndCheckAuth = async () => {
+  // Charger les franchises depuis Supabase
+  const loadFranchises = async () => {
     try {
-      // Chargement dynamique de Supabase
-      const supabaseModules = await loadSupabaseClient()
-      if (!supabaseModules) {
-        setError('Impossible de charger Supabase')
-        setLoading(false)
-        return
-      }
-
-      const supabase = createClient()
-      await checkAuth(supabase)
-    } catch (error) {
-      console.error('Erreur d\'initialisation:', error)
-      setError('Erreur d\'initialisation')
-      setLoading(false)
-    }
-  }
-
-  const checkAuth = async (supabase: any) => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser()
+      setLoading(true)
       
-      if (error || !user) {
-        console.error('Erreur auth getUser:', error)
-        router.push('/')
-        return
-      }
-
-      setUser(user)
-
-      // Création d'un profil à partir des données d'authentification
-      // pour éviter les problèmes de récursion RLS sur la table users
-      const smartProfile: UserProfile = {
-        id: user.id,
-        email: user.email || '',
-        full_name: user.user_metadata?.full_name || 
-                   user.email?.split('@')[0] || 
-                   'Utilisateur',
-        role: user.user_metadata?.role || 'franchise_admin',
-        created_at: user.created_at || new Date().toISOString(),
-        updated_at: user.updated_at || new Date().toISOString()
-      }
-
-      console.log('✅ Profil intelligent créé (sans RLS):', smartProfile)
-      setUserProfile(smartProfile)
-
-      await loadFranchises(supabase)
-    } catch (error) {
-      console.error('Erreur authentification:', error)
-      router.push('/')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadFranchises = async (supabase: any) => {
-    const apiStartTime = performance.now()
-    
-    try {
-      console.log('🔍 Tentative de chargement des franchises...')
       const { data, error } = await supabase
         .from('franchises')
         .select('*')
         .order('created_at', { ascending: false })
 
-      const apiEndTime = performance.now()
-      setPerformanceMetrics(prev => ({
-        ...prev,
-        apiLatency: Math.round(apiEndTime - apiStartTime)
-      }))
-
       if (error) {
-        console.error('❌ Erreur chargement franchises:', error)
-        
-        // Gestion spécifique des erreurs RLS avec logging sécurisé
-        if (error?.code === '42P17' || error?.message?.includes('infinite recursion')) {
-          console.warn('⚠️ [SÉCURITÉ] RLS récursion détectée - Mode démo activé')
-          // TODO: Alerter l'équipe sécurité de cette erreur RLS
-          
-          const demoFranchises = [
-            {
-              id: 'demo-1',
-              name: 'Franchise Demo Paris',
-              address: '123 Avenue des Champs-Élysées',
-              city: 'Paris',
-              postal_code: '75008',
-              email: 'paris@demo.com',
-              phone: '01 23 45 67 89',
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-            {
-              id: 'demo-2',
-              name: 'Franchise Demo Lyon',
-              address: '456 Rue de la République',
-              city: 'Lyon',
-              postal_code: '69002',
-              email: 'lyon@demo.com',
-              phone: '04 12 34 56 78',
-              is_active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          ]
-          setFranchises(demoFranchises)
-          return
-        }
-        
-        // Pour les erreurs d'autorisation, redirection sécurisée
-        if (error?.code === 'PGRST301' || error?.message?.includes('permission denied')) {
-          console.warn('⚠️ [SÉCURITÉ] Accès non autorisé détecté')
-          router.push('/')
-          return
-        }
-        
-        // Autres erreurs - mode démo par sécurité
-        console.warn('⚠️ [SÉCURITÉ] Erreur DB inconnue - Mode démo par sécurité')
-        const demoFranchises = [
-          {
-            id: 'demo-1',
-            name: 'Franchise Demo Paris',
-            address: '123 Avenue des Champs-Élysées',
-            city: 'Paris',
-            postal_code: '75008',
-            email: 'paris@demo.com',
-            phone: '01 23 45 67 89',
-            is_active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ]
-        setFranchises(demoFranchises)
+        console.error('Erreur Supabase:', error)
+        toast({
+          title: "Erreur de chargement",
+          description: `Impossible de charger les franchises: ${error.message}`,
+          status: "error",
+          duration: 10000,
+          isClosable: true,
+        })
         return
       }
 
-      console.log('✅ Franchises chargées avec succès:', data?.length || 0, 'franchises')
       setFranchises(data || [])
     } catch (error) {
-      console.error('❌ [SÉCURITÉ] Erreur critique:', error)
-      
-      // En cas d'erreur critique, mode démo minimal
-      const demoFranchises = [
-        {
-          id: 'demo-1',
-          name: 'Franchise Demo Paris',
-          address: '123 Avenue des Champs-Élysées',
-          city: 'Paris',
-          postal_code: '75008',
-          email: 'paris@demo.com',
-          phone: '01 23 45 67 89',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]
-      setFranchises(demoFranchises)
+      console.error('Erreur lors du chargement:', error)
+      toast({
+        title: "Erreur technique",
+        description: "Une erreur est survenue lors du chargement des franchises",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
-  const logout = async () => {
-    if (createClient) {
-      const supabase = createClient()
-      await supabase.auth.signOut()
-    }
-    router.push('/')
+  const handleFranchiseClick = (franchise: Franchise) => {
+    setSelectedFranchise(franchise)
+    setView('franchise-details')
   }
 
-  if (loading) {
-    return (
-      <Box minH="100vh" bg="linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%)" display="flex" alignItems="center" justifyContent="center">
-        <VStack gap={4}>
-          <Spinner size="xl" color="purple.400" />
-          <Text color="white" fontSize="xl">Chargement...</Text>
-        </VStack>
-      </Box>
-    )
+  const handleBackToOverview = () => {
+    setSelectedFranchise(null)
+    setView('overview')
   }
 
-  if (error) {
-    return (
-      <Box minH="100vh" bg="linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%)" display="flex" alignItems="center" justifyContent="center">
-        <VStack gap={4}>
-          <Text color="red.400" fontSize="xl">❌ Erreur</Text>
-          <Text color="white" fontSize="md" textAlign="center">{error}</Text>
-          <Button onClick={() => window.location.reload()} colorScheme="purple">
-            Réessayer
-          </Button>
-        </VStack>
-      </Box>
-    )
-  }
-
-  return (
-    <Box minH="100vh" bg="linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%)">
+  // Vue principale du dashboard
+  const DashboardOverview = () => (
+    <motion.div
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+    >
       {/* Header */}
-      <Box
-        bg="blackAlpha.200"
-        backdropFilter="blur(10px)"
-        borderBottom="1px solid"
-        borderColor="whiteAlpha.200"
-      >
-        <Box maxW="7xl" mx="auto" px={{ base: 4, sm: 6, lg: 8 }}>
-          <Flex justify="space-between" align="center" py={4}>
-            <HStack gap={4}>
-              <Heading size="lg" color="white">
-                🚀 JARVIS Dashboard
-              </Heading>
-              {userProfile && (
-                <Badge
-                  colorScheme={userProfile.role === 'super_admin' ? 'purple' : userProfile.role === 'franchise_owner' ? 'blue' : 'gray'}
-                  fontSize="sm"
-                >
-                  {userProfile.role === 'super_admin' ? '👑 Super Admin' : 
-                   userProfile.role === 'franchise_owner' ? '🏢 Franchise Owner' : 
-                   '👤 Admin'}
-                </Badge>
-              )}
-            </HStack>
-            <HStack gap={4}>
-              <VStack align="end" gap={0}>
-                <Text color="white" fontWeight="medium" fontSize="sm">
-                  {userProfile?.full_name || userProfile?.email}
-                </Text>
-                <Text color="whiteAlpha.700" fontSize="xs">
-                  {userProfile?.role}
-                </Text>
-              </VStack>
-              <Button
-                onClick={logout}
-                bg="red.600"
-                _hover={{ bg: "red.700" }}
-                color="white"
-                size="sm"
-              >
-                🚪 Déconnexion
-              </Button>
-            </HStack>
-          </Flex>
-        </Box>
-      </Box>
-
-      <Box maxW="7xl" mx="auto" px={{ base: 4, sm: 6, lg: 8 }} py={8}>
-        <VStack align="start" gap={8} w="full">
-          
-          <VStack align="start" gap={2}>
-            <Heading size="xl" color="white">
-              📊 Tableau de bord - Franchises
-            </Heading>
-            <Text color="whiteAlpha.700">
-              Bienvenue dans votre interface d'administration JARVIS
-            </Text>
-          </VStack>
-
-          {/* Statistiques rapides */}
-          <Grid templateColumns={{ base: "1fr", md: "repeat(4, 1fr)" }} gap={6} w="full">
-            <GridItem>
-              <Box
-                bg="whiteAlpha.100"
-                backdropFilter="blur(10px)"
-                borderRadius="xl"
-                p={6}
-                border="1px solid"
-                borderColor="blue.500/20"
-              >
-                <VStack align="start" gap={2}>
-                  <Text fontSize="lg" fontWeight="semibold" color="white">
-                    Franchises
-                  </Text>
-                  <Text fontSize="3xl" fontWeight="bold" color="blue.400">
-                    {franchises.length}
-                  </Text>
-                  <Text fontSize="sm" color="whiteAlpha.600">
-                    Total des franchises
-                  </Text>
-                </VStack>
-              </Box>
-            </GridItem>
-            
-            <GridItem>
-              <Box
-                bg="whiteAlpha.100"
-                backdropFilter="blur(10px)"
-                borderRadius="xl"
-                p={6}
-                border="1px solid"
-                borderColor="green.500/20"
-              >
-                <VStack align="start" gap={2}>
-                  <Text fontSize="lg" fontWeight="semibold" color="white">
-                    Actives
-                  </Text>
-                  <Text fontSize="3xl" fontWeight="bold" color="green.400">
-                    {franchises.filter(f => f.is_active).length}
-                  </Text>
-                  <Text fontSize="sm" color="whiteAlpha.600">
-                    Franchises actives
-                  </Text>
-                </VStack>
-              </Box>
-            </GridItem>
-            
-            <GridItem>
-              <Box
-                bg="whiteAlpha.100"
-                backdropFilter="blur(10px)"
-                borderRadius="xl"
-                p={6}
-                border="1px solid"
-                borderColor="purple.500/20"
-              >
-                <VStack align="start" gap={2}>
-                  <Text fontSize="lg" fontWeight="semibold" color="white">
-                    Performance
-                  </Text>
-                  <Text fontSize="3xl" fontWeight="bold" color="purple.400">
-                    {performanceMetrics.apiLatency}ms
-                  </Text>
-                  <Text fontSize="sm" color="whiteAlpha.600">
-                    Latence API
-                  </Text>
-                </VStack>
-              </Box>
-            </GridItem>
-
-            <GridItem>
-              <Box
-                bg="whiteAlpha.100"
-                backdropFilter="blur(10px)"
-                borderRadius="xl"
-                p={6}
-                border="1px solid"
-                borderColor="orange.500/20"
-              >
-                <VStack align="start" gap={2}>
-                  <Text fontSize="lg" fontWeight="semibold" color="white">
-                    Votre Rôle
-                  </Text>
-                  <Text fontSize="3xl" fontWeight="bold" color="orange.400">
-                    {userProfile?.role === 'super_admin' ? '👑' : 
-                     userProfile?.role === 'franchise_owner' ? '🏢' : '👤'}
-                  </Text>
-                  <Text fontSize="sm" color="whiteAlpha.600">
-                    Accès administrateur
-                  </Text>
-                </VStack>
-              </Box>
-            </GridItem>
-          </Grid>
-
-          {/* Liste des franchises */}
-          <Box
-            w="full"
-            bg="whiteAlpha.100"
-            backdropFilter="blur(10px)"
-            borderRadius="xl"
-            p={6}
-            border="1px solid"
-            borderColor="purple.500/20"
+      <motion.div variants={fadeInUp}>
+        <VStack align="start" spacing={2} mb={12}>
+          <Heading 
+            as="h1" 
+            size="2xl" 
+            color="gray.800" 
+            fontWeight="bold"
+            letterSpacing="-0.025em"
           >
-            <Heading size="lg" color="white" mb={6}>
-              📋 Franchises
-            </Heading>
-            
-            {franchises.length > 0 ? (
-              <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={4}>
-                {franchises.map((franchise) => (
-                  <GridItem key={franchise.id}>
-                    <Box
-                      bg="whiteAlpha.50"
-                      borderRadius="lg"
-                      p={4}
-                      border="1px solid"
-                      borderColor="whiteAlpha.200"
-                      _hover={{
-                        borderColor: "purple.500/40",
-                      }}
-                      transition="all 0.2s"
-                    >
-                      <VStack align="start" gap={2} w="full">
-                        <Heading size="md" color="white">
-                          {franchise.name}
-                        </Heading>
-                        <Text color="whiteAlpha.700" fontSize="sm">
-                          {franchise.address}
-                        </Text>
-                        <Text color="whiteAlpha.700" fontSize="sm">
-                          {franchise.city} {franchise.postal_code}
-                        </Text>
-                        <Text color="whiteAlpha.600" fontSize="xs">
-                          {franchise.email}
-                        </Text>
-                        
-                        <Flex justify="space-between" align="center" w="full" pt={2}>
-                          <Badge
-                            colorScheme={franchise.is_active ? "green" : "red"}
-                            fontSize="xs"
-                          >
-                            {franchise.is_active ? '✅ Actif' : '❌ Inactif'}
-                          </Badge>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            color="purple.400"
-                            _hover={{ color: "purple.300" }}
-                          >
-                            👁️ Détails
-                          </Button>
-                        </Flex>
-                      </VStack>
-                    </Box>
-                  </GridItem>
-                ))}
-              </Grid>
-            ) : (
-              <Center py={8}>
-                <VStack gap={4}>
-                  <Text fontSize="4xl">🏢</Text>
-                  <Text color="whiteAlpha.600">Aucune franchise trouvée</Text>
-                  <Text fontSize="sm" color="whiteAlpha.500" textAlign="center">
-                    Vérifiez votre configuration Supabase ou créez votre première franchise
-                  </Text>
-                </VStack>
-              </Center>
-            )}
-          </Box>
+            Dashboard
+          </Heading>
+          <Text color="gray.600" fontSize="lg">
+            Vue d'ensemble de votre plateforme JARVIS
+          </Text>
+        </VStack>
+      </motion.div>
 
-          {/* Actions rapides */}
-          <Box
-            w="full"
-            bg="whiteAlpha.100"
-            backdropFilter="blur(10px)"
-            borderRadius="xl"
-            p={6}
-            border="1px solid"
-            borderColor="purple.500/20"
-          >
-            <Heading size="lg" color="white" mb={6}>
-              ⚡ Actions rapides
-            </Heading>
-            <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }} gap={4}>
-              <GridItem>
-                <Button
-                  w="full"
-                  bg="blue.600"
-                  _hover={{ bg: "blue.700" }}
-                  color="white"
-                  onClick={async () => {
-                    console.log('🔄 Actualisation des données...')
-                    setLoading(true)
-                    try {
-                      const supabaseModules = await loadSupabaseClient()
-                      if (supabaseModules) {
-                        const supabase = createClient()
-                        await loadFranchises(supabase)
-                      }
-                    } catch (error) {
-                      console.error('Erreur lors de l\'actualisation:', error)
-                    } finally {
-                      setLoading(false)
-                    }
+      {/* Stats Grid */}
+      <motion.div variants={fadeInUp}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={6} mb={12}>
+          <AnimatePresence>
+            {mounted && stats.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  duration: 0.5, 
+                  delay: index * 0.1,
+                  ease: [0.25, 0.1, 0.25, 1]
+                }}
+                whileHover={{ 
+                  y: -4, 
+                  transition: { duration: 0.2 }
+                }}
+              >
+                <Box
+                  bg="white"
+                  p={6}
+                  borderRadius="20px"
+                  boxShadow="0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.04)"
+                  border="1px solid"
+                  borderColor="gray.100"
+                  position="relative"
+                  overflow="hidden"
+                  cursor="pointer"
+                  transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                  _hover={{
+                    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                    borderColor: "gray.200"
                   }}
                 >
-                  🔄 Actualiser
-                </Button>
-              </GridItem>
-              <GridItem>
-                <Button
-                  w="full"
-                  bg="purple.600"
-                  _hover={{ bg: "purple.700" }}
-                  color="white"
-                  onClick={() => router.push('/admin')}
-                >
-                  👑 Admin Avancé
-                </Button>
-              </GridItem>
-              <GridItem>
-                <Button
-                  w="full"
-                  bg="green.600"
-                  _hover={{ bg: "green.700" }}
-                  color="white"
-                >
-                  📊 Analytics
-                </Button>
-              </GridItem>
-              <GridItem>
-                <Button
-                  w="full"
-                  bg="orange.600"
-                  _hover={{ bg: "orange.700" }}
-                  color="white"
-                >
-                  ⚙️ Paramètres
-                </Button>
-              </GridItem>
-            </Grid>
-          </Box>
+                  <Flex justify="space-between" align="start" mb={4}>
+                    <Box
+                      p={3}
+                      borderRadius="12px"
+                      bg={`${stat.color.split('.')[0]}.50`}
+                    >
+                      <Icon 
+                        as={stat.icon} 
+                        boxSize={6} 
+                        color={stat.color}
+                      />
+                    </Box>
+                    <Badge
+                      colorScheme={stat.trend === 'up' ? 'green' : stat.trend === 'down' ? 'red' : 'gray'}
+                      variant="subtle"
+                      borderRadius="full"
+                      px={2}
+                      py={1}
+                      fontSize="xs"
+                      fontWeight="medium"
+                    >
+                      {stat.change}
+                    </Badge>
+                  </Flex>
+                  
+                  <Stat>
+                    <StatNumber 
+                      fontSize="2xl" 
+                      fontWeight="bold" 
+                      color="gray.800"
+                      letterSpacing="-0.025em"
+                    >
+                      {stat.value}
+                    </StatNumber>
+                    <StatLabel 
+                      color="gray.600" 
+                      fontSize="sm"
+                      fontWeight="medium"
+                    >
+                      {stat.label}
+                    </StatLabel>
+                  </Stat>
+                </Box>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </SimpleGrid>
+      </motion.div>
+
+      {/* Section Franchises */}
+      <motion.div variants={fadeInUp}>
+        <VStack align="start" spacing={6} mb={8}>
+          <Flex justify="space-between" align="center" w="full">
+            <VStack align="start" spacing={1}>
+              <Heading as="h2" size="lg" color="gray.800">
+                Gestion des Franchises
+              </Heading>
+              <Text color="gray.600">
+                Gérer et monitorer toutes vos franchises
+              </Text>
+            </VStack>
+            <HStack spacing={3}>
+              <Badge 
+                colorScheme="blue" 
+                variant="subtle" 
+                borderRadius="full"
+                px={3}
+                py={1}
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                {franchises.length} franchise{franchises.length > 1 ? 's' : ''}
+              </Badge>
+              <Badge 
+                colorScheme="green" 
+                variant="subtle" 
+                borderRadius="full"
+                px={3}
+                py={1}
+                fontSize="sm"
+                fontWeight="medium"
+              >
+                {franchises.filter(f => f.is_active).length} active{franchises.filter(f => f.is_active).length > 1 ? 's' : ''}
+              </Badge>
+            </HStack>
+          </Flex>
         </VStack>
-      </Box>
+
+        {/* Franchises Grid */}
+        {loading ? (
+          <Flex justify="center" py={12}>
+            <Spinner size="xl" color="brand.500" thickness="4px" />
+          </Flex>
+        ) : franchises.length === 0 ? (
+          <Box
+            bg="white"
+            borderRadius="20px"
+            p={12}
+            textAlign="center"
+            border="1px solid"
+            borderColor="gray.100"
+          >
+            <Icon as={Building2} boxSize={12} color="gray.300" mb={4} />
+            <Text color="gray.500" fontSize="lg">
+              Aucune franchise trouvée
+            </Text>
+            <Text fontSize="sm" color="gray.400" mt={2}>
+              Les franchises créées apparaîtront ici
+            </Text>
+          </Box>
+        ) : (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {franchises.map((franchise, index) => (
+              <motion.div
+                key={franchise.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.5, 
+                  delay: index * 0.1,
+                  ease: [0.25, 0.1, 0.25, 1]
+                }}
+                whileHover={{ y: -4 }}
+              >
+                <MotionCard
+                  bg="white"
+                  borderRadius="20px"
+                  border="1px solid"
+                  borderColor="gray.100"
+                  cursor="pointer"
+                  overflow="hidden"
+                  _hover={{
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                    borderColor: "brand.200"
+                  }}
+                  transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                  onClick={() => handleFranchiseClick(franchise)}
+                >
+                  <CardHeader pb={2}>
+                    <Flex justify="space-between" align="start">
+                      <VStack align="start" spacing={1} flex="1">
+                        <Text 
+                          fontWeight="bold" 
+                          fontSize="lg" 
+                          color="gray.800"
+                          noOfLines={1}
+                        >
+                          {franchise.name}
+                        </Text>
+                        <HStack spacing={1}>
+                          <Icon as={MapPin} boxSize={3} color="gray.400" />
+                          <Text fontSize="sm" color="gray.500" noOfLines={1}>
+                            {franchise.city}
+                          </Text>
+                        </HStack>
+                      </VStack>
+                      
+                      <Badge 
+                        colorScheme={franchise.is_active ? "green" : "gray"}
+                        variant="subtle"
+                        borderRadius="full"
+                        fontSize="xs"
+                      >
+                        {franchise.is_active ? "Actif" : "Inactif"}
+                      </Badge>
+                    </Flex>
+                  </CardHeader>
+
+                  <CardBody pt={0}>
+                    <VStack spacing={3} align="stretch">
+                      <VStack spacing={2} align="stretch">
+                        <HStack>
+                          <Icon as={Mail} boxSize={4} color="gray.400" />
+                          <Text fontSize="sm" color="gray.600" noOfLines={1}>
+                            {franchise.email}
+                          </Text>
+                        </HStack>
+                        <HStack>
+                          <Icon as={Phone} boxSize={4} color="gray.400" />
+                          <Text fontSize="sm" color="gray.600">
+                            {franchise.phone}
+                          </Text>
+                        </HStack>
+                      </VStack>
+
+                      <Flex justify="space-between" align="center" pt={2}>
+                        <Text fontSize="xs" color="gray.400">
+                          Créé le {new Date(franchise.created_at).toLocaleDateString('fr-FR')}
+                        </Text>
+                        <Icon as={ChevronRight} boxSize={4} color="gray.400" />
+                      </Flex>
+                    </VStack>
+                  </CardBody>
+                </MotionCard>
+              </motion.div>
+            ))}
+          </SimpleGrid>
+        )}
+      </motion.div>
+    </motion.div>
+  )
+
+  // Vue détails franchise
+  const FranchiseDetails = () => (
+    <MotionBox
+      initial="hidden"
+      animate="show"
+      variants={fadeInUp}
+    >
+      {/* Header avec bouton retour */}
+      <HStack spacing={4} mb={8}>
+        <Button
+          leftIcon={<Icon as={ArrowLeft} />}
+          variant="ghost"
+          size="md"
+          onClick={handleBackToOverview}
+          color="gray.700"
+          bg="white"
+          border="1px solid"
+          borderColor="gray.200"
+          _hover={{ 
+            bg: "gray.50",
+            borderColor: "gray.300",
+            color: "gray.800"
+          }}
+          boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
+        >
+          Retour au dashboard
+        </Button>
+        <Box>
+          <Heading as="h1" size="xl" color="gray.800">
+            {selectedFranchise?.name}
+          </Heading>
+          <Text color="gray.600" mt={1}>
+            Détails de la franchise
+          </Text>
+        </Box>
+      </HStack>
+
+      {/* Informations franchise */}
+      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+        <Card bg="white" borderRadius="20px" border="1px solid" borderColor="gray.100">
+          <CardHeader>
+            <Heading size="md" color="gray.800">
+              Informations générales
+            </Heading>
+          </CardHeader>
+          <CardBody>
+            <VStack spacing={4} align="stretch">
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Nom</Text>
+                <Text fontWeight="medium">{selectedFranchise?.name}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Adresse</Text>
+                <Text fontWeight="medium">{selectedFranchise?.address}</Text>
+                <Text color="gray.600">{selectedFranchise?.postal_code} {selectedFranchise?.city}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Contact</Text>
+                <Text fontWeight="medium">{selectedFranchise?.email}</Text>
+                <Text color="gray.600">{selectedFranchise?.phone}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Statut</Text>
+                <Badge 
+                  colorScheme={selectedFranchise?.is_active ? "green" : "gray"}
+                  borderRadius="full"
+                >
+                  {selectedFranchise?.is_active ? "Actif" : "Inactif"}
+                </Badge>
+              </Box>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        <Card bg="white" borderRadius="20px" border="1px solid" borderColor="gray.100">
+          <CardHeader>
+            <Heading size="md" color="gray.800">
+              Salles de la franchise
+            </Heading>
+          </CardHeader>
+          <CardBody>
+            <VStack spacing={4}>
+              <Icon as={Users} boxSize={12} color="gray.300" />
+              <Text color="gray.500" textAlign="center">
+                Liste des salles à venir
+              </Text>
+              <Text fontSize="sm" color="gray.400" textAlign="center">
+                Cette section affichera toutes les salles<br />
+                associées à cette franchise
+              </Text>
+            </VStack>
+          </CardBody>
+        </Card>
+      </SimpleGrid>
+    </MotionBox>
+  )
+
+  return (
+    <Box minH="100vh" bg="#fafafa" py={8}>
+      <Container maxW="7xl">
+        {view === 'overview' ? <DashboardOverview /> : <FranchiseDetails />}
+      </Container>
     </Box>
   )
 }

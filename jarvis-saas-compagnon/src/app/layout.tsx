@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ChakraProviders } from '../components/ChakraProviders'
+import './globals.css'
 
 export const metadata: Metadata = {
   title: 'JARVIS SaaS Compagnon',

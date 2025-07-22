@@ -1,112 +1,373 @@
-import { Metadata } from 'next'
+"use client"
+import { 
+  Box, 
+  Container, 
+  Heading, 
+  Text, 
+  VStack,
+  HStack,
+  Icon,
+  Button,
+  Badge,
+  Flex,
+  SimpleGrid,
+  Spinner,
+  Card,
+  CardBody,
+  CardHeader,
+  useToast
+} from '@chakra-ui/react'
+import { motion } from 'framer-motion'
+import { Building2, MapPin, Phone, Mail, ArrowLeft, Users, Activity, ChevronRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { createClient } from '../../lib/supabase-simple'
+import type { Database } from '../../types/database'
 
-export const metadata: Metadata = {
-  title: 'JARVIS Admin - Dashboard',
-  description: 'Interface d\'administration JARVIS SaaS Compagnon',
+type Franchise = Database['public']['Tables']['franchises']['Row']
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      duration: 0.5, 
+      ease: [0.25, 0.1, 0.25, 1] as any
+    } 
+  }
 }
 
+const MotionBox = motion(Box)
+const MotionCard = motion(Card)
+
 export default function AdminPage() {
+  const [franchises, setFranchises] = useState<Franchise[]>([])
+  const [selectedFranchise, setSelectedFranchise] = useState<Franchise | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'list' | 'details'>('list')
+  const toast = useToast()
+
+  const supabase = createClient()
+
+  // Charger les franchises depuis Supabase
+  useEffect(() => {
+    loadFranchises()
+  }, [])
+
+  const loadFranchises = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('franchises')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les franchises",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        })
+        return
+      }
+
+      setFranchises(data || [])
+    } catch (error) {
+      console.error('Erreur lors du chargement:', error)
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFranchiseClick = (franchise: Franchise) => {
+    setSelectedFranchise(franchise)
+    setView('details')
+  }
+
+  const handleBackToList = () => {
+    setSelectedFranchise(null)
+    setView('list')
+  }
+
+  // Vue liste des franchises
+  const FranchisesList = () => (
+    <MotionBox
+      initial="hidden"
+      animate="show"
+      variants={{
+        hidden: {},
+        show: {
+          transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.2
+          }
+        }
+      }}
+    >
+      {/* Header */}
+      <motion.div variants={fadeInUp}>
+        <VStack spacing={4} textAlign="center" mb={8}>
+          <Box
+            p={4}
+            borderRadius="20px"
+            bg="brand.50"
+            border="1px solid"
+            borderColor="brand.100"
+          >
+            <Icon as={Building2} boxSize={8} color="brand.500" />
+          </Box>
+          
+          <VStack spacing={2}>
+            <Heading 
+              as="h1" 
+              size="2xl" 
+              color="gray.800" 
+              fontWeight="bold"
+              letterSpacing="-0.025em"
+            >
+              Franchises JARVIS
+            </Heading>
+            <Text color="gray.600" fontSize="lg" maxW="md">
+              Gérer toutes les franchises de la plateforme
+            </Text>
+          </VStack>
+          
+          <HStack spacing={3}>
+            <Badge 
+              colorScheme="blue" 
+              variant="subtle" 
+              borderRadius="full"
+              px={3}
+              py={1}
+              fontSize="sm"
+              fontWeight="medium"
+            >
+              {franchises.length} franchise{franchises.length > 1 ? 's' : ''}
+            </Badge>
+            <Badge 
+              colorScheme="green" 
+              variant="subtle" 
+              borderRadius="full"
+              px={3}
+              py={1}
+              fontSize="sm"
+              fontWeight="medium"
+            >
+              {franchises.filter(f => f.is_active).length} active{franchises.filter(f => f.is_active).length > 1 ? 's' : ''}
+            </Badge>
+          </HStack>
+        </VStack>
+      </motion.div>
+
+      {/* Franchises Grid */}
+      {loading ? (
+        <Flex justify="center" py={12}>
+          <Spinner size="xl" color="brand.500" thickness="4px" />
+        </Flex>
+      ) : franchises.length === 0 ? (
+        <motion.div variants={fadeInUp}>
+          <Box
+            bg="white"
+            borderRadius="20px"
+            p={12}
+            textAlign="center"
+            border="1px solid"
+            borderColor="gray.100"
+          >
+            <Icon as={Building2} boxSize={12} color="gray.300" mb={4} />
+            <Text color="gray.500" fontSize="lg">
+              Aucune franchise trouvée
+            </Text>
+          </Box>
+        </motion.div>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          {franchises.map((franchise, index) => (
+            <motion.div
+              key={franchise.id}
+              variants={fadeInUp}
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MotionCard
+                bg="white"
+                borderRadius="20px"
+                border="1px solid"
+                borderColor="gray.100"
+                cursor="pointer"
+                overflow="hidden"
+                _hover={{
+                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                  borderColor: "brand.200"
+                }}
+                transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                onClick={() => handleFranchiseClick(franchise)}
+              >
+                <CardHeader pb={2}>
+                  <Flex justify="space-between" align="start">
+                    <VStack align="start" spacing={1} flex="1">
+                      <Text 
+                        fontWeight="bold" 
+                        fontSize="lg" 
+                        color="gray.800"
+                        noOfLines={1}
+                      >
+                        {franchise.name}
+                      </Text>
+                      <HStack spacing={1}>
+                        <Icon as={MapPin} boxSize={3} color="gray.400" />
+                        <Text fontSize="sm" color="gray.500" noOfLines={1}>
+                          {franchise.city}
+                        </Text>
+                      </HStack>
+                    </VStack>
+                    
+                    <Badge 
+                      colorScheme={franchise.is_active ? "green" : "gray"}
+                      variant="subtle"
+                      borderRadius="full"
+                      fontSize="xs"
+                    >
+                      {franchise.is_active ? "Actif" : "Inactif"}
+                    </Badge>
+                  </Flex>
+                </CardHeader>
+
+                <CardBody pt={0}>
+                  <VStack spacing={3} align="stretch">
+                    <VStack spacing={2} align="stretch">
+                      <HStack>
+                        <Icon as={Mail} boxSize={4} color="gray.400" />
+                        <Text fontSize="sm" color="gray.600" noOfLines={1}>
+                          {franchise.email}
+                        </Text>
+                      </HStack>
+                      <HStack>
+                        <Icon as={Phone} boxSize={4} color="gray.400" />
+                        <Text fontSize="sm" color="gray.600">
+                          {franchise.phone}
+                        </Text>
+                      </HStack>
+                    </VStack>
+
+                    <Flex justify="space-between" align="center" pt={2}>
+                      <Text fontSize="xs" color="gray.400">
+                        Créé le {new Date(franchise.created_at).toLocaleDateString('fr-FR')}
+                      </Text>
+                      <Icon as={ChevronRight} boxSize={4} color="gray.400" />
+                    </Flex>
+                  </VStack>
+                </CardBody>
+              </MotionCard>
+            </motion.div>
+          ))}
+        </SimpleGrid>
+      )}
+    </MotionBox>
+  )
+
+  // Vue détails franchise (pour l'instant, on affichera les infos de base)
+  const FranchiseDetails = () => (
+    <MotionBox
+      initial="hidden"
+      animate="show"
+      variants={fadeInUp}
+    >
+      {/* Header avec bouton retour */}
+      <HStack spacing={4} mb={8}>
+        <Button
+          leftIcon={<Icon as={ArrowLeft} />}
+          variant="ghost"
+          size="md"
+          onClick={handleBackToList}
+          _hover={{ bg: "gray.100" }}
+        >
+          Retour
+        </Button>
+        <Box>
+          <Heading as="h1" size="xl" color="gray.800">
+            {selectedFranchise?.name}
+          </Heading>
+          <Text color="gray.600" mt={1}>
+            Détails de la franchise
+          </Text>
+        </Box>
+      </HStack>
+
+      {/* Informations franchise */}
+      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+        <Card bg="white" borderRadius="20px" border="1px solid" borderColor="gray.100">
+          <CardHeader>
+            <Heading size="md" color="gray.800">
+              Informations générales
+            </Heading>
+          </CardHeader>
+          <CardBody>
+            <VStack spacing={4} align="stretch">
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Nom</Text>
+                <Text fontWeight="medium">{selectedFranchise?.name}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Adresse</Text>
+                <Text fontWeight="medium">{selectedFranchise?.address}</Text>
+                <Text color="gray.600">{selectedFranchise?.postal_code} {selectedFranchise?.city}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Contact</Text>
+                <Text fontWeight="medium">{selectedFranchise?.email}</Text>
+                <Text color="gray.600">{selectedFranchise?.phone}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={1}>Statut</Text>
+                <Badge 
+                  colorScheme={selectedFranchise?.is_active ? "green" : "gray"}
+                  borderRadius="full"
+                >
+                  {selectedFranchise?.is_active ? "Actif" : "Inactif"}
+                </Badge>
+              </Box>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        <Card bg="white" borderRadius="20px" border="1px solid" borderColor="gray.100">
+          <CardHeader>
+            <Heading size="md" color="gray.800">
+              Salles de la franchise
+            </Heading>
+          </CardHeader>
+          <CardBody>
+            <VStack spacing={4}>
+              <Icon as={Users} boxSize={12} color="gray.300" />
+              <Text color="gray.500" textAlign="center">
+                Liste des salles à venir
+              </Text>
+              <Text fontSize="sm" color="gray.400" textAlign="center">
+                Cette section affichera toutes les salles<br />
+                associées à cette franchise
+              </Text>
+            </VStack>
+          </CardBody>
+        </Card>
+      </SimpleGrid>
+    </MotionBox>
+  )
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="bg-white/10 backdrop-blur-lg rounded-lg p-6 mb-8 border border-white/20">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">JARVIS Command</h1>
-                <p className="text-gray-300">Interface d'Administration</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-white font-medium">Administrateur</p>
-              <p className="text-gray-400 text-sm">En ligne</p>
-            </div>
-          </div>
-        </header>
-
-        {/* Dashboard Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Franchises Card */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Franchises</h3>
-              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-2m-2 0H7m5 0v-3a2 2 0 00-2-2H8a2 2 0 00-2 2v3m2 0h2m5 0v-3a2 2 0 012-2h2a2 2 0 012 2v3" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-white mb-2">12</p>
-            <p className="text-gray-400 text-sm">Salles connectées</p>
-          </div>
-
-          {/* Users Card */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Utilisateurs</h3>
-              <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-white mb-2">1,247</p>
-            <p className="text-gray-400 text-sm">Membres actifs</p>
-          </div>
-
-          {/* Sessions Card */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Sessions IA</h3>
-              <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-white mb-2">3,891</p>
-            <p className="text-gray-400 text-sm">Ce mois-ci</p>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-8 bg-white/10 backdrop-blur-lg rounded-lg p-6 border border-white/20">
-          <h3 className="text-lg font-semibold text-white mb-4">Actions Rapides</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              <span>Nouvelle Franchise</span>
-            </button>
-            <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span>Gérer Utilisateurs</span>
-            </button>
-            <button className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span>Analytics</span>
-            </button>
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>Paramètres</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Box minH="100vh" bg="#fafafa" py={8}>
+      <Container maxW="6xl">
+        {view === 'list' ? <FranchisesList /> : <FranchiseDetails />}
+      </Container>
+    </Box>
   )
 }

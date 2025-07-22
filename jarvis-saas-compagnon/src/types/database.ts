@@ -18,6 +18,7 @@ export interface Database {
           postal_code: string
           email: string
           phone: string
+          owner_id: string
           is_active: boolean
           created_at: string
           updated_at: string
@@ -30,6 +31,7 @@ export interface Database {
           postal_code: string
           email: string
           phone: string
+          owner_id: string
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -42,6 +44,7 @@ export interface Database {
           postal_code?: string
           email?: string
           phone?: string
+          owner_id?: string
           is_active?: boolean
           created_at?: string
           updated_at?: string
