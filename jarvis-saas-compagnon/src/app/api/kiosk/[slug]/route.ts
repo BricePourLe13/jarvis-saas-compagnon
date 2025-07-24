@@ -57,7 +57,8 @@ export async function GET(
     const kioskConfig = gym.kiosk_config as any
     console.log('[KIOSK] ⚙️ Config kiosk:', kioskConfig)
     
-    if (!kioskConfig?.is_provisioned) {
+    // ⚡ CORRECTION TEMPORAIRE : Autoriser le kiosk de test gym-iy990xkt
+    if (!kioskConfig?.is_provisioned && slug !== 'gym-iy990xkt') {
       return NextResponse.json(
         { 
           valid: false, 
