@@ -417,10 +417,10 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
           <motion.div
             style={{
               position: 'absolute',
-              left: '35%',
-              top: '42%',
-              width: '4px',
-              height: isBlinking ? '2px' : '28px',
+                             left: '35%',
+               top: '42%',
+               width: '6px',
+               height: isBlinking ? '3px' : '35px',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
               borderRadius: '2px',
               boxShadow: `
@@ -455,10 +455,10 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
           <motion.div
             style={{
               position: 'absolute',
-              left: '65%',
-              top: '42%',
-              width: '4px',
-              height: isBlinking ? '2px' : '28px',
+                             left: '65%',
+               top: '42%',
+               width: '6px',
+               height: isBlinking ? '3px' : '35px',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
               borderRadius: '2px',
               boxShadow: `

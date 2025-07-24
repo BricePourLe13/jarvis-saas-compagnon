@@ -227,7 +227,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         </Box>
       </Box>
 
-      {/* 💬 MESSAGE MINIMAL */}
+      {/* 💬 MESSAGE MINIMAL - POSITION CORRIGÉE */}
       <AnimatePresence>
         <motion.div
           key={getStatusMessage()}
@@ -237,10 +237,12 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
           transition={{ duration: 0.5 }}
           style={{
             position: 'absolute',
-            bottom: '120px',
+            bottom: '15%',
             left: '50%',
             transform: 'translateX(-50%)',
-            textAlign: 'center'
+            textAlign: 'center',
+            width: '100%',
+            zIndex: 10
           }}
         >
           <Text 
@@ -248,7 +250,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             color="white" 
             fontWeight="300"
             letterSpacing="wide"
-            filter="drop-shadow(0 0 10px rgba(255,255,255,0.2))"
+            filter="drop-shadow(0 0 15px rgba(255,255,255,0.3))"
+            textShadow="0 0 20px rgba(255,255,255,0.2)"
           >
             {getStatusMessage()}
           </Text>
