@@ -168,7 +168,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         position="absolute"
         inset="0"
         zIndex={1}
-        opacity={0.3}
+        opacity={0.6}
       >
         {/* Nébuleuses lointaines très subtiles */}
         <motion.div
@@ -179,12 +179,12 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             width: '200px',
             height: '150px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%)',
             filter: 'blur(40px)'
           }}
           animate={{
             scale: [1, 1.1, 1],
-            opacity: [0.1, 0.2, 0.1]
+            opacity: [0.2, 0.4, 0.2]
           }}
           transition={{
             duration: 8,
@@ -201,12 +201,12 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             width: '180px',
             height: '120px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)',
             filter: 'blur(35px)'
           }}
           animate={{
             scale: [1, 1.05, 1],
-            opacity: [0.08, 0.15, 0.08]
+            opacity: [0.15, 0.3, 0.15]
           }}
           transition={{
             duration: 12,
@@ -236,8 +236,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               width: '1px',
               height: '1px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.6)',
-              boxShadow: '0 0 4px rgba(255, 255, 255, 0.3)'
+              background: 'rgba(255, 255, 255, 0.8)',
+              boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)'
             }}
             animate={{
               opacity: [0.3, 0.8, 0.3],
@@ -270,7 +270,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             width: `${particle.size}px`,
             height: `${particle.size}px`,
             borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.4)',
+            background: 'rgba(255, 255, 255, 0.7)',
             zIndex: 2
           }}
           animate={{
@@ -331,7 +331,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
           }}
         >
           <Text 
-            fontSize="lg" 
+            fontSize="xl" 
             color="rgba(255, 255, 255, 0.9)"
             fontWeight="200"
             letterSpacing="0.05em"
