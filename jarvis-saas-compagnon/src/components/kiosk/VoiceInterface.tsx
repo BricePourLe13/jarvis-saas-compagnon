@@ -6,7 +6,7 @@ import { useVoiceChat } from '@/hooks/useVoiceChat'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
 import { GymMember } from '@/types/kiosk'
 import AudioVisualizer from './AudioVisualizer'
-import Avatar3D from './Avatar3D'
+// Avatar3D retiré pour éviter la duplication avec la page principale
 
 interface VoiceInterfaceProps {
   gymSlug: string
@@ -136,6 +136,39 @@ export default function VoiceInterface({
     }
   }
 
+  const getButtonBackground = () => {
+    switch (status) {
+      case 'connecting': return 'linear-gradient(135deg, #f59e0b, #d97706)'
+      case 'reconnecting': return 'linear-gradient(135deg, #f59e0b, #d97706)'
+      case 'connected': return 'linear-gradient(135deg, #6366f1, #4f46e5)'
+      case 'listening': return 'linear-gradient(135deg, #22c55e, #16a34a)'
+      case 'speaking': return 'linear-gradient(135deg, #3b82f6, #2563eb)'
+      case 'error': return 'linear-gradient(135deg, #ef4444, #dc2626)'
+      default: return 'linear-gradient(135deg, #6b7280, #4b5563)'
+    }
+  }
+
+  const getButtonShadow = () => {
+    switch (status) {
+      case 'listening': return '0 0 30px rgba(34, 197, 94, 0.4)'
+      case 'speaking': return '0 0 30px rgba(59, 130, 246, 0.4)'
+      case 'error': return '0 0 30px rgba(239, 68, 68, 0.4)'
+      default: return '0 8px 25px rgba(0, 0, 0, 0.15)'
+    }
+  }
+
+  const getButtonIcon = () => {
+    switch (status) {
+      case 'connecting': return '⏳'
+      case 'reconnecting': return '🔄'
+      case 'connected': return '🎤'
+      case 'listening': return '👂'
+      case 'speaking': return '💬'
+      case 'error': return '❌'
+      default: return '▶️'
+    }
+  }
+
   const handleToggleVoice = () => {
     if (status === 'connecting' || status === 'reconnecting' || hasConnectedRef.current) {
       return
@@ -226,10 +259,22 @@ export default function VoiceInterface({
             cursor: (status === 'connecting' || status === 'reconnecting') ? "wait" : "pointer"
           }}
         >
-          <Avatar3D 
-            status={getAvatarStatus()}
-            size={400}
-          />
+          {/* Interface simplifiée sans Avatar3D pour éviter la duplication */}
+          <Box
+            width="120px"
+            height="120px"
+            borderRadius="50%"
+            bg={getButtonBackground()}
+            border="3px solid rgba(255, 255, 255, 0.2)"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            boxShadow={getButtonShadow()}
+          >
+            <Text fontSize="3xl" color="white">
+              {getButtonIcon()}
+            </Text>
+          </Box>
         </motion.div>
 
         {/* Visualiseur audio ultra-discret */}

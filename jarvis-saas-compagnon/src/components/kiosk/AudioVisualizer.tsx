@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { Box } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 interface AudioVisualizerProps {
   isActive: boolean
@@ -21,64 +21,32 @@ export default function AudioVisualizer({
   style = 'bars'
 }: AudioVisualizerProps) {
   
-  const [animationData, setAnimationData] = useState<number[]>([])
-  
   // Configuration selon la taille
   const config = {
-    sm: { width: 120, height: 40, barCount: 16 },
-    md: { width: 200, height: 60, barCount: 24 },
-    lg: { width: 300, height: 80, barCount: 32 }
+    sm: { width: 120, height: 40, barCount: 8 },
+    md: { width: 200, height: 60, barCount: 12 },
+    lg: { width: 300, height: 80, barCount: 16 }
   }[size]
 
-  // Simulation d'animation pour les barres
-  useEffect(() => {
-    if (!isActive) return
-
-    const generateRandomData = () => {
-      const data = []
-      for (let i = 0; i < config.barCount; i++) {
-        // Générer des valeurs d'animation selon l'état
-        let value = Math.random() * 0.3 // Base noise
-        
-        if (isListening) {
-          value += Math.random() * 0.6 + 0.2 // Plus d'activité en écoute
-        } else if (isSpeaking) {
-          value += Math.random() * 0.8 + 0.3 // Maximum d'activité en parlant
-        }
-        
-        // Ajouter des pics occasionnels
-        if (Math.random() > 0.8) {
-          value += Math.random() * 0.4
-        }
-        
-        data.push(Math.min(value, 1))
-      }
-      return data
+  // Générer des hauteurs de barres statiques mais variées
+  const generateStaticBars = () => {
+    const bars = []
+    for (let i = 0; i < config.barCount; i++) {
+      // Pattern sinusoïdal pour un aspect plus naturel
+      const baseHeight = 0.3 + Math.sin(i * 0.5) * 0.2
+      const randomVariation = Math.random() * 0.3
+      bars.push(Math.max(0.1, Math.min(1, baseHeight + randomVariation)))
     }
+    return bars
+  }
 
-    let animationId: number
+  const staticBars = generateStaticBars()
 
-    const animate = () => {
-      setAnimationData(generateRandomData())
-      animationId = requestAnimationFrame(animate)
-    }
+  if (!isActive) {
+    return null
+  }
 
-    if (isListening || isSpeaking) {
-      animate()
-    } else {
-      // Données statiques en idle
-      setAnimationData(new Array(config.barCount).fill(0.1))
-    }
-
-    return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId)
-      }
-    }
-  }, [isActive, isListening, isSpeaking, config.barCount])
-
-  // Rendu des barres
-  const renderBars = () => (
+  return (
     <Box
       width={`${config.width}px`}
       height={`${config.height}px`}
@@ -87,140 +55,32 @@ export default function AudioVisualizer({
       justifyContent="center"
       gap="2px"
     >
-      {animationData.map((value, index) => {
-        const height = Math.max(3, value * config.height)
-        const delay = index * 0.02
-        
-        return (
-          <motion.div
-            key={index}
-            style={{
-              width: `${Math.max(2, config.width / config.barCount - 2)}px`,
-              backgroundColor: color,
-              borderRadius: '2px',
-              opacity: isListening ? 0.9 : isSpeaking ? 0.8 : 0.4
-            }}
-            animate={{
-              height: height,
-              backgroundColor: [
-                color,
-                isListening ? '#22c55e' : isSpeaking ? '#3b82f6' : color,
-                color
-              ]
-            }}
-            transition={{
-              height: { duration: 0.15, ease: "easeOut" },
-              backgroundColor: { duration: 2, repeat: Infinity, delay }
-            }}
-          />
-        )
-      })}
-    </Box>
-  )
-
-  const renderCircle = () => {
-    const radius = config.width / 4
-    const centerX = config.width / 2
-    const centerY = config.height / 2
-    
-    return (
-      <svg width={config.width} height={config.height}>
-        {animationData.slice(0, 24).map((value, index) => {
-          const angle = (index / 24) * 2 * Math.PI
-          const intensity = value * radius * 0.6
-          const x1 = centerX + Math.cos(angle) * radius
-          const y1 = centerY + Math.sin(angle) * radius
-          const x2 = centerX + Math.cos(angle) * (radius + intensity)
-          const y2 = centerY + Math.sin(angle) * (radius + intensity)
-          
-          return (
-            <motion.line
-              key={index}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke={color}
-              strokeWidth="2"
-              strokeLinecap="round"
-              animate={{
-                opacity: isListening ? 0.9 : isSpeaking ? 0.8 : 0.4,
-                stroke: [
-                  color,
-                  isListening ? '#22c55e' : isSpeaking ? '#3b82f6' : color,
-                  color
-                ]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: index * 0.05
-              }}
-            />
-          )
-        })}
-      </svg>
-    )
-  }
-
-  const renderWave = () => {
-    const points = animationData.slice(0, 30).map((value, index) => {
-      const x = (index / 29) * config.width
-      const y = config.height / 2 + (value - 0.5) * config.height * 0.8
-      return `${x},${y}`
-    }).join(' ')
-
-    return (
-      <svg width={config.width} height={config.height}>
-        <motion.polyline
-          points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      {staticBars.map((baseHeight, index) => (
+        <motion.div
+          key={index}
+          style={{
+            width: `${Math.max(2, config.width / config.barCount - 2)}px`,
+            backgroundColor: color,
+            borderRadius: '2px',
+            height: `${baseHeight * config.height * 0.3}px`, // Hauteur de base
+            minHeight: '4px'
+          }}
           animate={{
-            opacity: isListening ? 0.9 : isSpeaking ? 0.8 : 0.4,
-            stroke: [
-              color,
-              isListening ? '#22c55e' : isSpeaking ? '#3b82f6' : color,
-              color
-            ]
+            height: [
+              `${baseHeight * config.height * 0.3}px`,
+              `${baseHeight * config.height * (isListening ? 0.8 : isSpeaking ? 0.9 : 0.4)}px`,
+              `${baseHeight * config.height * 0.3}px`
+            ],
+            opacity: [0.6, 1, 0.6]
           }}
           transition={{
-            duration: 2,
-            repeat: Infinity
+            duration: isListening ? 0.8 + index * 0.1 : isSpeaking ? 0.5 + index * 0.05 : 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: index * 0.1
           }}
         />
-      </svg>
-    )
-  }
-
-  return (
-    <AnimatePresence>
-      {isActive && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.3 }}
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '12px',
-            borderRadius: '16px',
-            background: 'rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-          }}
-        >
-          {style === 'bars' && renderBars()}
-          {style === 'circle' && renderCircle()}
-          {style === 'wave' && renderWave()}
-        </motion.div>
-      )}
-    </AnimatePresence>
+      ))}
+    </Box>
   )
 } 
