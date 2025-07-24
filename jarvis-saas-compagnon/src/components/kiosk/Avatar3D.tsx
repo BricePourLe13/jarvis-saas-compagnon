@@ -73,34 +73,54 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
   // 🔄 ROTATION FLUIDE
   useEffect(() => {
     const interval = addInterval(setInterval(() => {
-      setRotation(prev => prev + 0.2)
+      setRotation(prev => prev + 0.1)
     }, 100))
     return () => clearInterval(interval)
   }, [addInterval])
 
-  // 👁️ CLIGNEMENTS TECH
+  // 👁️ CLIGNEMENTS NATURELS
   useEffect(() => {
     const blinkInterval = addInterval(setInterval(() => {
       setIsBlinking(true)
-      const timer = addTimer(setTimeout(() => setIsBlinking(false), 100))
-    }, 3000 + Math.random() * 1000))
+      const timer = addTimer(setTimeout(() => setIsBlinking(false), 150))
+    }, 3000 + Math.random() * 2000))
     return () => clearInterval(blinkInterval)
   }, [addInterval, addTimer])
 
-  // 🎨 COULEURS TECH SELON STATUS
-  const getTechColor = () => {
+  // 🎨 COULEURS INTÉRIEURES SELON STATUS
+  const getInnerColors = () => {
     switch (status) {
-      case 'listening': return '#00ff88' // Vert tech
-      case 'speaking': return '#0099ff' // Bleu électrique
-      case 'thinking': return '#aa66ff' // Violet néon
-      case 'connecting': return '#ffaa00' // Orange tech
-      default: return '#6699ff' // Bleu par défaut
+      case 'listening': 
+        return {
+          primary: 'rgba(34, 197, 94, 0.6)', // Vert
+          secondary: 'rgba(59, 130, 246, 0.4)', // Bleu
+          accent: 'rgba(168, 85, 247, 0.3)' // Violet
+        }
+      case 'speaking': 
+        return {
+          primary: 'rgba(59, 130, 246, 0.6)', // Bleu dominant
+          secondary: 'rgba(239, 68, 68, 0.4)', // Rouge
+          accent: 'rgba(34, 197, 94, 0.3)' // Vert
+        }
+      case 'thinking': 
+        return {
+          primary: 'rgba(168, 85, 247, 0.6)', // Violet dominant
+          secondary: 'rgba(59, 130, 246, 0.4)', // Bleu
+          accent: 'rgba(239, 68, 68, 0.3)' // Rouge
+        }
+      case 'connecting': 
+        return {
+          primary: 'rgba(251, 191, 36, 0.6)', // Orange
+          secondary: 'rgba(239, 68, 68, 0.4)', // Rouge
+          accent: 'rgba(59, 130, 246, 0.3)' // Bleu
+        }
+      default: // idle
+        return {
+          primary: 'rgba(59, 130, 246, 0.4)', // Bleu doux
+          secondary: 'rgba(168, 85, 247, 0.3)', // Violet
+          accent: 'rgba(34, 197, 94, 0.2)' // Vert subtle
+        }
     }
-  }
-
-  const getGlowColor = () => {
-    const color = getTechColor()
-    return `${color}80` // Ajout d'alpha pour le glow
   }
 
   // Ne rien rendre côté serveur pour éviter l'hydratation mismatch
@@ -114,13 +134,15 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
     )
   }
 
+  const colors = getInnerColors()
+
   return (
     <div 
       className={`relative ${className}`}
       style={{ width: size, height: size }}
       suppressHydrationWarning
     >
-      {/* 🤖 SPHÈRE TECH PRINCIPALE */}
+      {/* 🔮 SPHÈRE TRANSPARENTE COMME TON IMAGE */}
       <motion.div
         style={{
           width: '100%',
@@ -128,56 +150,50 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
           borderRadius: '50%',
           background: `
             radial-gradient(circle at 30% 20%, 
-              rgba(255, 255, 255, 0.2) 0%, 
-              rgba(102, 153, 255, 0.3) 20%, 
-              rgba(51, 102, 204, 0.4) 50%, 
-              rgba(25, 51, 102, 0.6) 80%, 
-              rgba(0, 0, 0, 0.8) 100%)
+              rgba(255, 255, 255, 0.3) 0%, 
+              rgba(255, 255, 255, 0.1) 30%, 
+              rgba(255, 255, 255, 0.05) 60%, 
+              transparent 100%)
           `,
-          border: `2px solid ${getTechColor()}`,
+          border: '2px solid rgba(255, 255, 255, 0.2)',
           position: 'relative',
           overflow: 'hidden',
           boxShadow: `
-            inset 0 0 60px rgba(255, 255, 255, 0.1),
-            0 0 40px ${getGlowColor()},
-            0 0 80px ${getGlowColor()}40,
-            0 10px 30px rgba(0, 0, 0, 0.3)
+            inset 0 0 60px rgba(255, 255, 255, 0.15),
+            0 0 40px rgba(255, 255, 255, 0.1),
+            0 20px 40px rgba(0, 0, 0, 0.1)
           `,
+          backdropFilter: 'blur(2px)',
           willChange: 'transform',
           transform: 'translate3d(0, 0, 0)'
         }}
         animate={{
-          scale: status === 'speaking' ? [1, 1.03, 1] : [1, 1.01, 1],
-          rotateZ: [0, 0.5, 0]
+          scale: status === 'speaking' ? [1, 1.02, 1] : [1, 1.005, 1],
         }}
         transition={{
           scale: { 
-            duration: status === 'speaking' ? 0.4 : 3, 
+            duration: status === 'speaking' ? 1 : 3, 
             repeat: Infinity, 
             ease: "easeInOut" 
-          },
-          rotateZ: { 
-            duration: 15, 
-            repeat: Infinity, 
-            ease: "linear" 
           }
         }}
       >
-        {/* ✨ REFLETS TECH */}
+        {/* ✨ REFLET PRINCIPAL COMME DU VERRE */}
         <motion.div
           style={{
             position: 'absolute',
-            top: '8%',
-            left: '12%',
-            width: '40%',
-            height: '25%',
+            top: '5%',
+            left: '10%',
+            width: '50%',
+            height: '40%',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 60%, transparent 100%)',
-            filter: 'blur(8px)'
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 40%, transparent 70%)',
+            filter: 'blur(12px)',
+            transform: 'rotate(-20deg)'
           }}
           animate={{
-            opacity: [0.6, 0.9, 0.6],
-            scale: [1, 1.05, 1]
+            opacity: [0.5, 0.8, 0.5],
+            scale: [1, 1.1, 1]
           }}
           transition={{
             duration: 4,
@@ -186,31 +202,119 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
           }}
         />
 
-        {/* 👁️ YEUX TECH RECTANGULAIRES */}
-        <div style={{ position: 'absolute', inset: 0 }}>
-          {/* Oeil gauche - Style tech/robotique */}
+        {/* 🌈 COULEURS FLUIDES INTÉRIEURES - EXACTEMENT COMME TON IMAGE */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            inset: '15%',
+            borderRadius: '50%',
+            overflow: 'hidden'
+          }}
+          animate={{
+            rotateZ: rotation * 0.5
+          }}
+        >
+          {/* Couleur primaire fluide */}
           <motion.div
             style={{
               position: 'absolute',
+              top: '10%',
+              left: '20%',
+              width: '60%',
+              height: '80%',
+              background: `radial-gradient(ellipse, ${colors.primary} 0%, transparent 70%)`,
+              borderRadius: '50%',
+              filter: 'blur(15px)'
+            }}
+            animate={{
+              x: [0, 10, -5, 0],
+              y: [0, -8, 12, 0],
+              scale: [1, 1.2, 0.9, 1]
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+
+          {/* Couleur secondaire fluide */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              top: '30%',
+              right: '10%',
+              width: '50%',
+              height: '60%',
+              background: `radial-gradient(ellipse, ${colors.secondary} 0%, transparent 70%)`,
+              borderRadius: '50%',
+              filter: 'blur(20px)'
+            }}
+            animate={{
+              x: [0, -15, 8, 0],
+              y: [0, 10, -6, 0],
+              scale: [1, 0.8, 1.3, 1]
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 2
+            }}
+          />
+
+          {/* Couleur d'accent fluide */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              bottom: '20%',
               left: '30%',
-              top: '38%',
-              width: isBlinking ? '20px' : '20px',
-              height: isBlinking ? '2px' : '14px',
-              background: `linear-gradient(90deg, ${getTechColor()} 0%, #ffffff 50%, ${getTechColor()} 100%)`,
-              borderRadius: isBlinking ? '2px' : '2px',
+              width: '40%',
+              height: '50%',
+              background: `radial-gradient(ellipse, ${colors.accent} 0%, transparent 70%)`,
+              borderRadius: '50%',
+              filter: 'blur(18px)'
+            }}
+            animate={{
+              x: [0, 12, -10, 0],
+              y: [0, -12, 8, 0],
+              scale: [1, 1.1, 0.85, 1]
+            }}
+            transition={{
+              duration: 12,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 4
+            }}
+          />
+        </motion.div>
+
+        {/* 👁️ YEUX BARRES VERTICALES BLANCHES - EXACTEMENT COMME TON IMAGE */}
+        <div style={{ position: 'absolute', inset: 0 }}>
+          {/* Oeil gauche - Barre verticale blanche */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              left: '32%',
+              top: '45%',
+              width: '3px',
+              height: isBlinking ? '2px' : '24px',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.9) 100%)',
+              borderRadius: '2px',
               boxShadow: `
-                0 0 20px ${getTechColor()},
-                inset 0 0 10px rgba(255, 255, 255, 0.5)
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 0 40px rgba(255, 255, 255, 0.4),
+                inset 0 0 8px rgba(255, 255, 255, 0.6)
               `,
-              transform: 'translate(-50%, -50%)',
-              border: `1px solid ${getTechColor()}`
+              transform: 'translate(-50%, -50%)'
             }}
             animate={{
               scaleY: isBlinking ? 0.1 : 1,
               opacity: [0.9, 1, 0.9],
               boxShadow: `
-                0 0 ${status === 'speaking' ? '30px' : '20px'} ${getTechColor()},
-                inset 0 0 10px rgba(255, 255, 255, 0.5)
+                0 0 ${status === 'speaking' ? '30px' : '20px'} rgba(255, 255, 255, 0.8),
+                0 0 ${status === 'speaking' ? '50px' : '40px'} rgba(255, 255, 255, 0.4),
+                inset 0 0 8px rgba(255, 255, 255, 0.6)
               `
             }}
             transition={{ 
@@ -220,29 +324,30 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
             }}
           />
           
-          {/* Oeil droit - Style tech/robotique */}
+          {/* Oeil droit - Barre verticale blanche */}
           <motion.div
             style={{
               position: 'absolute',
-              left: '70%',
-              top: '38%',
-              width: isBlinking ? '20px' : '20px',
-              height: isBlinking ? '2px' : '14px',
-              background: `linear-gradient(90deg, ${getTechColor()} 0%, #ffffff 50%, ${getTechColor()} 100%)`,
-              borderRadius: isBlinking ? '2px' : '2px',
+              left: '68%',
+              top: '45%',
+              width: '3px',
+              height: isBlinking ? '2px' : '24px',
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.9) 100%)',
+              borderRadius: '2px',
               boxShadow: `
-                0 0 20px ${getTechColor()},
-                inset 0 0 10px rgba(255, 255, 255, 0.5)
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 0 40px rgba(255, 255, 255, 0.4),
+                inset 0 0 8px rgba(255, 255, 255, 0.6)
               `,
-              transform: 'translate(-50%, -50%)',
-              border: `1px solid ${getTechColor()}`
+              transform: 'translate(-50%, -50%)'
             }}
             animate={{
               scaleY: isBlinking ? 0.1 : 1,
               opacity: [0.9, 1, 0.9],
               boxShadow: `
-                0 0 ${status === 'speaking' ? '30px' : '20px'} ${getTechColor()},
-                inset 0 0 10px rgba(255, 255, 255, 0.5)
+                0 0 ${status === 'speaking' ? '30px' : '20px'} rgba(255, 255, 255, 0.8),
+                0 0 ${status === 'speaking' ? '50px' : '40px'} rgba(255, 255, 255, 0.4),
+                inset 0 0 8px rgba(255, 255, 255, 0.6)
               `
             }}
             transition={{ 
@@ -253,23 +358,22 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
           />
         </div>
 
-        {/* 💫 ÉLÉMENTS TECH INTÉRIEURS */}
+        {/* 💫 PARTICULES LUMINEUSES SUBTILES */}
         <motion.div
           style={{
             position: 'absolute',
-            inset: '20%',
-            opacity: 0.4
+            inset: '25%',
+            opacity: 0.6
           }}
           animate={{
-            rotateZ: rotation * 0.03
+            rotateZ: rotation * 0.2
           }}
         >
-          {/* Particules tech minimalistes */}
           {[
-            { left: '25%', top: '25%', size: 2 },
-            { left: '75%', top: '30%', size: 1.5 },
-            { left: '35%', top: '75%', size: 2 },
-            { left: '65%', top: '70%', size: 1.5 }
+            { left: '20%', top: '30%', size: 1.5, delay: 0 },
+            { left: '80%', top: '25%', size: 1, delay: 1 },
+            { left: '30%', top: '80%', size: 1.2, delay: 2 },
+            { left: '70%', top: '75%', size: 1, delay: 3 }
           ].map((particle, i) => (
             <motion.div
               key={i}
@@ -280,84 +384,41 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
                 width: `${particle.size}px`,
                 height: `${particle.size}px`,
                 borderRadius: '50%',
-                background: getTechColor(),
-                boxShadow: `0 0 8px ${getTechColor()}`
+                background: 'rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 0 6px rgba(255, 255, 255, 0.6)'
               }}
               animate={{
-                opacity: [0.2, 0.8, 0.2],
-                scale: [0.5, 1, 0.5]
+                opacity: [0.3, 0.8, 0.3],
+                scale: [0.5, 1.2, 0.5]
               }}
               transition={{
-                duration: 4 + i,
+                duration: 4 + particle.delay,
                 repeat: Infinity,
                 ease: "easeInOut",
-                delay: i * 0.5
+                delay: particle.delay * 0.5
               }}
             />
           ))}
         </motion.div>
 
-        {/* 🔷 ANNEAUX TECH QUAND ACTIF */}
-        {(status === 'listening' || status === 'speaking') && (
-          <>
-            <motion.div
-              style={{
-                position: 'absolute',
-                inset: '-15px',
-                borderRadius: '50%',
-                border: `1px solid ${getTechColor()}`,
-                opacity: 0.6
-              }}
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.6, 0.9, 0.6]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-            
-            <motion.div
-              style={{
-                position: 'absolute',
-                inset: '-25px',
-                borderRadius: '50%',
-                border: `1px solid ${getTechColor()}`,
-                opacity: 0.3
-              }}
-              animate={{
-                scale: [1, 1.15, 1],
-                opacity: [0.3, 0.6, 0.3]
-              }}
-              transition={{
-                duration: 2.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 0.5
-              }}
-            />
-          </>
-        )}
-
-        {/* ⚡ LIGNES TECH DYNAMIQUES */}
-        {status === 'thinking' && (
+        {/* 🌟 EFFET DE HALO SELON STATUS */}
+        {status !== 'idle' && (
           <motion.div
             style={{
               position: 'absolute',
-              inset: '35%',
+              inset: '-20px',
               borderRadius: '50%',
-              border: `1px dashed ${getTechColor()}`,
-              opacity: 0.7
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              opacity: 0.5
             }}
             animate={{
-              rotateZ: [0, 360],
-              scale: [1, 1.1, 1]
+              scale: [1, 1.1, 1],
+              opacity: [0.5, 0.8, 0.5]
             }}
             transition={{
-              rotateZ: { duration: 3, repeat: Infinity, ease: "linear" },
-              scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
             }}
           />
         )}
