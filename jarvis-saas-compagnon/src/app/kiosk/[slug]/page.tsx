@@ -163,137 +163,271 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       bg="linear-gradient(135deg, #0a0a0f 0%, #151520 30%, #1a1a2a 70%, #0f0f1a 100%)"
       suppressHydrationWarning
     >
-      {/* 🌌 COSMOS BACKGROUND SUBTIL - DERNIER PLAN */}
+      {/* 🌌 COSMOS GALACTIQUE RÉALISTE - INSPIRATION IMAGE */}
       <Box
         position="absolute"
         inset="0"
         zIndex={1}
-        opacity={0.6}
+        opacity={0.9}
       >
-        {/* Nébuleuses lointaines très subtiles */}
+        {/* 🌠 NÉBULEUSES PRINCIPALES COLORÉES - COMME L'IMAGE */}
+        
+        {/* Grande nébuleuse rose-violet centrale */}
         <motion.div
           style={{
             position: 'absolute',
-            top: '10%',
-            right: '20%',
-            width: '200px',
-            height: '150px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%)',
-            filter: 'blur(40px)'
+            top: '5%',
+            left: '0%',
+            width: '70%',
+            height: '50%',
+            background: `
+              radial-gradient(ellipse 80% 60% at 35% 45%, 
+                rgba(219, 39, 119, 0.4) 0%,
+                rgba(236, 72, 153, 0.35) 20%,
+                rgba(147, 51, 234, 0.3) 45%,
+                rgba(59, 130, 246, 0.2) 70%,
+                transparent 85%
+              )
+            `,
+            filter: 'blur(18px)',
+            borderRadius: '40%'
           }}
           animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.2, 0.4, 0.2]
+            scale: [1, 1.06, 1],
+            opacity: [0.8, 1, 0.8],
+            rotate: [0, 1.5, 0]
           }}
           transition={{
-            duration: 8,
+            duration: 20,
             repeat: Infinity,
             ease: "easeInOut"
           }}
         />
-        
+
+        {/* Nébuleuse bleue-cyan droite */}
         <motion.div
           style={{
             position: 'absolute',
-            bottom: '15%',
-            left: '15%',
-            width: '180px',
-            height: '120px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%)',
-            filter: 'blur(35px)'
+            top: '30%',
+            right: '5%',
+            width: '55%',
+            height: '45%',
+            background: `
+              radial-gradient(ellipse 75% 85% at 60% 50%, 
+                rgba(6, 182, 212, 0.35) 0%,
+                rgba(59, 130, 246, 0.3) 30%,
+                rgba(147, 51, 234, 0.2) 60%,
+                rgba(168, 85, 247, 0.15) 80%,
+                transparent 90%
+              )
+            `,
+            filter: 'blur(15px)',
+            borderRadius: '50%'
           }}
           animate={{
-            scale: [1, 1.05, 1],
-            opacity: [0.15, 0.3, 0.15]
+            scale: [1, 1.04, 1],
+            opacity: [0.7, 0.95, 0.7],
+            rotate: [0, -1, 0]
           }}
           transition={{
-            duration: 12,
+            duration: 25,
             repeat: Infinity,
-            ease: "easeInOut",
-            delay: 4
+            ease: "easeInOut"
           }}
         />
 
-        {/* Étoiles lointaines */}
+        {/* Nébuleuse orange-rouge en bas */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            bottom: '10%',
+            left: '15%',
+            width: '60%',
+            height: '35%',
+            background: `
+              radial-gradient(ellipse 85% 55% at 45% 65%, 
+                rgba(251, 146, 60, 0.3) 0%,
+                rgba(239, 68, 68, 0.25) 35%,
+                rgba(219, 39, 119, 0.18) 65%,
+                rgba(147, 51, 234, 0.12) 85%,
+                transparent 95%
+              )
+            `,
+            filter: 'blur(16px)',
+            borderRadius: '45%'
+          }}
+          animate={{
+            scale: [1, 1.03, 1],
+            opacity: [0.6, 0.85, 0.6],
+            rotate: [0, 0.8, 0]
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+
+        {/* ⭐ COUCHES D'ÉTOILES MULTIPLES - EFFET GALAXIE */}
+        
+        {/* Grosses étoiles brillantes principales (8) */}
         {[
-          { left: '20%', top: '25%', delay: 0 },
-          { left: '80%', top: '30%', delay: 1 },
-          { left: '15%', top: '70%', delay: 2 },
-          { left: '85%', top: '75%', delay: 3 },
-          { left: '50%', top: '15%', delay: 4 },
-          { left: '70%', top: '60%', delay: 5 },
-          { left: '30%', top: '85%', delay: 6 },
-          { left: '90%', top: '45%', delay: 7 }
+          { left: '25%', top: '20%', color: 'rgba(255, 255, 255, 1)' },
+          { left: '75%', top: '35%', color: 'rgba(147, 197, 253, 0.9)' },
+          { left: '15%', top: '60%', color: 'rgba(255, 255, 255, 0.95)' },
+          { left: '85%', top: '75%', color: 'rgba(196, 181, 253, 0.9)' },
+          { left: '55%', top: '15%', color: 'rgba(255, 255, 255, 1)' },
+          { left: '35%', top: '80%', color: 'rgba(252, 211, 77, 0.9)' },
+          { left: '90%', top: '25%', color: 'rgba(255, 255, 255, 0.95)' },
+          { left: '10%', top: '40%', color: 'rgba(167, 243, 208, 0.9)' }
         ].map((star, i) => (
           <motion.div
-            key={i}
+            key={`big-star-${i}`}
             style={{
               position: 'absolute',
               left: star.left,
               top: star.top,
-              width: '1px',
-              height: '1px',
+              width: '4px',
+              height: '4px',
               borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.8)',
+              background: star.color,
+              boxShadow: `
+                0 0 15px ${star.color},
+                0 0 30px ${star.color.replace('1)', '0.6)')},
+                0 0 45px ${star.color.replace('1)', '0.3)')}
+              `
+            }}
+            animate={{
+              opacity: [0.7, 1, 0.7],
+              scale: [0.8, 1.4, 0.8]
+            }}
+            transition={{
+              duration: 4 + (i * 0.3),
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        ))}
+
+        {/* Étoiles moyennes (15) */}
+        {Array.from({ length: 15 }, (_, i) => {
+          const colors = [
+            'rgba(255, 255, 255, 0.85)',
+            'rgba(147, 197, 253, 0.8)',
+            'rgba(196, 181, 253, 0.8)',
+            'rgba(252, 211, 77, 0.8)',
+            'rgba(167, 243, 208, 0.8)'
+          ]
+          return (
+            <motion.div
+              key={`med-star-${i}`}
+              style={{
+                position: 'absolute',
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                width: '2.5px',
+                height: '2.5px',
+                borderRadius: '50%',
+                background: colors[i % colors.length],
+                boxShadow: `0 0 10px ${colors[i % colors.length]}`
+              }}
+              animate={{
+                opacity: [0.5, 0.9, 0.5],
+                scale: [0.7, 1.2, 0.7]
+              }}
+              transition={{
+                duration: 3 + (i * 0.15),
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          )
+        })}
+
+        {/* Petites étoiles nombreuses - poussière d'étoiles (25) */}
+        {Array.from({ length: 25 }, (_, i) => (
+          <motion.div
+            key={`small-star-${i}`}
+            style={{
+              position: 'absolute',
+              top: `${Math.random() * 100}%`,
+              left: `${Math.random() * 100}%`,
+              width: '1.5px',
+              height: '1.5px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.75)',
               boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)'
             }}
             animate={{
               opacity: [0.3, 0.8, 0.3],
-              scale: [1, 1.2, 1]
+              scale: [0.6, 1.1, 0.6]
             }}
             transition={{
-              duration: 3 + star.delay,
+              duration: 2 + (i * 0.08),
               repeat: Infinity,
-              ease: "easeInOut",
-              delay: star.delay * 0.5
+              ease: "easeInOut"
             }}
           />
         ))}
+
+        {/* 🌟 POUSSIÈRE COSMIQUE COLORÉE FLOTTANTE */}
+        {Array.from({ length: 12 }, (_, i) => {
+          const colors = [
+            { bg: 'rgba(59, 130, 246, 0.7)', glow: 'rgba(59, 130, 246, 0.5)' },
+            { bg: 'rgba(147, 51, 234, 0.7)', glow: 'rgba(147, 51, 234, 0.5)' },
+            { bg: 'rgba(219, 39, 119, 0.7)', glow: 'rgba(219, 39, 119, 0.5)' },
+            { bg: 'rgba(6, 182, 212, 0.7)', glow: 'rgba(6, 182, 212, 0.5)' }
+          ]
+          const color = colors[i % colors.length]
+          return (
+            <motion.div
+              key={`cosmic-dust-${i}`}
+              style={{
+                position: 'absolute',
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                width: `${2 + (i % 3) * 0.5}px`,
+                height: `${2 + (i % 3) * 0.5}px`,
+                borderRadius: '50%',
+                background: color.bg,
+                boxShadow: `0 0 12px ${color.glow}`,
+                zIndex: 2
+              }}
+              animate={{
+                y: [0, -25, 0],
+                x: [0, 12, 0],
+                opacity: [0.4, 0.9, 0.4],
+                scale: [0.7, 1.3, 0.7]
+              }}
+              transition={{
+                duration: 8 + (i * 0.6),
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          )
+        })}
       </Box>
 
-      {/* 🎆 PARTICULES FLOTTANTES MOTION GRAPHICS */}
-      {[
-        { left: '10%', top: '20%', delay: 0, size: 2 },
-        { left: '85%', top: '35%', delay: 2, size: 1.5 },
-        { left: '25%', top: '80%', delay: 4, size: 1.8 },
-        { left: '75%', top: '15%', delay: 6, size: 1.2 },
-        { left: '90%', top: '70%', delay: 8, size: 1.6 }
-      ].map((particle, i) => (
-        <motion.div
-          key={`particle-${i}`}
-          style={{
-            position: 'absolute',
-            left: particle.left,
-            top: particle.top,
-            width: `${particle.size}px`,
-            height: `${particle.size}px`,
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.7)',
-            zIndex: 2
-          }}
-          animate={{
-            y: [0, -20, 0],
-            opacity: [0.2, 0.6, 0.2],
-            scale: [0.8, 1.2, 0.8]
-          }}
-          transition={{
-            duration: 6 + particle.delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: particle.delay * 0.3
-          }}
-        />
-      ))}
-
-      {/* 🎯 JARVIS AVATAR CENTRAL - SEULEMENT L'AVATAR */}
-      <Box
-        position="absolute"
-        top="50%"
-        left="50%"
-        transform="translate(-50%, -50%)"
-        zIndex={10}
+      {/* 🎯 JARVIS AVATAR CENTRAL - FLOTTANT DANS LE COSMOS */}
+      <motion.div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 10
+        }}
+        animate={{
+          y: [-8, 8, -8],
+          rotateY: [0, 2, 0],
+          rotateX: [0, 1, 0]
+        }}
+        transition={{
+          duration: 6,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
       >
         {/* Avatar principal centré */}
         <Avatar3D 
@@ -311,7 +445,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             onDeactivate={() => setVoiceActive(false)}
           />
         </Box>
-      </Box>
+      </motion.div>
 
       {/* 💬 MESSAGE MINIMAL À GAUCHE DE LA SPHÈRE */}
       <AnimatePresence>
