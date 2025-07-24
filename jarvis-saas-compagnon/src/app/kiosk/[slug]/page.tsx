@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, use } from 'react'
-import { Box, VStack, Text, Button, HStack, Badge, Alert, AlertIcon, Divider } from '@chakra-ui/react'
+import { Box, Text, VStack, HStack, Badge } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
 import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
-import CosmicBackground from '@/components/kiosk/CosmicBackground'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
@@ -17,6 +16,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   const [error, setError] = useState<string | null>(null)
   const [voiceActive, setVoiceActive] = useState(false)
   const [currentMember, setCurrentMember] = useState<GymMember | null>(null)
+  const [showAdminMenu, setShowAdminMenu] = useState(false)
   
   const [kioskState, setKioskState] = useState<KioskState>({
     status: 'idle',
@@ -40,106 +40,102 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   const handleMemberScanned = useCallback((member: GymMember) => {
     console.log(`🏷️ Membre scanné: ${member.first_name} ${member.last_name}`)
     
-    // Effets sonores/haptiques pour le scan
     sounds.notification()
     hapticFeedback('medium')
     
-    // Mettre à jour l'état
     setCurrentMember(member)
-    setKioskState(prev => ({
-      ...prev,
-      status: 'authenticated',
-      currentMember: member,
-      lastActivity: Date.now()
-    }))
-    
-    // Déclencher automatiquement la session vocale
-    setTimeout(() => {
-      setVoiceActive(true)
-      sounds.connect()
-      console.log(`🎤 Session vocale automatique démarrée pour ${member.first_name}`)
-    }, 1000) // Petit délai pour l'effet
-    
+          setKioskState(prev => ({
+        ...prev,
+        status: 'authenticated',
+        currentMember: member,
+        lastActivity: Date.now()
+      }))
+
+    // Auto-activation voice après scan
+    setTimeout(() => setVoiceActive(true), 800)
   }, [sounds, hapticFeedback])
 
-  // Gérer la fin de session
-  const handleSessionEnd = useCallback(() => {
-    console.log('🔚 Fin de session kiosque')
-    
-    setVoiceActive(false)
-    setCurrentMember(null)
-    setKioskState(prev => ({
-      ...prev,
-      status: 'idle',
-      currentMember: null,
-      lastActivity: Date.now(),
-      sessionDuration: 0
-    }))
-    
-    sounds.disconnect()
-    hapticFeedback('light')
-  }, [sounds, hapticFeedback])
-
-  // Auto-déconnexion après inactivité (5 minutes)
-  useEffect(() => {
-    if (!voiceActive || !currentMember) return
-
-    const timeout = setTimeout(() => {
-      console.log('⏰ Session expirée par inactivité')
-      handleSessionEnd()
-    }, 5 * 60 * 1000) // 5 minutes
-
-    return () => clearTimeout(timeout)
-  }, [voiceActive, currentMember, handleSessionEnd])
-
-  // Validation du slug kiosque
+  // Validation initiale du kiosk
   useEffect(() => {
     const validateKiosk = async () => {
       try {
-        // TODO: Remplacer par vraie validation via Supabase
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        const response = await fetch(`/api/kiosk/${slug}`)
         
-        // Données simulées
-        setKioskData({
-          gym: {
-            name: `Fitness ${slug.charAt(0).toUpperCase() + slug.slice(1)}`,
-            slug: slug,
-            location: '123 Rue du Sport, 75001 Paris',
-            status: 'active',
-            opening_hours: '6h00 - 23h00',
-            phone: '+33 1 23 45 67 89'
-          },
-          kiosk: {
-            id: `kiosk_${slug}_001`,
-            name: `Kiosk Principal ${slug}`,
-            status: 'active',
-            location: 'Entrée principale',
-            version: '2.1.0'
-          }
-        })
+        if (!response.ok) {
+          throw new Error(`Kiosk non trouvé: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        setKioskData(data)
+        console.log('✅ Kiosk validé:', data)
+        
       } catch (err) {
-        setError('Kiosque introuvable ou hors service')
-        console.error('Erreur validation kiosque:', err)
+        console.error('❌ Erreur validation kiosk:', err)
+        setError(err instanceof Error ? err.message : 'Erreur inconnue')
       }
     }
 
     validateKiosk()
   }, [slug])
 
+  // Auto-reset après inactivité
+  useEffect(() => {
+    if (currentMember || voiceActive) {
+      const timeout = setTimeout(() => {
+        setCurrentMember(null)
+        setVoiceActive(false)
+        setKioskState(prev => ({ ...prev, status: 'idle' }))
+      }, 60000) // 1 minute d'inactivité
+      
+      return () => clearTimeout(timeout)
+    }
+  }, [currentMember, voiceActive])
+
+  // Menu admin secret (3 clics rapides en bas à droite)
+  const [adminClicks, setAdminClicks] = useState(0)
+  const handleAdminAccess = () => {
+    setAdminClicks(prev => prev + 1)
+    if (adminClicks >= 2) {
+      setShowAdminMenu(true)
+      setAdminClicks(0)
+    }
+    setTimeout(() => setAdminClicks(0), 2000)
+  }
+
+  // Statut pour JARVIS
+  const getJarvisStatus = (): 'idle' | 'listening' | 'speaking' | 'thinking' | 'connecting' => {
+    if (voiceActive) {
+      return kioskState.status as any
+    }
+    if (currentMember) return 'thinking'
+    return 'idle'
+  }
+
+  // Message minimal selon l'état
+  const getStatusMessage = () => {
+    if (currentMember && !voiceActive) {
+      return `Bonjour ${currentMember.first_name} !`
+    }
+    if (voiceActive) {
+      return "Je vous écoute..."
+    }
+    return "Présentez votre badge"
+  }
+
   if (error) {
     return (
       <Box 
-        minH="100vh" 
-        bg="linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)"
-        display="flex"
-        alignItems="center"
+        h="100vh" 
+        display="flex" 
+        alignItems="center" 
         justifyContent="center"
-        p={8}
+        bg="linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
+        color="white"
       >
-        <Alert status="error" maxW="400px">
-          <AlertIcon />
-          {error}
-        </Alert>
+        <VStack spacing={4}>
+          <Text fontSize="xl" color="red.300">❌ Erreur Kiosk</Text>
+          <Text color="gray.300">{error}</Text>
+        </VStack>
       </Box>
     )
   }
@@ -147,186 +143,191 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   if (!kioskData) {
     return (
       <Box 
-        minH="100vh" 
-        bg="linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)"
-        display="flex"
-        alignItems="center"
+        h="100vh" 
+        display="flex" 
+        alignItems="center" 
         justifyContent="center"
+        bg="linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
+        color="white"
       >
-        <VStack spacing={4}>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <Text fontSize="4xl">🤖</Text>
-          </motion.div>
-          <Text color="white" fontSize="lg">
-            Initialisation JARVIS...
-          </Text>
-        </VStack>
+        <Text fontSize="lg" color="gray.300">⏳ Initialisation...</Text>
       </Box>
     )
   }
 
   return (
     <Box
-      minH="100vh"
+      h="100vh"
       position="relative"
       overflow="hidden"
-      bg="linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)"
-      suppressHydrationWarning
+      bg="linear-gradient(135deg, #0f0f23 0%, #1a1a2e 30%, #16213e 70%, #0f3460 100%)"
     >
-      {/* Background cosmique */}
-      <CosmicBackground />
-      
-      {/* Interface principale */}
+      {/* 🌌 FOND MOTION GRAPHICS SUBTIL */}
       <Box
-        position="relative"
-        zIndex={2}
-        minH="100vh"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        p={8}
-        suppressHydrationWarning
+        position="absolute"
+        inset={0}
+        opacity={0.3}
+        background={`
+          radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+          radial-gradient(circle at 40% 40%, rgba(99, 102, 241, 0.06) 0%, transparent 50%)
+        `}
+      />
+
+      {/* ✨ Particules flottantes subtiles */}
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={i}
+          style={{
+            position: 'absolute',
+            width: '2px',
+            height: '2px',
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.2)',
+            left: `${20 + i * 12}%`,
+            top: `${30 + i * 8}%`
+          }}
+          animate={{
+            y: [-20, 20, -20],
+            opacity: [0.2, 0.8, 0.2],
+            scale: [0.5, 1, 0.5]
+          }}
+          transition={{
+            duration: 6 + i,
+            repeat: Infinity,
+            delay: i * 0.5,
+            ease: "easeInOut"
+          }}
+        />
+      ))}
+
+      {/* 🎯 JARVIS AVATAR CENTRAL */}
+      <Box
+        position="absolute"
+        top="50%"
+        left="50%"
+        transform="translate(-50%, -50%)"
       >
-        <VStack spacing={12} align="center" w="full" maxW="800px">
-          
-          {/* En-tête gym */}
-          <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <VStack spacing={2} textAlign="center">
-              <Text 
-                color="rgba(255,255,255,0.95)" 
-                fontSize="2xl" 
-                fontWeight="600"
-                letterSpacing="wide"
-              >
-                {kioskData.gym.name}
-              </Text>
-              <Badge 
-                colorScheme="blue" 
-                fontSize="xs"
-                px={3}
-                py={1}
-                borderRadius="full"
-              >
-                {kioskData.kiosk.name} • v{kioskData.kiosk.version}
-              </Badge>
-            </VStack>
-          </motion.div>
+        <VoiceInterface
+          gymSlug={slug}
+          currentMember={currentMember}
+          isActive={voiceActive}
+          onActivate={() => setVoiceActive(true)}
+          onDeactivate={() => setVoiceActive(false)}
+        />
 
-          {/* Interface unifiée - Avatar toujours présent */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            style={{ width: '100%' }}
+        {/* Avatar principal par-dessus */}
+        <Box position="absolute" top="-200px" left="50%" transform="translateX(-50%)">
+          <Avatar3D 
+            status={getJarvisStatus()}
+            size={400}
+          />
+        </Box>
+      </Box>
+
+      {/* 💬 MESSAGE MINIMAL */}
+      <AnimatePresence>
+        <motion.div
+          key={getStatusMessage()}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.5 }}
+          style={{
+            position: 'absolute',
+            bottom: '120px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            textAlign: 'center'
+          }}
+        >
+          <Text 
+            fontSize="2xl" 
+            color="white" 
+            fontWeight="300"
+            letterSpacing="wide"
+            filter="drop-shadow(0 0 10px rgba(255,255,255,0.2))"
           >
-            <VStack spacing={8} align="center">
+            {getStatusMessage()}
+          </Text>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* 🔧 MENU ADMIN CACHÉ */}
+      <Box
+        position="absolute"
+        bottom="20px"
+        right="20px"
+        w="40px"
+        h="40px"
+        cursor="pointer"
+        onClick={handleAdminAccess}
+        opacity={showAdminMenu ? 1 : 0.1}
+        transition="opacity 0.3s"
+        _hover={{ opacity: 0.3 }}
+      >
+        <Badge colorScheme="blue" variant="subtle" fontSize="xs">
+          DEV
+        </Badge>
+      </Box>
+
+      {/* 🛠️ PANNEAU ADMIN SIMULATEUR */}
+      <AnimatePresence>
+        {showAdminMenu && (
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            transition={{ type: "spring", damping: 20 }}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '300px',
+              height: '100%',
+              background: 'rgba(0, 0, 0, 0.9)',
+              backdropFilter: 'blur(20px)',
+              borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
+              padding: '20px',
+              zIndex: 1000
+            }}
+          >
+            <VStack spacing={4} align="stretch">
+              <HStack justify="space-between">
+                <Text color="white" fontWeight="bold">Menu Admin</Text>
+                <Box
+                  cursor="pointer"
+                  onClick={() => setShowAdminMenu(false)}
+                  color="gray.400"
+                  _hover={{ color: "white" }}
+                >
+                  ✕
+                </Box>
+              </HStack>
               
-              {/* Informations membre si connecté */}
-              <AnimatePresence>
-                {currentMember && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <VStack spacing={2} textAlign="center">
-                      <Text color="rgba(255,255,255,0.9)" fontSize="lg" fontWeight="600">
-                        Bonjour {currentMember.first_name} ! 👋
-                      </Text>
-                      <HStack spacing={3}>
-                        <Badge colorScheme="green" borderRadius="full">
-                          {currentMember.membership_type}
-                        </Badge>
-                        <Badge colorScheme="blue" borderRadius="full">
-                          {currentMember.total_visits} visites
-                        </Badge>
-                      </HStack>
-                    </VStack>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* AVATAR PRINCIPAL - Toujours présent, change juste de statut */}
-              <Box position="relative">
-                <VoiceInterface
-                  gymSlug={slug}
-                  currentMember={currentMember}
-                  isActive={voiceActive}
-                  onActivate={() => setVoiceActive(true)}
-                  onDeactivate={handleSessionEnd}
-                />
+              <Box>
+                <Text color="gray.300" fontSize="sm" mb={2}>Simulateur RFID:</Text>
+                <RFIDSimulator onMemberScanned={handleMemberScanned} isActive={false} />
               </Box>
 
-              {/* Message d'accueil ou status */}
-              <VStack spacing={4} textAlign="center">
-                {!currentMember ? (
-                  <Text 
-                    color="rgba(255,255,255,0.8)" 
-                    fontSize="lg" 
-                    fontWeight="400"
-                  >
-                    JARVIS
-                  </Text>
-                ) : (
-                  <Text 
-                    color="rgba(255,255,255,0.6)" 
-                    fontSize="sm"
-                  >
-                    {voiceActive ? "●" : "○"}
-                  </Text>
-                )}
-              </VStack>
-
-              {/* Simulateur RFID - Plus discret, toujours visible */}
-              {!voiceActive && (
-                <motion.div
-                  initial={{ opacity: 1 }}
-                  animate={{ opacity: currentMember ? 0.3 : 1 }}
-                  transition={{ duration: 0.5 }}
-                  style={{ width: '100%' }}
-                >
-                  <Divider opacity={0.2} maxW="300px" mb={4} />
-                  <RFIDSimulator 
-                    onMemberScanned={handleMemberScanned}
-                    isActive={voiceActive}
-                  />
-                </motion.div>
-              )}
-
-              {/* Bouton de fin de session - Discret */}
-              <AnimatePresence>
+              <Box>
+                <Text color="gray.300" fontSize="sm" mb={2}>État:</Text>
+                <Text color="green.300" fontSize="xs">
+                  Kiosk: {kioskData.gym.name}
+                </Text>
+                <Text color="blue.300" fontSize="xs">
+                  Status: {kioskState.status}
+                </Text>
                 {currentMember && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ delay: 2 }}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      colorScheme="red"
-                      onClick={handleSessionEnd}
-                      _hover={{ bg: 'rgba(220, 38, 38, 0.1)' }}
-                      opacity={0.6}
-                    >
-                      Terminer la session
-                    </Button>
-                  </motion.div>
+                  <Text color="purple.300" fontSize="xs">
+                    Membre: {currentMember.first_name}
+                  </Text>
                 )}
-              </AnimatePresence>
+              </Box>
             </VStack>
           </motion.div>
-        </VStack>
-      </Box>
+        )}
+      </AnimatePresence>
     </Box>
   )
 } 

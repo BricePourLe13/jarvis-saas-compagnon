@@ -11,34 +11,33 @@ interface Avatar3DProps {
 
 export default function Avatar3D({ status, size = 450, className }: Avatar3DProps) {
   const [rotation, setRotation] = useState(0)
-  const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 })
   const [isBlinking, setIsBlinking] = useState(false)
+  const [mood, setMood] = useState<'happy' | 'excited' | 'curious' | 'sleepy'>('happy')
   
   const animationFrameRef = useRef<number | null>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const sphereControls = useAnimationControls()
-  const linesControls = useAnimationControls()
   
-  // 🎭 HOOK DE SYNCHRONISATION AUDIO-VISUELLE - PHASE 6
+  // 🎭 HOOK DE SYNCHRONISATION AUDIO-VISUELLE
   const voiceSync = useVoiceVisualSync()
   
-  // Synchroniser les contrôles d'animation avec le système vocal
+  // Synchroniser avec le système vocal
   useEffect(() => {
-    // Adapter le status JARVIS pour les états de voix
     if (status === 'listening') {
       voiceSync.setListeningState(true)
+      setMood('curious')
     } else if (status === 'speaking') {
       voiceSync.setSpeakingState(true)
+      setMood('excited')
     } else {
       voiceSync.setListeningState(false)
       voiceSync.setSpeakingState(false)
+      setMood(status === 'thinking' ? 'curious' : 'happy')
     }
   }, [status, voiceSync])
 
-  // ⚡ MEMORY MANAGEMENT SYSTEM - SIMPLIFIÉ
+  // ⚡ MEMORY MANAGEMENT - Simplifié
   const activeTimers = useRef<Set<NodeJS.Timeout>>(new Set())
   const activeIntervals = useRef<Set<NodeJS.Timeout>>(new Set())
-  const activeAnimationFrames = useRef<Set<number>>(new Set())
 
   const addTimer = useCallback((timer: NodeJS.Timeout) => {
     activeTimers.current.add(timer)
@@ -50,21 +49,11 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
     return interval
   }, [])
 
-  const addAnimationFrame = useCallback((frame: number) => {
-    activeAnimationFrames.current.add(frame)
-    return frame
-  }, [])
-
   const cleanupResources = useCallback(() => {
     activeTimers.current.forEach(timer => clearTimeout(timer))
     activeTimers.current.clear()
-
     activeIntervals.current.forEach(interval => clearInterval(interval))
     activeIntervals.current.clear()
-
-    activeAnimationFrames.current.forEach(frame => cancelAnimationFrame(frame))
-    activeAnimationFrames.current.clear()
-
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current)
       animationFrameRef.current = null
@@ -75,51 +64,97 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
     }
   }, [])
 
-  // ⚡ GLOBAL CLEANUP ON UNMOUNT
   useEffect(() => {
-    return () => {
-      cleanupResources()
-    }
+    return () => cleanupResources()
   }, [cleanupResources])
   
-  // 🔄 ROTATION SIMPLIFIÉE
+  // 🔄 ROTATION DOUCE
   useEffect(() => {
     const interval = addInterval(setInterval(() => {
-      setRotation(prev => prev + 0.5) // Ralenti
-    }, 200)) // Plus lent
-    
+      setRotation(prev => prev + 0.3)
+    }, 150))
     return () => clearInterval(interval)
   }, [addInterval])
 
-  // 👁️ SIMPLE BLINKING
+  // 👁️ CLIGNEMENTS MIGNONS
   useEffect(() => {
     const blinkInterval = addInterval(setInterval(() => {
       setIsBlinking(true)
-      const timer = addTimer(setTimeout(() => setIsBlinking(false), 150))
-    }, 3000))
-    
+      const timer = addTimer(setTimeout(() => setIsBlinking(false), 120))
+    }, 2500 + Math.random() * 2000)) // Variation naturelle
     return () => clearInterval(blinkInterval)
   }, [addInterval, addTimer])
 
-  // 🎯 COULEUR DES YEUX SELON STATUS
-  const getEyeColor = () => {
+  // 🎨 COULEURS SELON STATUS (plus chaleureuses)
+  const getMainColor = () => {
     switch (status) {
-      case 'listening': return 'rgba(34, 197, 94, 0.9)' // Vert
-      case 'speaking': return 'rgba(59, 130, 246, 0.9)' // Bleu
-      case 'thinking': return 'rgba(139, 92, 246, 0.9)' // Violet
-      case 'connecting': return 'rgba(251, 191, 36, 0.9)' // Orange
-      default: return 'rgba(156, 163, 175, 0.8)' // Gris
+      case 'listening': return 'rgba(52, 211, 153, 0.9)' // Vert émeraude
+      case 'speaking': return 'rgba(96, 165, 250, 0.9)' // Bleu ciel
+      case 'thinking': return 'rgba(168, 85, 247, 0.9)' // Violet magique
+      case 'connecting': return 'rgba(251, 191, 36, 0.9)' // Orange chaleureux
+      default: return 'rgba(165, 180, 252, 0.8)' // Bleu doux
     }
   }
 
-  // 🎨 COULEUR SPHÈRE SELON STATUS
-  const getSphereColor = () => {
+  const getSecondaryColor = () => {
     switch (status) {
-      case 'listening': return 'rgba(34, 197, 94, 0.1)'
-      case 'speaking': return 'rgba(59, 130, 246, 0.1)'
-      case 'thinking': return 'rgba(139, 92, 246, 0.1)'
-      case 'connecting': return 'rgba(251, 191, 36, 0.1)'
-      default: return 'rgba(156, 163, 175, 0.05)'
+      case 'listening': return 'rgba(52, 211, 153, 0.3)'
+      case 'speaking': return 'rgba(96, 165, 250, 0.3)'
+      case 'thinking': return 'rgba(168, 85, 247, 0.3)'
+      case 'connecting': return 'rgba(251, 191, 36, 0.3)'
+      default: return 'rgba(165, 180, 252, 0.2)'
+    }
+  }
+
+  // 👁️ DESIGN DES YEUX MIGNONS
+  const getEyeStyle = () => {
+    if (isBlinking) {
+      return {
+        width: '14px',
+        height: '2px',
+        borderRadius: '2px'
+      }
+    }
+    
+    switch (mood) {
+      case 'excited':
+        return {
+          width: '16px',
+          height: '20px',
+          borderRadius: '50%'
+        }
+      case 'curious':
+        return {
+          width: '12px',
+          height: '18px',
+          borderRadius: '50%'
+        }
+      case 'sleepy':
+        return {
+          width: '14px',
+          height: '12px',
+          borderRadius: '50%'
+        }
+      default: // happy
+        return {
+          width: '14px',
+          height: '16px',
+          borderRadius: '50%'
+        }
+    }
+  }
+
+  // 😊 EXPRESSION DU VISAGE
+  const getFaceExpression = () => {
+    switch (mood) {
+      case 'excited':
+        return [1.02, 1.08, 1.02] // Plus gros quand excité
+      case 'curious':
+        return [1, 1.04, 1] // Légèrement plus gros
+      case 'sleepy':
+        return [1, 0.98, 1] // Plus petit
+      default:
+        return [1, 1.02, 1] // Happy bounce
     }
   }
 
@@ -128,59 +163,92 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
       className={`relative ${className}`}
       style={{ width: size, height: size }}
     >
-      {/* 🌐 SPHÈRE PRINCIPALE SIMPLIFIÉE */}
+      {/* 🌟 SPHÈRE PRINCIPALE MIGNONNE */}
       <motion.div
         style={{
           width: '100%',
           height: '100%',
           borderRadius: '50%',
-          background: `radial-gradient(circle at 30% 30%, 
-            rgba(255, 255, 255, 0.3) 0%, 
-            ${getSphereColor()} 40%, 
-            rgba(0, 0, 0, 0.1) 100%)`,
-          border: '2px solid rgba(255, 255, 255, 0.2)',
+          background: `
+            radial-gradient(circle at 35% 25%, 
+              rgba(255, 255, 255, 0.4) 0%, 
+              ${getMainColor()} 20%, 
+              ${getSecondaryColor()} 60%, 
+              rgba(0, 0, 0, 0.1) 100%)
+          `,
+          border: '3px solid rgba(255, 255, 255, 0.3)',
           position: 'relative',
           overflow: 'hidden',
           boxShadow: `
-            inset 0 0 60px rgba(255, 255, 255, 0.1),
-            0 0 60px ${getSphereColor()},
-            0 0 100px rgba(0, 0, 0, 0.1)
+            inset 0 0 80px rgba(255, 255, 255, 0.15),
+            0 0 60px ${getSecondaryColor()},
+            0 20px 40px rgba(0, 0, 0, 0.1)
           `,
-          // ⚡ OPTIMISATION GPU MINIMALE
-          willChange: 'transform',
-          transform: 'translate3d(0, 0, 0)'
+          cursor: status === 'idle' ? 'pointer' : 'default',
+          willChange: 'transform'
         }}
         animate={{
-          scale: status === 'speaking' ? [1, 1.02, 1] : [1, 1.005, 1],
-          rotateZ: [0, 0.5, 0]
+          scale: getFaceExpression(),
+          rotateZ: [0, 1, 0, -1, 0],
         }}
         transition={{
-          scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-          rotateZ: { duration: 8, repeat: Infinity, ease: "linear" }
+          scale: { 
+            duration: status === 'speaking' ? 0.6 : 2, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          },
+          rotateZ: { 
+            duration: 8, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }
         }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
-        {/* 👁️ YEUX SIMPLIFIÉS */}
+        {/* ✨ REFLET GLASSMORPHISM */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            top: '12%',
+            left: '15%',
+            width: '45%',
+            height: '35%',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 60%, transparent 100%)',
+            filter: 'blur(15px)'
+          }}
+          animate={{
+            opacity: [0.7, 1, 0.7],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+
+        {/* 👁️ YEUX MIGNONS EXPRESSIFS */}
         <div style={{ position: 'absolute', inset: 0 }}>
           {/* Oeil gauche */}
           <motion.div
             style={{
               position: 'absolute',
-              left: '35%',
-              top: '42%',
-              width: '8px',
-              height: '12px',
-              background: getEyeColor(),
-              borderRadius: '50%',
-              boxShadow: `0 0 10px ${getEyeColor()}`,
-              transform: 'translate3d(-50%, -50%, 0)'
+              left: '32%',
+              top: '40%',
+              background: getMainColor(),
+              boxShadow: `0 0 15px ${getMainColor()}`,
+              transform: 'translate(-50%, -50%)',
+              ...getEyeStyle()
             }}
             animate={{
               scaleY: isBlinking ? 0.1 : 1,
-              opacity: [0.8, 1, 0.8]
+              y: mood === 'curious' ? [-2, 2, -2] : [0, 0, 0]
             }}
             transition={{ 
               scaleY: { duration: isBlinking ? 0.1 : 0.3 },
-              opacity: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+              y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
             }}
           />
           
@@ -188,102 +256,164 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
           <motion.div
             style={{
               position: 'absolute',
-              left: '65%',
-              top: '42%',
-              width: '8px',
-              height: '12px',
-              background: getEyeColor(),
-              borderRadius: '50%',
-              boxShadow: `0 0 10px ${getEyeColor()}`,
-              transform: 'translate3d(-50%, -50%, 0)'
+              left: '68%',
+              top: '40%',
+              background: getMainColor(),
+              boxShadow: `0 0 15px ${getMainColor()}`,
+              transform: 'translate(-50%, -50%)',
+              ...getEyeStyle()
             }}
             animate={{
               scaleY: isBlinking ? 0.1 : 1,
-              opacity: [0.8, 1, 0.8]
+              y: mood === 'curious' ? [-2, 2, -2] : [0, 0, 0]
             }}
             transition={{ 
               scaleY: { duration: isBlinking ? 0.1 : 0.3 },
-              opacity: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+              y: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
             }}
           />
+
+          {/* 🌟 Petites étincelles dans les yeux quand excité */}
+          {mood === 'excited' && (
+            <>
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  left: '32%',
+                  top: '40%',
+                  width: '4px',
+                  height: '4px',
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: '50%',
+                  transform: 'translate(-50%, -50%)'
+                }}
+                animate={{
+                  scale: [0, 1, 0],
+                  opacity: [0, 1, 0]
+                }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  left: '68%',
+                  top: '40%',
+                  width: '4px',
+                  height: '4px',
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: '50%',
+                  transform: 'translate(-50%, -50%)'
+                }}
+                animate={{
+                  scale: [0, 1, 0],
+                  opacity: [0, 1, 0]
+                }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.5
+                }}
+              />
+            </>
+          )}
         </div>
 
-        {/* ✨ COSMOS ULTRA-SIMPLIFIÉ - Seulement 3 étoiles */}
+        {/* 💫 COSMOS INTÉRIEUR MIGNON - Juste quelques étoiles mignonnes */}
         <motion.div
           style={{
             position: 'absolute',
-            inset: '30px'
+            inset: '25%',
+            opacity: 0.6
           }}
           animate={{
-            rotateZ: rotation * 0.1
+            rotateZ: rotation * 0.05
           }}
         >
-          {/* Étoile 1 */}
+          {/* Petites étoiles mignonnes */}
+          {[
+            { left: '20%', top: '30%', size: 3, delay: 0 },
+            { left: '80%', top: '25%', size: 2, delay: 1 },
+            { left: '30%', top: '70%', size: 2.5, delay: 2 },
+            { left: '70%', top: '75%', size: 2, delay: 3 }
+          ].map((star, i) => (
+            <motion.div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: star.left,
+                top: star.top,
+                width: `${star.size}px`,
+                height: `${star.size}px`,
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 0 6px rgba(255, 255, 255, 0.6)'
+              }}
+              animate={{
+                opacity: [0.3, 1, 0.3],
+                scale: [0.5, 1.2, 0.5]
+              }}
+              transition={{
+                duration: 3 + star.delay,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: star.delay * 0.5
+              }}
+            />
+          ))}
+        </motion.div>
+
+        {/* 🌈 AURA ÉMOTIONNELLE SELON STATUS */}
+        {(status === 'listening' || status === 'speaking') && (
           <motion.div
             style={{
               position: 'absolute',
-              left: '25%',
-              top: '25%',
-              width: '2px',
-              height: '2px',
-              background: 'rgba(255, 255, 255, 0.6)',
-              borderRadius: '50%'
+              inset: '-10px',
+              borderRadius: '50%',
+              border: `2px solid ${getMainColor()}`,
+              opacity: 0.4
             }}
             animate={{
-              opacity: [0.3, 0.8, 0.3]
+              scale: [1, 1.15, 1],
+              opacity: [0.4, 0.7, 0.4]
             }}
             transition={{
-              duration: 3,
+              duration: 2,
               repeat: Infinity,
               ease: "easeInOut"
             }}
           />
-          
-          {/* Étoile 2 */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              left: '70%',
-              top: '35%',
-              width: '1.5px',
-              height: '1.5px',
-              background: 'rgba(147, 197, 253, 0.7)',
-              borderRadius: '50%'
-            }}
-            animate={{
-              opacity: [0.4, 0.9, 0.4]
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1
-            }}
-          />
-          
-          {/* Étoile 3 */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              left: '45%',
-              top: '65%',
-              width: '1px',
-              height: '1px',
-              background: 'rgba(196, 181, 253, 0.5)',
-              borderRadius: '50%'
-            }}
-            animate={{
-              opacity: [0.2, 0.7, 0.2]
-            }}
-            transition={{
-              duration: 5,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
-          />
-        </motion.div>
+        )}
       </motion.div>
+
+      {/* 💕 CŒURS FLOTTANTS QUAND HEUREUX */}
+      {mood === 'happy' && status === 'idle' && (
+        <motion.div
+          style={{
+            position: 'absolute',
+            top: '10%',
+            right: '15%',
+            fontSize: '16px',
+            opacity: 0.6
+          }}
+          animate={{
+            y: [-10, -30, -10],
+            opacity: [0, 0.6, 0],
+            scale: [0.5, 1, 0.5]
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          💕
+        </motion.div>
+      )}
     </div>
   )
 } 
