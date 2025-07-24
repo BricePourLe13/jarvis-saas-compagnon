@@ -161,6 +161,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       position="relative"
       overflow="hidden"
       bg="linear-gradient(135deg, #0f0f23 0%, #1a1a2e 30%, #16213e 70%, #0f3460 100%)"
+      suppressHydrationWarning
     >
       {/* 🌌 FOND MOTION GRAPHICS SUBTIL */}
       <Box
