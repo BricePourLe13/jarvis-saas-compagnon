@@ -160,44 +160,129 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       h="100vh"
       position="relative"
       overflow="hidden"
-      bg="linear-gradient(135deg, #0f0f23 0%, #1a1a2e 30%, #16213e 70%, #0f3460 100%)"
+      bg="linear-gradient(135deg, #0a0a0f 0%, #151520 30%, #1a1a2a 70%, #0f0f1a 100%)"
       suppressHydrationWarning
     >
-      {/* 🌌 FOND MOTION GRAPHICS SUBTIL */}
+      {/* 🌌 COSMOS BACKGROUND SUBTIL - DERNIER PLAN */}
       <Box
         position="absolute"
-        inset={0}
+        inset="0"
+        zIndex={1}
         opacity={0.3}
-        background={`
-          radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-          radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-          radial-gradient(circle at 40% 40%, rgba(99, 102, 241, 0.06) 0%, transparent 50%)
-        `}
-      />
-
-      {/* ✨ Particules flottantes subtiles */}
-      {[...Array(6)].map((_, i) => (
+      >
+        {/* Nébuleuses lointaines très subtiles */}
         <motion.div
-          key={i}
           style={{
             position: 'absolute',
-            width: '2px',
-            height: '2px',
+            top: '10%',
+            right: '20%',
+            width: '200px',
+            height: '150px',
             borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.2)',
-            left: `${20 + i * 12}%`,
-            top: `${30 + i * 8}%`
+            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
+            filter: 'blur(40px)'
           }}
           animate={{
-            y: [-20, 20, -20],
-            opacity: [0.2, 0.8, 0.2],
-            scale: [0.5, 1, 0.5]
+            scale: [1, 1.1, 1],
+            opacity: [0.1, 0.2, 0.1]
           }}
           transition={{
-            duration: 6 + i,
+            duration: 8,
             repeat: Infinity,
-            delay: i * 0.5,
             ease: "easeInOut"
+          }}
+        />
+        
+        <motion.div
+          style={{
+            position: 'absolute',
+            bottom: '15%',
+            left: '15%',
+            width: '180px',
+            height: '120px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%)',
+            filter: 'blur(35px)'
+          }}
+          animate={{
+            scale: [1, 1.05, 1],
+            opacity: [0.08, 0.15, 0.08]
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 4
+          }}
+        />
+
+        {/* Étoiles lointaines */}
+        {[
+          { left: '20%', top: '25%', delay: 0 },
+          { left: '80%', top: '30%', delay: 1 },
+          { left: '15%', top: '70%', delay: 2 },
+          { left: '85%', top: '75%', delay: 3 },
+          { left: '50%', top: '15%', delay: 4 },
+          { left: '70%', top: '60%', delay: 5 },
+          { left: '30%', top: '85%', delay: 6 },
+          { left: '90%', top: '45%', delay: 7 }
+        ].map((star, i) => (
+          <motion.div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: star.left,
+              top: star.top,
+              width: '1px',
+              height: '1px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.6)',
+              boxShadow: '0 0 4px rgba(255, 255, 255, 0.3)'
+            }}
+            animate={{
+              opacity: [0.3, 0.8, 0.3],
+              scale: [1, 1.2, 1]
+            }}
+            transition={{
+              duration: 3 + star.delay,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: star.delay * 0.5
+            }}
+          />
+        ))}
+      </Box>
+
+      {/* 🎆 PARTICULES FLOTTANTES MOTION GRAPHICS */}
+      {[
+        { left: '10%', top: '20%', delay: 0, size: 2 },
+        { left: '85%', top: '35%', delay: 2, size: 1.5 },
+        { left: '25%', top: '80%', delay: 4, size: 1.8 },
+        { left: '75%', top: '15%', delay: 6, size: 1.2 },
+        { left: '90%', top: '70%', delay: 8, size: 1.6 }
+      ].map((particle, i) => (
+        <motion.div
+          key={`particle-${i}`}
+          style={{
+            position: 'absolute',
+            left: particle.left,
+            top: particle.top,
+            width: `${particle.size}px`,
+            height: `${particle.size}px`,
+            borderRadius: '50%',
+            background: 'rgba(255, 255, 255, 0.4)',
+            zIndex: 2
+          }}
+          animate={{
+            y: [0, -20, 0],
+            opacity: [0.2, 0.6, 0.2],
+            scale: [0.8, 1.2, 0.8]
+          }}
+          transition={{
+            duration: 6 + particle.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: particle.delay * 0.3
           }}
         />
       ))}
@@ -208,6 +293,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         top="50%"
         left="50%"
         transform="translate(-50%, -50%)"
+        zIndex={10}
       >
         {/* Avatar principal centré */}
         <Avatar3D 
@@ -227,31 +313,42 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         </Box>
       </Box>
 
-      {/* 💬 MESSAGE MINIMAL - POSITION CORRIGÉE */}
+      {/* 💬 MESSAGE MINIMAL À GAUCHE DE LA SPHÈRE */}
       <AnimatePresence>
         <motion.div
           key={getStatusMessage()}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -30 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           style={{
             position: 'absolute',
-            bottom: '15%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            textAlign: 'center',
-            width: '100%',
-            zIndex: 10
+            left: '8%',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 15,
+            maxWidth: '300px'
           }}
         >
           <Text 
-            fontSize="2xl" 
-            color="white" 
-            fontWeight="300"
-            letterSpacing="wide"
-            filter="drop-shadow(0 0 15px rgba(255,255,255,0.3))"
-            textShadow="0 0 20px rgba(255,255,255,0.2)"
+            fontSize="lg" 
+            color="rgba(255, 255, 255, 0.9)"
+            fontWeight="200"
+            letterSpacing="0.05em"
+            lineHeight="1.4"
+            fontFamily="system-ui, -apple-system, sans-serif"
+            filter="drop-shadow(0 0 20px rgba(255,255,255,0.1))"
+            _before={{
+              content: '""',
+              position: 'absolute',
+              left: '-12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '2px',
+              height: '20px',
+              background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)',
+              borderRadius: '1px'
+            }}
           >
             {getStatusMessage()}
           </Text>
