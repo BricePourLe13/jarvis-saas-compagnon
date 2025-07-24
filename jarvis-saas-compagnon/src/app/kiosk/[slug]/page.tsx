@@ -202,26 +202,27 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         />
       ))}
 
-      {/* 🎯 JARVIS AVATAR CENTRAL */}
+      {/* 🎯 JARVIS AVATAR CENTRAL - SEULEMENT L'AVATAR */}
       <Box
         position="absolute"
         top="50%"
         left="50%"
         transform="translate(-50%, -50%)"
       >
-        <VoiceInterface
-          gymSlug={slug}
-          currentMember={currentMember}
-          isActive={voiceActive}
-          onActivate={() => setVoiceActive(true)}
-          onDeactivate={() => setVoiceActive(false)}
+        {/* Avatar principal centré */}
+        <Avatar3D 
+          status={getJarvisStatus()}
+          size={400}
         />
 
-        {/* Avatar principal par-dessus */}
-        <Box position="absolute" top="-200px" left="50%" transform="translateX(-50%)">
-          <Avatar3D 
-            status={getJarvisStatus()}
-            size={400}
+        {/* Logique voice cachée (pas d'interface visuelle) */}
+        <Box display="none">
+          <VoiceInterface
+            gymSlug={slug}
+            currentMember={currentMember}
+            isActive={voiceActive}
+            onActivate={() => setVoiceActive(true)}
+            onDeactivate={() => setVoiceActive(false)}
           />
         </Box>
       </Box>
