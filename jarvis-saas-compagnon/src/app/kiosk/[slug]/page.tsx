@@ -9,6 +9,52 @@ import Avatar3D from '@/components/kiosk/Avatar3D'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
 
+// ✅ PHASE 3: Browser Compatibility & Fallbacks
+const getBrowserInfo = () => {
+  if (typeof window === 'undefined') return null
+  
+  const userAgent = navigator.userAgent
+  const browser = {
+    isChrome: /Chrome/i.test(userAgent) && !/Edg/i.test(userAgent),
+    isFirefox: /Firefox/i.test(userAgent),
+    isSafari: /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent),
+    isEdge: /Edg/i.test(userAgent),
+    isMobile: /Mobile|Android|iPhone|iPad/i.test(userAgent),
+    supportsWebRTC: !!(window.RTCPeerConnection || (window as any).webkitRTCPeerConnection),
+    supportsGetUserMedia: !!(navigator.mediaDevices?.getUserMedia),
+    supportsPermissionsAPI: !!navigator.permissions,
+    version: parseFloat(userAgent.match(/(?:Chrome|Firefox|Safari|Edg)\/(\d+\.\d+)/)?.[1] || '0'),
+    hasKnownIssues: false
+  }
+  
+  // Détection problèmes connus
+  browser.hasKnownIssues = (
+    (browser.isSafari && browser.version < 14) ||
+    (browser.isFirefox && browser.version < 60) ||
+    (browser.isChrome && browser.version < 70) ||
+    browser.isMobile
+  )
+  
+  return browser
+}
+
+const checkMicrophonePermissions = async () => {
+  try {
+    if (!navigator.permissions) {
+      return { state: 'unknown', fallback: 'permissions_api_unavailable' }
+    }
+    
+    const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+    return { 
+      state: permission.state,
+      fallback: permission.state === 'denied' ? 'user_denied' : null
+    }
+  } catch (error) {
+    console.warn('⚠️ Vérification permissions microphone échouée:', error)
+    return { state: 'unknown', fallback: 'check_failed' }
+  }
+}
+
 export default function KioskPage(props: { params: Promise<{ slug: string }> }) {
   const { slug } = use(props.params)
   

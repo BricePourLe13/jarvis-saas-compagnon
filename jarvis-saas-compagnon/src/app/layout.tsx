@@ -18,6 +18,10 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        {/* ✅ PHASE 4: Meta tags permissions microphone */}
+        <meta httpEquiv="Permissions-Policy" content="microphone=(self), camera=(), geolocation=()" />
+        <meta httpEquiv="Feature-Policy" content="microphone 'self'; camera 'none'; geolocation 'none'" />
+        
         <script
           dangerouslySetInnerHTML={{
             __html: `

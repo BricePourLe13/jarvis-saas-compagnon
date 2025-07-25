@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initializeConversationMemory, generateContextualPrompt } from '@/lib/conversation-memory'
 
+// ✅ PHASE 1: Support méthode HEAD pour requêtes preflight navigateur
+export async function HEAD(request: NextRequest) {
+  // Simple check de santé pour HEAD requests
+  return new Response(null, { 
+    status: 200,
+    headers: {
+      'Allow': 'POST, HEAD',
+      'Content-Type': 'application/json'
+    }
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Vérifier la clé API OpenAI
