@@ -31,6 +31,14 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin'
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'microphone=(self)'
+          },
+          {
+            key: 'Feature-Policy',
+            value: 'microphone \'self\''
           }
         ]
       }
