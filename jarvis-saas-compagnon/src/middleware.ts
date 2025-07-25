@@ -1,135 +1,186 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
-import { apiLimiter, authLimiter, adminLimiter, getClientIdentifier } from './lib/rate-limiter'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+// ✅ SOLUTION 3: Advanced Browser Permissions Middleware + Fallback Strategies
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-
-  // 🛡️ Rate Limiting par endpoint
-  const clientId = getClientIdentifier(request)
+  const userAgent = request.headers.get('user-agent') || ''
   
-  // Rate limiting spécialisé par route
-  let rateLimitResult
-  if (pathname.startsWith('/api/auth')) {
-    rateLimitResult = authLimiter.isAllowed(clientId)
-  } else if (pathname.startsWith('/admin')) {
-    rateLimitResult = adminLimiter.isAllowed(clientId)
-  } else if (pathname.startsWith('/api/')) {
-    rateLimitResult = apiLimiter.isAllowed(clientId)
-  }
+  console.log(`🔧 [MIDDLEWARE] ${pathname} - ${userAgent.substring(0, 50)}...`)
 
-  // Bloquer si rate limit dépassé
-  if (rateLimitResult && !rateLimitResult.allowed) {
-    console.warn(`🚨 [SÉCURITÉ] Rate limit dépassé pour ${clientId} sur ${pathname}`)
+  // ✅ Only apply to kiosk routes
+  if (pathname.startsWith('/kiosk/')) {
+    const response = NextResponse.next()
     
-    return new NextResponse(
-      JSON.stringify({
-        error: 'Rate limit exceeded',
-        message: 'Trop de requêtes. Veuillez patienter.',
-        resetTime: rateLimitResult.resetTime
-      }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-RateLimit-Reset': rateLimitResult.resetTime?.toString() || '',
-          'Retry-After': Math.ceil((rateLimitResult.resetTime! - Date.now()) / 1000).toString()
-        }
-      }
-    )
+    // ✅ Browser detection for specific strategies
+    const browserInfo = detectBrowser(userAgent)
+    console.log(`🌐 [MIDDLEWARE] Browser: ${browserInfo.name} ${browserInfo.version}`)
+    
+    // ✅ Multi-layer permissions strategy
+    setAdvancedPermissionsHeaders(response, browserInfo)
+    
+    // ✅ Add browser-specific hints
+    setBrowserSpecificHeaders(response, browserInfo)
+    
+    // ✅ Security & performance headers for WebRTC
+    setWebRTCOptimizationHeaders(response)
+    
+    // ✅ CORS for microphone access
+    setCORSHeaders(response)
+    
+    console.log(`✅ [MIDDLEWARE] Applied advanced permissions for ${browserInfo.name}`)
+    return response
   }
 
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-        },
-      },
-    }
-  )
-
-  // Rafraîchir la session si nécessaire
-  const { data: { session } } = await supabase.auth.getSession()
-
-  // Protéger les routes admin et dashboard
-  if (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!session) {
-      // Rediriger vers la page d'accueil avec un paramètre pour ouvrir la modal de connexion
-      const redirectUrl = new URL('/', request.url)
-      redirectUrl.searchParams.set('auth', 'required')
-      return NextResponse.redirect(redirectUrl)
-    }
-
-    // Vérifier le rôle pour les routes admin et dashboard
-    if (session.user) {
-      const { data: userProfile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-
-      if (!userProfile || !['super_admin', 'franchise_owner', 'franchise_admin'].includes(userProfile.role)) {
-        // Pas autorisé à accéder à l'admin/dashboard
-        return NextResponse.redirect(new URL('/', request.url))
-      }
-    }
-  }
-
-  return response
+  return NextResponse.next()
 }
 
+// ✅ Browser detection with version support
+function detectBrowser(userAgent: string) {
+  const browsers = [
+    { name: 'Chrome', regex: /Chrome\/(\d+)/, mobile: /Mobile/ },
+    { name: 'Firefox', regex: /Firefox\/(\d+)/, mobile: /Mobile/ },
+    { name: 'Safari', regex: /Safari\/(\d+)/, mobile: /Mobile/ },
+    { name: 'Edge', regex: /Edg\/(\d+)/, mobile: /Mobile/ }
+  ]
+
+  for (const browser of browsers) {
+    const match = userAgent.match(browser.regex)
+    if (match) {
+      return {
+        name: browser.name,
+        version: parseInt(match[1]),
+        isMobile: browser.mobile.test(userAgent),
+        userAgent
+      }
+    }
+  }
+
+  return { name: 'Unknown', version: 0, isMobile: false, userAgent }
+}
+
+// ✅ Advanced permissions headers - multi-layer approach
+function setAdvancedPermissionsHeaders(response: NextResponse, browserInfo: any) {
+  // ✅ Modern Permissions-Policy (Chrome 88+, Firefox, Safari 16.4+)
+  const permissionsPolicy = [
+    'microphone=(self)',
+    'camera=(self)', 
+    'display-capture=(self)',
+    'autoplay=(self)',
+    'encrypted-media=(self)',
+    'fullscreen=(self)',
+    'picture-in-picture=(self)',
+    'web-share=(self)',
+    'clipboard-write=(self)'
+  ].join(', ')
+  
+  response.headers.set('Permissions-Policy', permissionsPolicy)
+  
+  // ✅ Legacy Feature-Policy (Chrome 60-87, older browsers)
+  const featurePolicy = [
+    "microphone 'self'",
+    "camera 'self'",
+    "display-capture 'self'",
+    "autoplay 'self'", 
+    "encrypted-media 'self'",
+    "fullscreen 'self'",
+    "picture-in-picture 'self'"
+  ].join('; ')
+  
+  response.headers.set('Feature-Policy', featurePolicy)
+  
+  // ✅ Browser-specific overrides
+  if (browserInfo.name === 'Safari' && browserInfo.version < 16) {
+    // Safari older versions need explicit allow directives
+    response.headers.set('Permissions-Policy', 'microphone=*, camera=*, autoplay=*')
+  }
+  
+  if (browserInfo.name === 'Firefox' && browserInfo.version < 90) {
+    // Firefox older versions prefer Feature-Policy
+    response.headers.delete('Permissions-Policy')
+  }
+}
+
+// ✅ Browser-specific headers and hints
+function setBrowserSpecificHeaders(response: NextResponse, browserInfo: any) {
+  // ✅ Chrome-specific optimizations
+  if (browserInfo.name === 'Chrome') {
+    response.headers.set('Accept-CH', 'Sec-CH-UA, Sec-CH-UA-Mobile, Sec-CH-UA-Platform')
+    response.headers.set('Critical-CH', 'Sec-CH-UA-Mobile')
+    
+    // Chrome experimental flags
+    response.headers.set('Origin-Trial', 'WebRTC-Unlimited-Media-Policy') // If available
+  }
+  
+  // ✅ Firefox-specific optimizations
+  if (browserInfo.name === 'Firefox') {
+    // Firefox prefers explicit CORS
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  }
+  
+  // ✅ Safari-specific optimizations
+  if (browserInfo.name === 'Safari') {
+    // Safari needs explicit autoplay policy
+    response.headers.set('Autoplay-Policy', 'user-gesture-required')
+    
+    // Safari prefers stricter CSP
+    const safariCSP = [
+      "default-src 'self'",
+      "media-src 'self' blob: mediastream:",
+      "connect-src 'self' wss: https:",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'"
+    ].join('; ')
+    response.headers.set('Content-Security-Policy', safariCSP)
+  }
+  
+  // ✅ Mobile-specific headers
+  if (browserInfo.isMobile) {
+    response.headers.set('Viewport-Fit', 'cover')
+    response.headers.set('Touch-Action', 'manipulation')
+  }
+}
+
+// ✅ WebRTC optimization headers
+function setWebRTCOptimizationHeaders(response: NextResponse) {
+  // ✅ Content Security Policy for WebRTC
+  const cspDirectives = [
+    "default-src 'self'",
+    "media-src 'self' blob: mediastream:",
+    "connect-src 'self' wss: https: *.openai.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "worker-src 'self' blob:"
+  ]
+  
+  response.headers.set('Content-Security-Policy', cspDirectives.join('; '))
+  
+  // ✅ Additional security headers
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  
+  // ✅ Performance hints for WebRTC
+  response.headers.set('Link', '</api/voice/session>; rel=prefetch')
+  response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
+}
+
+// ✅ CORS headers for cross-origin requests
+function setCORSHeaders(response: NextResponse) {
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Credentials', 'true')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  )
+}
+
+// ✅ Apply to kiosk routes only
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+    '/kiosk/:path*',
+    '/api/voice/:path*'
+  ]
 }

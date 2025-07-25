@@ -6,8 +6,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
 import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
 import Avatar3D from '@/components/kiosk/Avatar3D'
+import BrowserPermissionsFallback from '@/components/kiosk/BrowserPermissionsFallback'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
+import Head from 'next/head'
+import dynamic from 'next/dynamic'
 
 // ✅ PHASE 3: Browser Compatibility & Fallbacks
 const getBrowserInfo = () => {
@@ -586,6 +589,54 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     return "Erreur technique - Contactez l'équipe"
   }
 
+  // ✅ SOLUTION 3: Browser permissions fallback state
+  const [showPermissionsFallback, setShowPermissionsFallback] = useState(false)
+  const [permissionError, setPermissionError] = useState<string | null>(null)
+
+  // ✅ Handle permission failures with fallback
+  const handlePermissionFailure = useCallback((error: string) => {
+    console.error('🚨 Permission failure detected:', error)
+    setPermissionError(error)
+    
+    // Show fallback after a short delay to let other attempts finish
+    setTimeout(() => {
+      setShowPermissionsFallback(true)
+    }, 2000)
+  }, [])
+
+  // ✅ Handle successful permissions from fallback
+  const handlePermissionSuccess = useCallback(() => {
+    console.log('✅ Permissions granted via fallback')
+    setShowPermissionsFallback(false)
+    setPermissionError(null)
+    setSessionError(null)
+    
+    // Retry session creation
+    if (currentMember) {
+      handleMemberScanned(currentMember)
+    }
+  }, [currentMember, handleMemberScanned])
+
+  // ✅ Handle permission denial from fallback
+  const handlePermissionDenial = useCallback(() => {
+    console.log('❌ User denied permissions via fallback')
+    setShowPermissionsFallback(false)
+    setSessionError('Permissions microphone refusées')
+  }, [])
+
+  // ✅ Enhanced error detection - trigger fallback for permission errors
+  useEffect(() => {
+    if (sessionError) {
+      const errorLower = sessionError.toLowerCase()
+      if (errorLower.includes('permission') || 
+          errorLower.includes('microphone') || 
+          errorLower.includes('notallowederror') ||
+          errorLower.includes('blocked')) {
+        handlePermissionFailure(sessionError)
+      }
+    }
+  }, [sessionError, handlePermissionFailure])
+
   if (error) {
     return (
       <Box 
@@ -637,143 +688,54 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   }
 
   return (
-    <Box
-      h="100vh"
-      position="relative"
-      overflow="hidden"
-      bg="linear-gradient(135deg, #000000 0%, #0a0a0f 20%, #0f0f1a 60%, #000000 100%)"
-      fontFamily="SF Pro Display, -apple-system, system-ui"
-      suppressHydrationWarning
-    >
-      {/* 🌌 COSMOS NOIR OPTIMISÉ */}
+    <>
+      <Head>
+        {/* ✅ SOLUTION 1: BigBlueButton Method - Allow Attributes */}
+        <meta httpEquiv="Permissions-Policy" content="microphone=(self), camera=(self), display-capture=(self), autoplay=(self), encrypted-media=(self), fullscreen=(self), picture-in-picture=(self)" />
+        <meta httpEquiv="Feature-Policy" content="microphone 'self'; camera 'self'; display-capture 'self'; autoplay 'self'; encrypted-media 'self'; fullscreen 'self'; picture-in-picture 'self'" />
+        
+        {/* ✅ Ensure secure context */}
+        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+        
+        {/* ✅ User Agent specific hints */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+      </Head>
+      
       <Box
-        position="absolute"
-        inset="0"
-        zIndex={1}
-        opacity={0.8}
+        h="100vh"
+        position="relative"
+        overflow="hidden"
+        bg="linear-gradient(135deg, #000000 0%, #0a0a0f 20%, #0f0f1a 60%, #000000 100%)"
+        fontFamily="SF Pro Display, -apple-system, system-ui"
+        suppressHydrationWarning
+        role="application"
+        aria-label="Interface Jarvis Kiosk"
+        data-permissions-context="kiosk-microphone"
       >
-        {/* 🌌 COUCHE ULTRA LOINTAINE - Voie lactée dense OPTIMISÉE */}
+        {/* 🌌 COSMOS NOIR OPTIMISÉ */}
         <Box
           position="absolute"
           inset="0"
-          opacity={0.15}
-          style={{ willChange: 'transform' }}
+          zIndex={1}
+          opacity={0.8}
         >
-          {/* Fond galactique ultra-dense */}
-          {Array.from({ length: 150 }, (_, i) => {
-            const x = Math.random() * 100
-            const y = Math.random() * 100
-            const size = Math.random() * 0.4 + 0.1 // 0.1px à 0.5px
-            const opacity = Math.random() * 0.2 + 0.05 // Très subtil
-            
-            return (
-              <motion.div
-                key={`ultra-distant-star-${i}`}
-                style={{
-                  position: 'absolute',
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  borderRadius: '50%',
-                  background: `rgba(255, 255, 255, ${opacity})`,
-                  willChange: 'transform, opacity'
-                }}
-                animate={{
-                  opacity: [opacity * 0.5, opacity, opacity * 0.5],
-                  scale: [0.8, 1, 0.8]
-                }}
-                transition={{
-                  duration: 15 + (i * 0.01),
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            )
-          })}
-        </Box>
-
-        {/* 🌌 COUCHE ARRIÈRE-PLAN - Étoiles lointaines OPTIMISÉES */}
-        <Box
-          position="absolute"
-          inset="0"
-          opacity={0.25}
-          style={{ willChange: 'transform' }}
-        >
-          {/* Amas d'étoiles lointaines - Voie lactée simulation */}
-          {Array.from({ length: 120 }, (_, i) => {
-            const x = Math.random() * 100
-            const y = Math.random() * 100
-            const size = Math.random() * 0.8 + 0.2 // 0.2px à 1px
-            const opacity = Math.random() * 0.3 + 0.1
-            const colors = [
-              'rgba(255, 255, 255, ',
-              'rgba(147, 197, 253, ',
-              'rgba(196, 181, 253, '
-            ]
-            const color = colors[Math.floor(Math.random() * colors.length)]
-            
-            return (
-              <motion.div
-                key={`distant-star-${i}`}
-                style={{
-                  position: 'absolute',
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  borderRadius: '50%',
-                  background: `${color}${opacity})`,
-                  boxShadow: `0 0 ${size * 2}px ${color}${opacity * 0.4})`,
-                  willChange: 'transform, opacity'
-                }}
-                animate={{
-                  opacity: [opacity * 0.7, opacity, opacity * 0.7],
-                  scale: [0.9, 1.1, 0.9]
-                }}
-                transition={{
-                  duration: 12 + (i * 0.03),
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            )
-          })}
-        </Box>
-
-        {/* 🌌 COUCHE INTERMÉDIAIRE - Amas stellaires OPTIMISÉS */}
-        <Box
-          position="absolute"
-          inset="0"
-          opacity={0.4}
-          style={{ willChange: 'transform' }}
-        >
-          {/* Amas stellaires concentrés - OPTIMISÉS */}
-          {[
-            { cx: 20, cy: 30, count: 15, spread: 8 },
-            { cx: 80, cy: 20, count: 12, spread: 6 },
-            { cx: 15, cy: 70, count: 13, spread: 7 },
-            { cx: 90, cy: 85, count: 14, spread: 8 },
-            { cx: 60, cy: 10, count: 10, spread: 5 },
-            { cx: 35, cy: 90, count: 13, spread: 7 }
-          ].map((cluster, clusterIndex) => 
-            Array.from({ length: cluster.count }, (_, i) => {
-              const angle = (Math.random() * Math.PI * 2)
-              const distance = Math.random() * cluster.spread
-              const x = cluster.cx + (Math.cos(angle) * distance)
-              const y = cluster.cy + (Math.sin(angle) * distance)
-              const size = Math.random() * 1.2 + 0.6 // 0.6px à 1.8px
-              const brightness = Math.random() * 0.5 + 0.2
-              const colors = [
-                'rgba(255, 255, 255, ',
-                'rgba(59, 130, 246, ',
-                'rgba(147, 51, 234, '
-              ]
-              const color = colors[Math.floor(Math.random() * colors.length)]
+          {/* 🌌 COUCHE ULTRA LOINTAINE - Voie lactée dense OPTIMISÉE */}
+          <Box
+            position="absolute"
+            inset="0"
+            opacity={0.15}
+            style={{ willChange: 'transform' }}
+          >
+            {/* Fond galactique ultra-dense */}
+            {Array.from({ length: 150 }, (_, i) => {
+              const x = Math.random() * 100
+              const y = Math.random() * 100
+              const size = Math.random() * 0.4 + 0.1 // 0.1px à 0.5px
+              const opacity = Math.random() * 0.2 + 0.05 // Très subtil
               
               return (
                 <motion.div
-                  key={`cluster-${clusterIndex}-star-${i}`}
+                  key={`ultra-distant-star-${i}`}
                   style={{
                     position: 'absolute',
                     left: `${x}%`,
@@ -781,660 +743,772 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                     width: `${size}px`,
                     height: `${size}px`,
                     borderRadius: '50%',
-                    background: `${color}${brightness})`,
-                    boxShadow: `0 0 ${size * 3}px ${color}${brightness * 0.5})`,
+                    background: `rgba(255, 255, 255, ${opacity})`,
                     willChange: 'transform, opacity'
                   }}
                   animate={{
-                    opacity: [brightness * 0.6, brightness, brightness * 0.6],
-                    scale: [0.9, 1.2, 0.9]
+                    opacity: [opacity * 0.5, opacity, opacity * 0.5],
+                    scale: [0.8, 1, 0.8]
                   }}
                   transition={{
-                    duration: 8 + (i * 0.15),
+                    duration: 15 + (i * 0.01),
                     repeat: Infinity,
                     ease: "easeInOut"
                   }}
                 />
               )
-            })
-          )}
-        </Box>
+            })}
+          </Box>
 
-        {/* 🌌 NÉBULEUSES SOMBRES OPTIMISÉES */}
-        
-        {/* Nébuleuse violette principale */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            top: '10%',
-            left: '0%',
-            width: '50%',
-            height: '40%',
-            background: `
-              radial-gradient(ellipse 70% 50% at 30% 40%, 
-                rgba(147, 51, 234, 0.08) 0%,
-                rgba(139, 92, 246, 0.06) 35%,
-                rgba(59, 130, 246, 0.04) 65%,
-                transparent 85%
+          {/* 🌌 COUCHE ARRIÈRE-PLAN - Étoiles lointaines OPTIMISÉES */}
+          <Box
+            position="absolute"
+            inset="0"
+            opacity={0.25}
+            style={{ willChange: 'transform' }}
+          >
+            {/* Amas d'étoiles lointaines - Voie lactée simulation */}
+            {Array.from({ length: 120 }, (_, i) => {
+              const x = Math.random() * 100
+              const y = Math.random() * 100
+              const size = Math.random() * 0.8 + 0.2 // 0.2px à 1px
+              const opacity = Math.random() * 0.3 + 0.1
+              const colors = [
+                'rgba(255, 255, 255, ',
+                'rgba(147, 197, 253, ',
+                'rgba(196, 181, 253, '
+              ]
+              const color = colors[Math.floor(Math.random() * colors.length)]
+              
+              return (
+                <motion.div
+                  key={`distant-star-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    borderRadius: '50%',
+                    background: `${color}${opacity})`,
+                    boxShadow: `0 0 ${size * 2}px ${color}${opacity * 0.4})`,
+                    willChange: 'transform, opacity'
+                  }}
+                  animate={{
+                    opacity: [opacity * 0.7, opacity, opacity * 0.7],
+                    scale: [0.9, 1.1, 0.9]
+                  }}
+                  transition={{
+                    duration: 12 + (i * 0.03),
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
               )
-            `,
-            filter: 'blur(40px)',
-            borderRadius: '50%',
-            willChange: 'transform'
-          }}
-          animate={{
-            scale: [1, 1.03, 1],
-            opacity: [0.7, 1, 0.7]
-          }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
+            })}
+          </Box>
 
-        {/* Nébuleuse bleue secondaire */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            right: '0%',
-            width: '45%',
-            height: '35%',
-            background: `
-              radial-gradient(ellipse 65% 70% at 60% 50%, 
-                rgba(6, 182, 212, 0.06) 0%,
-                rgba(59, 130, 246, 0.04) 50%,
-                transparent 75%
-              )
-            `,
-            filter: 'blur(35px)',
-            borderRadius: '60%',
-            willChange: 'transform'
-          }}
-          animate={{
-            scale: [1, 1.02, 1],
-            opacity: [0.6, 0.9, 0.6]
-          }}
-          transition={{
-            duration: 35,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
+          {/* 🌌 COUCHE INTERMÉDIAIRE - Amas stellaires OPTIMISÉS */}
+          <Box
+            position="absolute"
+            inset="0"
+            opacity={0.4}
+            style={{ willChange: 'transform' }}
+          >
+            {/* Amas stellaires concentrés - OPTIMISÉS */}
+            {[
+              { cx: 20, cy: 30, count: 15, spread: 8 },
+              { cx: 80, cy: 20, count: 12, spread: 6 },
+              { cx: 15, cy: 70, count: 13, spread: 7 },
+              { cx: 90, cy: 85, count: 14, spread: 8 },
+              { cx: 60, cy: 10, count: 10, spread: 5 },
+              { cx: 35, cy: 90, count: 13, spread: 7 }
+            ].map((cluster, clusterIndex) => 
+              Array.from({ length: cluster.count }, (_, i) => {
+                const angle = (Math.random() * Math.PI * 2)
+                const distance = Math.random() * cluster.spread
+                const x = cluster.cx + (Math.cos(angle) * distance)
+                const y = cluster.cy + (Math.sin(angle) * distance)
+                const size = Math.random() * 1.2 + 0.6 // 0.6px à 1.8px
+                const brightness = Math.random() * 0.5 + 0.2
+                const colors = [
+                  'rgba(255, 255, 255, ',
+                  'rgba(59, 130, 246, ',
+                  'rgba(147, 51, 234, '
+                ]
+                const color = colors[Math.floor(Math.random() * colors.length)]
+                
+                return (
+                  <motion.div
+                    key={`cluster-${clusterIndex}-star-${i}`}
+                    style={{
+                      position: 'absolute',
+                      left: `${x}%`,
+                      top: `${y}%`,
+                      width: `${size}px`,
+                      height: `${size}px`,
+                      borderRadius: '50%',
+                      background: `${color}${brightness})`,
+                      boxShadow: `0 0 ${size * 3}px ${color}${brightness * 0.5})`,
+                      willChange: 'transform, opacity'
+                    }}
+                    animate={{
+                      opacity: [brightness * 0.6, brightness, brightness * 0.6],
+                      scale: [0.9, 1.2, 0.9]
+                    }}
+                    transition={{
+                      duration: 8 + (i * 0.15),
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                )
+              })
+            )}
+          </Box>
 
-        {/* Nébuleuse verte subtile */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            bottom: '15%',
-            left: '30%',
-            width: '40%',
-            height: '25%',
-            background: `
-              radial-gradient(ellipse 75% 55% at 50% 60%, 
-                rgba(34, 197, 94, 0.05) 0%,
-                rgba(59, 130, 246, 0.03) 60%,
-                transparent 80%
-              )
-            `,
-            filter: 'blur(30px)',
-            borderRadius: '70%',
-            willChange: 'transform'
-          }}
-          animate={{
-            scale: [1, 1.02, 1],
-            opacity: [0.4, 0.7, 0.4]
-          }}
-          transition={{
-            duration: 40,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-
-        {/* 🌟 ÉTOILES FILANTES OPTIMISÉES */}
-        {Array.from({ length: 2 }, (_, i) => (
+          {/* 🌌 NÉBULEUSES SOMBRES OPTIMISÉES */}
+          
+          {/* Nébuleuse violette principale */}
           <motion.div
-            key={`shooting-star-${i}`}
             style={{
               position: 'absolute',
-              top: `${Math.random() * 30 + 20}%`,
-              left: '-5%',
-              width: '100px',
-              height: '1px',
-              background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%)',
-              borderRadius: '1px',
-              filter: 'blur(0.5px)',
+              top: '10%',
+              left: '0%',
+              width: '50%',
+              height: '40%',
+              background: `
+                radial-gradient(ellipse 70% 50% at 30% 40%, 
+                  rgba(147, 51, 234, 0.08) 0%,
+                  rgba(139, 92, 246, 0.06) 35%,
+                  rgba(59, 130, 246, 0.04) 65%,
+                  transparent 85%
+                )
+              `,
+              filter: 'blur(40px)',
+              borderRadius: '50%',
               willChange: 'transform'
             }}
-            initial={{ x: -120, opacity: 0 }}
             animate={{
-              x: typeof window !== 'undefined' ? window.innerWidth + 120 : 1920,
-              opacity: [0, 1, 1, 0]
+              scale: [1, 1.03, 1],
+              opacity: [0.7, 1, 0.7]
             }}
             transition={{
-              duration: 3,
-              delay: i * 20 + Math.random() * 15,
-              repeat: Infinity,
-              repeatDelay: 45 + Math.random() * 30,
-              ease: "easeOut"
-            }}
-          />
-        ))}
-
-        {/* 🌌 PARTICULES COSMIQUES RÉDUITES */}
-        {Array.from({ length: 8 }, (_, i) => {
-          const colors = [
-            { bg: 'rgba(59, 130, 246, 0.6)', glow: 'rgba(59, 130, 246, 0.4)' },
-            { bg: 'rgba(147, 51, 234, 0.6)', glow: 'rgba(147, 51, 234, 0.4)' },
-            { bg: 'rgba(255, 255, 255, 0.4)', glow: 'rgba(255, 255, 255, 0.2)' }
-          ]
-          const color = colors[i % colors.length]
-          const size = Math.random() * 2 + 1
-          return (
-            <motion.div
-              key={`cosmic-particle-${i}`}
-              style={{
-                position: 'absolute',
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                width: `${size}px`,
-                height: `${size}px`,
-                borderRadius: '50%',
-                background: color.bg,
-                boxShadow: `0 0 ${size * 6}px ${color.glow}`,
-                zIndex: 2,
-                willChange: 'transform, opacity'
-              }}
-              animate={{
-                y: [0, -30, 0],
-                x: [0, 10, 0],
-                opacity: [0.2, 0.8, 0.2],
-                scale: [0.7, 1.2, 0.7]
-              }}
-              transition={{
-                duration: 15 + (i * 1.5),
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          )
-        })}
-
-        {/* 🌌 COUCHE AVANT-PLAN - Étoiles principales OPTIMISÉES */}
-        <Box
-          position="absolute"
-          inset="0"
-          zIndex={3}
-          style={{ willChange: 'transform' }}
-        >
-          {/* Étoiles principales épurées */}
-          {[
-            { left: '15%', top: '25%', color: 'rgba(255, 255, 255, 0.9)', size: 3.5 },
-            { left: '75%', top: '20%', color: 'rgba(147, 197, 253, 0.8)', size: 3 },
-            { left: '85%', top: '70%', color: 'rgba(255, 255, 255, 0.85)', size: 3.5 },
-            { left: '25%', top: '75%', color: 'rgba(196, 181, 253, 0.8)', size: 3 },
-            { left: '55%', top: '15%', color: 'rgba(255, 255, 255, 0.9)', size: 3.5 },
-            { left: '10%', top: '60%', color: 'rgba(167, 243, 208, 0.8)', size: 3 }
-          ].map((star, i) => (
-            <motion.div
-              key={`main-star-${i}`}
-              style={{
-                position: 'absolute',
-                left: star.left,
-                top: star.top,
-                width: `${star.size}px`,
-                height: `${star.size}px`,
-                borderRadius: '50%',
-                background: star.color,
-                boxShadow: `
-                  0 0 ${star.size * 4}px ${star.color},
-                  0 0 ${star.size * 8}px ${star.color.replace('1)', '0.3)')},
-                  0 0 ${star.size * 12}px ${star.color.replace('1)', '0.1)')}
-                `,
-                willChange: 'transform, opacity'
-              }}
-              animate={{
-                opacity: [0.8, 1, 0.8],
-                scale: [0.9, 1.2, 0.9]
-              }}
-              transition={{
-                duration: 6 + (i * 0.5),
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
-
-          {/* Étoiles moyennes colorées RÉDUITES */}
-          {[
-            { left: '40%', top: '35%', color: 'rgba(34, 197, 94, 0.7)', size: 2 },
-            { left: '65%', top: '65%', color: 'rgba(251, 146, 60, 0.7)', size: 1.8 },
-            { left: '30%', top: '50%', color: 'rgba(59, 130, 246, 0.7)', size: 2 },
-            { left: '80%', top: '45%', color: 'rgba(168, 85, 247, 0.7)', size: 1.8 },
-            { left: '20%', top: '40%', color: 'rgba(255, 255, 255, 0.6)', size: 1.5 },
-            { left: '70%', top: '30%', color: 'rgba(6, 182, 212, 0.7)', size: 2 }
-          ].map((star, i) => (
-            <motion.div
-              key={`colored-star-${i}`}
-              style={{
-                position: 'absolute',
-                left: star.left,
-                top: star.top,
-                width: `${star.size}px`,
-                height: `${star.size}px`,
-                borderRadius: '50%',
-                background: star.color,
-                boxShadow: `
-                  0 0 ${star.size * 6}px ${star.color},
-                  0 0 ${star.size * 12}px ${star.color.replace('0.7)', '0.2)')}
-                `,
-                willChange: 'transform, opacity'
-              }}
-              animate={{
-                opacity: [0.6, 0.9, 0.6],
-                scale: [0.8, 1.1, 0.8]
-              }}
-              transition={{
-                duration: 8 + (i * 0.4),
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          ))}
-        </Box>
-      </Box>
-
-      {/* 🎭 LAYOUT MODERNE AVEC GRID */}
-      <Box
-        h="100vh"
-        display="grid"
-        gridTemplateColumns="2fr 3fr 2fr"
-        gridTemplateRows="1fr 3fr 1fr"
-        gap={0}
-        position="relative"
-        zIndex={10}
-      >
-        {/* Zone message - Gauche Centre */}
-        <Box
-          gridColumn="1"
-          gridRow="2"
-          display="flex"
-          alignItems="center"
-          justifyContent="flex-end"
-          pr={12}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={getStatusMessage()}
-              initial={{ opacity: 0, x: -40, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -40, scale: 0.95 }}
-              transition={{ 
-                duration: 0.8, 
-                ease: [0.4, 0, 0.2, 1],
-                type: "spring",
-                damping: 25,
-                stiffness: 300
-              }}
-            >
-              <VStack spacing={4} align="flex-end" textAlign="right">
-                <Box 
-                  fontSize="2xl" 
-                  color="rgba(255, 255, 255, 0.95)"
-                  fontWeight="300"
-                  letterSpacing="0.02em"
-                  lineHeight="1.3"
-                  maxW="280px"
-                  filter="drop-shadow(0 0 30px rgba(255,255,255,0.1))"
-                  _before={{
-                    content: '""',
-                    position: 'absolute',
-                    right: '-16px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '1px',
-                    height: '24px',
-                    background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-                    borderRadius: '0.5px'
-                  }}
-                  position="relative"
-                >
-                  <VStack spacing={4} justify="center" align="center">
-                    {/* Messages et progression */}
-                    <HStack spacing={3} justify="center">
-                      {sessionLoading && (
-                        <Spinner size="sm" color="white" thickness="2px" />
-                      )}
-                      <Text 
-                        fontSize="2xl" 
-                        color={sessionError ? "red.300" : "rgba(255, 255, 255, 0.95)"}
-                        fontWeight="300"
-                        letterSpacing="0.02em"
-                        lineHeight="1.3"
-                        textAlign="center"
-                      >
-                        {getStatusMessage()}
-                      </Text>
-                    </HStack>
-
-                    {/* Barre de progression JARVIS */}
-                    {sessionLoading && !sessionError && (
-                      <VStack spacing={2} w="full" maxW="300px">
-                        <Box w="full" h="2px" bg="rgba(255,255,255,0.1)" borderRadius="full" overflow="hidden">
-                          <Box 
-                            h="full" 
-                            bg="linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)"
-                            borderRadius="full"
-                            w={`${loadingProgress}%`}
-                            transition="width 0.5s ease-in-out"
-                            boxShadow="0 0 10px rgba(59, 130, 246, 0.5)"
-                          />
-                        </Box>
-                        <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
-                          {loadingProgress}% - Patientez quelques instants...
-                        </Text>
-                      </VStack>
-                    )}
-
-                    {/* Indicateur de fin de session en attente */}
-                    {pendingSessionEnd && !sessionError && !sessionLoading && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                      >
-                        <VStack spacing={2} maxW="300px">
-                          <Box
-                            px={4}
-                            py={3}
-                            bg="rgba(139, 92, 246, 0.2)"
-                            border="1px solid rgba(139, 92, 246, 0.4)"
-                            borderRadius="12px"
-                            backdropFilter="blur(10px)"
-                          >
-                            <VStack spacing={1}>
-                              <Text fontSize="sm" color="purple.200" textAlign="center" fontWeight="600">
-                                👋 JARVIS termine sa réponse...
-                              </Text>
-                              <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
-                                Fin de session dans quelques instants
-                              </Text>
-                            </VStack>
-                          </Box>
-                        </VStack>
-                      </motion.div>
-                    )}
-
-                    {/* Warning d'expiration de session */}
-                    {sessionWarning && !sessionError && !sessionLoading && !pendingSessionEnd && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                      >
-                        <VStack spacing={2} maxW="300px">
-                          <Box
-                            px={4}
-                            py={3}
-                            bg="rgba(251, 146, 60, 0.2)"
-                            border="1px solid rgba(251, 146, 60, 0.4)"
-                            borderRadius="12px"
-                            backdropFilter="blur(10px)"
-                          >
-                            <VStack spacing={1}>
-                              <Text fontSize="sm" color="orange.200" textAlign="center" fontWeight="600">
-                                ⏰ {sessionWarning.message}
-                              </Text>
-                              <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
-                                Dites quelque chose pour continuer
-                              </Text>
-                            </VStack>
-                          </Box>
-                        </VStack>
-                      </motion.div>
-                    )}
-
-                    {/* Message d'erreur détaillé avec retry */}
-                    {sessionError && (
-                      <VStack spacing={3} maxW="320px">
-                        <Text fontSize="sm" color="red.300" textAlign="center" fontWeight="400">
-                          {getErrorMessage()}
-                        </Text>
-                        <VStack spacing={2}>
-                          <Box
-                            as="button"
-                            onClick={retrySessionCreation}
-                            px={4}
-                            py={2}
-                            bg="rgba(59, 130, 246, 0.2)"
-                            border="1px solid rgba(59, 130, 246, 0.3)"
-                            borderRadius="8px"
-                            color="white"
-                            fontSize="sm"
-                            fontWeight="500"
-                            cursor="pointer"
-                            transition="all 0.2s ease"
-                            _hover={{
-                              bg: "rgba(59, 130, 246, 0.3)",
-                              borderColor: "rgba(59, 130, 246, 0.5)"
-                            }}
-                            _active={{
-                              transform: "scale(0.98)"
-                            }}
-                          >
-                            🔄 Réessayer
-                          </Box>
-                          <Text fontSize="xs" color="rgba(255,255,255,0.4)" textAlign="center">
-                            Ou présentez à nouveau votre badge
-                          </Text>
-                        </VStack>
-                      </VStack>
-                    )}
-                  </VStack>
-                </Box>
-                
-                {currentMember && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <Text 
-                      fontSize="sm" 
-                      color="rgba(255, 255, 255, 0.6)"
-                      fontWeight="400"
-                      letterSpacing="0.01em"
-                    >
-                      Membre reconnu
-                    </Text>
-                  </motion.div>
-                )}
-              </VStack>
-            </motion.div>
-          </AnimatePresence>
-        </Box>
-
-        {/* Avatar central */}
-        <Box
-          gridColumn="2"
-          gridRow="2"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <motion.div
-            animate={{
-              y: [-6, 6, -6],
-              rotateY: [0, 1, 0],
-            }}
-            transition={{
-              duration: 8,
+              duration: 30,
               repeat: Infinity,
               ease: "easeInOut"
             }}
-          >
-            <Avatar3D 
-              status={getJarvisStatus()}
-              size={420}
-            />
-          </motion.div>
+          />
 
-          {/* Interface vocale cachée */}
-          <Box display="none">
-            <VoiceInterface
-              gymSlug={slug}
-              currentMember={currentMember}
-              isActive={voiceActive}
-              onActivate={() => setVoiceActive(true)}
-              onDeactivate={() => setVoiceActive(false)}
-              onTranscriptUpdate={handleTranscriptUpdate}
+          {/* Nébuleuse bleue secondaire */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              right: '0%',
+              width: '45%',
+              height: '35%',
+              background: `
+                radial-gradient(ellipse 65% 70% at 60% 50%, 
+                  rgba(6, 182, 212, 0.06) 0%,
+                  rgba(59, 130, 246, 0.04) 50%,
+                  transparent 75%
+                )
+              `,
+              filter: 'blur(35px)',
+              borderRadius: '60%',
+              willChange: 'transform'
+            }}
+            animate={{
+              scale: [1, 1.02, 1],
+              opacity: [0.6, 0.9, 0.6]
+            }}
+            transition={{
+              duration: 35,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+
+          {/* Nébuleuse verte subtile */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              bottom: '15%',
+              left: '30%',
+              width: '40%',
+              height: '25%',
+              background: `
+                radial-gradient(ellipse 75% 55% at 50% 60%, 
+                  rgba(34, 197, 94, 0.05) 0%,
+                  rgba(59, 130, 246, 0.03) 60%,
+                  transparent 80%
+                )
+              `,
+              filter: 'blur(30px)',
+              borderRadius: '70%',
+              willChange: 'transform'
+            }}
+            animate={{
+              scale: [1, 1.02, 1],
+              opacity: [0.4, 0.7, 0.4]
+            }}
+            transition={{
+              duration: 40,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+
+          {/* 🌟 ÉTOILES FILANTES OPTIMISÉES */}
+          {Array.from({ length: 2 }, (_, i) => (
+            <motion.div
+              key={`shooting-star-${i}`}
+              style={{
+                position: 'absolute',
+                top: `${Math.random() * 30 + 20}%`,
+                left: '-5%',
+                width: '100px',
+                height: '1px',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%)',
+                borderRadius: '1px',
+                filter: 'blur(0.5px)',
+                willChange: 'transform'
+              }}
+              initial={{ x: -120, opacity: 0 }}
+              animate={{
+                x: typeof window !== 'undefined' ? window.innerWidth + 120 : 1920,
+                opacity: [0, 1, 1, 0]
+              }}
+              transition={{
+                duration: 3,
+                delay: i * 20 + Math.random() * 15,
+                repeat: Infinity,
+                repeatDelay: 45 + Math.random() * 30,
+                ease: "easeOut"
+              }}
             />
+          ))}
+
+          {/* 🌌 PARTICULES COSMIQUES RÉDUITES */}
+          {Array.from({ length: 8 }, (_, i) => {
+            const colors = [
+              { bg: 'rgba(59, 130, 246, 0.6)', glow: 'rgba(59, 130, 246, 0.4)' },
+              { bg: 'rgba(147, 51, 234, 0.6)', glow: 'rgba(147, 51, 234, 0.4)' },
+              { bg: 'rgba(255, 255, 255, 0.4)', glow: 'rgba(255, 255, 255, 0.2)' }
+            ]
+            const color = colors[i % colors.length]
+            const size = Math.random() * 2 + 1
+            return (
+              <motion.div
+                key={`cosmic-particle-${i}`}
+                style={{
+                  position: 'absolute',
+                  top: `${Math.random() * 100}%`,
+                  left: `${Math.random() * 100}%`,
+                  width: `${size}px`,
+                  height: `${size}px`,
+                  borderRadius: '50%',
+                  background: color.bg,
+                  boxShadow: `0 0 ${size * 6}px ${color.glow}`,
+                  zIndex: 2,
+                  willChange: 'transform, opacity'
+                }}
+                animate={{
+                  y: [0, -30, 0],
+                  x: [0, 10, 0],
+                  opacity: [0.2, 0.8, 0.2],
+                  scale: [0.7, 1.2, 0.7]
+                }}
+                transition={{
+                  duration: 15 + (i * 1.5),
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            )
+          })}
+
+          {/* 🌌 COUCHE AVANT-PLAN - Étoiles principales OPTIMISÉES */}
+          <Box
+            position="absolute"
+            inset="0"
+            zIndex={3}
+            style={{ willChange: 'transform' }}
+          >
+            {/* Étoiles principales épurées */}
+            {[
+              { left: '15%', top: '25%', color: 'rgba(255, 255, 255, 0.9)', size: 3.5 },
+              { left: '75%', top: '20%', color: 'rgba(147, 197, 253, 0.8)', size: 3 },
+              { left: '85%', top: '70%', color: 'rgba(255, 255, 255, 0.85)', size: 3.5 },
+              { left: '25%', top: '75%', color: 'rgba(196, 181, 253, 0.8)', size: 3 },
+              { left: '55%', top: '15%', color: 'rgba(255, 255, 255, 0.9)', size: 3.5 },
+              { left: '10%', top: '60%', color: 'rgba(167, 243, 208, 0.8)', size: 3 }
+            ].map((star, i) => (
+              <motion.div
+                key={`main-star-${i}`}
+                style={{
+                  position: 'absolute',
+                  left: star.left,
+                  top: star.top,
+                  width: `${star.size}px`,
+                  height: `${star.size}px`,
+                  borderRadius: '50%',
+                  background: star.color,
+                  boxShadow: `
+                    0 0 ${star.size * 4}px ${star.color},
+                    0 0 ${star.size * 8}px ${star.color.replace('1)', '0.3)')},
+                    0 0 ${star.size * 12}px ${star.color.replace('1)', '0.1)')}
+                  `,
+                  willChange: 'transform, opacity'
+                }}
+                animate={{
+                  opacity: [0.8, 1, 0.8],
+                  scale: [0.9, 1.2, 0.9]
+                }}
+                transition={{
+                  duration: 6 + (i * 0.5),
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+
+            {/* Étoiles moyennes colorées RÉDUITES */}
+            {[
+              { left: '40%', top: '35%', color: 'rgba(34, 197, 94, 0.7)', size: 2 },
+              { left: '65%', top: '65%', color: 'rgba(251, 146, 60, 0.7)', size: 1.8 },
+              { left: '30%', top: '50%', color: 'rgba(59, 130, 246, 0.7)', size: 2 },
+              { left: '80%', top: '45%', color: 'rgba(168, 85, 247, 0.7)', size: 1.8 },
+              { left: '20%', top: '40%', color: 'rgba(255, 255, 255, 0.6)', size: 1.5 },
+              { left: '70%', top: '30%', color: 'rgba(6, 182, 212, 0.7)', size: 2 }
+            ].map((star, i) => (
+              <motion.div
+                key={`colored-star-${i}`}
+                style={{
+                  position: 'absolute',
+                  left: star.left,
+                  top: star.top,
+                  width: `${star.size}px`,
+                  height: `${star.size}px`,
+                  borderRadius: '50%',
+                  background: star.color,
+                  boxShadow: `
+                    0 0 ${star.size * 6}px ${star.color},
+                    0 0 ${star.size * 12}px ${star.color.replace('0.7)', '0.2)')}
+                  `,
+                  willChange: 'transform, opacity'
+                }}
+                animate={{
+                  opacity: [0.6, 0.9, 0.6],
+                  scale: [0.8, 1.1, 0.8]
+                }}
+                transition={{
+                  duration: 8 + (i * 0.4),
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
           </Box>
         </Box>
 
-        {/* Informations subtiles - Droite */}
+        {/* 🎭 LAYOUT MODERNE AVEC GRID */}
         <Box
-          gridColumn="3"
-          gridRow="2"
-          display="flex"
-          alignItems="flex-end"
-          justifyContent="flex-start"
-          pl={8}
-          pb={16}
+          h="100vh"
+          display="grid"
+          gridTemplateColumns="2fr 3fr 2fr"
+          gridTemplateRows="1fr 3fr 1fr"
+          gap={0}
+          position="relative"
+          zIndex={10}
         >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 1 }}
+          {/* Zone message - Gauche Centre */}
+          <Box
+            gridColumn="1"
+            gridRow="2"
+            display="flex"
+            alignItems="center"
+            justifyContent="flex-end"
+            pr={12}
           >
-            <VStack spacing={3} align="flex-start">
-              <Text 
-                fontSize="sm" 
-                color="rgba(255, 255, 255, 0.5)"
-                fontWeight="300"
-                letterSpacing="0.02em"
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={getStatusMessage()}
+                initial={{ opacity: 0, x: -40, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -40, scale: 0.95 }}
+                transition={{ 
+                  duration: 0.8, 
+                  ease: [0.4, 0, 0.2, 1],
+                  type: "spring",
+                  damping: 25,
+                  stiffness: 300
+                }}
               >
-                {kioskData.gym.name}
-              </Text>
-              <HStack spacing={2}>
-                <Box
-                  w="4px"
-                  h="4px"
-                  borderRadius="50%"
-                  bg={voiceActive ? "green.400" : "gray.400"}
-                  boxShadow={voiceActive ? "0 0 8px rgba(34, 197, 94, 0.6)" : "none"}
-                />
-                <Text 
-                  fontSize="xs" 
-                  color="rgba(255, 255, 255, 0.4)"
-                  fontWeight="400"
-                >
-                  {voiceActive ? "En écoute" : "Disponible"}
-                </Text>
-              </HStack>
-              
-              {/* Indicateur pre-warming discret */}
-              {prewarmStatus === 'warming' && (
-                <HStack spacing={1} opacity={0.6}>
-                  <Spinner size="xs" color="blue.400" thickness="2px" />
-                  <Text fontSize="xs" color="blue.400">Optimisation...</Text>
-                </HStack>
-              )}
-              {prewarmStatus === 'ready' && (
-                <HStack spacing={1} opacity={0.6}>
-                  <Box w="2px" h="2px" borderRadius="50%" bg="green.400" />
-                  <Text fontSize="xs" color="green.400">Optimisé</Text>
-                </HStack>
-              )}
-            </VStack>
-          </motion.div>
-        </Box>
-      </Box>
+                <VStack spacing={4} align="flex-end" textAlign="right">
+                  <Box 
+                    fontSize="2xl" 
+                    color="rgba(255, 255, 255, 0.95)"
+                    fontWeight="300"
+                    letterSpacing="0.02em"
+                    lineHeight="1.3"
+                    maxW="280px"
+                    filter="drop-shadow(0 0 30px rgba(255,255,255,0.1))"
+                    _before={{
+                      content: '""',
+                      position: 'absolute',
+                      right: '-16px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '1px',
+                      height: '24px',
+                      background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                      borderRadius: '0.5px'
+                    }}
+                    position="relative"
+                  >
+                    <VStack spacing={4} justify="center" align="center">
+                      {/* Messages et progression */}
+                      <HStack spacing={3} justify="center">
+                        {sessionLoading && (
+                          <Spinner size="sm" color="white" thickness="2px" />
+                        )}
+                        <Text 
+                          fontSize="2xl" 
+                          color={sessionError ? "red.300" : "rgba(255, 255, 255, 0.95)"}
+                          fontWeight="300"
+                          letterSpacing="0.02em"
+                          lineHeight="1.3"
+                          textAlign="center"
+                        >
+                          {getStatusMessage()}
+                        </Text>
+                      </HStack>
 
+                      {/* Barre de progression JARVIS */}
+                      {sessionLoading && !sessionError && (
+                        <VStack spacing={2} w="full" maxW="300px">
+                          <Box w="full" h="2px" bg="rgba(255,255,255,0.1)" borderRadius="full" overflow="hidden">
+                            <Box 
+                              h="full" 
+                              bg="linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)"
+                              borderRadius="full"
+                              w={`${loadingProgress}%`}
+                              transition="width 0.5s ease-in-out"
+                              boxShadow="0 0 10px rgba(59, 130, 246, 0.5)"
+                            />
+                          </Box>
+                          <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
+                            {loadingProgress}% - Patientez quelques instants...
+                          </Text>
+                        </VStack>
+                      )}
 
+                      {/* Indicateur de fin de session en attente */}
+                      {pendingSessionEnd && !sessionError && !sessionLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        >
+                          <VStack spacing={2} maxW="300px">
+                            <Box
+                              px={4}
+                              py={3}
+                              bg="rgba(139, 92, 246, 0.2)"
+                              border="1px solid rgba(139, 92, 246, 0.4)"
+                              borderRadius="12px"
+                              backdropFilter="blur(10px)"
+                            >
+                              <VStack spacing={1}>
+                                <Text fontSize="sm" color="purple.200" textAlign="center" fontWeight="600">
+                                  👋 JARVIS termine sa réponse...
+                                </Text>
+                                <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
+                                  Fin de session dans quelques instants
+                                </Text>
+                              </VStack>
+                            </Box>
+                          </VStack>
+                        </motion.div>
+                      )}
 
-      {/* 🛠️ PANNEAU ADMIN MODERNE */}
-      <AnimatePresence>
-        {showAdminMenu && (
-          <motion.div
-            initial={{ opacity: 0, x: 320, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 320, scale: 0.95 }}
-            transition={{ 
-              type: "spring", 
-              damping: 30, 
-              stiffness: 300,
-              mass: 0.8
-            }}
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: '320px',
-              height: '100%',
-              background: 'rgba(0, 0, 0, 0.92)',
-              backdropFilter: 'blur(40px)',
-              borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-              padding: '32px 24px',
-              zIndex: 1000,
-              fontFamily: 'SF Pro Display, -apple-system, system-ui'
-            }}
-          >
-            <VStack spacing={6} align="stretch">
-              <HStack justify="space-between" mb={4}>
-                <Text color="white" fontWeight="600" fontSize="lg">Menu Admin - Test</Text>
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  style={{
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '6px'
-                  }}
-                  onClick={() => setShowAdminMenu(false)}
-                >
-                  <Text color="gray.400" fontSize="lg" _hover={{ color: "white" }}>✕</Text>
-                </motion.div>
-              </HStack>
-              
-              <Box>
-                <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">Simulateur RFID:</Text>
-                <RFIDSimulator onMemberScanned={handleMemberScanned} isActive={false} />
-              </Box>
+                      {/* Warning d'expiration de session */}
+                      {sessionWarning && !sessionError && !sessionLoading && !pendingSessionEnd && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        >
+                          <VStack spacing={2} maxW="300px">
+                            <Box
+                              px={4}
+                              py={3}
+                              bg="rgba(251, 146, 60, 0.2)"
+                              border="1px solid rgba(251, 146, 60, 0.4)"
+                              borderRadius="12px"
+                              backdropFilter="blur(10px)"
+                            >
+                              <VStack spacing={1}>
+                                <Text fontSize="sm" color="orange.200" textAlign="center" fontWeight="600">
+                                  ⏰ {sessionWarning.message}
+                                </Text>
+                                <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
+                                  Dites quelque chose pour continuer
+                                </Text>
+                              </VStack>
+                            </Box>
+                          </VStack>
+                        </motion.div>
+                      )}
 
-              <Box>
-                <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">État système:</Text>
-                <VStack spacing={2} align="stretch">
-                  <HStack justify="space-between">
-                    <Text color="white" fontSize="xs">Kiosk:</Text>
-                    <Text color="green.300" fontSize="xs" fontWeight="500">
-                      {kioskData.gym.name}
-                    </Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text color="white" fontSize="xs">Status:</Text>
-                    <Text color="blue.300" fontSize="xs" fontWeight="500">
-                      {kioskState.status}
-                    </Text>
-                  </HStack>
+                      {/* Message d'erreur détaillé avec retry */}
+                      {sessionError && (
+                        <VStack spacing={3} maxW="320px">
+                          <Text fontSize="sm" color="red.300" textAlign="center" fontWeight="400">
+                            {getErrorMessage()}
+                          </Text>
+                          <VStack spacing={2}>
+                            <Box
+                              as="button"
+                              onClick={retrySessionCreation}
+                              px={4}
+                              py={2}
+                              bg="rgba(59, 130, 246, 0.2)"
+                              border="1px solid rgba(59, 130, 246, 0.3)"
+                              borderRadius="8px"
+                              color="white"
+                              fontSize="sm"
+                              fontWeight="500"
+                              cursor="pointer"
+                              transition="all 0.2s ease"
+                              _hover={{
+                                bg: "rgba(59, 130, 246, 0.3)",
+                                borderColor: "rgba(59, 130, 246, 0.5)"
+                              }}
+                              _active={{
+                                transform: "scale(0.98)"
+                              }}
+                            >
+                              🔄 Réessayer
+                            </Box>
+                            <Text fontSize="xs" color="rgba(255,255,255,0.4)" textAlign="center">
+                              Ou présentez à nouveau votre badge
+                            </Text>
+                          </VStack>
+                        </VStack>
+                      )}
+                    </VStack>
+                  </Box>
+                  
                   {currentMember && (
-                    <HStack justify="space-between">
-                      <Text color="white" fontSize="xs">Membre:</Text>
-                      <Text color="purple.300" fontSize="xs" fontWeight="500">
-                        {currentMember.first_name}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <Text 
+                        fontSize="sm" 
+                        color="rgba(255, 255, 255, 0.6)"
+                        fontWeight="400"
+                        letterSpacing="0.01em"
+                      >
+                        Membre reconnu
                       </Text>
-                    </HStack>
+                    </motion.div>
                   )}
                 </VStack>
-              </Box>
-            </VStack>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </Box>
+              </motion.div>
+            </AnimatePresence>
+          </Box>
+
+          {/* Avatar central */}
+          <Box
+            gridColumn="2"
+            gridRow="2"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <motion.div
+              animate={{
+                y: [-6, 6, -6],
+                rotateY: [0, 1, 0],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              <Avatar3D 
+                status={getJarvisStatus()}
+                size={420}
+              />
+            </motion.div>
+
+            {/* Interface vocale cachée */}
+            <Box display="none">
+              <VoiceInterface
+                gymSlug={slug}
+                currentMember={currentMember}
+                isActive={voiceActive}
+                onActivate={() => setVoiceActive(true)}
+                onDeactivate={() => setVoiceActive(false)}
+              />
+            </Box>
+          </Box>
+
+          {/* Informations subtiles - Droite */}
+          <Box
+            gridColumn="3"
+            gridRow="2"
+            display="flex"
+            alignItems="flex-end"
+            justifyContent="flex-start"
+            pl={8}
+            pb={16}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 1 }}
+            >
+              <VStack spacing={3} align="flex-start">
+                <Text 
+                  fontSize="sm" 
+                  color="rgba(255, 255, 255, 0.5)"
+                  fontWeight="300"
+                  letterSpacing="0.02em"
+                >
+                  {kioskData.gym.name}
+                </Text>
+                <HStack spacing={2}>
+                  <Box
+                    w="4px"
+                    h="4px"
+                    borderRadius="50%"
+                    bg={voiceActive ? "green.400" : "gray.400"}
+                    boxShadow={voiceActive ? "0 0 8px rgba(34, 197, 94, 0.6)" : "none"}
+                  />
+                  <Text 
+                    fontSize="xs" 
+                    color="rgba(255, 255, 255, 0.4)"
+                    fontWeight="400"
+                  >
+                    {voiceActive ? "En écoute" : "Disponible"}
+                  </Text>
+                </HStack>
+                
+                {/* Indicateur pre-warming discret */}
+                {prewarmStatus === 'warming' && (
+                  <HStack spacing={1} opacity={0.6}>
+                    <Spinner size="xs" color="blue.400" thickness="2px" />
+                    <Text fontSize="xs" color="blue.400">Optimisation...</Text>
+                  </HStack>
+                )}
+                {prewarmStatus === 'ready' && (
+                  <HStack spacing={1} opacity={0.6}>
+                    <Box w="2px" h="2px" borderRadius="50%" bg="green.400" />
+                    <Text fontSize="xs" color="green.400">Optimisé</Text>
+                  </HStack>
+                )}
+              </VStack>
+            </motion.div>
+          </Box>
+        </Box>
+
+
+
+        {/* 🛠️ PANNEAU ADMIN MODERNE */}
+        <AnimatePresence>
+          {showAdminMenu && (
+            <motion.div
+              initial={{ opacity: 0, x: 320, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 320, scale: 0.95 }}
+              transition={{ 
+                type: "spring", 
+                damping: 30, 
+                stiffness: 300,
+                mass: 0.8
+              }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '320px',
+                height: '100%',
+                background: 'rgba(0, 0, 0, 0.92)',
+                backdropFilter: 'blur(40px)',
+                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+                padding: '32px 24px',
+                zIndex: 1000,
+                fontFamily: 'SF Pro Display, -apple-system, system-ui'
+              }}
+            >
+              <VStack spacing={6} align="stretch">
+                <HStack justify="space-between" mb={4}>
+                  <Text color="white" fontWeight="600" fontSize="lg">Menu Admin - Test</Text>
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '6px'
+                    }}
+                    onClick={() => setShowAdminMenu(false)}
+                  >
+                    <Text color="gray.400" fontSize="lg" _hover={{ color: "white" }}>✕</Text>
+                  </motion.div>
+                </HStack>
+                
+                <Box>
+                  <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">Simulateur RFID:</Text>
+                  <RFIDSimulator onMemberScanned={handleMemberScanned} isActive={false} />
+                </Box>
+
+                <Box>
+                  <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">État système:</Text>
+                  <VStack spacing={2} align="stretch">
+                    <HStack justify="space-between">
+                      <Text color="white" fontSize="xs">Kiosk:</Text>
+                      <Text color="green.300" fontSize="xs" fontWeight="500">
+                        {kioskData.gym.name}
+                      </Text>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text color="white" fontSize="xs">Status:</Text>
+                      <Text color="blue.300" fontSize="xs" fontWeight="500">
+                        {kioskState.status}
+                      </Text>
+                    </HStack>
+                    {currentMember && (
+                      <HStack justify="space-between">
+                        <Text color="white" fontSize="xs">Membre:</Text>
+                        <Text color="purple.300" fontSize="xs" fontWeight="500">
+                          {currentMember.first_name}
+                        </Text>
+                      </HStack>
+                    )}
+                  </VStack>
+                </Box>
+              </VStack>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ✅ SOLUTION 3: Browser Permissions Fallback Modal */}
+        <BrowserPermissionsFallback
+          isVisible={showPermissionsFallback}
+          onPermissionGranted={handlePermissionSuccess}
+          onPermissionDenied={handlePermissionDenial}
+        />
+      </Box>
+    </>
   )
 } 

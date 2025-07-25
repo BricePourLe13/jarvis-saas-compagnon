@@ -1,41 +1,36 @@
 "use client"
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { Box, Text, VStack } from '@chakra-ui/react'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { Box, Button, Text, VStack, HStack } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
-import { useSoundEffects } from '@/hooks/useSoundEffects'
-import { GymMember } from '@/types/kiosk'
 import AudioVisualizer from './AudioVisualizer'
-// Avatar3D retiré pour éviter la duplication avec la page principale
 
 interface VoiceInterfaceProps {
   gymSlug: string
-  currentMember?: GymMember | null
+  currentMember: any
   isActive: boolean
   onActivate: () => void
   onDeactivate: () => void
-  onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void
+  onTranscriptUpdate?: (transcript: string) => void
 }
 
-export default function VoiceInterface({
-  gymSlug,
-  currentMember,
-  isActive,
-  onActivate,
+// ✅ SOLUTION 2: Google Meet Method - Pre-prompt Strategy
+const PERMISSION_PRE_PROMPT_TIMEOUT = 30000 // 30 secondes
+
+export default function VoiceInterface({ 
+  gymSlug, 
+  currentMember, 
+  isActive, 
+  onActivate, 
   onDeactivate,
-  onTranscriptUpdate
+  onTranscriptUpdate 
 }: VoiceInterfaceProps) {
-  
-  const [transcript, setTranscript] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  
-  // PROTECTION : État pour éviter les re-déclenchements
-  const hasConnectedRef = useRef(false)
-  const previousStatusRef = useRef<string>('idle')
-  
-  // Effets sonores
-  const { sounds, hapticFeedback } = useSoundEffects({ enabled: false, volume: 0.2 })
-  
+  // ✅ Google Meet pre-prompt states
+  const [showPermissionPrePrompt, setShowPermissionPrePrompt] = useState(false)
+  const [permissionIntention, setPermissionIntention] = useState<'unknown' | 'allow' | 'skip'>('unknown')
+  const [userGestureReceived, setUserGestureReceived] = useState(false)
+  const prePromptTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   const {
     audioState,
     isConnected,
@@ -51,7 +46,6 @@ export default function VoiceInterface({
     gymSlug,
     memberId: currentMember?.id,
     language: currentMember?.member_preferences?.language || 'fr',
-    // 🔧 BUGFIX: Passer directement les données membre pour contourner le getMemberData hardcodé
     memberData: currentMember ? {
       first_name: currentMember.first_name,
       last_name: currentMember.last_name,
@@ -65,260 +59,309 @@ export default function VoiceInterface({
     } : undefined,
     onStatusChange: useCallback((newStatus) => {
       console.log('[VOICE UI] Status:', newStatus)
-      
-      // Jouer les sons selon les changements de statut
-      const prevStatus = previousStatusRef.current
-      
-      if (newStatus === 'connected' && prevStatus === 'connecting') {
-        // sounds.connect() - SUPPRIMÉ (trop gênant)
-        hapticFeedback('light')
-      } else if (newStatus === 'listening' && prevStatus !== 'listening') {
-        // sounds.startListening() - SUPPRIMÉ (trop gênant)
-        hapticFeedback('light')
-      } else if (newStatus === 'connected' && prevStatus === 'listening') {
-        // sounds.stopListening() - SUPPRIMÉ (trop gênant)
-      } else if (newStatus === 'speaking' && prevStatus !== 'speaking') {
-        // sounds.startSpeaking() - SUPPRIMÉ (trop gênant)
-        hapticFeedback('medium')
-      } else if (newStatus === 'error') {
-        sounds.error() // Gardé - utile pour debug
-        hapticFeedback('heavy')
-      } else if (newStatus === 'reconnecting') {
-        // sounds.notification() - SUPPRIMÉ (trop gênant)
-      }
-      
-      previousStatusRef.current = newStatus
-    }, [sounds, hapticFeedback]), // Mémorisé pour éviter boucle infinie
+    }, []),
     onTranscriptUpdate: useCallback((text, isFinal) => {
-      setTranscript(text)
       if (isFinal) {
-        // sounds.notification() - SUPPRIMÉ (trop gênant)
+        onTranscriptUpdate?.(text)
       }
-      
-      // Notifier la page parente pour détection d'intention
-      onTranscriptUpdate?.(text, isFinal)
-    }, [onTranscriptUpdate]), // Inclure onTranscriptUpdate dans les dépendances
+    }, [onTranscriptUpdate]),
     onError: useCallback((errorMessage) => {
-      setError(errorMessage)
-      sounds.error()
-      hapticFeedback('heavy')
-      setTimeout(() => setError(null), 8000)
-    }, [sounds, hapticFeedback]) // Mémorisé pour éviter boucle infinie
+      console.error('Voice error:', errorMessage)
+    }, [])
   })
 
-  // Gérer l'activation/désactivation AVEC PROTECTION SIMPLIFIÉE
+  // ✅ Google Meet approach: Ask user intention before permissions
+  const handleUserWantsToTalk = useCallback(() => {
+    console.log('🎤 User wants to talk - will request microphone')
+    setPermissionIntention('allow')
+    setUserGestureReceived(true)
+    setShowPermissionPrePrompt(false)
+    
+    // Clear timeout
+    if (prePromptTimeoutRef.current) {
+      clearTimeout(prePromptTimeoutRef.current)
+    }
+    
+    // Now proceed with microphone permissions
+    onActivate()
+    connect()
+  }, [connect, onActivate])
+
+  const handleUserSkipsTalking = useCallback(() => {
+    console.log('🤐 User prefers not to talk')
+    setPermissionIntention('skip')
+    setShowPermissionPrePrompt(false)
+    
+    // Clear timeout
+    if (prePromptTimeoutRef.current) {
+      clearTimeout(prePromptTimeoutRef.current)
+    }
+  }, [])
+
+  // ✅ Show pre-prompt when member is scanned (like Google Meet)
   useEffect(() => {
-    if (isActive && !isConnected && !hasConnectedRef.current && status !== 'connecting' && status !== 'reconnecting') {
-      console.log('[VOICE UI] 🚀 Connexion demandée')
-      hasConnectedRef.current = true
-      connect().catch(() => {
-        hasConnectedRef.current = false
-      })
-    } else if (!isActive && isConnected) {
-      console.log('[VOICE UI] 🔌 Déconnexion demandée')
-      // sounds.disconnect() - SUPPRIMÉ (trop gênant)
+    if (currentMember && !userGestureReceived && permissionIntention === 'unknown') {
+      console.log('👋 Member detected - showing permission pre-prompt (Google Meet style)')
+      setShowPermissionPrePrompt(true)
+      
+      // Auto-hide pre-prompt after timeout
+      prePromptTimeoutRef.current = setTimeout(() => {
+        console.log('⏰ Pre-prompt timeout - hiding')
+        setShowPermissionPrePrompt(false)
+        setPermissionIntention('skip')
+      }, PERMISSION_PRE_PROMPT_TIMEOUT)
+    }
+  }, [currentMember, userGestureReceived, permissionIntention])
+
+  // ✅ Handle normal flow for users who already expressed intention
+  useEffect(() => {
+    if (isActive && permissionIntention === 'allow' && userGestureReceived && !isConnected && status !== 'connecting') {
+      connect()
+    }
+  }, [isActive, permissionIntention, userGestureReceived, isConnected, status, connect])
+
+  useEffect(() => {
+    if (!isActive && isConnected) {
       disconnect()
-      hasConnectedRef.current = false
     }
-  }, [isActive, isConnected, connect, disconnect, status, sounds])
+  }, [isActive, isConnected, disconnect])
 
-  // Reset si la connexion se ferme
+  // Cleanup timeouts
   useEffect(() => {
-    if (!isConnected && hasConnectedRef.current) {
-      hasConnectedRef.current = false
+    return () => {
+      if (prePromptTimeoutRef.current) {
+        clearTimeout(prePromptTimeoutRef.current)
+      }
     }
-  }, [isConnected])
+  }, [])
 
-  const getStatusText = () => {
+  const getJarvisStatus = () => {
     switch (status) {
       case 'connecting': return 'Connexion...'
-      case 'reconnecting': return 'Reconnexion...'
-      case 'connected': return 'Prêt à vous écouter'
-      case 'listening': return 'Je vous écoute'
-      case 'speaking': return 'En cours de réponse'
-      case 'error': return 'Erreur de connexion'
-      default: return 'Cliquez pour commencer'
-    }
-  }
-
-  const getButtonBackground = () => {
-    switch (status) {
-      case 'connecting': return 'linear-gradient(135deg, #f59e0b, #d97706)'
-      case 'reconnecting': return 'linear-gradient(135deg, #f59e0b, #d97706)'
-      case 'connected': return 'linear-gradient(135deg, #6366f1, #4f46e5)'
-      case 'listening': return 'linear-gradient(135deg, #22c55e, #16a34a)'
-      case 'speaking': return 'linear-gradient(135deg, #3b82f6, #2563eb)'
-      case 'error': return 'linear-gradient(135deg, #ef4444, #dc2626)'
-      default: return 'linear-gradient(135deg, #6b7280, #4b5563)'
-    }
-  }
-
-  const getButtonShadow = () => {
-    switch (status) {
-      case 'listening': return '0 0 30px rgba(34, 197, 94, 0.4)'
-      case 'speaking': return '0 0 30px rgba(59, 130, 246, 0.4)'
-      case 'error': return '0 0 30px rgba(239, 68, 68, 0.4)'
-      default: return '0 8px 25px rgba(0, 0, 0, 0.15)'
-    }
-  }
-
-  const getButtonIcon = () => {
-    switch (status) {
-      case 'connecting': return '⏳'
-      case 'reconnecting': return '🔄'
-      case 'connected': return '🎤'
-      case 'listening': return '👂'
-      case 'speaking': return '💬'
-      case 'error': return '❌'
-      default: return '▶️'
-    }
-  }
-
-  const handleToggleVoice = () => {
-    if (status === 'connecting' || status === 'reconnecting' || hasConnectedRef.current) {
-      return
-    }
-    
-    // sounds.click() - SUPPRIMÉ (trop gênant)
-    hapticFeedback('light')
-    
-    if (isActive) {
-      onDeactivate()
-    } else {
-      onActivate()
-    }
-  }
-
-  const handleHover = (hovered: boolean) => {
-    if (hovered && status !== 'connecting' && status !== 'reconnecting') {
-      // sounds.hover() - SUPPRIMÉ (trop gênant)
-      hapticFeedback('light')
-    }
-  }
-
-  // Mapper le status pour l'avatar
-  const getAvatarStatus = () => {
-    switch (status) {
-      case 'connecting':
-      case 'reconnecting':
-        return 'connecting'
-      case 'listening':
-        return 'listening'
-      case 'speaking':
-        return 'speaking'
-      case 'error':
-        return 'thinking' // Utiliser thinking pour l'état d'erreur
-      default:
-        return 'idle'
+      case 'connected': return 'Prêt'
+      case 'listening': return 'Écoute'
+      case 'speaking': return 'Parle'
+      case 'error': return 'Erreur'
+      default: return 'Idle'
     }
   }
 
   return (
-    <VStack spacing={8} align="center" w="full" position="relative">
-      {/* Message d'erreur ultra-minimal */}
+    <Box position="relative">
+      {/* ✅ SOLUTION 2: Google Meet Pre-prompt Modal */}
       <AnimatePresence>
-        {error && (
+        {showPermissionPrePrompt && currentMember && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             style={{
-              position: 'absolute',
-              top: '-60px',
+              position: 'fixed',
+              top: '50%',
               left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 20
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+              background: 'rgba(0, 0, 0, 0.95)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '16px',
+              padding: '32px',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+              maxWidth: '480px',
+              width: '90vw'
             }}
           >
-            <Box
-              bg="rgba(220, 38, 38, 0.1)"
-              border="1px solid rgba(220, 38, 38, 0.3)"
-              borderRadius="full"
-              px={3}
-              py={1}
-              backdropFilter="blur(10px)"
-            >
-              <Text color="red.300" fontSize="xs" fontWeight="400">
-                Erreur
+            <VStack spacing={6} align="center" textAlign="center">
+              {/* Avatar ou icône */}
+              <Box
+                w="80px"
+                h="80px"
+                borderRadius="50%"
+                bg="linear-gradient(135deg, #3b82f6, #8b5cf6)"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                fontSize="3xl"
+              >
+                🎤
+              </Box>
+
+              {/* Message principal */}
+              <VStack spacing={2}>
+                <Text 
+                  fontSize="xl" 
+                  fontWeight="600" 
+                  color="white"
+                  lineHeight="1.3"
+                >
+                  Bonjour {currentMember.first_name} !
+                </Text>
+                <Text 
+                  fontSize="lg" 
+                  color="rgba(255, 255, 255, 0.8)"
+                  lineHeight="1.4"
+                >
+                  Voulez-vous discuter avec JARVIS vocalement ?
+                </Text>
+                <Text 
+                  fontSize="sm" 
+                  color="rgba(255, 255, 255, 0.6)"
+                  maxW="380px"
+                  lineHeight="1.4"
+                >
+                  JARVIS peut répondre à vos questions et vous accompagner. Vous pourrez activer/désactiver le microphone à tout moment.
+                </Text>
+              </VStack>
+
+              {/* Boutons d'action */}
+              <HStack spacing={4} w="full" justify="center">
+                <Button
+                  onClick={handleUserWantsToTalk}
+                  bg="linear-gradient(135deg, #3b82f6, #8b5cf6)"
+                  color="white"
+                  px={8}
+                  py={3}
+                  borderRadius="12px"
+                  fontSize="md"
+                  fontWeight="600"
+                  border="none"
+                  cursor="pointer"
+                  transition="all 0.2s ease"
+                  _hover={{
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 10px 30px rgba(59, 130, 246, 0.4)'
+                  }}
+                  _active={{
+                    transform: 'translateY(0px)'
+                  }}
+                >
+                  🎤 Oui, discutons !
+                </Button>
+                
+                <Button
+                  onClick={handleUserSkipsTalking}
+                  bg="rgba(255, 255, 255, 0.1)"
+                  color="rgba(255, 255, 255, 0.8)"
+                  px={6}
+                  py={3}
+                  borderRadius="12px"
+                  fontSize="md"
+                  fontWeight="500"
+                  border="1px solid rgba(255, 255, 255, 0.2)"
+                  cursor="pointer"
+                  transition="all 0.2s ease"
+                  _hover={{
+                    bg: 'rgba(255, 255, 255, 0.15)',
+                    borderColor: 'rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  ✋ Pas maintenant
+                </Button>
+              </HStack>
+
+              {/* Note de confidentialité */}
+              <Text 
+                fontSize="xs" 
+                color="rgba(255, 255, 255, 0.4)"
+                textAlign="center"
+                maxW="360px"
+                lineHeight="1.3"
+              >
+                💡 Vous conservez le contrôle total de vos permissions microphone et pouvez les modifier à tout moment.
               </Text>
-            </Box>
+            </VStack>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* L'AVATAR 3D PRINCIPAL - Statique */}
-      <Box position="relative">
-        <motion.div
-          onClick={handleToggleVoice}
-          onMouseEnter={() => handleHover(true)}
-          onMouseLeave={() => handleHover(false)}
-          whileHover={{ 
-            scale: (status === 'connecting' || status === 'reconnecting') ? 1 : 1.02,
-            transition: { duration: 0.3 }
-          }}
-          whileTap={{ 
-            scale: (status === 'connecting' || status === 'reconnecting') ? 1 : 0.98,
-            transition: { duration: 0.1 }
-          }}
-          style={{
-            cursor: (status === 'connecting' || status === 'reconnecting') ? "wait" : "pointer"
-          }}
-        >
-          {/* Interface simplifiée sans Avatar3D pour éviter la duplication */}
-          <Box
-            width="120px"
-            height="120px"
-            borderRadius="50%"
-            bg={getButtonBackground()}
-            border="3px solid rgba(255, 255, 255, 0.2)"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            boxShadow={getButtonShadow()}
-          >
-            <Text fontSize="3xl" color="white">
-              {getButtonIcon()}
-            </Text>
-          </Box>
-        </motion.div>
-
-        {/* Visualiseur audio ultra-discret */}
-        <Box position="absolute" bottom="-30px" left="50%" transform="translateX(-50%)">
-          <AudioVisualizer
-            isActive={isConnected}
-            isListening={status === 'listening'}
-            isSpeaking={status === 'speaking'}
-            color={status === 'listening' ? '#22c55e' : status === 'speaking' ? '#3b82f6' : '#6366f1'}
-            size="sm"
-            style="bars"
-          />
-        </Box>
-      </Box>
-
-      {/* Transcript minimal - Seulement si parlé */}
+      {/* ✅ Background overlay for pre-prompt */}
       <AnimatePresence>
-        {transcript && isActive && status === 'listening' && (
+        {showPermissionPrePrompt && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ type: "spring", damping: 15 }}
-          >
-            <Box
-              bg="rgba(255,255,255,0.03)"
-              borderRadius="md"
-              p={2}
-              maxW="300px"
-              border="1px solid rgba(255,255,255,0.08)"
-              backdropFilter="blur(20px)"
-            >
-              <Text fontSize="xs" color="rgba(255,255,255,0.6)" fontStyle="italic" textAlign="center">
-                "{transcript}"
-              </Text>
-            </Box>
-          </motion.div>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 9998
+            }}
+            onClick={handleUserSkipsTalking}
+          />
         )}
       </AnimatePresence>
-    </VStack>
+
+      {/* ✅ Existing interface - only show if user has expressed intention */}
+      {(permissionIntention === 'allow' || (isActive && userGestureReceived)) && (
+        <Box>
+          {isConnected && (
+            <VStack spacing={4}>
+              <HStack spacing={4}>
+                <AudioVisualizer 
+                  isActive={isConnected}
+                  isListening={status === 'listening'}
+                  isSpeaking={status === 'speaking'}
+                  color={status === 'listening' ? '#22c55e' : status === 'speaking' ? '#3b82f6' : '#6366f1'}
+                  size="sm"
+                  style="bars"
+                />
+                <Text color="white" fontSize="sm">
+                  Status: {getJarvisStatus()}
+                </Text>
+              </HStack>
+              
+              {currentTranscript && (
+                <Text color="white" fontSize="sm" bg="rgba(0,0,0,0.5)" p={2} borderRadius="md">
+                  "{currentTranscript}"
+                </Text>
+              )}
+            </VStack>
+          )}
+          
+          {status === 'error' && (
+            <Text color="red.300" fontSize="sm" textAlign="center">
+              Erreur de connexion
+            </Text>
+          )}
+        </Box>
+      )}
+
+      {/* ✅ Alternative option for users who skipped */}
+      {permissionIntention === 'skip' && !showPermissionPrePrompt && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <VStack spacing={3}>
+            <Text color="rgba(255, 255, 255, 0.7)" fontSize="sm" textAlign="center">
+              Pas de problème ! JARVIS reste disponible.
+            </Text>
+            <Button
+              onClick={() => {
+                setPermissionIntention('unknown')
+                setUserGestureReceived(false)
+                setShowPermissionPrePrompt(true)
+              }}
+              size="sm"
+              variant="outline"
+              borderColor="rgba(255, 255, 255, 0.3)"
+              color="white"
+              _hover={{
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                bg: 'rgba(255, 255, 255, 0.05)'
+              }}
+            >
+              🎤 Finalement, parlons !
+            </Button>
+          </VStack>
+        </motion.div>
+      )}
+    </Box>
   )
 } 
