@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Box, Text, VStack } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
@@ -14,6 +14,7 @@ interface VoiceInterfaceProps {
   isActive: boolean
   onActivate: () => void
   onDeactivate: () => void
+  onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void
 }
 
 export default function VoiceInterface({
@@ -21,7 +22,8 @@ export default function VoiceInterface({
   currentMember,
   isActive,
   onActivate,
-  onDeactivate
+  onDeactivate,
+  onTranscriptUpdate
 }: VoiceInterfaceProps) {
   
   const [transcript, setTranscript] = useState('')
@@ -32,7 +34,7 @@ export default function VoiceInterface({
   const previousStatusRef = useRef<string>('idle')
   
   // Effets sonores
-  const { sounds, hapticFeedback } = useSoundEffects({ enabled: true, volume: 0.2 })
+  const { sounds, hapticFeedback } = useSoundEffects({ enabled: false, volume: 0.2 })
   
   const {
     audioState,
@@ -61,44 +63,47 @@ export default function VoiceInterface({
       membership_type: currentMember.membership_type,
       total_visits: currentMember.total_visits
     } : undefined,
-    onStatusChange: (newStatus) => {
+    onStatusChange: useCallback((newStatus) => {
       console.log('[VOICE UI] Status:', newStatus)
       
       // Jouer les sons selon les changements de statut
       const prevStatus = previousStatusRef.current
       
       if (newStatus === 'connected' && prevStatus === 'connecting') {
-        sounds.connect()
+        // sounds.connect() - SUPPRIMÉ (trop gênant)
         hapticFeedback('light')
       } else if (newStatus === 'listening' && prevStatus !== 'listening') {
-        sounds.startListening()
+        // sounds.startListening() - SUPPRIMÉ (trop gênant)
         hapticFeedback('light')
       } else if (newStatus === 'connected' && prevStatus === 'listening') {
-        sounds.stopListening()
+        // sounds.stopListening() - SUPPRIMÉ (trop gênant)
       } else if (newStatus === 'speaking' && prevStatus !== 'speaking') {
-        sounds.startSpeaking()
+        // sounds.startSpeaking() - SUPPRIMÉ (trop gênant)
         hapticFeedback('medium')
       } else if (newStatus === 'error') {
-        sounds.error()
+        sounds.error() // Gardé - utile pour debug
         hapticFeedback('heavy')
       } else if (newStatus === 'reconnecting') {
-        sounds.notification()
+        // sounds.notification() - SUPPRIMÉ (trop gênant)
       }
       
       previousStatusRef.current = newStatus
-    },
-    onTranscriptUpdate: (text, isFinal) => {
+    }, [sounds, hapticFeedback]), // Mémorisé pour éviter boucle infinie
+    onTranscriptUpdate: useCallback((text, isFinal) => {
       setTranscript(text)
       if (isFinal) {
-        sounds.notification()
+        // sounds.notification() - SUPPRIMÉ (trop gênant)
       }
-    },
-    onError: (errorMessage) => {
+      
+      // Notifier la page parente pour détection d'intention
+      onTranscriptUpdate?.(text, isFinal)
+    }, [onTranscriptUpdate]), // Inclure onTranscriptUpdate dans les dépendances
+    onError: useCallback((errorMessage) => {
       setError(errorMessage)
       sounds.error()
       hapticFeedback('heavy')
       setTimeout(() => setError(null), 8000)
-    }
+    }, [sounds, hapticFeedback]) // Mémorisé pour éviter boucle infinie
   })
 
   // Gérer l'activation/désactivation AVEC PROTECTION SIMPLIFIÉE
@@ -111,7 +116,7 @@ export default function VoiceInterface({
       })
     } else if (!isActive && isConnected) {
       console.log('[VOICE UI] 🔌 Déconnexion demandée')
-      sounds.disconnect()
+      // sounds.disconnect() - SUPPRIMÉ (trop gênant)
       disconnect()
       hasConnectedRef.current = false
     }
@@ -174,7 +179,7 @@ export default function VoiceInterface({
       return
     }
     
-    sounds.click()
+    // sounds.click() - SUPPRIMÉ (trop gênant)
     hapticFeedback('light')
     
     if (isActive) {
@@ -186,7 +191,7 @@ export default function VoiceInterface({
 
   const handleHover = (hovered: boolean) => {
     if (hovered && status !== 'connecting' && status !== 'reconnecting') {
-      sounds.hover()
+      // sounds.hover() - SUPPRIMÉ (trop gênant)
       hapticFeedback('light')
     }
   }

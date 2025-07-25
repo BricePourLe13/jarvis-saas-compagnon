@@ -37,7 +37,7 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
       voiceSync.setListeningState(false)
       voiceSync.setSpeakingState(false)
     }
-  }, [status, voiceSync])
+  }, [status]) // Supprimé voiceSync pour éviter boucle infinie
 
   // ⚡ MEMORY MANAGEMENT
   const activeTimers = useRef<Set<NodeJS.Timeout>>(new Set())
@@ -74,42 +74,195 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
   
   // 🔄 ROTATION LENTE CONTINUE
   useEffect(() => {
-    const interval = addInterval(setInterval(() => {
+    const interval = setInterval(() => {
       setRotation(prev => prev + 0.1)
-    }, 50))
+    }, 50)
     return () => clearInterval(interval)
-  }, [addInterval])
+  }, [])
 
   // 👁️ CLIGNEMENTS NATURELS
   useEffect(() => {
-    const blinkInterval = addInterval(setInterval(() => {
+    const blinkInterval = setInterval(() => {
       setIsBlinking(true)
-      const timer = addTimer(setTimeout(() => setIsBlinking(false), 150))
-    }, 2000 + Math.random() * 3000))
+      const timer = setTimeout(() => setIsBlinking(false), 150)
+      activeTimers.current.add(timer)
+    }, 2000 + Math.random() * 3000)
+    activeIntervals.current.add(blinkInterval)
     return () => clearInterval(blinkInterval)
-  }, [addInterval, addTimer])
+  }, []) // Supprimé addTimer/addInterval pour éviter boucle infinie
 
-  // 👀 MOUVEMENT DES YEUX QUI REGARDENT AUTOUR
+  // �� MOUVEMENT DES YEUX RÉALISTE - OBSERVATION DE L'ENVIRONNEMENT
   useEffect(() => {
-    const lookAroundInterval = addInterval(setInterval(() => {
-      setIsLookingAround(true)
-      
-      // Position aléatoire pour regarder
-      const newX = (Math.random() - 0.5) * 40 // -20 à +20px
-      const newY = (Math.random() - 0.5) * 30 // -15 à +15px
-      
-      setEyePosition({ x: newX, y: newY })
-      
-      // Retour au centre après 1-3 secondes
-      const returnTimer = addTimer(setTimeout(() => {
-        setEyePosition({ x: 0, y: 0 })
-        setIsLookingAround(false)
-      }, 1000 + Math.random() * 2000))
-      
-    }, 3000 + Math.random() * 5000)) // Toutes les 3-8 secondes
+    let lookSequenceIndex = 0
+    let isInSequence = false
     
-    return () => clearInterval(lookAroundInterval)
-  }, [addInterval, addTimer])
+    // Patterns de regard réalistes selon le statut
+    const getLookPatterns = () => {
+      switch (status) {
+        case 'listening':
+          // Mouvement attentif, concentré vers le centre-bas (utilisateur)
+          return [
+            { x: 0, y: 15, duration: 2000, description: "Focus utilisateur" },
+            { x: -8, y: 10, duration: 1000, description: "Léger décalage d'écoute" },
+            { x: 8, y: 10, duration: 1000, description: "Autre oreille" },
+            { x: 0, y: 15, duration: 1500, description: "Retour focus" }
+          ]
+        
+        case 'speaking':
+          // Mouvement expressif, regarde légèrement au-dessus (projection de voix)
+          return [
+            { x: 0, y: -10, duration: 1500, description: "Projection voix" },
+            { x: -12, y: -5, duration: 800, description: "Gestuelle" },
+            { x: 12, y: -5, duration: 800, description: "Gestuelle opposée" },
+            { x: 0, y: 5, duration: 1200, description: "Connexion directe" }
+          ]
+        
+        case 'thinking':
+          // Mouvement contemplatif, regarde autour de manière réfléchie
+          return [
+            { x: -25, y: -20, duration: 2000, description: "Réflexion profonde" },
+            { x: 20, y: -15, duration: 1800, description: "Analyse autre angle" },
+            { x: -10, y: 25, duration: 1500, description: "Introspection" },
+            { x: 15, y: -25, duration: 2200, description: "Vision d'ensemble" },
+            { x: 0, y: 0, duration: 1000, description: "Centrage" }
+          ]
+        
+        case 'connecting':
+          // Mouvement de balayage, comme s'il scannait l'environnement
+          return [
+            { x: -30, y: 0, duration: 1000, description: "Scan gauche" },
+            { x: -15, y: -20, duration: 800, description: "Scan haut-gauche" },
+            { x: 15, y: -20, duration: 800, description: "Scan haut-droite" },
+            { x: 30, y: 0, duration: 1000, description: "Scan droite" },
+            { x: 15, y: 20, duration: 800, description: "Scan bas-droite" },
+            { x: -15, y: 20, duration: 800, description: "Scan bas-gauche" },
+            { x: 0, y: 0, duration: 1200, description: "Centre trouvé" }
+          ]
+        
+        default: // idle
+          // Mouvement d'observation curieuse de l'environnement cosmique
+          return [
+            { x: -20, y: -30, duration: 2500, description: "Étoile lointaine haut-gauche" },
+            { x: 25, y: -25, duration: 2000, description: "Nébuleuse haut-droite" },
+            { x: 30, y: 10, duration: 1800, description: "Particule cosmique droite" },
+            { x: -15, y: 25, duration: 2200, description: "Galaxie bas-gauche" },
+            { x: 0, y: -35, duration: 1500, description: "Étoile polaire" },
+            { x: 0, y: 0, duration: 1000, description: "Retour centre" },
+            { x: -25, y: 0, duration: 1800, description: "Horizon gauche" },
+            { x: 25, y: 0, duration: 1800, description: "Horizon droite" },
+            { x: 0, y: 30, duration: 1500, description: "Profondeur espace" }
+          ]
+      }
+    }
+    
+    const executeSequentialLook = () => {
+      if (isInSequence) return
+      
+      isInSequence = true
+      const patterns = getLookPatterns()
+      lookSequenceIndex = 0
+      
+      const performNextLook = () => {
+        if (lookSequenceIndex >= patterns.length) {
+          // Fin de séquence, pause avant la prochaine
+          isInSequence = false
+          lookSequenceIndex = 0
+          
+          // Pause variable selon le statut
+          const pauseDuration = status === 'listening' ? 2000 : 
+                               status === 'speaking' ? 1500 :
+                               status === 'thinking' ? 3000 :
+                               status === 'connecting' ? 1000 : 4000
+          
+          const pauseTimer = addTimer(setTimeout(executeSequentialLook, pauseDuration))
+          return
+        }
+        
+        const currentPattern = patterns[lookSequenceIndex]
+        setIsLookingAround(true)
+        setEyePosition({ x: currentPattern.x, y: currentPattern.y })
+        
+        console.log(`👁️ JARVIS regarde: ${currentPattern.description} (${currentPattern.x}, ${currentPattern.y})`)
+        
+        // Passer au prochain mouvement
+        const nextTimer = addTimer(setTimeout(() => {
+          lookSequenceIndex++
+          performNextLook()
+        }, currentPattern.duration))
+      }
+      
+      // Démarrer la séquence
+      performNextLook()
+    }
+    
+    // Démarrage initial avec un délai
+    const initialTimer = addTimer(setTimeout(executeSequentialLook, 1000))
+    
+    return () => {
+      if (initialTimer) clearTimeout(initialTimer)
+      isInSequence = false
+    }
+  }, [status])
+
+  // 👁️ MOUVEMENT D'ATTENTION SPONTANÉE (en plus des séquences)
+  useEffect(() => {
+    if (status === 'listening') {
+      // Micro-mouvements d'attention pendant l'écoute
+      const attentionInterval = addInterval(setInterval(() => {
+        const microX = (Math.random() - 0.5) * 6 // Micro-mouvement ±3px
+        const microY = (Math.random() - 0.5) * 4 // Micro-mouvement ±2px
+        
+        setEyePosition(prev => ({
+          x: prev.x + microX,
+          y: prev.y + microY
+        }))
+        
+        // Retour progressif au point d'attention
+        const returnTimer = addTimer(setTimeout(() => {
+          setEyePosition(prev => ({
+            x: prev.x * 0.9, // Retour progressif
+            y: prev.y * 0.9
+          }))
+        }, 200))
+        
+      }, 300 + Math.random() * 200)) // Toutes les 300-500ms
+      
+      return () => clearInterval(attentionInterval)
+    }
+  }, [status])
+
+  // 👀 SUIVI DE PARTICULES COSMIQUES (effet immersif)
+  useEffect(() => {
+    if (status === 'idle') {
+      const particleTrackingInterval = addInterval(setInterval(() => {
+        // Simule le suivi d'une particule cosmique qui traverse le champ de vision
+        const startX = -35 + Math.random() * 70 // Point de départ aléatoire
+        const startY = -35 + Math.random() * 70
+        const endX = startX + (Math.random() - 0.5) * 40 // Trajectoire
+        const endY = startY + (Math.random() - 0.5) * 40
+        
+        setIsLookingAround(true)
+        
+        // Phase 1: Détecter la particule
+        setEyePosition({ x: startX, y: startY })
+        
+        // Phase 2: Suivre la trajectoire (après 500ms)
+        const followTimer = addTimer(setTimeout(() => {
+          setEyePosition({ x: endX, y: endY })
+          
+          // Phase 3: Perdre la trace et revenir (après 1.5s)
+          const loseTimer = addTimer(setTimeout(() => {
+            setEyePosition({ x: 0, y: 0 })
+            setIsLookingAround(false)
+          }, 1500))
+          
+        }, 500))
+        
+      }, 8000 + Math.random() * 5000)) // Toutes les 8-13 secondes
+      
+      return () => clearInterval(particleTrackingInterval)
+    }
+  }, [status])
 
   // 🎨 COULEURS MARBRÉES SELON STATUS
   const getMarbleColors = () => {
@@ -417,57 +570,63 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
           <motion.div
             style={{
               position: 'absolute',
-                             left: '35%',
-               top: '42%',
-               width: '6px',
-               height: isBlinking ? '3px' : '35px',
+              left: '35%',
+              top: '42%',
+              width: '8px',
+              height: isBlinking ? '4px' : '42px',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
-              borderRadius: '2px',
+              borderRadius: '3px',
               boxShadow: `
                 0 0 25px rgba(255, 255, 255, 0.9),
                 0 0 50px rgba(255, 255, 255, 0.5),
                 inset 0 0 10px rgba(255, 255, 255, 0.7)
               `,
               transform: 'translate(-50%, -50%)',
-              filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.8))'
+              filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
             }}
             animate={{
               scaleY: isBlinking ? 0.1 : 1,
               opacity: [0.95, 1, 0.95],
-              x: eyePosition.x * 0.8,
-              y: eyePosition.y * 0.6,
+              x: eyePosition.x * 0.7,
+              y: eyePosition.y * 0.5,
               boxShadow: `
                 0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
                 0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
                 inset 0 0 10px rgba(255, 255, 255, 0.7)
               `
             }}
-                         transition={{ 
-               scaleY: { duration: isBlinking ? 0.08 : 0.15 },
-               opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-               x: { duration: 1.5, ease: "easeOut" },
-               y: { duration: 1.5, ease: "easeOut" },
-               boxShadow: { duration: 0.3 }
-             }}
+            transition={{ 
+              scaleY: { duration: isBlinking ? 0.08 : 0.15 },
+              opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+              x: { 
+                duration: isLookingAround ? 1.2 : 2.5, 
+                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
+              },
+              y: { 
+                duration: isLookingAround ? 1.2 : 2.5, 
+                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
+              },
+              boxShadow: { duration: 0.3 }
+            }}
           />
           
           {/* Oeil droit */}
           <motion.div
             style={{
               position: 'absolute',
-                             left: '65%',
-               top: '42%',
-               width: '6px',
-               height: isBlinking ? '3px' : '35px',
+              left: '65%',
+              top: '42%',
+              width: '8px',
+              height: isBlinking ? '4px' : '42px',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
-              borderRadius: '2px',
+              borderRadius: '3px',
               boxShadow: `
                 0 0 25px rgba(255, 255, 255, 0.9),
                 0 0 50px rgba(255, 255, 255, 0.5),
                 inset 0 0 10px rgba(255, 255, 255, 0.7)
               `,
               transform: 'translate(-50%, -50%)',
-              filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.8))'
+              filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
             }}
             animate={{
               scaleY: isBlinking ? 0.1 : 1,
@@ -480,13 +639,19 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
                 inset 0 0 10px rgba(255, 255, 255, 0.7)
               `
             }}
-                         transition={{ 
-               scaleY: { duration: isBlinking ? 0.08 : 0.15 },
-               opacity: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 },
-               x: { duration: 1.5, ease: "easeOut" },
-               y: { duration: 1.5, ease: "easeOut" },
-               boxShadow: { duration: 0.3 }
-             }}
+            transition={{ 
+              scaleY: { duration: isBlinking ? 0.08 : 0.15 },
+              opacity: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 },
+              x: { 
+                duration: isLookingAround ? 1.2 : 2.5, 
+                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
+              },
+              y: { 
+                duration: isLookingAround ? 1.2 : 2.5, 
+                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
+              },
+              boxShadow: { duration: 0.3 }
+            }}
           />
         </div>
 

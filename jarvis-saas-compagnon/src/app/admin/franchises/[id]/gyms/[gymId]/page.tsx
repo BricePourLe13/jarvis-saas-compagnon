@@ -47,7 +47,7 @@ import { motion } from 'framer-motion'
 import { 
   ArrowLeft,
   Building2, 
-  MapPin, 
+  MapPin,
   Clock,
   Settings,
   MoreVertical,
@@ -59,9 +59,17 @@ import {
   Activity,
   Dumbbell,
   Calendar,
-  Zap
+  Zap,
+  Mic,
+  DollarSign,
+  MessageSquare,
+  Bot,
+  BarChart3,
+  TrendingUp
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../../../types/franchise'
+import { createClient } from '../../../../../../lib/supabase-simple'
+import { getRealTimeMetrics, getRealTimeMetricsByGym, getKioskSupervisionMetrics, convertUSDToEUR, formatCurrency } from '../../../../../../lib/openai-cost-tracker'
 
 // ===========================================
 // 🎯 Page Principale
@@ -82,6 +90,14 @@ export default function GymDetailsPage() {
   const [gym, setGym] = useState<Gym | null>(null)
   const [franchise, setFranchise] = useState<Franchise | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Analytics JARVIS states
+  const [jarvisMetricsLoading, setJarvisMetricsLoading] = useState(true)
+  const [jarvisMetrics, setJarvisMetrics] = useState<any>(null)
+  
+  // Supervision kiosk states
+  const [kioskSupervisionLoading, setKioskSupervisionLoading] = useState(true)
+  const [kioskSupervision, setKioskSupervision] = useState<any>(null)
 
   // ===========================================
   // 🔄 Chargement des données
@@ -89,6 +105,8 @@ export default function GymDetailsPage() {
 
   useEffect(() => {
     loadGymDetails()
+    loadJarvisMetrics()
+    loadKioskSupervision()
   }, [gymId])
 
   const loadGymDetails = async () => {
@@ -128,12 +146,44 @@ export default function GymDetailsPage() {
     }
   }
 
+  // Charger les métriques JARVIS
+  const loadJarvisMetrics = async () => {
+    try {
+      setJarvisMetricsLoading(true)
+      const metrics = await getRealTimeMetricsByGym(gymId)
+      setJarvisMetrics(metrics)
+    } catch (error) {
+      console.error('Erreur chargement métriques JARVIS:', error)
+      // Fallback avec métriques globales filtrées si la fonction spécifique échoue
+      try {
+        const fallbackMetrics = await getRealTimeMetrics({ gymId })
+        setJarvisMetrics(fallbackMetrics)
+      } catch (fallbackError) {
+        console.error('Erreur fallback métriques:', fallbackError)
+      }
+    } finally {
+      setJarvisMetricsLoading(false)
+    }
+  }
+
+  const loadKioskSupervision = async () => {
+    try {
+      setKioskSupervisionLoading(true)
+      const supervision = await getKioskSupervisionMetrics(gymId)
+      setKioskSupervision(supervision)
+    } catch (error) {
+      console.error('Erreur chargement supervision kiosk:', error)
+    } finally {
+      setKioskSupervisionLoading(false)
+    }
+  }
+
   // ===========================================
   // 📝 Handlers
   // ===========================================
 
   const handleBack = () => {
-    router.push(`/admin/franchises/${franchiseId}/gyms`)
+    router.push(`/admin/franchises/${franchiseId}`)
   }
 
   const handleEdit = () => {
@@ -230,20 +280,20 @@ export default function GymDetailsPage() {
       >
         <VStack spacing={6} align="stretch">
           
-          {/* Navigation */}
-          <Breadcrumb fontSize="sm" color="gray.600">
+          {/* Navigation Hiérarchique */}
+          <Breadcrumb fontSize="sm" color="gray.500">
             <BreadcrumbItem>
-              <BreadcrumbLink onClick={() => router.push('/admin/franchises')}>
-                Franchises
+              <BreadcrumbLink onClick={() => router.push('/dashboard')}>
+                Dashboard Global
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbItem>
-              <BreadcrumbLink onClick={() => router.push(`/admin/franchises/${franchiseId}/gyms`)}>
+              <BreadcrumbLink onClick={() => router.push(`/admin/franchises/${franchiseId}`)}>
                 {franchise?.name || 'Franchise'}
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbItem isCurrentPage>
-              <Text color="gray.900" fontWeight="600">{gym.name}</Text>
+              <Text color="gray.700" fontWeight="500">{gym.name}</Text>
             </BreadcrumbItem>
           </Breadcrumb>
 
@@ -580,13 +630,339 @@ export default function GymDetailsPage() {
 
               {/* Onglet Analytics */}
               <TabPanel p={6}>
-                <Alert status="info" borderRadius="12px">
-                  <AlertIcon />
-                  <AlertTitle>Analytics à venir</AlertTitle>
-                  <AlertDescription>
-                    Les données d'analytics et de sessions JARVIS seront disponibles prochainement.
-                  </AlertDescription>
-                </Alert>
+                <VStack spacing={8} align="stretch">
+                  
+                  {/* Header Analytics JARVIS */}
+                  <Box>
+                    <Heading size="lg" color="#374151" fontWeight="700" mb={2}>
+                      📊 Analytics JARVIS
+                    </Heading>
+                    <Text color="#6b7280" fontSize="md">
+                      Métriques et performances de votre assistant IA vocal
+                    </Text>
+                  </Box>
+
+                  {(jarvisMetricsLoading || kioskSupervisionLoading) ? (
+                    <Flex justify="center" py={8}>
+                      <VStack spacing={4}>
+                        <Box className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+                        <Text color="gray.500">Chargement de la supervision kiosk...</Text>
+                      </VStack>
+                    </Flex>
+                  ) : (
+                    <>
+                      {/* 🔥 VUE D'ENSEMBLE SUPERVISION KIOSK */}
+                      <Card bg="gradient(135deg, #667eea 0%, #764ba2 100%)" color="white" borderRadius="16px" p={2}>
+                        <CardHeader>
+                          <HStack justify="space-between" align="center">
+                            <VStack align="start" spacing={1}>
+                              <Heading size="lg" color="white">🎯 Supervision Temps Réel</Heading>
+                              <Text color="whiteAlpha.800" fontSize="sm">Kiosk JARVIS - {gym?.name}</Text>
+                            </VStack>
+                            <Badge colorScheme="green" size="lg" borderRadius="full" px={3}>
+                              🟢 En ligne
+                            </Badge>
+                          </HStack>
+                        </CardHeader>
+                        <CardBody>
+                          <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                            <VStack>
+                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.overview?.activeSessions || 0}</Text>
+                              <Text fontSize="sm" opacity={0.9}>Sessions Actives</Text>
+                            </VStack>
+                            <VStack>
+                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.overview?.todaySessions || 0}</Text>
+                              <Text fontSize="sm" opacity={0.9}>Aujourd'hui</Text>
+                            </VStack>
+                            <VStack>
+                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.performance?.responseTime || 0}ms</Text>
+                              <Text fontSize="sm" opacity={0.9}>Latence</Text>
+                            </VStack>
+                            <VStack>
+                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.overview?.successRate || 0}%</Text>
+                              <Text fontSize="sm" opacity={0.9}>Succès</Text>
+                            </VStack>
+                          </SimpleGrid>
+                        </CardBody>
+                      </Card>
+
+                      {/* 📊 MÉTRIQUES PRINCIPALES */}
+                      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                          <CardBody>
+                            <Stat>
+                              <StatLabel color="#6b7280" fontWeight="500">
+                                <HStack>
+                                  <Icon as={MessageSquare} color="blue.500" />
+                                  <Text>Sessions JARVIS</Text>
+                                </HStack>
+                              </StatLabel>
+                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
+                                {jarvisMetrics?.today?.totalSessions || 0}
+                              </StatNumber>
+                              <StatHelpText color={jarvisMetrics?.changes?.sessions >= 0 ? "green.500" : "red.500"} fontWeight="500">
+                                <TrendingUp size={16} /> {jarvisMetrics?.changes?.sessions >= 0 ? '+' : ''}{jarvisMetrics?.changes?.sessions || 0}% vs hier
+                              </StatHelpText>
+                            </Stat>
+                          </CardBody>
+                        </Card>
+
+                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                          <CardBody>
+                            <Stat>
+                              <StatLabel color="#6b7280" fontWeight="500">
+                                <HStack>
+                                  <Icon as={DollarSign} color="green.500" />
+                                  <Text>Coût Total</Text>
+                                </HStack>
+                              </StatLabel>
+                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
+                                {jarvisMetrics?.today?.totalCostUSD ? formatCurrency(convertUSDToEUR(jarvisMetrics.today.totalCostUSD)) : '€0.00'}
+                              </StatNumber>
+                              <StatHelpText color={jarvisMetrics?.changes?.cost >= 0 ? "red.500" : "green.500"} fontWeight="500">
+                                <Activity size={16} /> {jarvisMetrics?.changes?.cost >= 0 ? '+' : ''}{jarvisMetrics?.changes?.cost || 0}% vs hier
+                              </StatHelpText>
+                            </Stat>
+                          </CardBody>
+                        </Card>
+
+                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                          <CardBody>
+                            <Stat>
+                              <StatLabel color="#6b7280" fontWeight="500">
+                                <HStack>
+                                  <Icon as={Clock} color="orange.500" />
+                                  <Text>Durée Moyenne</Text>
+                                </HStack>
+                              </StatLabel>
+                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
+                                {kioskSupervision?.overview?.avgDurationMinutes ? `${kioskSupervision.overview.avgDurationMinutes}min` : '0min'}
+                              </StatNumber>
+                              <StatHelpText color={jarvisMetrics?.changes?.duration <= 0 ? "green.500" : "red.500"} fontWeight="500">
+                                <TrendingUp size={16} /> {jarvisMetrics?.changes?.duration >= 0 ? '+' : ''}{jarvisMetrics?.changes?.duration || 0}% vs hier
+                              </StatHelpText>
+                            </Stat>
+                          </CardBody>
+                        </Card>
+
+                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                          <CardBody>
+                            <Stat>
+                              <StatLabel color="#6b7280" fontWeight="500">
+                                <HStack>
+                                  <Icon as={Zap} color="purple.500" />
+                                  <Text>Satisfaction</Text>
+                                </HStack>
+                              </StatLabel>
+                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
+                                {jarvisMetrics?.today?.averageSatisfaction ? `${jarvisMetrics.today.averageSatisfaction.toFixed(1)}/5` : '0/5'}
+                              </StatNumber>
+                              <StatHelpText color={jarvisMetrics?.changes?.satisfaction >= 0 ? "green.500" : "red.500"} fontWeight="500">
+                                <TrendingUp size={16} /> {jarvisMetrics?.changes?.satisfaction >= 0 ? '+' : ''}{jarvisMetrics?.changes?.satisfaction || 0}% vs hier
+                              </StatHelpText>
+                            </Stat>
+                          </CardBody>
+                        </Card>
+                      </SimpleGrid>
+
+                      {/* 📈 TENDANCE HEBDOMADAIRE */}
+                      <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                        <CardHeader>
+                          <Heading size="md" color="#374151" fontWeight="600">
+                            📈 Tendance Sessions (7 derniers jours)
+                          </Heading>
+                        </CardHeader>
+                        <CardBody>
+                          <SimpleGrid columns={{ base: 3, md: 7 }} spacing={4}>
+                            {(kioskSupervision?.weeklyTrend || []).map((day: any, index: number) => (
+                              <VStack key={index} spacing={2}>
+                                <Text fontSize="xs" color="gray.500" fontWeight="600">
+                                  {new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'short' })}
+                                </Text>
+                                <Box
+                                  h={`${Math.max(20, (day.sessions || 0) * 5)}px`}
+                                  w="40px"
+                                  bg="blue.400"
+                                  borderRadius="4px"
+                                  position="relative"
+                                  display="flex"
+                                  alignItems="end"
+                                  justifyContent="center"
+                                >
+                                  <Text fontSize="xs" color="white" fontWeight="bold" pb={1}>
+                                    {day.sessions || 0}
+                                  </Text>
+                                </Box>
+                                <Text fontSize="xs" color="gray.400">
+                                  {formatCurrency(convertUSDToEUR(day.cost || 0))}
+                                </Text>
+                              </VStack>
+                            ))}
+                          </SimpleGrid>
+                        </CardBody>
+                      </Card>
+
+                      {/* 🕐 DISTRIBUTION HORAIRE */}
+                      <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                        <CardHeader>
+                          <Heading size="md" color="#374151" fontWeight="600">
+                            🕐 Distribution Horaire (Aujourd'hui)
+                          </Heading>
+                        </CardHeader>
+                        <CardBody>
+                          <SimpleGrid columns={{ base: 6, md: 12 }} spacing={2}>
+                            {(kioskSupervision?.hourlyDistribution || Array(24).fill(0)).map((sessions: number, hour: number) => (
+                              <VStack key={hour} spacing={1}>
+                                <Text fontSize="xs" color="gray.500" fontWeight="600">
+                                  {hour}h
+                                </Text>
+                                <Box
+                                  h={`${Math.max(10, sessions * 8)}px`}
+                                  w="20px"
+                                  bg={hour === (kioskSupervision?.overview?.peakHour || 0) ? "red.400" : "blue.300"}
+                                  borderRadius="2px"
+                                  display="flex"
+                                  alignItems="end"
+                                  justifyContent="center"
+                                  position="relative"
+                                >
+                                  {sessions > 0 && (
+                                    <Text fontSize="xs" color="white" fontWeight="bold" style={{ transform: 'rotate(-90deg)', fontSize: '8px' }}>
+                                      {sessions}
+                                    </Text>
+                                  )}
+                                </Box>
+                              </VStack>
+                            ))}
+                          </SimpleGrid>
+                          <Text fontSize="xs" color="gray.500" mt={2}>
+                            🔴 Heure de pointe: {kioskSupervision?.overview?.peakHour || 0}h
+                          </Text>
+                        </CardBody>
+                      </Card>
+
+                      {/* 💰 COÛTS DÉTAILLÉS */}
+                      <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                        <CardHeader>
+                          <Heading size="md" color="#374151" fontWeight="600">
+                            💰 Répartition Coûts OpenAI (Semaine)
+                          </Heading>
+                        </CardHeader>
+                        <CardBody>
+                          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+                            <VStack spacing={3} align="start">
+                              <HStack>
+                                <Icon as={Mic} color="orange.500" boxSize={5} />
+                                <Text fontWeight="600" color="#374151">Audio Input</Text>
+                              </HStack>
+                              <Text fontSize="2xl" fontWeight="700" color="orange.500">
+                                {kioskSupervision?.overview?.totalCostWeekUSD ? 
+                                  formatCurrency(convertUSDToEUR(kioskSupervision.overview.totalCostWeekUSD * 0.4)) : '€0.00'}
+                              </Text>
+                              <Text fontSize="sm" color="#6b7280">
+                                ~40% du coût total
+                              </Text>
+                              <Badge colorScheme="orange" variant="subtle">Audio Input</Badge>
+                            </VStack>
+
+                            <VStack spacing={3} align="start">
+                              <HStack>
+                                <Icon as={MessageSquare} color="blue.500" boxSize={5} />
+                                <Text fontWeight="600" color="#374151">Audio Output</Text>
+                              </HStack>
+                              <Text fontSize="2xl" fontWeight="700" color="blue.500">
+                                {kioskSupervision?.overview?.totalCostWeekUSD ? 
+                                  formatCurrency(convertUSDToEUR(kioskSupervision.overview.totalCostWeekUSD * 0.5)) : '€0.00'}
+                              </Text>
+                              <Text fontSize="sm" color="#6b7280">
+                                ~50% du coût total
+                              </Text>
+                              <Badge colorScheme="blue" variant="subtle">Audio Output</Badge>
+                            </VStack>
+
+                            <VStack spacing={3} align="start">
+                              <HStack>
+                                <Icon as={BarChart3} color="green.500" boxSize={5} />
+                                <Text fontWeight="600" color="#374151">Text Tokens</Text>
+                              </HStack>
+                              <Text fontSize="2xl" fontWeight="700" color="green.500">
+                                {kioskSupervision?.overview?.totalCostWeekUSD ? 
+                                  formatCurrency(convertUSDToEUR(kioskSupervision.overview.totalCostWeekUSD * 0.1)) : '€0.00'}
+                              </Text>
+                              <Text fontSize="sm" color="#6b7280">
+                                ~10% du coût total
+                              </Text>
+                              <Badge colorScheme="green" variant="subtle">Text Tokens</Badge>
+                            </VStack>
+                          </SimpleGrid>
+                        </CardBody>
+                      </Card>
+
+                      {/* 🎯 SUPERVISION AVANCÉE */}
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                          <CardHeader>
+                            <Heading size="md" color="#374151" fontWeight="600">
+                              🎯 Questions Populaires
+                            </Heading>
+                          </CardHeader>
+                          <CardBody>
+                            <VStack spacing={4} align="stretch">
+                              {(kioskSupervision?.performance?.popularQuestions || [
+                                "Quels sont mes objectifs ?",
+                                "Comment utiliser cette machine ?", 
+                                "Quel programme pour moi ?",
+                                "Horaires de la salle",
+                                "Tarifs et abonnements"
+                              ]).map((question: string, index: number) => (
+                                <HStack key={index} justify="space-between">
+                                  <Text color="#6b7280" fontSize="sm">{question}</Text>
+                                  <Badge colorScheme={index === 0 ? "blue" : index === 1 ? "green" : index === 2 ? "purple" : "gray"} variant="subtle">
+                                    #{index + 1}
+                                  </Badge>
+                                </HStack>
+                              ))}
+                            </VStack>
+                          </CardBody>
+                        </Card>
+
+                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
+                          <CardHeader>
+                            <Heading size="md" color="#374151" fontWeight="600">
+                              ⚡ Performance Technique
+                            </Heading>
+                          </CardHeader>
+                          <CardBody>
+                            <VStack spacing={4} align="stretch">
+                              <HStack justify="space-between">
+                                <Text color="#6b7280">Temps de réponse</Text>
+                                <Text fontWeight="600" color={kioskSupervision?.performance?.responseTime < 200 ? "green.500" : "orange.500"}>
+                                  {kioskSupervision?.performance?.responseTime || 0}ms
+                                </Text>
+                              </HStack>
+                              <HStack justify="space-between">
+                                <Text color="#6b7280">Taux d'erreur</Text>
+                                <Text fontWeight="600" color={kioskSupervision?.performance?.errorRate < 5 ? "green.500" : "red.500"}>
+                                  {kioskSupervision?.performance?.errorRate || 0}%
+                                </Text>
+                              </HStack>
+                              <HStack justify="space-between">
+                                <Text color="#6b7280">Sessions terminées</Text>
+                                <Text fontWeight="600" color="blue.500">
+                                  {kioskSupervision?.overview?.successRate || 0}%
+                                </Text>
+                              </HStack>
+                              <HStack justify="space-between">
+                                <Text color="#6b7280">20h - 22h</Text>
+                                <Text fontWeight="600" color="blue.500">15 sessions</Text>
+                              </HStack>
+                            </VStack>
+                          </CardBody>
+                        </Card>
+                      </SimpleGrid>
+                    </>
+                  )}
+                </VStack>
               </TabPanel>
               
             </TabPanels>

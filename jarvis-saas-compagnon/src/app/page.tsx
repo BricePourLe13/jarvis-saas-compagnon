@@ -386,13 +386,9 @@ export default function LoginPage() {
         // Indiquer le succès avant la redirection
         setSuccess(true)
         
-        // Redirection selon le rôle
+        // Redirection vers dashboard pour tous (navigation hiérarchique cohérente)
         setTimeout(() => {
-          if (userProfile?.role === 'super_admin') {
-            router.push('/admin/franchises') // Super admin → page admin
-          } else {
-            router.push('/dashboard') // Autres → dashboard standard
-          }
+          router.push('/dashboard') // Tous les rôles → dashboard global
         }, 800)
       }
     } catch {

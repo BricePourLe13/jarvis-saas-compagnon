@@ -126,7 +126,7 @@ export interface JarvisSessionExtended {
 // ===========================================
 
 export interface KioskState {
-  status: 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'scanning' | 'authenticated'
+  status: 'idle' | 'listening' | 'processing' | 'speaking' | 'error' | 'scanning' | 'authenticated' | 'loading'
   isOnline: boolean
   currentMember?: GymMember | null
   currentSession?: JarvisSessionExtended | null

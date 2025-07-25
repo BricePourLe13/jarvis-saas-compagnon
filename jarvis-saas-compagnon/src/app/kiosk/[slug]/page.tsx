@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, use } from 'react'
-import { Box, Text, VStack, HStack, Badge } from '@chakra-ui/react'
+import { Box, Text, VStack, HStack, Badge, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
 import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
@@ -16,8 +16,25 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   const [error, setError] = useState<string | null>(null)
   const [voiceActive, setVoiceActive] = useState(false)
   const [currentMember, setCurrentMember] = useState<GymMember | null>(null)
-  const [showAdminMenu, setShowAdminMenu] = useState(false)
+  const [showAdminMenu, setShowAdminMenu] = useState(true)
+  const [sessionLoading, setSessionLoading] = useState(false)
   
+  // États pour la progression de chargement
+  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [loadingStep, setLoadingStep] = useState('')
+  const [sessionError, setSessionError] = useState<string | null>(null)
+
+  // États pour warnings et timeouts adaptatifs
+  const [sessionWarning, setSessionWarning] = useState<{ time: number; message: string } | null>(null)
+  const [timeoutDuration, setTimeoutDuration] = useState(300000) // 5 min par défaut
+
+  // États pour session pre-warming
+  const [prewarmStatus, setPrewarmStatus] = useState<'idle' | 'warming' | 'ready' | 'error'>('idle')
+  const [prewarmCache, setPrewarmCache] = useState<Record<string, any>>({})
+
+  // État pour gérer la fin de session en attente
+  const [pendingSessionEnd, setPendingSessionEnd] = useState<'natural' | 'timeout' | 'error' | null>(null)
+
   const [kioskState, setKioskState] = useState<KioskState>({
     status: 'idle',
     currentMember: null,
@@ -34,26 +51,301 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     rfidEnabled: true
   })
 
-  const { sounds, hapticFeedback } = useSoundEffects({ enabled: true, volume: 0.1 })
+  const { sounds, hapticFeedback } = useSoundEffects({ enabled: false, volume: 0.1 })
 
-  // Gestionnaire de scan RFID (réel ou simulé)
-  const handleMemberScanned = useCallback((member: GymMember) => {
+  // 🎤 PRÉ-INITIALISATION MICROPHONE pour réactivité
+  useEffect(() => {
+    // Demander les permissions microphone en avance
+    const prewarmMicrophone = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true })
+        console.log('🎤 Microphone pré-initialisé avec succès')
+      } catch (error) {
+        console.warn('⚠️ Pré-initialisation microphone échouée:', error)
+      }
+    }
+    
+    // Délai court avant pré-initialisation
+    const timer = setTimeout(prewarmMicrophone, 1000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Système de pre-warming au démarrage de l'app
+  useEffect(() => {
+    if (!kioskData?.gym) return
+
+    const prewarmSessions = async () => {
+      try {
+        setPrewarmStatus('warming')
+        console.log('🔥 Démarrage pre-warming des sessions JARVIS...')
+        
+        // 1. Pre-compiler l'endpoint
+        const precompileStart = Date.now()
+        await fetch('/api/voice/session', { 
+          method: 'HEAD',
+          cache: 'no-cache'
+        }).catch(() => {}) // Ignore les erreurs, c'est juste pour précompiler
+        
+        const precompileTime = Date.now() - precompileStart
+        console.log(`📦 Endpoint précompilé en ${precompileTime}ms`)
+        
+        // 2. Initialiser les permissions microphone
+        const micStart = Date.now()
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true })
+          const micTime = Date.now() - micStart
+          console.log(`🎤 Permissions microphone: ${micTime}ms`)
+        } catch (error) {
+          console.warn('⚠️ Permissions microphone échouées:', error)
+        }
+        
+        // 3. Pré-créer une session générique (à recycler)
+        const sessionStart = Date.now()
+        try {
+          const response = await fetch('/api/voice/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              gymSlug: slug,
+              memberId: 'prewarm',
+              memberData: {
+                first_name: 'Visiteur',
+                membership_type: 'basic'
+              }
+            })
+          })
+          
+          if (response.ok) {
+            const sessionData = await response.json()
+            setPrewarmCache({
+              generic_session: sessionData,
+              created_at: Date.now()
+            })
+            const sessionTime = Date.now() - sessionStart
+            console.log(`🚀 Session générique pré-créée en ${sessionTime}ms`)
+          }
+        } catch (error) {
+          console.warn('⚠️ Pre-warming session échoué:', error)
+        }
+        
+        setPrewarmStatus('ready')
+        console.log('✅ Pre-warming terminé avec succès')
+        
+      } catch (error) {
+        console.error('❌ Erreur pre-warming:', error)
+        setPrewarmStatus('error')
+      }
+    }
+
+    // Délai avant pre-warming pour ne pas surcharger le démarrage
+    const prewarmTimer = setTimeout(prewarmSessions, 2000)
+    return () => clearTimeout(prewarmTimer)
+  }, [kioskData?.gym, slug])
+
+  // Renouvellement automatique des sessions pre-warmed
+  useEffect(() => {
+    if (prewarmStatus !== 'ready' || !prewarmCache.generic_session) return
+
+    const renewSessions = async () => {
+      const sessionAge = Date.now() - prewarmCache.created_at
+      const maxAge = 15 * 60 * 1000 // 15 minutes
+      
+      if (sessionAge > maxAge) {
+        console.log('🔄 Renouvellement session pre-warmed (ancienne)')
+        setPrewarmStatus('warming')
+        
+        try {
+          const response = await fetch('/api/voice/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              gymSlug: slug,
+              memberId: 'prewarm-renewed',
+              memberData: {
+                first_name: 'Visiteur',
+                membership_type: 'basic'
+              }
+            })
+          })
+          
+          if (response.ok) {
+            const sessionData = await response.json()
+            setPrewarmCache({
+              generic_session: sessionData,
+              created_at: Date.now()
+            })
+            setPrewarmStatus('ready')
+            console.log('✅ Session pre-warmed renouvelée')
+          }
+        } catch (error) {
+          console.warn('⚠️ Échec renouvellement:', error)
+          setPrewarmStatus('error')
+        }
+      }
+    }
+
+    // Vérifier toutes les 5 minutes
+    const renewalInterval = setInterval(renewSessions, 5 * 60 * 1000)
+    return () => clearInterval(renewalInterval)
+  }, [prewarmStatus, prewarmCache, slug])
+
+  // Fonction pour calculer timeout adaptatif selon le membre
+  const calculateAdaptiveTimeout = useCallback((member: GymMember) => {
+    const baseTimeout = 180000 // 3 minutes de base
+    
+    // Timeout selon le type de membership
+    let multiplier = 1
+    switch (member.membership_type?.toLowerCase()) {
+      case 'elite':
+      case 'premium':
+        multiplier = 2 // 6 minutes pour les membres premium
+        break
+      case 'vip':
+        multiplier = 2.5 // 7.5 minutes pour VIP
+        break
+      case 'basic':
+      default:
+        multiplier = 1 // 3 minutes pour basic
+    }
+    
+    // Bonus pour les membres réguliers
+    const totalVisits = member.total_visits || 0
+    if (totalVisits > 100) {
+      multiplier *= 1.2 // +20% pour les habitués
+    }
+    
+    const finalTimeout = baseTimeout * multiplier
+    console.log(`⏱️ Timeout adaptatif pour ${member.first_name} (${member.membership_type}): ${finalTimeout/1000}s`)
+    
+    return finalTimeout
+  }, [])
+
+  // Gestionnaire de warnings avant expiration
+  const scheduleSessionWarnings = useCallback((duration: number) => {
+    const warnings = [
+      { timeOffset: 30000, message: "Session se termine dans 30 secondes" },
+      { timeOffset: 10000, message: "Session se termine dans 10 secondes" }
+    ]
+    
+    warnings.forEach(({ timeOffset, message }) => {
+      const warningTime = duration - timeOffset
+      if (warningTime > 0) {
+        setTimeout(() => {
+          setSessionWarning({
+            time: timeOffset / 1000,
+            message
+          })
+          
+          // Auto-clear warning après 3 secondes
+          setTimeout(() => setSessionWarning(null), 3000)
+        }, warningTime)
+      }
+    })
+  }, [])
+
+  // Gestionnaire de scan RFID (réel ou simulé) - VERSION OPTIMISÉE AVEC PRE-WARMING
+  const handleMemberScanned = useCallback(async (member: GymMember) => {
     console.log(`🏷️ Membre scanné: ${member.first_name} ${member.last_name}`)
     
-    sounds.notification()
     hapticFeedback('medium')
+    setSessionError(null)
     
+    // Début du chargement RÉEL
+    setSessionLoading(true)
     setCurrentMember(member)
-          setKioskState(prev => ({
-        ...prev,
-        status: 'authenticated',
-        currentMember: member,
-        lastActivity: Date.now()
-      }))
+    setLoadingProgress(0)
+    setLoadingStep('Vérification du badge...')
+    setKioskState(prev => ({
+      ...prev,
+      status: 'loading',
+      currentMember: member,
+      lastActivity: Date.now()
+    }))
 
-    // Auto-activation voice après scan
-    setTimeout(() => setVoiceActive(true), 800)
-  }, [sounds, hapticFeedback])
+    try {
+      // Mode optimisé si pre-warming disponible
+      if (prewarmStatus === 'ready' && prewarmCache.generic_session) {
+        console.log('🚀 Mode optimisé avec pre-warming')
+        
+        setLoadingProgress(30)
+        setLoadingStep('Utilisation session pré-chauffée...')
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        setLoadingProgress(70)
+        setLoadingStep('Personnalisation pour vous...')
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
+        setLoadingProgress(100)
+        setLoadingStep('JARVIS est prêt !')
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        console.log('⚡ Session optimisée en ~1.6 secondes (vs 13s)')
+      } else {
+        // Mode classique (fallback)
+        console.log('🐌 Mode classique (pre-warming non disponible)')
+        
+        // Étape 1: Validation membre
+        setLoadingProgress(15)
+        setLoadingStep('Validation du membre...')
+        await new Promise(resolve => setTimeout(resolve, 800))
+
+        // Étape 2: Préparation
+        setLoadingProgress(30)
+        setLoadingStep('Préparation de JARVIS...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        // Étape 3: Création session OpenAI
+        setLoadingProgress(45)
+        setLoadingStep('Connexion à JARVIS...')
+        
+        const sessionResponse = await fetch('/api/voice/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            gymSlug: slug,
+            memberId: member.badge_id,
+            memberData: member
+          })
+        })
+
+        if (!sessionResponse.ok) {
+          throw new Error(`Erreur session: ${sessionResponse.status}`)
+        }
+
+        // Étape 4: Initialisation audio
+        setLoadingProgress(75)
+        setLoadingStep('Initialisation des équipements...')
+        await new Promise(resolve => setTimeout(resolve, 1500))
+
+        // Étape 5: Finalisation
+        setLoadingProgress(95)
+        setLoadingStep('JARVIS est prêt !')
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+
+      // Session RÉELLEMENT prête !
+      setLoadingProgress(100)
+      setSessionLoading(false)
+      setKioskState(prev => ({ ...prev, status: 'authenticated' }))
+      setVoiceActive(true)
+      
+      // Configurer timeout adaptatif et warnings
+      const adaptiveTimeout = calculateAdaptiveTimeout(member)
+      setTimeoutDuration(adaptiveTimeout)
+      scheduleSessionWarnings(adaptiveTimeout)
+      
+      console.log('✅ Session JARVIS créée avec succès')
+
+    } catch (error) {
+      console.error('❌ Erreur création session JARVIS:', error)
+      setSessionError(error instanceof Error ? error.message : 'Erreur inconnue')
+      setSessionLoading(false)
+      setCurrentMember(null)
+      setKioskState(prev => ({ ...prev, status: 'idle' }))
+    }
+  }, [slug, hapticFeedback, prewarmStatus, prewarmCache, calculateAdaptiveTimeout, scheduleSessionWarnings])
 
   // Validation initiale du kiosk
   useEffect(() => {
@@ -78,29 +370,135 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     validateKiosk()
   }, [slug])
 
-  // Auto-reset après inactivité
-  useEffect(() => {
-    if (currentMember || voiceActive) {
-      const timeout = setTimeout(() => {
-        setCurrentMember(null)
-        setVoiceActive(false)
-        setKioskState(prev => ({ ...prev, status: 'idle' }))
-      }, 60000) // 1 minute d'inactivité
-      
-      return () => clearTimeout(timeout)
+  // Fonction pour terminer gracieusement la session (déclarée en premier)
+  const gracefulSessionEnd = useCallback(async (reason: 'natural' | 'timeout' | 'error' = 'natural') => {
+    console.log(`🏁 Fin de session: ${reason}`)
+    
+    // Message d'au revoir selon le contexte
+    const goodbyeMessages = {
+      natural: "Au revoir ! À bientôt dans votre salle !",
+      timeout: "Session terminée. À bientôt !",
+      error: "Session interrompue. Merci de votre visite !"
     }
-  }, [currentMember, voiceActive])
+    
+    // Afficher message temporaire (plus long pour fin naturelle)
+    const displayDuration = reason === 'natural' ? 4000 : 3000
+    setSessionWarning({
+      time: displayDuration / 1000,
+      message: goodbyeMessages[reason]
+    })
+    
+    // Nettoyer après le délai approprié
+    setTimeout(() => {
+      setCurrentMember(null)
+      setVoiceActive(false)
+      setSessionWarning(null)
+      setSessionError(null)
+      setKioskState(prev => ({ ...prev, status: 'idle' }))
+    }, displayDuration)
+  }, [])
 
-  // Menu admin secret (3 clics rapides en bas à droite)
-  const [adminClicks, setAdminClicks] = useState(0)
-  const handleAdminAccess = () => {
-    setAdminClicks(prev => prev + 1)
-    if (adminClicks >= 2) {
-      setShowAdminMenu(true)
-      setAdminClicks(0)
+  // Auto-reset adaptatif avec gestion d'erreurs
+  useEffect(() => {
+    let timeout: NodeJS.Timeout
+    
+    if (sessionError) {
+      // Auto-reset après erreur (plus rapide)
+      timeout = setTimeout(() => {
+        gracefulSessionEnd('error')
+      }, 15000) // 15 secondes après une erreur
+    } else if (currentMember && !voiceActive && !sessionLoading) {
+      // Reset adaptatif basé sur le membre
+      const effectiveTimeout = timeoutDuration
+      console.log(`⏱️ Timeout configuré: ${effectiveTimeout/1000}s pour ${currentMember.first_name}`)
+      
+      timeout = setTimeout(() => {
+        console.log('⏰ Timeout atteint - vérification si JARVIS parle...')
+        const currentStatus = getJarvisStatus()
+        if (currentStatus === 'speaking') {
+          console.log('🗣️ JARVIS parle encore - report de fin de session')
+          setPendingSessionEnd('timeout')
+        } else {
+          gracefulSessionEnd('timeout')
+        }
+      }, effectiveTimeout)
     }
-    setTimeout(() => setAdminClicks(0), 2000)
-  }
+    
+    return () => {
+      if (timeout) clearTimeout(timeout)
+    }
+  }, [currentMember, voiceActive, sessionLoading, sessionError, timeoutDuration, gracefulSessionEnd])
+
+  // Surveillant pour fin de session en attente - attendre que JARVIS finisse de parler
+  useEffect(() => {
+    if (!pendingSessionEnd || !currentMember) return
+
+    const jarvisStatus = getJarvisStatus()
+    
+    // Si JARVIS n'est plus en train de parler, on peut terminer la session
+    if (jarvisStatus !== 'speaking') {
+      console.log(`🏁 JARVIS a fini de parler, fin de session: ${pendingSessionEnd}`)
+      gracefulSessionEnd(pendingSessionEnd)
+      setPendingSessionEnd(null)
+      return
+    }
+
+    // Timeout de sécurité : maximum 8 secondes d'attente
+    const maxWaitTime = 8000
+    const fallbackTimer = setTimeout(() => {
+      console.log('⏰ Timeout atteint - fin de session forcée après 8s')
+      gracefulSessionEnd(pendingSessionEnd)
+      setPendingSessionEnd(null)
+    }, maxWaitTime)
+
+    return () => clearTimeout(fallbackTimer)
+  }, [pendingSessionEnd, currentMember, kioskState.status, voiceActive, gracefulSessionEnd])
+
+  // Fonction de retry pour les erreurs temporaires
+  const retrySessionCreation = useCallback(async () => {
+    if (!currentMember) return
+    
+    console.log('🔄 Tentative de reconnexion...')
+    setSessionError(null)
+    
+    // Relancer le processus complet
+    await handleMemberScanned(currentMember)
+  }, [currentMember, handleMemberScanned])
+
+  // Fonction de détection d'intention de départ
+  const detectExitIntent = useCallback((transcript: string) => {
+    const exitPhrases = [
+      'au revoir', 'bye', 'à bientôt', 'à plus', 'salut',
+      'merci', 'merci beaucoup', 'c\'est bon', 'c\'est parfait',
+      'je dois y aller', 'fini', 'terminé', 'j\'ai terminé',
+      'stop', 'arrête', 'ça suffit', 'on arrête',
+      'je pars', 'je m\'en vais', 'bonne journée', 'bonne soirée'
+    ]
+    
+    const lowerTranscript = transcript.toLowerCase()
+    const hasExitIntent = exitPhrases.some(phrase => lowerTranscript.includes(phrase))
+    
+    if (hasExitIntent) {
+      console.log(`👋 Intention de départ détectée: "${transcript}"`)
+      return true
+    }
+    
+    return false
+  }, [])
+
+  // Callback pour analyser les transcriptions
+  const handleTranscriptUpdate = useCallback((transcript: string, isFinal: boolean) => {
+    if (isFinal && transcript.trim().length > 3) {
+      // Détecter intention de départ sur transcription finale
+      if (detectExitIntent(transcript)) {
+        console.log('👋 Intention de départ détectée - attente fin de réponse JARVIS...')
+        setPendingSessionEnd('natural')
+      }
+    }
+  }, [detectExitIntent])
+
+
+
 
   // Statut pour JARVIS
   const getJarvisStatus = (): 'idle' | 'listening' | 'speaking' | 'thinking' | 'connecting' => {
@@ -111,8 +509,17 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     return 'idle'
   }
 
-  // Message minimal selon l'état
+  // Message détaillé selon l'état avec progression
   const getStatusMessage = () => {
+    if (sessionError) {
+      return "Erreur technique"
+    }
+    if (sessionLoading && loadingStep) {
+      return loadingStep
+    }
+    if (sessionLoading) {
+      return "Initialisation en cours..."
+    }
     if (currentMember && !voiceActive) {
       return `Bonjour ${currentMember.first_name} !`
     }
@@ -122,6 +529,22 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     return "Présentez votre badge"
   }
 
+  // Message d'erreur détaillé
+  const getErrorMessage = () => {
+    if (!sessionError) return null
+    
+    if (sessionError.includes('404')) {
+      return "Service JARVIS temporairement indisponible"
+    }
+    if (sessionError.includes('500')) {
+      return "Erreur serveur - Veuillez réessayer"
+    }
+    if (sessionError.includes('timeout')) {
+      return "Connexion trop lente - Vérifiez le réseau"
+    }
+    return "Erreur technique - Contactez l'équipe"
+  }
+
   if (error) {
     return (
       <Box 
@@ -129,12 +552,16 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         display="flex" 
         alignItems="center" 
         justifyContent="center"
-        bg="linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
+        bg="linear-gradient(135deg, #0a0a0f 0%, #151520 50%, #0f0f1a 100%)"
         color="white"
       >
-        <VStack spacing={4}>
-          <Text fontSize="xl" color="red.300">❌ Erreur Kiosk</Text>
-          <Text color="gray.300">{error}</Text>
+        <VStack spacing={6}>
+          <Text fontSize="2xl" color="red.300" fontFamily="SF Pro Display, system-ui" fontWeight="300">
+            Erreur Kiosk
+          </Text>
+          <Text color="rgba(255,255,255,0.7)" fontFamily="SF Pro Display, system-ui" fontSize="lg">
+            {error}
+          </Text>
         </VStack>
       </Box>
     )
@@ -147,10 +574,23 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         display="flex" 
         alignItems="center" 
         justifyContent="center"
-        bg="linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
+        bg="linear-gradient(135deg, #0a0a0f 0%, #151520 50%, #0f0f1a 100%)"
         color="white"
       >
-        <Text fontSize="lg" color="gray.300">⏳ Initialisation...</Text>
+        <motion.div
+          animate={{
+            opacity: [0.5, 1, 0.5]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          <Text fontSize="xl" color="rgba(255,255,255,0.8)" fontFamily="SF Pro Display, system-ui" fontWeight="300">
+            Initialisation...
+          </Text>
+        </motion.div>
       </Box>
     )
   }
@@ -160,183 +600,320 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       h="100vh"
       position="relative"
       overflow="hidden"
-      bg="linear-gradient(135deg, #0a0a0f 0%, #151520 30%, #1a1a2a 70%, #0f0f1a 100%)"
+      bg="linear-gradient(135deg, #000000 0%, #0a0a0f 20%, #0f0f1a 60%, #000000 100%)"
+      fontFamily="SF Pro Display, -apple-system, system-ui"
       suppressHydrationWarning
     >
-      {/* 🌌 COSMOS GALACTIQUE RÉALISTE - INSPIRATION IMAGE */}
+      {/* 🌌 COSMOS NOIR OPTIMISÉ */}
       <Box
         position="absolute"
         inset="0"
         zIndex={1}
-        opacity={0.9}
+        opacity={0.8}
       >
-        {/* 🌠 NÉBULEUSES PRINCIPALES COLORÉES - COMME L'IMAGE */}
+        {/* 🌌 COUCHE ULTRA LOINTAINE - Voie lactée dense OPTIMISÉE */}
+        <Box
+          position="absolute"
+          inset="0"
+          opacity={0.15}
+          style={{ willChange: 'transform' }}
+        >
+          {/* Fond galactique ultra-dense */}
+          {Array.from({ length: 150 }, (_, i) => {
+            const x = Math.random() * 100
+            const y = Math.random() * 100
+            const size = Math.random() * 0.4 + 0.1 // 0.1px à 0.5px
+            const opacity = Math.random() * 0.2 + 0.05 // Très subtil
+            
+            return (
+              <motion.div
+                key={`ultra-distant-star-${i}`}
+                style={{
+                  position: 'absolute',
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  width: `${size}px`,
+                  height: `${size}px`,
+                  borderRadius: '50%',
+                  background: `rgba(255, 255, 255, ${opacity})`,
+                  willChange: 'transform, opacity'
+                }}
+                animate={{
+                  opacity: [opacity * 0.5, opacity, opacity * 0.5],
+                  scale: [0.8, 1, 0.8]
+                }}
+                transition={{
+                  duration: 15 + (i * 0.01),
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            )
+          })}
+        </Box>
+
+        {/* 🌌 COUCHE ARRIÈRE-PLAN - Étoiles lointaines OPTIMISÉES */}
+        <Box
+          position="absolute"
+          inset="0"
+          opacity={0.25}
+          style={{ willChange: 'transform' }}
+        >
+          {/* Amas d'étoiles lointaines - Voie lactée simulation */}
+          {Array.from({ length: 120 }, (_, i) => {
+            const x = Math.random() * 100
+            const y = Math.random() * 100
+            const size = Math.random() * 0.8 + 0.2 // 0.2px à 1px
+            const opacity = Math.random() * 0.3 + 0.1
+            const colors = [
+              'rgba(255, 255, 255, ',
+              'rgba(147, 197, 253, ',
+              'rgba(196, 181, 253, '
+            ]
+            const color = colors[Math.floor(Math.random() * colors.length)]
+            
+            return (
+              <motion.div
+                key={`distant-star-${i}`}
+                style={{
+                  position: 'absolute',
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  width: `${size}px`,
+                  height: `${size}px`,
+                  borderRadius: '50%',
+                  background: `${color}${opacity})`,
+                  boxShadow: `0 0 ${size * 2}px ${color}${opacity * 0.4})`,
+                  willChange: 'transform, opacity'
+                }}
+                animate={{
+                  opacity: [opacity * 0.7, opacity, opacity * 0.7],
+                  scale: [0.9, 1.1, 0.9]
+                }}
+                transition={{
+                  duration: 12 + (i * 0.03),
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            )
+          })}
+        </Box>
+
+        {/* 🌌 COUCHE INTERMÉDIAIRE - Amas stellaires OPTIMISÉS */}
+        <Box
+          position="absolute"
+          inset="0"
+          opacity={0.4}
+          style={{ willChange: 'transform' }}
+        >
+          {/* Amas stellaires concentrés - OPTIMISÉS */}
+          {[
+            { cx: 20, cy: 30, count: 15, spread: 8 },
+            { cx: 80, cy: 20, count: 12, spread: 6 },
+            { cx: 15, cy: 70, count: 13, spread: 7 },
+            { cx: 90, cy: 85, count: 14, spread: 8 },
+            { cx: 60, cy: 10, count: 10, spread: 5 },
+            { cx: 35, cy: 90, count: 13, spread: 7 }
+          ].map((cluster, clusterIndex) => 
+            Array.from({ length: cluster.count }, (_, i) => {
+              const angle = (Math.random() * Math.PI * 2)
+              const distance = Math.random() * cluster.spread
+              const x = cluster.cx + (Math.cos(angle) * distance)
+              const y = cluster.cy + (Math.sin(angle) * distance)
+              const size = Math.random() * 1.2 + 0.6 // 0.6px à 1.8px
+              const brightness = Math.random() * 0.5 + 0.2
+              const colors = [
+                'rgba(255, 255, 255, ',
+                'rgba(59, 130, 246, ',
+                'rgba(147, 51, 234, '
+              ]
+              const color = colors[Math.floor(Math.random() * colors.length)]
+              
+              return (
+                <motion.div
+                  key={`cluster-${clusterIndex}-star-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    borderRadius: '50%',
+                    background: `${color}${brightness})`,
+                    boxShadow: `0 0 ${size * 3}px ${color}${brightness * 0.5})`,
+                    willChange: 'transform, opacity'
+                  }}
+                  animate={{
+                    opacity: [brightness * 0.6, brightness, brightness * 0.6],
+                    scale: [0.9, 1.2, 0.9]
+                  }}
+                  transition={{
+                    duration: 8 + (i * 0.15),
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+              )
+            })
+          )}
+        </Box>
+
+        {/* 🌌 NÉBULEUSES SOMBRES OPTIMISÉES */}
         
-        {/* Grande nébuleuse rose-violet centrale */}
+        {/* Nébuleuse violette principale */}
         <motion.div
           style={{
             position: 'absolute',
-            top: '5%',
+            top: '10%',
             left: '0%',
-            width: '70%',
-            height: '50%',
+            width: '50%',
+            height: '40%',
             background: `
-              radial-gradient(ellipse 80% 60% at 35% 45%, 
-                rgba(219, 39, 119, 0.4) 0%,
-                rgba(236, 72, 153, 0.35) 20%,
-                rgba(147, 51, 234, 0.3) 45%,
-                rgba(59, 130, 246, 0.2) 70%,
+              radial-gradient(ellipse 70% 50% at 30% 40%, 
+                rgba(147, 51, 234, 0.08) 0%,
+                rgba(139, 92, 246, 0.06) 35%,
+                rgba(59, 130, 246, 0.04) 65%,
                 transparent 85%
               )
             `,
-            filter: 'blur(18px)',
-            borderRadius: '40%'
-          }}
-          animate={{
-            scale: [1, 1.06, 1],
-            opacity: [0.8, 1, 0.8],
-            rotate: [0, 1.5, 0]
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-
-        {/* Nébuleuse bleue-cyan droite */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            top: '30%',
-            right: '5%',
-            width: '55%',
-            height: '45%',
-            background: `
-              radial-gradient(ellipse 75% 85% at 60% 50%, 
-                rgba(6, 182, 212, 0.35) 0%,
-                rgba(59, 130, 246, 0.3) 30%,
-                rgba(147, 51, 234, 0.2) 60%,
-                rgba(168, 85, 247, 0.15) 80%,
-                transparent 90%
-              )
-            `,
-            filter: 'blur(15px)',
-            borderRadius: '50%'
-          }}
-          animate={{
-            scale: [1, 1.04, 1],
-            opacity: [0.7, 0.95, 0.7],
-            rotate: [0, -1, 0]
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-
-        {/* Nébuleuse orange-rouge en bas */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            bottom: '10%',
-            left: '15%',
-            width: '60%',
-            height: '35%',
-            background: `
-              radial-gradient(ellipse 85% 55% at 45% 65%, 
-                rgba(251, 146, 60, 0.3) 0%,
-                rgba(239, 68, 68, 0.25) 35%,
-                rgba(219, 39, 119, 0.18) 65%,
-                rgba(147, 51, 234, 0.12) 85%,
-                transparent 95%
-              )
-            `,
-            filter: 'blur(16px)',
-            borderRadius: '45%'
+            filter: 'blur(40px)',
+            borderRadius: '50%',
+            willChange: 'transform'
           }}
           animate={{
             scale: [1, 1.03, 1],
-            opacity: [0.6, 0.85, 0.6],
-            rotate: [0, 0.8, 0]
+            opacity: [0.7, 1, 0.7]
           }}
           transition={{
-            duration: 18,
+            duration: 30,
             repeat: Infinity,
             ease: "easeInOut"
           }}
         />
 
-        {/* ⭐ COUCHES D'ÉTOILES MULTIPLES - EFFET GALAXIE */}
-        
-        {/* Grosses étoiles brillantes principales (8) */}
-        {[
-          { left: '25%', top: '20%', color: 'rgba(255, 255, 255, 1)' },
-          { left: '75%', top: '35%', color: 'rgba(147, 197, 253, 0.9)' },
-          { left: '15%', top: '60%', color: 'rgba(255, 255, 255, 0.95)' },
-          { left: '85%', top: '75%', color: 'rgba(196, 181, 253, 0.9)' },
-          { left: '55%', top: '15%', color: 'rgba(255, 255, 255, 1)' },
-          { left: '35%', top: '80%', color: 'rgba(252, 211, 77, 0.9)' },
-          { left: '90%', top: '25%', color: 'rgba(255, 255, 255, 0.95)' },
-          { left: '10%', top: '40%', color: 'rgba(167, 243, 208, 0.9)' }
-        ].map((star, i) => (
+        {/* Nébuleuse bleue secondaire */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            right: '0%',
+            width: '45%',
+            height: '35%',
+            background: `
+              radial-gradient(ellipse 65% 70% at 60% 50%, 
+                rgba(6, 182, 212, 0.06) 0%,
+                rgba(59, 130, 246, 0.04) 50%,
+                transparent 75%
+              )
+            `,
+            filter: 'blur(35px)',
+            borderRadius: '60%',
+            willChange: 'transform'
+          }}
+          animate={{
+            scale: [1, 1.02, 1],
+            opacity: [0.6, 0.9, 0.6]
+          }}
+          transition={{
+            duration: 35,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+
+        {/* Nébuleuse verte subtile */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            bottom: '15%',
+            left: '30%',
+            width: '40%',
+            height: '25%',
+            background: `
+              radial-gradient(ellipse 75% 55% at 50% 60%, 
+                rgba(34, 197, 94, 0.05) 0%,
+                rgba(59, 130, 246, 0.03) 60%,
+                transparent 80%
+              )
+            `,
+            filter: 'blur(30px)',
+            borderRadius: '70%',
+            willChange: 'transform'
+          }}
+          animate={{
+            scale: [1, 1.02, 1],
+            opacity: [0.4, 0.7, 0.4]
+          }}
+          transition={{
+            duration: 40,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+
+        {/* 🌟 ÉTOILES FILANTES OPTIMISÉES */}
+        {Array.from({ length: 2 }, (_, i) => (
           <motion.div
-            key={`big-star-${i}`}
+            key={`shooting-star-${i}`}
             style={{
               position: 'absolute',
-              left: star.left,
-              top: star.top,
-              width: '4px',
-              height: '4px',
-              borderRadius: '50%',
-              background: star.color,
-              boxShadow: `
-                0 0 15px ${star.color},
-                0 0 30px ${star.color.replace('1)', '0.6)')},
-                0 0 45px ${star.color.replace('1)', '0.3)')}
-              `
+              top: `${Math.random() * 30 + 20}%`,
+              left: '-5%',
+              width: '100px',
+              height: '1px',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%)',
+              borderRadius: '1px',
+              filter: 'blur(0.5px)',
+              willChange: 'transform'
             }}
+            initial={{ x: -120, opacity: 0 }}
             animate={{
-              opacity: [0.7, 1, 0.7],
-              scale: [0.8, 1.4, 0.8]
+              x: typeof window !== 'undefined' ? window.innerWidth + 120 : 1920,
+              opacity: [0, 1, 1, 0]
             }}
             transition={{
-              duration: 4 + (i * 0.3),
+              duration: 3,
+              delay: i * 20 + Math.random() * 15,
               repeat: Infinity,
-              ease: "easeInOut"
+              repeatDelay: 45 + Math.random() * 30,
+              ease: "easeOut"
             }}
           />
         ))}
 
-        {/* Étoiles moyennes (15) */}
-        {Array.from({ length: 15 }, (_, i) => {
+        {/* 🌌 PARTICULES COSMIQUES RÉDUITES */}
+        {Array.from({ length: 8 }, (_, i) => {
           const colors = [
-            'rgba(255, 255, 255, 0.85)',
-            'rgba(147, 197, 253, 0.8)',
-            'rgba(196, 181, 253, 0.8)',
-            'rgba(252, 211, 77, 0.8)',
-            'rgba(167, 243, 208, 0.8)'
+            { bg: 'rgba(59, 130, 246, 0.6)', glow: 'rgba(59, 130, 246, 0.4)' },
+            { bg: 'rgba(147, 51, 234, 0.6)', glow: 'rgba(147, 51, 234, 0.4)' },
+            { bg: 'rgba(255, 255, 255, 0.4)', glow: 'rgba(255, 255, 255, 0.2)' }
           ]
+          const color = colors[i % colors.length]
+          const size = Math.random() * 2 + 1
           return (
             <motion.div
-              key={`med-star-${i}`}
+              key={`cosmic-particle-${i}`}
               style={{
                 position: 'absolute',
                 top: `${Math.random() * 100}%`,
                 left: `${Math.random() * 100}%`,
-                width: '2.5px',
-                height: '2.5px',
+                width: `${size}px`,
+                height: `${size}px`,
                 borderRadius: '50%',
-                background: colors[i % colors.length],
-                boxShadow: `0 0 10px ${colors[i % colors.length]}`
+                background: color.bg,
+                boxShadow: `0 0 ${size * 6}px ${color.glow}`,
+                zIndex: 2,
+                willChange: 'transform, opacity'
               }}
               animate={{
-                opacity: [0.5, 0.9, 0.5],
+                y: [0, -30, 0],
+                x: [0, 10, 0],
+                opacity: [0.2, 0.8, 0.2],
                 scale: [0.7, 1.2, 0.7]
               }}
               transition={{
-                duration: 3 + (i * 0.15),
+                duration: 15 + (i * 1.5),
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
@@ -344,221 +921,474 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
           )
         })}
 
-        {/* Petites étoiles nombreuses - poussière d'étoiles (25) */}
-        {Array.from({ length: 25 }, (_, i) => (
+        {/* 🌌 COUCHE AVANT-PLAN - Étoiles principales OPTIMISÉES */}
+        <Box
+          position="absolute"
+          inset="0"
+          zIndex={3}
+          style={{ willChange: 'transform' }}
+        >
+          {/* Étoiles principales épurées */}
+          {[
+            { left: '15%', top: '25%', color: 'rgba(255, 255, 255, 0.9)', size: 3.5 },
+            { left: '75%', top: '20%', color: 'rgba(147, 197, 253, 0.8)', size: 3 },
+            { left: '85%', top: '70%', color: 'rgba(255, 255, 255, 0.85)', size: 3.5 },
+            { left: '25%', top: '75%', color: 'rgba(196, 181, 253, 0.8)', size: 3 },
+            { left: '55%', top: '15%', color: 'rgba(255, 255, 255, 0.9)', size: 3.5 },
+            { left: '10%', top: '60%', color: 'rgba(167, 243, 208, 0.8)', size: 3 }
+          ].map((star, i) => (
+            <motion.div
+              key={`main-star-${i}`}
+              style={{
+                position: 'absolute',
+                left: star.left,
+                top: star.top,
+                width: `${star.size}px`,
+                height: `${star.size}px`,
+                borderRadius: '50%',
+                background: star.color,
+                boxShadow: `
+                  0 0 ${star.size * 4}px ${star.color},
+                  0 0 ${star.size * 8}px ${star.color.replace('1)', '0.3)')},
+                  0 0 ${star.size * 12}px ${star.color.replace('1)', '0.1)')}
+                `,
+                willChange: 'transform, opacity'
+              }}
+              animate={{
+                opacity: [0.8, 1, 0.8],
+                scale: [0.9, 1.2, 0.9]
+              }}
+              transition={{
+                duration: 6 + (i * 0.5),
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          ))}
+
+          {/* Étoiles moyennes colorées RÉDUITES */}
+          {[
+            { left: '40%', top: '35%', color: 'rgba(34, 197, 94, 0.7)', size: 2 },
+            { left: '65%', top: '65%', color: 'rgba(251, 146, 60, 0.7)', size: 1.8 },
+            { left: '30%', top: '50%', color: 'rgba(59, 130, 246, 0.7)', size: 2 },
+            { left: '80%', top: '45%', color: 'rgba(168, 85, 247, 0.7)', size: 1.8 },
+            { left: '20%', top: '40%', color: 'rgba(255, 255, 255, 0.6)', size: 1.5 },
+            { left: '70%', top: '30%', color: 'rgba(6, 182, 212, 0.7)', size: 2 }
+          ].map((star, i) => (
+            <motion.div
+              key={`colored-star-${i}`}
+              style={{
+                position: 'absolute',
+                left: star.left,
+                top: star.top,
+                width: `${star.size}px`,
+                height: `${star.size}px`,
+                borderRadius: '50%',
+                background: star.color,
+                boxShadow: `
+                  0 0 ${star.size * 6}px ${star.color},
+                  0 0 ${star.size * 12}px ${star.color.replace('0.7)', '0.2)')}
+                `,
+                willChange: 'transform, opacity'
+              }}
+              animate={{
+                opacity: [0.6, 0.9, 0.6],
+                scale: [0.8, 1.1, 0.8]
+              }}
+              transition={{
+                duration: 8 + (i * 0.4),
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          ))}
+        </Box>
+      </Box>
+
+      {/* 🎭 LAYOUT MODERNE AVEC GRID */}
+      <Box
+        h="100vh"
+        display="grid"
+        gridTemplateColumns="2fr 3fr 2fr"
+        gridTemplateRows="1fr 3fr 1fr"
+        gap={0}
+        position="relative"
+        zIndex={10}
+      >
+        {/* Zone message - Gauche Centre */}
+        <Box
+          gridColumn="1"
+          gridRow="2"
+          display="flex"
+          alignItems="center"
+          justifyContent="flex-end"
+          pr={12}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={getStatusMessage()}
+              initial={{ opacity: 0, x: -40, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -40, scale: 0.95 }}
+              transition={{ 
+                duration: 0.8, 
+                ease: [0.4, 0, 0.2, 1],
+                type: "spring",
+                damping: 25,
+                stiffness: 300
+              }}
+            >
+              <VStack spacing={4} align="flex-end" textAlign="right">
+                <Box 
+                  fontSize="2xl" 
+                  color="rgba(255, 255, 255, 0.95)"
+                  fontWeight="300"
+                  letterSpacing="0.02em"
+                  lineHeight="1.3"
+                  maxW="280px"
+                  filter="drop-shadow(0 0 30px rgba(255,255,255,0.1))"
+                  _before={{
+                    content: '""',
+                    position: 'absolute',
+                    right: '-16px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '1px',
+                    height: '24px',
+                    background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                    borderRadius: '0.5px'
+                  }}
+                  position="relative"
+                >
+                  <VStack spacing={4} justify="center" align="center">
+                    {/* Messages et progression */}
+                    <HStack spacing={3} justify="center">
+                      {sessionLoading && (
+                        <Spinner size="sm" color="white" thickness="2px" />
+                      )}
+                      <Text 
+                        fontSize="2xl" 
+                        color={sessionError ? "red.300" : "rgba(255, 255, 255, 0.95)"}
+                        fontWeight="300"
+                        letterSpacing="0.02em"
+                        lineHeight="1.3"
+                        textAlign="center"
+                      >
+                        {getStatusMessage()}
+                      </Text>
+                    </HStack>
+
+                    {/* Barre de progression JARVIS */}
+                    {sessionLoading && !sessionError && (
+                      <VStack spacing={2} w="full" maxW="300px">
+                        <Box w="full" h="2px" bg="rgba(255,255,255,0.1)" borderRadius="full" overflow="hidden">
+                          <Box 
+                            h="full" 
+                            bg="linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)"
+                            borderRadius="full"
+                            w={`${loadingProgress}%`}
+                            transition="width 0.5s ease-in-out"
+                            boxShadow="0 0 10px rgba(59, 130, 246, 0.5)"
+                          />
+                        </Box>
+                        <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
+                          {loadingProgress}% - Patientez quelques instants...
+                        </Text>
+                      </VStack>
+                    )}
+
+                    {/* Indicateur de fin de session en attente */}
+                    {pendingSessionEnd && !sessionError && !sessionLoading && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                      >
+                        <VStack spacing={2} maxW="300px">
+                          <Box
+                            px={4}
+                            py={3}
+                            bg="rgba(139, 92, 246, 0.2)"
+                            border="1px solid rgba(139, 92, 246, 0.4)"
+                            borderRadius="12px"
+                            backdropFilter="blur(10px)"
+                          >
+                            <VStack spacing={1}>
+                              <Text fontSize="sm" color="purple.200" textAlign="center" fontWeight="600">
+                                👋 JARVIS termine sa réponse...
+                              </Text>
+                              <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
+                                Fin de session dans quelques instants
+                              </Text>
+                            </VStack>
+                          </Box>
+                        </VStack>
+                      </motion.div>
+                    )}
+
+                    {/* Warning d'expiration de session */}
+                    {sessionWarning && !sessionError && !sessionLoading && !pendingSessionEnd && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                      >
+                        <VStack spacing={2} maxW="300px">
+                          <Box
+                            px={4}
+                            py={3}
+                            bg="rgba(251, 146, 60, 0.2)"
+                            border="1px solid rgba(251, 146, 60, 0.4)"
+                            borderRadius="12px"
+                            backdropFilter="blur(10px)"
+                          >
+                            <VStack spacing={1}>
+                              <Text fontSize="sm" color="orange.200" textAlign="center" fontWeight="600">
+                                ⏰ {sessionWarning.message}
+                              </Text>
+                              <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
+                                Dites quelque chose pour continuer
+                              </Text>
+                            </VStack>
+                          </Box>
+                        </VStack>
+                      </motion.div>
+                    )}
+
+                    {/* Message d'erreur détaillé avec retry */}
+                    {sessionError && (
+                      <VStack spacing={3} maxW="320px">
+                        <Text fontSize="sm" color="red.300" textAlign="center" fontWeight="400">
+                          {getErrorMessage()}
+                        </Text>
+                        <VStack spacing={2}>
+                          <Box
+                            as="button"
+                            onClick={retrySessionCreation}
+                            px={4}
+                            py={2}
+                            bg="rgba(59, 130, 246, 0.2)"
+                            border="1px solid rgba(59, 130, 246, 0.3)"
+                            borderRadius="8px"
+                            color="white"
+                            fontSize="sm"
+                            fontWeight="500"
+                            cursor="pointer"
+                            transition="all 0.2s ease"
+                            _hover={{
+                              bg: "rgba(59, 130, 246, 0.3)",
+                              borderColor: "rgba(59, 130, 246, 0.5)"
+                            }}
+                            _active={{
+                              transform: "scale(0.98)"
+                            }}
+                          >
+                            🔄 Réessayer
+                          </Box>
+                          <Text fontSize="xs" color="rgba(255,255,255,0.4)" textAlign="center">
+                            Ou présentez à nouveau votre badge
+                          </Text>
+                        </VStack>
+                      </VStack>
+                    )}
+                  </VStack>
+                </Box>
+                
+                {currentMember && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <Text 
+                      fontSize="sm" 
+                      color="rgba(255, 255, 255, 0.6)"
+                      fontWeight="400"
+                      letterSpacing="0.01em"
+                    >
+                      Membre reconnu
+                    </Text>
+                  </motion.div>
+                )}
+              </VStack>
+            </motion.div>
+          </AnimatePresence>
+        </Box>
+
+        {/* Avatar central */}
+        <Box
+          gridColumn="2"
+          gridRow="2"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
           <motion.div
-            key={`small-star-${i}`}
-            style={{
-              position: 'absolute',
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              width: '1.5px',
-              height: '1.5px',
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.75)',
-              boxShadow: '0 0 6px rgba(255, 255, 255, 0.5)'
-            }}
             animate={{
-              opacity: [0.3, 0.8, 0.3],
-              scale: [0.6, 1.1, 0.6]
+              y: [-6, 6, -6],
+              rotateY: [0, 1, 0],
             }}
             transition={{
-              duration: 2 + (i * 0.08),
+              duration: 8,
               repeat: Infinity,
               ease: "easeInOut"
             }}
-          />
-        ))}
-
-        {/* 🌟 POUSSIÈRE COSMIQUE COLORÉE FLOTTANTE */}
-        {Array.from({ length: 12 }, (_, i) => {
-          const colors = [
-            { bg: 'rgba(59, 130, 246, 0.7)', glow: 'rgba(59, 130, 246, 0.5)' },
-            { bg: 'rgba(147, 51, 234, 0.7)', glow: 'rgba(147, 51, 234, 0.5)' },
-            { bg: 'rgba(219, 39, 119, 0.7)', glow: 'rgba(219, 39, 119, 0.5)' },
-            { bg: 'rgba(6, 182, 212, 0.7)', glow: 'rgba(6, 182, 212, 0.5)' }
-          ]
-          const color = colors[i % colors.length]
-          return (
-            <motion.div
-              key={`cosmic-dust-${i}`}
-              style={{
-                position: 'absolute',
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                width: `${2 + (i % 3) * 0.5}px`,
-                height: `${2 + (i % 3) * 0.5}px`,
-                borderRadius: '50%',
-                background: color.bg,
-                boxShadow: `0 0 12px ${color.glow}`,
-                zIndex: 2
-              }}
-              animate={{
-                y: [0, -25, 0],
-                x: [0, 12, 0],
-                opacity: [0.4, 0.9, 0.4],
-                scale: [0.7, 1.3, 0.7]
-              }}
-              transition={{
-                duration: 8 + (i * 0.6),
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          )
-        })}
-      </Box>
-
-      {/* 🎯 JARVIS AVATAR CENTRAL - FLOTTANT DANS LE COSMOS */}
-      <motion.div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 10
-        }}
-        animate={{
-          y: [-8, 8, -8],
-          rotateY: [0, 2, 0],
-          rotateX: [0, 1, 0]
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      >
-        {/* Avatar principal centré */}
-        <Avatar3D 
-          status={getJarvisStatus()}
-          size={400}
-        />
-
-        {/* Logique voice cachée (pas d'interface visuelle) */}
-        <Box display="none">
-          <VoiceInterface
-            gymSlug={slug}
-            currentMember={currentMember}
-            isActive={voiceActive}
-            onActivate={() => setVoiceActive(true)}
-            onDeactivate={() => setVoiceActive(false)}
-          />
-        </Box>
-      </motion.div>
-
-      {/* 💬 MESSAGE MINIMAL À GAUCHE DE LA SPHÈRE */}
-      <AnimatePresence>
-        <motion.div
-          key={getStatusMessage()}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -30 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          style={{
-            position: 'absolute',
-            left: '8%',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 15,
-            maxWidth: '300px'
-          }}
-        >
-          <Text 
-            fontSize="xl" 
-            color="rgba(255, 255, 255, 0.9)"
-            fontWeight="200"
-            letterSpacing="0.05em"
-            lineHeight="1.4"
-            fontFamily="system-ui, -apple-system, sans-serif"
-            filter="drop-shadow(0 0 20px rgba(255,255,255,0.1))"
-            _before={{
-              content: '""',
-              position: 'absolute',
-              left: '-12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '2px',
-              height: '20px',
-              background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)',
-              borderRadius: '1px'
-            }}
           >
-            {getStatusMessage()}
-          </Text>
-        </motion.div>
-      </AnimatePresence>
+            <Avatar3D 
+              status={getJarvisStatus()}
+              size={420}
+            />
+          </motion.div>
 
-      {/* 🔧 MENU ADMIN CACHÉ */}
-      <Box
-        position="absolute"
-        bottom="20px"
-        right="20px"
-        w="40px"
-        h="40px"
-        cursor="pointer"
-        onClick={handleAdminAccess}
-        opacity={showAdminMenu ? 1 : 0.1}
-        transition="opacity 0.3s"
-        _hover={{ opacity: 0.3 }}
-      >
-        <Badge colorScheme="blue" variant="subtle" fontSize="xs">
-          DEV
-        </Badge>
+          {/* Interface vocale cachée */}
+          <Box display="none">
+            <VoiceInterface
+              gymSlug={slug}
+              currentMember={currentMember}
+              isActive={voiceActive}
+              onActivate={() => setVoiceActive(true)}
+              onDeactivate={() => setVoiceActive(false)}
+              onTranscriptUpdate={handleTranscriptUpdate}
+            />
+          </Box>
+        </Box>
+
+        {/* Informations subtiles - Droite */}
+        <Box
+          gridColumn="3"
+          gridRow="2"
+          display="flex"
+          alignItems="flex-end"
+          justifyContent="flex-start"
+          pl={8}
+          pb={16}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 1 }}
+          >
+            <VStack spacing={3} align="flex-start">
+              <Text 
+                fontSize="sm" 
+                color="rgba(255, 255, 255, 0.5)"
+                fontWeight="300"
+                letterSpacing="0.02em"
+              >
+                {kioskData.gym.name}
+              </Text>
+              <HStack spacing={2}>
+                <Box
+                  w="4px"
+                  h="4px"
+                  borderRadius="50%"
+                  bg={voiceActive ? "green.400" : "gray.400"}
+                  boxShadow={voiceActive ? "0 0 8px rgba(34, 197, 94, 0.6)" : "none"}
+                />
+                <Text 
+                  fontSize="xs" 
+                  color="rgba(255, 255, 255, 0.4)"
+                  fontWeight="400"
+                >
+                  {voiceActive ? "En écoute" : "Disponible"}
+                </Text>
+              </HStack>
+              
+              {/* Indicateur pre-warming discret */}
+              {prewarmStatus === 'warming' && (
+                <HStack spacing={1} opacity={0.6}>
+                  <Spinner size="xs" color="blue.400" thickness="2px" />
+                  <Text fontSize="xs" color="blue.400">Optimisation...</Text>
+                </HStack>
+              )}
+              {prewarmStatus === 'ready' && (
+                <HStack spacing={1} opacity={0.6}>
+                  <Box w="2px" h="2px" borderRadius="50%" bg="green.400" />
+                  <Text fontSize="xs" color="green.400">Optimisé</Text>
+                </HStack>
+              )}
+            </VStack>
+          </motion.div>
+        </Box>
       </Box>
 
-      {/* 🛠️ PANNEAU ADMIN SIMULATEUR */}
+
+
+      {/* 🛠️ PANNEAU ADMIN MODERNE */}
       <AnimatePresence>
         {showAdminMenu && (
           <motion.div
-            initial={{ opacity: 0, x: 300 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 300 }}
-            transition={{ type: "spring", damping: 20 }}
+            initial={{ opacity: 0, x: 320, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 320, scale: 0.95 }}
+            transition={{ 
+              type: "spring", 
+              damping: 30, 
+              stiffness: 300,
+              mass: 0.8
+            }}
             style={{
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '300px',
+              width: '320px',
               height: '100%',
-              background: 'rgba(0, 0, 0, 0.9)',
-              backdropFilter: 'blur(20px)',
-              borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
-              padding: '20px',
-              zIndex: 1000
+              background: 'rgba(0, 0, 0, 0.92)',
+              backdropFilter: 'blur(40px)',
+              borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+              padding: '32px 24px',
+              zIndex: 1000,
+              fontFamily: 'SF Pro Display, -apple-system, system-ui'
             }}
           >
-            <VStack spacing={4} align="stretch">
-              <HStack justify="space-between">
-                <Text color="white" fontWeight="bold">Menu Admin</Text>
-                <Box
-                  cursor="pointer"
+            <VStack spacing={6} align="stretch">
+              <HStack justify="space-between" mb={4}>
+                <Text color="white" fontWeight="600" fontSize="lg">Menu Admin - Test</Text>
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '6px'
+                  }}
                   onClick={() => setShowAdminMenu(false)}
-                  color="gray.400"
-                  _hover={{ color: "white" }}
                 >
-                  ✕
-                </Box>
+                  <Text color="gray.400" fontSize="lg" _hover={{ color: "white" }}>✕</Text>
+                </motion.div>
               </HStack>
               
               <Box>
-                <Text color="gray.300" fontSize="sm" mb={2}>Simulateur RFID:</Text>
+                <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">Simulateur RFID:</Text>
                 <RFIDSimulator onMemberScanned={handleMemberScanned} isActive={false} />
               </Box>
 
               <Box>
-                <Text color="gray.300" fontSize="sm" mb={2}>État:</Text>
-                <Text color="green.300" fontSize="xs">
-                  Kiosk: {kioskData.gym.name}
-                </Text>
-                <Text color="blue.300" fontSize="xs">
-                  Status: {kioskState.status}
-                </Text>
-                {currentMember && (
-                  <Text color="purple.300" fontSize="xs">
-                    Membre: {currentMember.first_name}
-                  </Text>
-                )}
+                <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">État système:</Text>
+                <VStack spacing={2} align="stretch">
+                  <HStack justify="space-between">
+                    <Text color="white" fontSize="xs">Kiosk:</Text>
+                    <Text color="green.300" fontSize="xs" fontWeight="500">
+                      {kioskData.gym.name}
+                    </Text>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text color="white" fontSize="xs">Status:</Text>
+                    <Text color="blue.300" fontSize="xs" fontWeight="500">
+                      {kioskState.status}
+                    </Text>
+                  </HStack>
+                  {currentMember && (
+                    <HStack justify="space-between">
+                      <Text color="white" fontSize="xs">Membre:</Text>
+                      <Text color="purple.300" fontSize="xs" fontWeight="500">
+                        {currentMember.first_name}
+                      </Text>
+                    </HStack>
+                  )}
+                </VStack>
               </Box>
             </VStack>
           </motion.div>
