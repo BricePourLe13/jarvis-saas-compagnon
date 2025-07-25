@@ -146,6 +146,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
       peerConnectionRef.current = pc
 
       // Demander permission micro et ajouter le track audio
+      console.log('🎤 Demande de permissions microphone...')
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -154,6 +156,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sampleRate: 16000
         } 
       })
+      
+      console.log('✅ Permissions microphone accordées')
       
       // Ajouter le track audio local
       stream.getTracks().forEach(track => {
@@ -336,11 +340,29 @@ export function useVoiceChat(config: VoiceChatConfig) {
       
     } catch (error) {
       console.error('Erreur connexion voice chat:', error)
-      configRef.current.onError?.(error instanceof Error ? error.message : 'Erreur de connexion')
+      
+      // Messages d'erreur détaillés selon le type
+      let errorMessage = 'Erreur de connexion'
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Permissions microphone refusées. Autorisez le microphone et rechargez la page.'
+        } else if (error.name === 'NotFoundError') {
+          errorMessage = 'Aucun microphone détecté. Vérifiez votre équipement audio.'
+        } else if (error.name === 'NotReadableError') {
+          errorMessage = 'Microphone déjà utilisé par une autre application.'
+        } else if (error.message.includes('Session creation failed')) {
+          errorMessage = 'Erreur serveur. Veuillez réessayer.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      configRef.current.onError?.(errorMessage)
       updateStatus('error')
       
-      // Tentative de reconnexion automatique
-      if (reconnectAttempts.current < RECONNECT_CONFIG.maxAttempts) {
+      // Tentative de reconnexion automatique (sauf pour les erreurs de permissions)
+      if (reconnectAttempts.current < RECONNECT_CONFIG.maxAttempts && 
+          !(error instanceof Error && error.name === 'NotAllowedError')) {
         scheduleReconnect()
       }
     } finally {

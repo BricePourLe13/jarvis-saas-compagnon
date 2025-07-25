@@ -53,22 +53,23 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   const { sounds, hapticFeedback } = useSoundEffects({ enabled: false, volume: 0.1 })
 
-  // 🎤 PRÉ-INITIALISATION MICROPHONE pour réactivité
-  useEffect(() => {
-    // Demander les permissions microphone en avance
-    const prewarmMicrophone = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true })
-        console.log('🎤 Microphone pré-initialisé avec succès')
-      } catch (error) {
-        console.warn('⚠️ Pré-initialisation microphone échouée:', error)
-      }
-    }
-    
-    // Délai court avant pré-initialisation
-    const timer = setTimeout(prewarmMicrophone, 1000)
-    return () => clearTimeout(timer)
-  }, [])
+  // 🎤 PRÉ-INITIALISATION MICROPHONE SUPPRIMÉE
+  // RAISON: Conflit avec WebRTC getUserMedia() - permissions gérées dans VoiceInterface
+  // Le microphone sera initialisé uniquement après scan de badge pour éviter les conflits
+  
+  // ⚠️ ANCIEN CODE SUPPRIMÉ:
+  // useEffect(() => {
+  //   const prewarmMicrophone = async () => {
+  //     try {
+  //       await navigator.mediaDevices.getUserMedia({ audio: true })
+  //       console.log('🎤 Microphone pré-initialisé avec succès')
+  //     } catch (error) {
+  //       console.warn('⚠️ Pré-initialisation microphone échouée:', error)
+  //     }
+  //   }
+  //   const timer = setTimeout(prewarmMicrophone, 1000)
+  //   return () => clearTimeout(timer)
+  // }, [])
 
   // Système de pre-warming au démarrage de l'app
   useEffect(() => {
@@ -89,15 +90,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         const precompileTime = Date.now() - precompileStart
         console.log(`📦 Endpoint précompilé en ${precompileTime}ms`)
         
-        // 2. Initialiser les permissions microphone
-        const micStart = Date.now()
-        try {
-          await navigator.mediaDevices.getUserMedia({ audio: true })
-          const micTime = Date.now() - micStart
-          console.log(`🎤 Permissions microphone: ${micTime}ms`)
-        } catch (error) {
-          console.warn('⚠️ Permissions microphone échouées:', error)
-        }
+        // 2. Pre-warming microphone SUPPRIMÉ (conflit WebRTC)
+        // ⚠️ Microphone sera initialisé dans VoiceInterface uniquement
+        console.log(`🎤 Microphone: sera initialisé après scan badge`)
         
         // 3. Pré-créer une session générique (à recycler)
         const sessionStart = Date.now()
