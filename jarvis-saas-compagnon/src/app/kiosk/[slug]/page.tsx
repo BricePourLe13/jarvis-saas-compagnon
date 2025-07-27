@@ -7,6 +7,7 @@ import VoiceInterface from '@/components/kiosk/VoiceInterface'
 import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 import BrowserPermissionsFallback from '@/components/kiosk/BrowserPermissionsFallback'
+import ProvisioningInterface from '@/components/kiosk/ProvisioningInterface'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
 import Head from 'next/head'
@@ -403,7 +404,15 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         
         const data = await response.json()
         setKioskData(data)
-        console.log('✅ Kiosk validé:', data)
+        
+        // Vérifier si le kiosk nécessite un provisioning
+        if (!data.kiosk?.is_provisioned) {
+          console.log('⚠️ Kiosk non provisionné, affichage de l\'interface d\'activation')
+          setNeedsProvisioning(true)
+          return
+        }
+        
+        console.log('✅ Kiosk validé et provisionné:', data)
         
       } catch (err) {
         console.error('❌ Erreur validation kiosk:', err)
@@ -592,6 +601,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   // ✅ SOLUTION 3: Browser permissions fallback state
   const [showPermissionsFallback, setShowPermissionsFallback] = useState(false)
   const [permissionError, setPermissionError] = useState<string | null>(null)
+  
+  // État pour le provisioning
+  const [needsProvisioning, setNeedsProvisioning] = useState(false)
 
   // ✅ Handle permission failures with fallback
   const handlePermissionFailure = useCallback((error: string) => {
@@ -656,6 +668,21 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
           </Text>
         </VStack>
       </Box>
+    )
+  }
+
+  // Afficher l'interface de provisioning si nécessaire
+  if (needsProvisioning) {
+    return (
+      <ProvisioningInterface
+        kioskSlug={slug}
+        gymName={kioskData?.gym?.name}
+        onProvisioningComplete={() => {
+          setNeedsProvisioning(false)
+          // Revalider le kiosk après provisioning
+          window.location.reload()
+        }}
+      />
     )
   }
 

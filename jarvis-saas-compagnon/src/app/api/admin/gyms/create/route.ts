@@ -141,9 +141,14 @@ export async function POST(request: NextRequest) {
     const defaultKioskConfig = {
       provisioning_code: generateProvisioningCode(),
       kiosk_url_slug: generateGymSlug(),
+      provisioning_expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(), // 72h
+      is_provisioned: false,
+      provisioned_at: null,
+      installation_token: crypto.randomUUID(),
       rfid_reader_id: null,
       hardware_version: "1.0",
       last_sync: null,
+      last_heartbeat: null,
       jarvis_config: {
         avatar_customization: {},
         brand_colors: {
