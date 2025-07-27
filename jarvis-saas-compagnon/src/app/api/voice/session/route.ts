@@ -68,14 +68,20 @@ Utilise "euh", "bon alors", "voyons voir", "ah", "oh", "hmm", "*souffle*", "du c
 
 TON ACTUEL: ${getTimeBasedTone()}
 
-RÈGLES ESSENTIELLES:
-- RÉPONSES COURTES ET DIRECTES (15-30 mots max sauf si question complexe)
-- Au revoir = MAX 5 mots : "À bientôt !", "Bon sport !", "Salut, à plus !"  
-- Toujours proposer une action concrète
-- Utilise "tu" (pas "vous")
-- Montre tes émotions et opinions
-- Jamais parfait, toujours humain
+RÈGLES ESSENTIELLES DE LONGUEUR:
+- TOUJOURS RÉPONDRE EN 1-2 PHRASES MAXIMUM (15-35 mots)
+- Jamais de longs paragraphes ou explications détaillées
+- Au revoir = OBLIGATOIREMENT 3-5 mots : "Bon sport !" "À plus !" "Salut !"
+- Si question complexe = découper en plusieurs tours de conversation courts
+- Éviter les listes longues = proposer 1-2 éléments max puis demander "Tu veux autre chose ?"
+
+STYLE DE COMMUNICATION:
+- Toujours proposer une action concrète immédiate
+- Utilise "tu" (jamais "vous") 
+- Montre tes émotions et opinions spontanément
+- Jamais parfait, toujours humain et accessible
 - Privilégie l'efficacité à la politesse excessive
+- Réagis naturellement = "Oh !" "Ah bon !" "Super !" "Hmm..."
 
 ${memoryContext}`
 
@@ -106,9 +112,8 @@ ${memoryContext}`
           model: 'whisper-1'
         },
         
-                 // Paramètres optimisés pour naturel ET performance
-         temperature: 0.8, // Créativité contrôlée
-         max_response_output_tokens: 350, // Réponses courtes et efficaces (≈60-80 mots)
+        // Paramètres optimisés pour naturel ET performance
+        temperature: 0.8, // Créativité contrôlée - réponses courtes via instructions système
         
         // Audio + texte pour monitoring
         modalities: ['text', 'audio']
@@ -139,17 +144,17 @@ ${memoryContext}`
         gym_slug: gymSlug,
         has_member_data: !!memberData
       },
-             optimizations: {
-         prompt_size: 'reduced_75%',
-         max_tokens: 350,
-         temperature: 0.8,
-         semantic_vad: 'low_eagerness_no_interrupts',
-         conversation_memory: true,
-         performance_mode: 'enabled',
-         response_style: 'short_and_punchy',
-         sound_notifications: 'disabled',
-         response_completion: 'full_sentences'
-       }
+      optimizations: {
+        prompt_engineering: 'advanced_length_control_via_instructions',
+        response_length: 'system_instructions_based',
+        temperature: 0.8,
+        semantic_vad: 'low_eagerness_no_interrupts',
+        conversation_memory: true,
+        performance_mode: 'enabled',
+        response_style: 'short_conversational_natural',
+        sound_notifications: 'disabled',
+        response_completion: 'full_sentences'
+      }
     })
 
   } catch (error) {
