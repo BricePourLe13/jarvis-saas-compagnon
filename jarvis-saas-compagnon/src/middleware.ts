@@ -162,8 +162,7 @@ function setWebRTCOptimizationHeaders(response: NextResponse) {
   response.headers.set('X-Frame-Options', 'SAMEORIGIN')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   
-  // ✅ Performance hints for WebRTC
-  response.headers.set('Link', '</api/voice/session>; rel=prefetch')
+  // ✅ Cache headers for static assets
   response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
 }
 

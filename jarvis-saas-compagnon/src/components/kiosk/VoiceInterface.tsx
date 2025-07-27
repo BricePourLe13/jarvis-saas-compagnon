@@ -11,7 +11,7 @@ interface VoiceInterfaceProps {
   isActive: boolean
   onActivate: () => void
   onDeactivate: () => void
-  onTranscriptUpdate?: (transcript: string) => void
+  onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void
 }
 
 export default function VoiceInterface({ 
@@ -53,9 +53,7 @@ export default function VoiceInterface({
       console.log('[VOICE UI] Status:', newStatus)
     }, []),
     onTranscriptUpdate: useCallback((text, isFinal) => {
-      if (isFinal) {
-        onTranscriptUpdate?.(text)
-      }
+      onTranscriptUpdate?.(text, isFinal)
     }, [onTranscriptUpdate]),
     onError: useCallback((errorMessage) => {
       console.error('Voice error:', errorMessage)

@@ -1358,6 +1358,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                 isActive={voiceActive}
                 onActivate={() => setVoiceActive(true)}
                 onDeactivate={() => setVoiceActive(false)}
+                onTranscriptUpdate={handleTranscriptUpdate}
               />
             </Box>
           </Box>

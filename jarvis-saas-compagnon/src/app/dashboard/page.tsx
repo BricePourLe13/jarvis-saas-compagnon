@@ -53,34 +53,30 @@ const getDynamicStats = (franchises: Franchise[], jarvisMetrics: any) => [
   { 
     label: "Franchises", 
     value: franchises.length, 
-    change: "+12%", 
-    trend: "up",
     icon: TrendingUp,
-    color: "brand.500"
+    color: "brand.500",
+    description: "Total des franchises"
   },
   { 
     label: "Franchises actives", 
     value: franchises.filter(f => f.is_active === true).length, 
-    change: "+8%", 
-    trend: "up",
     icon: Activity,
-    color: "green.500"
+    color: "green.500",
+    description: "Franchises opérationnelles"
   },
   { 
     label: "Sessions JARVIS", 
     value: jarvisMetrics?.sessions || 0, 
-    change: "+24%", 
-    trend: "up",
     icon: Users,
-    color: "blue.500"
+    color: "blue.500",
+    description: "Conversations totales"
   },
   { 
     label: "Coût Total", 
     value: jarvisMetrics?.cost ? formatCurrency(convertUSDToEUR(jarvisMetrics.cost)) : "€0.00", 
-    change: "-15%", 
-    trend: "down",
     icon: Clock,
-    color: "purple.500"
+    color: "purple.500",
+    description: "Coûts API OpenAI"
   },
 ]
 
@@ -89,8 +85,6 @@ const getDynamicJarvisAnalytics = (jarvisMetrics: any) => [
   {
     label: "Sessions JARVIS Aujourd'hui",
     value: jarvisMetrics?.sessions || 0,
-    change: "+18%",
-    trend: "up",
     icon: Bot,
     color: "cyan.500",
     description: "Conversations actives"
@@ -98,8 +92,6 @@ const getDynamicJarvisAnalytics = (jarvisMetrics: any) => [
   {
     label: "Coût OpenAI (Mois)",
     value: jarvisMetrics?.cost ? formatCurrency(convertUSDToEUR(jarvisMetrics.cost)) : "€0.00",
-    change: "+12%",
-    trend: "up", 
     icon: DollarSign,
     color: "orange.500",
     description: "Tokens + Audio"
@@ -107,17 +99,13 @@ const getDynamicJarvisAnalytics = (jarvisMetrics: any) => [
   {
     label: "Durée Moyenne Session",
     value: jarvisMetrics?.duration ? `${Math.round(jarvisMetrics.duration / 60)}m ${jarvisMetrics.duration % 60}s` : "0m 0s",
-    change: "-8%",
-    trend: "down",
     icon: Clock,
     color: "green.500",
-    description: "Plus efficace"
+    description: "Temps d'interaction"
   },
   {
     label: "Satisfaction Utilisateur",
     value: jarvisMetrics?.satisfaction ? `${jarvisMetrics.satisfaction}/5` : "0/5",
-    change: "+5%", 
-    trend: "up",
     icon: Zap,
     color: "purple.500",
     description: "Score moyen"
@@ -411,7 +399,7 @@ export default function DashboardPage() {
                     borderColor: "gray.200"
                   }}
                 >
-                  <Flex justify="space-between" align="start" mb={4}>
+                  <Flex justify="start" align="start" mb={4}>
                     <Box
                       p={3}
                       borderRadius="12px"
@@ -423,17 +411,6 @@ export default function DashboardPage() {
                         color={stat.color}
                       />
                     </Box>
-                    <Badge
-                      colorScheme={stat.trend === 'up' ? 'green' : stat.trend === 'down' ? 'red' : 'gray'}
-                      variant="subtle"
-                      borderRadius="full"
-                      px={2}
-                      py={1}
-                      fontSize="xs"
-                      fontWeight="medium"
-                    >
-                      {stat.change}
-                    </Badge>
                   </Flex>
                   
                   <Stat>
@@ -452,6 +429,9 @@ export default function DashboardPage() {
                     >
                       {stat.label}
                     </StatLabel>
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      {stat.description}
+                    </Text>
                   </Stat>
                 </Box>
               </motion.div>
@@ -710,7 +690,7 @@ export default function DashboardPage() {
                   borderColor: "gray.200"
                 }}
               >
-                <Flex justify="space-between" align="start" mb={4}>
+                <Flex justify="start" align="start" mb={4}>
                   <Box
                     p={3}
                     borderRadius="12px"
@@ -722,17 +702,6 @@ export default function DashboardPage() {
                       color={stat.color}
                     />
                   </Box>
-                  <Badge
-                    colorScheme={stat.trend === 'up' ? 'green' : stat.trend === 'down' ? 'red' : 'gray'}
-                    variant="subtle"
-                    borderRadius="full"
-                    px={2}
-                    py={1}
-                    fontSize="xs"
-                    fontWeight="medium"
-                  >
-                    {stat.change}
-                  </Badge>
                 </Flex>
                 
                 <Stat>
