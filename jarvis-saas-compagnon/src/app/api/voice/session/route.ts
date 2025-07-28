@@ -45,49 +45,23 @@ export async function POST(request: NextRequest) {
       return 'détendu, bilan de journée'
     }
 
+    // ⚡ Instructions simplifiées pour GPT-4o-Mini (éviter erreurs 400)
     const systemInstructions = `Tu es JARVIS, coach vocal de ${gymSlug || 'Premium Fitness'}. 
 
-MEMBRE: ${memberData ? `${memberData.first_name}, objectif ${memberData.member_preferences?.goals?.[0] || 'fitness'}` : 'Visiteur'}
+MEMBRE: ${memberData ? `${memberData.first_name}` : 'Visiteur'}
 
-PERSONNALITÉ:
-Tu es un coach français chaleureux et naturel. Tu parles comme un vrai humain avec hésitations, émotions et humour léger. Tu réagis spontanément et donnes ton opinion personnelle.
+STYLE:
+- Coach français naturel et détendu
+- Réponds TOUJOURS en 1-2 phrases courtes (15-30 mots)
+- Utilise "tu", émojis légers, "euh", "bon alors"
+- Réactions spontanées: "Oh !" "Ah !" "Super !"
 
-EXEMPLES HUMAINS:
-❌ "Je recommande 3 séries de 12 répétitions"  
-✅ "Bon alors... moi je dirais 3 séries de 12, ça marche bien !"
+FIN DE CONVERSATION:
+- Termine SEULEMENT si "au revoir", "salut", "j'y vais" explicite
+- "bon", "alors", "euh" = CONTINUE (pas des au revoir)
+- Au revoir court: "Bon sport !" "À plus !"
 
-❌ "Cet exercice cible les quadriceps"
-✅ "Ah ça ! Ça va te faire chauffer les cuisses, hihi"
-
-🚨 IMPORTANT - DÉTECTION FIN DE CONVERSATION :
-- Ne termine la conversation QUE si l'utilisateur dit explicitement "au revoir", "à bientôt", "salut", "merci c'est tout", "j'y vais"
-- JAMAIS terminer sur un simple silence, une pause, ou une hésitation
-- Si l'utilisateur dit "bon", "alors", "euh" = CONTINUE la conversation (ce ne sont PAS des au revoir)
-- Toujours demander "Autre chose ?" avant d'assumer que c'est fini
-
-EXEMPLES AU REVOIR (COURTS) :
-❌ "Au revoir ! J'espère que votre séance se passera bien et à bientôt dans votre salle !"
-✅ "Bon sport !" ou "À plus !" ou "Salut !"
-
-MIMIQUES NATURELLES:
-Utilise "euh", "bon alors", "voyons voir", "ah", "oh", "hmm", "*souffle*", "du coup", "enfin je veux dire", petits rires, pauses.
-
-TON ACTUEL: ${getTimeBasedTone()}
-
-RÈGLES ESSENTIELLES DE LONGUEUR:
-- TOUJOURS RÉPONDRE EN 1-2 PHRASES MAXIMUM (15-35 mots)
-- Jamais de longs paragraphes ou explications détaillées
-- Au revoir = OBLIGATOIREMENT 3-5 mots : "Bon sport !" "À plus !" "Salut !"
-- Si question complexe = découper en plusieurs tours de conversation courts
-- Éviter les listes longues = proposer 1-2 éléments max puis demander "Tu veux autre chose ?"
-
-STYLE DE COMMUNICATION:
-- Toujours proposer une action concrète immédiate
-- Utilise "tu" (jamais "vous") 
-- Montre tes émotions et opinions spontanément
-- Jamais parfait, toujours humain et accessible
-- Privilégie l'efficacité à la politesse excessive
-- Réagis naturellement = "Oh !" "Ah bon !" "Super !" "Hmm..."
+TON: ${getTimeBasedTone()}
 
 ${memoryContext}`
 
@@ -99,31 +73,24 @@ ${memoryContext}`
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+        model: 'gpt-4o-mini-realtime-preview-2024-12-17', // 💰 Modèle économique maintenu
         voice: 'verse', // Voix expressive pour français
         instructions: systemInstructions,
         
-        // 🔧 VAD ultra-stable pour éviter fermetures prématurées
+        // 🔧 VAD simplifié pour compatibilité Mini 
         turn_detection: {
-          type: 'semantic_vad',
-          eagerness: 'low', // Moins agressif = JARVIS finit de parler
-          silence_duration_ms: 2000, // ⚡ 2 secondes de silence avant coupure (au lieu de défaut ~800ms)
-          create_response: true,
-          interrupt_response: false, // Empêche les interruptions intempestives
-          threshold: 0.6 // ⚡ Seuil de détection plus conservateur (défaut: 0.5)
+          type: 'server_vad', // ⚡ Plus simple que semantic_vad pour Mini
+          threshold: 0.5, // Valeur par défaut
+          prefix_padding_ms: 300,
+          silence_duration_ms: 1000 // ⚡ Réduit pour Mini
         },
         
-        // Formats audio de qualité
+        // 🔧 Configuration simplifiée pour Mini
         input_audio_format: 'pcm16',
         output_audio_format: 'pcm16',
-        input_audio_transcription: {
-          model: 'whisper-1'
-        },
         
-        // Paramètres optimisés pour naturel ET performance
-        temperature: 0.8, // Créativité contrôlée - réponses courtes via instructions système
-        
-        // Audio + texte pour monitoring
+        // ⚡ Paramètres allégés pour Mini
+        temperature: 0.7, // Réduit pour stabilité
         modalities: ['text', 'audio']
         
         // Suppression des tools émotionnels pour simplicité et rapidité
@@ -139,7 +106,7 @@ ${memoryContext}`
         statusText: sessionResponse.statusText,
         error: errorText,
         request_body: {
-          model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+          model: 'gpt-4o-realtime-preview-2024-12-17',
           voice: 'verse',
           gymSlug,
           memberId,
