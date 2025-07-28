@@ -147,13 +147,26 @@ export async function POST(request: NextRequest) {
 
     if (franchiseError) {
       console.error('Erreur création franchise:', franchiseError)
+      
+      // Gestion spécifique des erreurs de contrainte unique
+      let errorMessage = 'Erreur lors de la création de la franchise'
+      if (franchiseError.code === '23505') {
+        if (franchiseError.message.includes('franchises_email_unique')) {
+          errorMessage = `L'email "${body.contact_email}" est déjà utilisé par une autre franchise`
+        } else if (franchiseError.message.includes('franchises_name_unique')) {
+          errorMessage = `Le nom "${body.name}" est déjà utilisé par une autre franchise`
+        } else {
+          errorMessage = 'Une franchise avec ces informations existe déjà'
+        }
+      }
+      
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Erreur lors de la création de la franchise',
+          error: errorMessage,
           message: franchiseError.message 
         } as ApiResponse<null>,
-        { status: 500 }
+        { status: 400 }
       )
     }
 

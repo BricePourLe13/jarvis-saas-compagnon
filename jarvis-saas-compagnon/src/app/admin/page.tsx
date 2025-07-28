@@ -4,83 +4,125 @@ import {
   Container, 
   Heading, 
   Text, 
+  SimpleGrid,
   VStack,
   HStack,
   Icon,
   Button,
   Badge,
   Flex,
-  SimpleGrid,
   Spinner,
-  Card,
-  CardBody,
-  CardHeader,
   useToast
 } from '@chakra-ui/react'
-import { motion } from 'framer-motion'
-import { Building2, MapPin, Phone, Mail, ArrowLeft, Users, Activity, ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  Building2, 
+  Dumbbell, 
+  Users, 
+  Activity, 
+  Plus,
+  BarChart3,
+  Settings,
+  Zap,
+  TrendingUp,
+  ArrowRight,
+  Clock
+} from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '../../lib/supabase-simple'
-import type { Database } from '../../types/database'
-
-type Franchise = Database['public']['Tables']['franchises']['Row']
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
-      duration: 0.5, 
-      ease: [0.25, 0.1, 0.25, 1] as any
-    } 
-  }
-}
 
 const MotionBox = motion(Box)
-const MotionCard = motion(Card)
+const MotionFlex = motion(Flex)
+const MotionVStack = motion(VStack)
+
+interface AdminStats {
+  totalFranchises: number
+  totalGyms: number
+  totalActiveKiosks: number
+  todaySessions: number
+  pendingProvisioning: number
+}
 
 export default function AdminPage() {
-  const [franchises, setFranchises] = useState<Franchise[]>([])
-  const [selectedFranchise, setSelectedFranchise] = useState<Franchise | null>(null)
+  const [stats, setStats] = useState<AdminStats>({
+    totalFranchises: 0,
+    totalGyms: 0,
+    totalActiveKiosks: 0,
+    todaySessions: 0,
+    pendingProvisioning: 0
+  })
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'list' | 'details'>('list')
+  const router = useRouter()
   const toast = useToast()
 
-  const supabase = createClient()
+  // Animations subtiles premium
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        duration: 0.8,
+        ease: [0.23, 1, 0.32, 1],
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  }
 
-  // Charger les franchises depuis Supabase
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { 
+        duration: 0.6, 
+        ease: [0.23, 1, 0.32, 1] 
+      }
+    }
+  }
+
   useEffect(() => {
-    loadFranchises()
+    loadStats()
   }, [])
 
-  const loadFranchises = async () => {
+  const loadStats = async () => {
     try {
-      setLoading(true)
-      const { data, error } = await supabase
-        .from('franchises')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const supabase = createClient()
 
-      if (error) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les franchises",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        })
-        return
-      }
+      // Charger les statistiques en parallèle
+      const [franchisesResponse, gymsResponse] = await Promise.all([
+        supabase.from('franchises').select('id'),
+        supabase.from('gyms').select('id, kiosk_config')
+      ])
 
-      setFranchises(data || [])
+      const totalFranchises = franchisesResponse.data?.length || 0
+      const totalGyms = gymsResponse.data?.length || 0
+      
+      // Calculer les kiosks actifs et en attente de provisioning
+      const gyms = gymsResponse.data || []
+      const totalActiveKiosks = gyms.filter(gym => 
+        gym.kiosk_config && gym.kiosk_config.is_provisioned
+      ).length
+      
+      const pendingProvisioning = gyms.filter(gym => 
+        gym.kiosk_config && !gym.kiosk_config.is_provisioned
+      ).length
+
+      setStats({
+        totalFranchises,
+        totalGyms,
+        totalActiveKiosks,
+        todaySessions: 0, // À implémenter plus tard
+        pendingProvisioning
+      })
     } catch (error) {
-      console.error('Erreur lors du chargement:', error)
+      console.error('Erreur lors du chargement des stats:', error)
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue",
+        description: "Impossible de charger les statistiques",
         status: "error",
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       })
     } finally {
@@ -88,286 +130,307 @@ export default function AdminPage() {
     }
   }
 
-  const handleFranchiseClick = (franchise: Franchise) => {
-    setSelectedFranchise(franchise)
-    setView('details')
-  }
+  const statsCards = [
+    {
+      label: 'Franchises',
+      value: stats.totalFranchises,
+      icon: Building2,
+      action: () => router.push('/admin/franchises')
+    },
+    {
+      label: 'Salles',
+      value: stats.totalGyms,
+      icon: Dumbbell,
+      action: () => router.push('/admin/franchises')
+    },
+    {
+      label: 'Kiosks actifs',
+      value: stats.totalActiveKiosks,
+      icon: Zap,
+      action: () => router.push('/admin/franchises')
+    },
+    {
+      label: 'En attente',
+      value: stats.pendingProvisioning,
+      icon: Clock,
+      action: () => router.push('/admin/franchises'),
+      highlight: stats.pendingProvisioning > 0
+    }
+  ]
 
-  const handleBackToList = () => {
-    setSelectedFranchise(null)
-    setView('list')
-  }
+  const quickActions = [
+    {
+      label: 'Nouvelle franchise',
+      description: 'Créer une nouvelle franchise',
+      icon: Plus,
+      action: () => router.push('/admin/franchises/create')
+    },
+    {
+      label: 'Voir les franchises',
+      description: 'Gérer les franchises existantes',
+      icon: Building2,
+      action: () => router.push('/admin/franchises')
+    },
+    {
+      label: 'Analytics',
+      description: 'Voir les statistiques détaillées',
+      icon: BarChart3,
+      action: () => toast({
+        title: "Bientôt disponible",
+        description: "Les analytics arrivent prochainement",
+        status: "info",
+        duration: 3000,
+      }),
+      disabled: true
+    }
+  ]
 
-  // Vue liste des franchises
-  const FranchisesList = () => (
-    <MotionBox
-      initial="hidden"
-      animate="show"
-      variants={{
-        hidden: {},
-        show: {
-          transition: {
-            staggerChildren: 0.1,
-            delayChildren: 0.2
-          }
-        }
-      }}
-    >
-      {/* Header */}
-      <motion.div variants={fadeInUp}>
-        <VStack spacing={4} textAlign="center" mb={8}>
-          <Box
-            p={4}
-            borderRadius="20px"
-            bg="brand.50"
-            border="1px solid"
-            borderColor="brand.100"
-          >
-            <Icon as={Building2} boxSize={8} color="brand.500" />
-          </Box>
-          
-          <VStack spacing={2}>
-            <Heading 
-              as="h1" 
-              size="2xl" 
-              color="gray.800" 
-              fontWeight="bold"
-              letterSpacing="-0.025em"
-            >
-              Franchises JARVIS
-            </Heading>
-            <Text color="gray.600" fontSize="lg" maxW="md">
-              Gérer toutes les franchises de la plateforme
-            </Text>
-          </VStack>
-          
-          <HStack spacing={3}>
-            <Badge 
-              colorScheme="blue" 
-              variant="subtle" 
-              borderRadius="full"
-              px={3}
-              py={1}
-              fontSize="sm"
-              fontWeight="medium"
-            >
-              {franchises.length} franchise{franchises.length > 1 ? 's' : ''}
-            </Badge>
-            <Badge 
-              colorScheme="green" 
-              variant="subtle" 
-              borderRadius="full"
-              px={3}
-              py={1}
-              fontSize="sm"
-              fontWeight="medium"
-            >
-              {franchises.filter(f => f.is_active).length} active{franchises.filter(f => f.is_active).length > 1 ? 's' : ''}
-            </Badge>
-          </HStack>
-        </VStack>
-      </motion.div>
-
-      {/* Franchises Grid */}
-      {loading ? (
-        <Flex justify="center" py={12}>
-          <Spinner size="xl" color="brand.500" thickness="4px" />
-        </Flex>
-      ) : franchises.length === 0 ? (
-        <motion.div variants={fadeInUp}>
-          <Box
-            bg="white"
-            borderRadius="20px"
-            p={12}
-            textAlign="center"
-            border="1px solid"
-            borderColor="gray.100"
-          >
-            <Icon as={Building2} boxSize={12} color="gray.300" mb={4} />
-            <Text color="gray.500" fontSize="lg">
-              Aucune franchise trouvée
-            </Text>
-          </Box>
-        </motion.div>
-      ) : (
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-          {franchises.map((franchise, index) => (
-            <motion.div
-              key={franchise.id}
-              variants={fadeInUp}
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.2 }}
-            >
-              <MotionCard
-                bg="white"
-                borderRadius="20px"
-                border="1px solid"
-                borderColor="gray.100"
-                cursor="pointer"
-                overflow="hidden"
-                _hover={{
-                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-                  borderColor: "brand.200"
-                }}
-                transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-                onClick={() => handleFranchiseClick(franchise)}
-              >
-                <CardHeader pb={2}>
-                  <Flex justify="space-between" align="start">
-                    <VStack align="start" spacing={1} flex="1">
-                      <Text 
-                        fontWeight="bold" 
-                        fontSize="lg" 
-                        color="gray.800"
-                        noOfLines={1}
-                      >
-                        {franchise.name}
-                      </Text>
-                      <HStack spacing={1}>
-                        <Icon as={MapPin} boxSize={3} color="gray.400" />
-                        <Text fontSize="sm" color="gray.500" noOfLines={1}>
-                          {franchise.city}
-                        </Text>
-                      </HStack>
-                    </VStack>
-                    
-                    <Badge 
-                      colorScheme={franchise.is_active ? "green" : "gray"}
-                      variant="subtle"
-                      borderRadius="full"
-                      fontSize="xs"
-                    >
-                      {franchise.is_active ? "Actif" : "Inactif"}
-                    </Badge>
-                  </Flex>
-                </CardHeader>
-
-                <CardBody pt={0}>
-                  <VStack spacing={3} align="stretch">
-                    <VStack spacing={2} align="stretch">
-                      <HStack>
-                        <Icon as={Mail} boxSize={4} color="gray.400" />
-                        <Text fontSize="sm" color="gray.600" noOfLines={1}>
-                          {franchise.email}
-                        </Text>
-                      </HStack>
-                      <HStack>
-                        <Icon as={Phone} boxSize={4} color="gray.400" />
-                        <Text fontSize="sm" color="gray.600">
-                          {franchise.phone}
-                        </Text>
-                      </HStack>
-                    </VStack>
-
-                    <Flex justify="space-between" align="center" pt={2}>
-                      <Text fontSize="xs" color="gray.400">
-                        Créé le {new Date(franchise.created_at).toLocaleDateString('fr-FR')}
-                      </Text>
-                      <Icon as={ChevronRight} boxSize={4} color="gray.400" />
-                    </Flex>
-                  </VStack>
-                </CardBody>
-              </MotionCard>
-            </motion.div>
-          ))}
-        </SimpleGrid>
-      )}
-    </MotionBox>
-  )
-
-  // Vue détails franchise (pour l'instant, on affichera les infos de base)
-  const FranchiseDetails = () => (
-    <MotionBox
-      initial="hidden"
-      animate="show"
-      variants={fadeInUp}
-    >
-      {/* Header avec bouton retour */}
-      <HStack spacing={4} mb={8}>
-        <Button
-          leftIcon={<Icon as={ArrowLeft} />}
-          variant="ghost"
-          size="md"
-          onClick={handleBackToList}
-          _hover={{ bg: "gray.100" }}
-        >
-          Retour
-        </Button>
-        <Box>
-          <Heading as="h1" size="xl" color="gray.800">
-            {selectedFranchise?.name}
-          </Heading>
-          <Text color="gray.600" mt={1}>
-            Détails de la franchise
+  if (loading) {
+    return (
+      <Box 
+        minH="100vh" 
+        bg="white"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >
+        <VStack spacing={4}>
+          <Spinner size="lg" color="gray.600" />
+          <Text color="gray.600" fontSize="sm" fontWeight="400">
+            Chargement des données...
           </Text>
-        </Box>
-      </HStack>
-
-      {/* Informations franchise */}
-      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-        <Card bg="white" borderRadius="20px" border="1px solid" borderColor="gray.100">
-          <CardHeader>
-            <Heading size="md" color="gray.800">
-              Informations générales
-            </Heading>
-          </CardHeader>
-          <CardBody>
-            <VStack spacing={4} align="stretch">
-              <Box>
-                <Text fontSize="sm" color="gray.500" mb={1}>Nom</Text>
-                <Text fontWeight="medium">{selectedFranchise?.name}</Text>
-              </Box>
-              <Box>
-                <Text fontSize="sm" color="gray.500" mb={1}>Adresse</Text>
-                <Text fontWeight="medium">{selectedFranchise?.address}</Text>
-                <Text color="gray.600">{selectedFranchise?.postal_code} {selectedFranchise?.city}</Text>
-              </Box>
-              <Box>
-                <Text fontSize="sm" color="gray.500" mb={1}>Contact</Text>
-                <Text fontWeight="medium">{selectedFranchise?.email}</Text>
-                <Text color="gray.600">{selectedFranchise?.phone}</Text>
-              </Box>
-              <Box>
-                <Text fontSize="sm" color="gray.500" mb={1}>Statut</Text>
-                <Badge 
-                  colorScheme={selectedFranchise?.is_active ? "green" : "gray"}
-                  borderRadius="full"
-                >
-                  {selectedFranchise?.is_active ? "Actif" : "Inactif"}
-                </Badge>
-              </Box>
-            </VStack>
-          </CardBody>
-        </Card>
-
-        <Card bg="white" borderRadius="20px" border="1px solid" borderColor="gray.100">
-          <CardHeader>
-            <Heading size="md" color="gray.800">
-              Salles de la franchise
-            </Heading>
-          </CardHeader>
-          <CardBody>
-            <VStack spacing={4}>
-              <Icon as={Users} boxSize={12} color="gray.300" />
-              <Text color="gray.500" textAlign="center">
-                Liste des salles à venir
-              </Text>
-              <Text fontSize="sm" color="gray.400" textAlign="center">
-                Cette section affichera toutes les salles<br />
-                associées à cette franchise
-              </Text>
-            </VStack>
-          </CardBody>
-        </Card>
-      </SimpleGrid>
-    </MotionBox>
-  )
+        </VStack>
+      </Box>
+    )
+  }
 
   return (
-    <Box minH="100vh" bg="#fafafa" py={8}>
-      <Container maxW="6xl">
-        {view === 'list' ? <FranchisesList /> : <FranchiseDetails />}
-      </Container>
+    <Box 
+      minH="100vh" 
+      bg="white"
+      fontFamily="system-ui, -apple-system, sans-serif"
+      position="relative"
+      p={8}
+    >
+      {/* Pattern de points subtil en arrière-plan */}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        bottom={0}
+        opacity={0.02}
+        bgImage="radial-gradient(circle, black 1px, transparent 1px)"
+        bgSize="24px 24px"
+        pointerEvents="none"
+      />
+
+      <MotionVStack
+        spacing={12}
+        align="stretch"
+        maxW="1200px"
+        mx="auto"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        {/* Header */}
+        <MotionBox variants={itemVariants}>
+          <VStack spacing={2} align="start">
+            <Heading 
+              size="xl" 
+              color="black"
+              fontWeight="400"
+              letterSpacing="-0.5px"
+              fontFamily="system-ui"
+            >
+              Administration
+            </Heading>
+            <Text 
+              color="gray.600" 
+              fontSize="lg"
+              fontWeight="400"
+            >
+              Gestion de la plateforme JARVIS
+            </Text>
+          </VStack>
+        </MotionBox>
+
+        {/* Stats Grid */}
+        <MotionBox variants={itemVariants}>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={6}>
+            {statsCards.map((stat, index) => (
+              <MotionBox
+                key={stat.label}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  duration: 0.5, 
+                  delay: index * 0.1,
+                  ease: [0.23, 1, 0.32, 1]
+                }}
+                whileHover={{ 
+                  scale: 1.02,
+                  transition: { duration: 0.2 }
+                }}
+                cursor="pointer"
+                onClick={stat.action}
+              >
+                <Box
+                  bg="white"
+                  border="1px solid"
+                  borderColor={stat.highlight ? "gray.400" : "gray.200"}
+                  borderRadius="2px"
+                  p={6}
+                  shadow="0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)"
+                  position="relative"
+                  _hover={{
+                    borderColor: "gray.300",
+                    transition: "all 0.2s ease"
+                  }}
+                  _before={{
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '1px',
+                    bg: 'linear-gradient(90deg, transparent, gray.100, transparent)',
+                  }}
+                >
+                  <VStack spacing={4} align="start">
+                    <HStack justify="space-between" w="full">
+                      <Box
+                        w={10}
+                        h={10}
+                        bg="black"
+                        borderRadius="2px"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        <Icon as={stat.icon} color="white" boxSize={5} />
+                      </Box>
+                      {stat.highlight && (
+                        <Box
+                          w={2}
+                          h={2}
+                          bg="gray.900"
+                          borderRadius="50%"
+                        />
+                      )}
+                    </HStack>
+                    
+                    <VStack spacing={1} align="start">
+                      <Text 
+                        fontSize="2xl" 
+                        fontWeight="600" 
+                        color="black"
+                        lineHeight="1"
+                      >
+                        {stat.value}
+                      </Text>
+                      <Text 
+                        fontSize="sm" 
+                        color="gray.600"
+                        fontWeight="400"
+                      >
+                        {stat.label}
+                      </Text>
+                    </VStack>
+                  </VStack>
+                </Box>
+              </MotionBox>
+            ))}
+          </SimpleGrid>
+        </MotionBox>
+
+        {/* Quick Actions */}
+        <MotionBox variants={itemVariants}>
+          <VStack spacing={6} align="start">
+            <Heading 
+              size="lg" 
+              color="black"
+              fontWeight="400"
+              letterSpacing="-0.5px"
+            >
+              Actions rapides
+            </Heading>
+            
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4} w="full">
+              {quickActions.map((action, index) => (
+                <MotionBox
+                  key={action.label}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ 
+                    duration: 0.4, 
+                    delay: index * 0.1,
+                    ease: "easeOut"
+                  }}
+                  whileHover={{ 
+                    scale: action.disabled ? 1 : 1.01,
+                    transition: { duration: 0.15 }
+                  }}
+                >
+                  <Box
+                    bg="white"
+                    border="1px solid"
+                    borderColor="gray.200"
+                    borderRadius="2px"
+                    p={6}
+                    shadow="0 1px 3px rgba(0, 0, 0, 0.06)"
+                    cursor={action.disabled ? "not-allowed" : "pointer"}
+                    opacity={action.disabled ? 0.6 : 1}
+                    onClick={action.disabled ? undefined : action.action}
+                    _hover={action.disabled ? {} : {
+                      borderColor: "gray.300",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    <HStack spacing={4} align="start">
+                      <Box
+                        w={10}
+                        h={10}
+                        bg={action.disabled ? "gray.300" : "black"}
+                        borderRadius="2px"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        flexShrink={0}
+                      >
+                        <Icon as={action.icon} color="white" boxSize={5} />
+                      </Box>
+                      
+                      <VStack spacing={1} align="start" flex="1">
+                        <Text 
+                          fontSize="md" 
+                          fontWeight="500" 
+                          color="black"
+                        >
+                          {action.label}
+                        </Text>
+                        <Text 
+                          fontSize="sm" 
+                          color="gray.600"
+                          fontWeight="400"
+                        >
+                          {action.description}
+                        </Text>
+                      </VStack>
+                      
+                      {!action.disabled && (
+                        <Icon as={ArrowRight} color="gray.400" boxSize={4} />
+                      )}
+                    </HStack>
+                  </Box>
+                </MotionBox>
+              ))}
+            </SimpleGrid>
+          </VStack>
+        </MotionBox>
+      </MotionVStack>
     </Box>
   )
 }

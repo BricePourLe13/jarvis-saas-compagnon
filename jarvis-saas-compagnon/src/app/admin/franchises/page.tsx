@@ -1,146 +1,113 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import {
-  Box,
-  Container,
+"use client"
+import { 
+  Box, 
+  Heading, 
+  Text, 
   VStack,
   HStack,
-  Button,
   Icon,
-  Heading,
-  Text,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Select,
+  Button,
   SimpleGrid,
-  Badge,
-  Card,
-  CardBody,
-  CardHeader,
-  Skeleton,
-  useToast,
-  Flex,
-  Spacer,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem
+  Spinner,
+  useToast
 } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { 
-  Plus, 
-  Search, 
   Building2, 
-  Users, 
-  MapPin, 
-  Mail, 
-  Phone,
-  MoreVertical,
-  Eye,
-  Edit,
-  Settings,
-  Dumbbell
+  Plus,
+  ArrowRight
 } from 'lucide-react'
-import type { Franchise, PaginatedResponse, FranchiseFilters } from '../../../types/franchise'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '../../../lib/supabase-simple'
 
-// ===========================================
-// 🎨 Animation variants
-// ===========================================
+const MotionBox = motion(Box)
+const MotionVStack = motion(VStack)
 
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-}
-
-const stagger = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-}
-
-// ===========================================
-// 🎯 Interface pour franchise avec métadonnées
-// ===========================================
-
-interface FranchiseWithStats extends Franchise {
-  owner?: {
-    id: string
-    email: string
-    full_name: string
-    is_active: boolean
-  }
-  gyms?: Array<{
+// Utiliser les types de base de données réels avec gyms
+interface Franchise {
+  id: string
+  name: string
+  email: string
+  address: string
+  city: string
+  postal_code: string
+  phone: string
+  owner_id: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  gyms?: {
     id: string
     name: string
+    kiosk_config: any
     status: string
-  }>
+  }[]
 }
 
-// ===========================================
-// 🎯 Composant principal
-// ===========================================
-
-export default function FranchisesListPage() {
-  const [franchises, setFranchises] = useState<FranchiseWithStats[]>([])
+export default function FranchisesPage() {
+  const [franchises, setFranchises] = useState<Franchise[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 12,
-    total: 0,
-    totalPages: 0
-  })
-
   const router = useRouter()
   const toast = useToast()
 
-  // ===========================================
-  // 📝 Fonctions utilitaires
-  // ===========================================
+  // Animations subtiles
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        duration: 0.8,
+        ease: [0.23, 1, 0.32, 1],
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { 
+        duration: 0.6, 
+        ease: [0.23, 1, 0.32, 1] 
+      }
+    }
+  }
+
+  useEffect(() => {
+    loadFranchises()
+  }, [])
 
   const loadFranchises = async () => {
     try {
-      setLoading(true)
+      const supabase = createClient()
       
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      })
+             const { data, error } = await supabase
+         .from('franchises')
+         .select(`
+           *,
+           gyms (
+             id,
+             name,
+             kiosk_config,
+             status
+           )
+         `)
+         .order('created_at', { ascending: false })
 
-      if (searchTerm.trim()) {
-        params.append('search', searchTerm.trim())
-      }
+      if (error) throw error
 
-      if (statusFilter) {
-        params.append('status', statusFilter)
-      }
-
-      const response = await fetch(`/api/admin/franchises?${params}`)
-      
-      if (!response.ok) {
-        throw new Error('Erreur lors du chargement des franchises')
-      }
-
-      const result: PaginatedResponse<FranchiseWithStats> = await response.json()
-      
-      setFranchises(result.data)
-      setPagination(result.pagination)
-
+      setFranchises(data || [])
     } catch (error) {
-      console.error('Erreur chargement franchises:', error)
+      console.error('Erreur lors du chargement des franchises:', error)
       toast({
-        title: 'Erreur de chargement',
-        description: 'Impossible de charger les franchises',
-        status: 'error',
-        duration: 5000,
+        title: "Erreur",
+        description: "Impossible de charger les franchises",
+        status: "error",
+        duration: 3000,
         isClosable: true,
       })
     } finally {
@@ -148,517 +115,317 @@ export default function FranchisesListPage() {
     }
   }
 
-  // ===========================================
-  // 📝 Handlers
-  // ===========================================
+     const getFranchiseStats = (franchise: Franchise) => {
+     const totalGyms = franchise.gyms?.length || 0
+     const activeKiosks = franchise.gyms?.filter(gym => 
+       gym.kiosk_config?.is_provisioned
+     ).length || 0
+     const pendingKiosks = franchise.gyms?.filter(gym => 
+       gym.kiosk_config && !gym.kiosk_config.is_provisioned
+     ).length || 0
+     
+     return { totalGyms, activeKiosks, pendingKiosks }
+   }
 
-  const handleCreateFranchise = () => {
-    router.push('/admin/franchises/create')
-  }
-
-  const handleViewFranchise = (franchiseId: string) => {
-    router.push(`/admin/franchises/${franchiseId}`)
-  }
-
-  const handleViewGyms = (franchiseId: string) => {
-    router.push(`/admin/franchises/${franchiseId}/gyms`)
-  }
-
-  const handleEditFranchise = (franchiseId: string) => {
-    router.push(`/admin/franchises/${franchiseId}/edit`)
-  }
-
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-    setPagination(prev => ({ ...prev, page: 1 }))
-  }
-
-  const handleStatusFilter = (value: string) => {
-    setStatusFilter(value)
-    setPagination(prev => ({ ...prev, page: 1 }))
-  }
-
-  // ===========================================
-  // 🔄 Effects
-  // ===========================================
-
-  useEffect(() => {
-    loadFranchises()
-  }, [pagination.page, searchTerm, statusFilter])
-
-  // ===========================================
-  // 🎨 Render Functions
-  // ===========================================
-
-  const renderFranchiseCard = (franchise: FranchiseWithStats, index: number) => {
-    const gymsCount = franchise.gyms?.length || 0
-    const activeGyms = franchise.gyms?.filter(gym => gym.status === 'active').length || 0
-
+  if (loading) {
     return (
-      <motion.div
-        key={franchise.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
-        whileHover={{ y: -4 }}
+      <Box 
+        minH="100vh" 
+        bg="white"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        fontFamily="system-ui, -apple-system, sans-serif"
       >
-        <Card
-          bg="white"
-          borderRadius="20px"
-          border="1px solid"
-          borderColor="gray.100"
-          overflow="hidden"
-          _hover={{
-            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-            borderColor: "blue.200"
-          }}
-          transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-          h="full"
-        >
-          <CardHeader pb={3}>
-            <Flex justify="space-between" align="start">
-              <VStack align="start" spacing={2} flex="1">
-                <HStack spacing={2}>
-                  <Icon as={Building2} boxSize={5} color="blue.500" />
-                  <Text 
-                    fontWeight="bold" 
-                    fontSize="lg" 
-                    color="gray.800"
-                    noOfLines={1}
-                  >
-                    {franchise.name}
-                  </Text>
-                </HStack>
-                
-                <Badge 
-                  colorScheme={
-                    franchise.status === 'active' ? 'green' : 
-                    franchise.status === 'trial' ? 'orange' : 
-                    'gray'
-                  }
-                  variant="subtle"
-                  borderRadius="full"
-                  fontSize="xs"
-                  px={2}
-                >
-                  {franchise.status === 'active' ? 'Actif' : 
-                   franchise.status === 'trial' ? 'Essai' : 
-                   'Suspendu'}
-                </Badge>
-              </VStack>
-
-              <Menu>
-                <MenuButton
-                  as={IconButton}
-                  icon={<Icon as={MoreVertical} />}
-                  variant="ghost"
-                  size="sm"
-                  borderRadius="full"
-                  _hover={{ bg: "gray.100" }}
-                />
-                <MenuList borderRadius="12px" border="1px solid" borderColor="gray.200">
-                  <MenuItem 
-                    icon={<Icon as={Dumbbell} />}
-                    onClick={() => handleViewGyms(franchise.id)}
-                    borderRadius="8px"
-                    fontWeight="600"
-                    color="green.600"
-                  >
-                    Voir les salles
-                  </MenuItem>
-                  <MenuItem 
-                    icon={<Icon as={Eye} />}
-                    onClick={() => handleViewFranchise(franchise.id)}
-                    borderRadius="8px"
-                  >
-                    Voir détails
-                  </MenuItem>
-                  <MenuItem 
-                    icon={<Icon as={Edit} />}
-                    onClick={() => handleEditFranchise(franchise.id)}
-                    borderRadius="8px"
-                  >
-                    Modifier
-                  </MenuItem>
-                  <MenuItem 
-                    icon={<Icon as={Settings} />}
-                    borderRadius="8px"
-                  >
-                    Configuration
-                  </MenuItem>
-                </MenuList>
-              </Menu>
-            </Flex>
-          </CardHeader>
-
-          <CardBody pt={0}>
-            <VStack spacing={4} align="stretch">
-              {/* Informations de contact */}
-              <VStack spacing={2} align="stretch">
-                <HStack spacing={2}>
-                  <Icon as={Mail} boxSize={4} color="gray.400" />
-                  <Text fontSize="sm" color="gray.600" noOfLines={1}>
-                    {franchise.contact_email}
-                  </Text>
-                </HStack>
-                
-                {franchise.phone && (
-                  <HStack spacing={2}>
-                    <Icon as={Phone} boxSize={4} color="gray.400" />
-                    <Text fontSize="sm" color="gray.600">
-                      {franchise.phone}
-                    </Text>
-                  </HStack>
-                )}
-
-                {franchise.city && (
-                  <HStack spacing={2}>
-                    <Icon as={MapPin} boxSize={4} color="gray.400" />
-                    <Text fontSize="sm" color="gray.600">
-                      {franchise.city}
-                    </Text>
-                  </HStack>
-                )}
-              </VStack>
-
-              {/* Statistiques */}
-              <HStack justify="space-between" pt={2} borderTop="1px solid" borderColor="gray.100">
-                <VStack spacing={0}>
-                  <Text fontSize="lg" fontWeight="bold" color="gray.800">
-                    {gymsCount}
-                  </Text>
-                  <Text fontSize="xs" color="gray.500">
-                    Salle{gymsCount > 1 ? 's' : ''}
-                  </Text>
-                </VStack>
-                
-                <VStack spacing={0}>
-                  <Text fontSize="lg" fontWeight="bold" color="green.500">
-                    {activeGyms}
-                  </Text>
-                  <Text fontSize="xs" color="gray.500">
-                    Active{activeGyms > 1 ? 's' : ''}
-                  </Text>
-                </VStack>
-
-                <VStack spacing={0}>
-                  <Text fontSize="lg" fontWeight="bold" color="blue.500">
-                    {franchise.owner ? '1' : '0'}
-                  </Text>
-                  <Text fontSize="xs" color="gray.500">
-                    Gérant
-                  </Text>
-                </VStack>
-              </HStack>
-
-              {/* Propriétaire */}
-              {franchise.owner && (
-                <Box 
-                  p={3} 
-                  bg="gray.50" 
-                  borderRadius="12px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                >
-                  <HStack spacing={2}>
-                    <Icon as={Users} boxSize={4} color="gray.500" />
-                    <VStack align="start" spacing={0} flex="1">
-                      <Text fontSize="sm" fontWeight="600" color="gray.700">
-                        {franchise.owner.full_name}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">
-                        {franchise.owner.email}
-                      </Text>
-                    </VStack>
-                    <Badge 
-                      colorScheme={franchise.owner.is_active ? 'green' : 'gray'}
-                      size="sm"
-                      variant="subtle"
-                    >
-                      {franchise.owner.is_active ? 'Actif' : 'Inactif'}
-                    </Badge>
-                  </HStack>
-                </Box>
-              )}
-
-              {/* Bouton d'accès aux salles */}
-              <Button
-                leftIcon={<Icon as={Dumbbell} />}
-                onClick={() => handleViewGyms(franchise.id)}
-                variant="outline"
-                colorScheme="green"
-                size="sm"
-                borderRadius="12px"
-                _hover={{
-                  bg: "green.50",
-                  borderColor: "green.300"
-                }}
-                w="full"
-              >
-                Voir les salles ({gymsCount})
-              </Button>
-
-              {/* Date de création */}
-              <Text fontSize="xs" color="gray.400" textAlign="center">
-                Créé le {new Date(franchise.created_at).toLocaleDateString('fr-FR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </Text>
-            </VStack>
-          </CardBody>
-        </Card>
-      </motion.div>
+        <VStack spacing={4}>
+          <Spinner size="lg" color="gray.600" />
+          <Text color="gray.600" fontSize="sm" fontWeight="400">
+            Chargement des franchises...
+          </Text>
+        </VStack>
+      </Box>
     )
   }
 
-  // ===========================================
-  // 🎨 Render principal
-  // ===========================================
-
   return (
-    <Box minH="100vh" bg="#fafafa" py={8}>
-      <Container maxW="7xl">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-        >
-          {/* Header */}
-          <motion.div variants={fadeInUp}>
-            <VStack spacing={6} align="start" mb={8}>
-              <HStack justify="space-between" w="full">
-                <VStack align="start" spacing={2}>
-                  <HStack spacing={3}>
-                    <Box
-                      p={3}
-                      borderRadius="12px"
-                      bg="blue.50"
-                      border="1px solid"
-                      borderColor="blue.200"
-                    >
-                      <Icon as={Building2} boxSize={6} color="blue.500" />
-                    </Box>
-                    <VStack align="start" spacing={1}>
-                      <Heading 
-                        size="xl" 
-                        color="gray.800"
-                        fontWeight="bold"
-                        letterSpacing="-0.025em"
-                      >
-                        Franchises
-                      </Heading>
-                      <Text color="gray.600" fontSize="md">
-                        Gestion des franchises et espaces JARVIS
-                      </Text>
-                    </VStack>
-                  </HStack>
-                </VStack>
+    <Box 
+      minH="100vh" 
+      bg="white"
+      fontFamily="system-ui, -apple-system, sans-serif"
+      position="relative"
+      p={8}
+    >
+      {/* Pattern de points subtil */}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        bottom={0}
+        opacity={0.02}
+        bgImage="radial-gradient(circle, black 1px, transparent 1px)"
+        bgSize="24px 24px"
+        pointerEvents="none"
+      />
 
+      <MotionVStack
+        spacing={10}
+        align="stretch"
+        maxW="1200px"
+        mx="auto"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        {/* Header */}
+        <MotionBox variants={itemVariants}>
+          <HStack justify="space-between" align="start">
+            <VStack spacing={2} align="start">
+              <Heading 
+                size="xl" 
+                color="black"
+                fontWeight="400"
+                letterSpacing="-0.5px"
+              >
+                Franchises
+              </Heading>
+              <Text 
+                color="gray.600" 
+                fontSize="lg"
+                fontWeight="400"
+              >
+                {franchises.length} franchise{franchises.length > 1 ? 's' : ''} enregistrée{franchises.length > 1 ? 's' : ''}
+              </Text>
+            </VStack>
+
+            <Button
+              leftIcon={<Icon as={Plus} />}
+              bg="black"
+              color="white"
+              size="lg"
+              onClick={() => router.push('/admin/franchises/create')}
+              _hover={{ 
+                bg: "gray.900",
+                transform: "translateY(-1px)",
+                transition: "all 0.2s ease"
+              }}
+              _active={{ transform: "translateY(0)" }}
+              borderRadius="2px"
+              px={6}
+              py={3}
+              fontWeight="500"
+              fontSize="sm"
+            >
+              Nouvelle franchise
+            </Button>
+          </HStack>
+        </MotionBox>
+
+        {/* Franchises Grid */}
+        <MotionBox variants={itemVariants}>
+          {franchises.length === 0 ? (
+            <Box
+              bg="white"
+              border="1px solid"
+              borderColor="gray.200"
+              borderRadius="2px"
+              p={12}
+              textAlign="center"
+              shadow="0 1px 3px rgba(0, 0, 0, 0.06)"
+            >
+              <VStack spacing={4}>
+                <Box
+                  w={12}
+                  h={12}
+                  bg="gray.100"
+                  borderRadius="2px"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Icon as={Building2} color="gray.400" boxSize={6} />
+                </Box>
+                <VStack spacing={2}>
+                  <Text fontSize="lg" fontWeight="500" color="black">
+                    Aucune franchise
+                  </Text>
+                  <Text fontSize="sm" color="gray.600" fontWeight="400">
+                    Commencez par créer votre première franchise
+                  </Text>
+                </VStack>
                 <Button
                   leftIcon={<Icon as={Plus} />}
-                  colorScheme="blue"
-                  onClick={handleCreateFranchise}
-                  borderRadius="12px"
-                  px={6}
-                  h="50px"
-                  _hover={{
-                    transform: "translateY(-1px)",
-                    boxShadow: "0 4px 12px rgba(66, 153, 225, 0.3)"
-                  }}
-                  transition="all 0.2s ease"
+                  bg="black"
+                  color="white"
+                  onClick={() => router.push('/admin/franchises/create')}
+                  _hover={{ bg: "gray.900" }}
+                  borderRadius="2px"
+                  fontWeight="500"
+                  fontSize="sm"
                 >
-                  Nouvelle Franchise
+                  Créer une franchise
                 </Button>
-              </HStack>
-
-              {/* Statistiques rapides */}
-              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full">
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {pagination.total}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    Total Franchises
-                  </Text>
-                </Box>
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="green.500">
-                    {franchises.filter(f => f.status === 'active').length}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    Actives
-                  </Text>
-                </Box>
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="orange.500">
-                    {franchises.filter(f => f.status === 'trial').length}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    En Essai
-                  </Text>
-                </Box>
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                    {franchises.reduce((total, f) => total + (f.gyms?.length || 0), 0)}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    Total Salles
-                  </Text>
-                </Box>
-              </SimpleGrid>
-            </VStack>
-          </motion.div>
-
-          {/* Filtres et recherche */}
-          <motion.div variants={fadeInUp}>
-            <HStack spacing={4} mb={6}>
-              <InputGroup maxW="300px">
-                <InputLeftElement pointerEvents="none">
-                  <Icon as={Search} color="gray.400" />
-                </InputLeftElement>
-                <Input
-                  placeholder="Rechercher une franchise..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  bg="white"
-                  border="1px solid"
-                  borderColor="gray.200"
-                  borderRadius="12px"
-                  _focus={{
-                    borderColor: "blue.500",
-                    boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.1)"
-                  }}
-                />
-              </InputGroup>
-
-              <Select
-                placeholder="Tous les statuts"
-                value={statusFilter}
-                onChange={(e) => handleStatusFilter(e.target.value)}
-                maxW="200px"
-                bg="white"
-                border="1px solid"
-                borderColor="gray.200"
-                borderRadius="12px"
-                _focus={{
-                  borderColor: "blue.500",
-                  boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.1)"
-                }}
-              >
-                <option value="active">Actives</option>
-                <option value="trial">En essai</option>
-                <option value="suspended">Suspendues</option>
-              </Select>
-
-              <Spacer />
-
-              <Text fontSize="sm" color="gray.600">
-                {pagination.total} franchise{pagination.total > 1 ? 's' : ''} trouvée{pagination.total > 1 ? 's' : ''}
-              </Text>
-            </HStack>
-          </motion.div>
-
-          {/* Liste des franchises */}
-          <motion.div variants={fadeInUp}>
-            {loading ? (
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <Skeleton key={index} height="300px" borderRadius="20px" />
-                ))}
-              </SimpleGrid>
-            ) : franchises.length === 0 ? (
-              <Box
-                bg="white"
-                borderRadius="20px"
-                p={12}
-                textAlign="center"
-                border="1px solid"
-                borderColor="gray.100"
-              >
-                <Icon as={Building2} boxSize={12} color="gray.300" mb={4} />
-                <Text color="gray.500" fontSize="lg" mb={2}>
-                  {searchTerm || statusFilter ? 'Aucune franchise trouvée' : 'Aucune franchise créée'}
-                </Text>
-                <Text fontSize="sm" color="gray.400" mb={6}>
-                  {searchTerm || statusFilter 
-                    ? 'Essayez de modifier vos critères de recherche'
-                    : 'Commencez par créer votre première franchise'}
-                </Text>
-                {!searchTerm && !statusFilter && (
-                  <Button
-                    leftIcon={<Icon as={Plus} />}
-                    colorScheme="blue"
-                    onClick={handleCreateFranchise}
-                    borderRadius="12px"
+              </VStack>
+            </Box>
+          ) : (
+            <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6}>
+              {franchises.map((franchise, index) => {
+                const stats = getFranchiseStats(franchise)
+                
+                return (
+                  <MotionBox
+                    key={franchise.id}
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ 
+                      duration: 0.5, 
+                      delay: index * 0.1,
+                      ease: [0.23, 1, 0.32, 1]
+                    }}
+                    whileHover={{ 
+                      scale: 1.01,
+                      transition: { duration: 0.2 }
+                    }}
+                    cursor="pointer"
+                    onClick={() => router.push(`/admin/franchises/${franchise.id}`)}
                   >
-                    Créer ma première franchise
-                  </Button>
-                )}
-              </Box>
-            ) : (
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                <AnimatePresence>
-                  {franchises.map((franchise, index) => 
-                    renderFranchiseCard(franchise, index)
-                  )}
-                </AnimatePresence>
-              </SimpleGrid>
-            )}
-          </motion.div>
-
-          {/* Pagination (si nécessaire) */}
-          {pagination.totalPages > 1 && (
-            <motion.div variants={fadeInUp}>
-              <Flex justify="center" mt={8}>
-                <HStack spacing={2}>
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
-                    <Button
-                      key={page}
-                      size="sm"
-                      variant={page === pagination.page ? "solid" : "ghost"}
-                      colorScheme="blue"
-                      onClick={() => setPagination(prev => ({ ...prev, page }))}
-                      borderRadius="8px"
+                    <Box
+                      bg="white"
+                      border="1px solid"
+                      borderColor="gray.200"
+                      borderRadius="2px"
+                      p={6}
+                      shadow="0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)"
+                      _hover={{
+                        borderColor: "gray.300",
+                        transition: "all 0.2s ease"
+                      }}
+                      position="relative"
+                      _before={{
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '1px',
+                        bg: 'linear-gradient(90deg, transparent, gray.100, transparent)',
+                      }}
                     >
-                      {page}
-                    </Button>
-                  ))}
-                </HStack>
-              </Flex>
-            </motion.div>
+                      <VStack spacing={4} align="start">
+                        {/* Header */}
+                        <HStack justify="space-between" w="full">
+                          <HStack spacing={3}>
+                            <Box
+                              w={10}
+                              h={10}
+                              bg="black"
+                              borderRadius="2px"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                            >
+                              <Icon as={Building2} color="white" boxSize={5} />
+                            </Box>
+                            <VStack spacing={0} align="start">
+                              <Text 
+                                fontSize="lg" 
+                                fontWeight="500" 
+                                color="black"
+                                lineHeight="1.2"
+                              >
+                                {franchise.name}
+                                                             </Text>
+                               <Text 
+                                 fontSize="sm" 
+                                 color="gray.600"
+                                 fontWeight="400"
+                               >
+                                 {franchise.email}
+                               </Text>
+                            </VStack>
+                          </HStack>
+                          
+                          <Icon as={ArrowRight} color="gray.400" boxSize={4} />
+                        </HStack>
+
+                        {/* Stats */}
+                        <HStack spacing={6} w="full">
+                          <VStack spacing={1} align="start">
+                            <Text fontSize="xl" fontWeight="600" color="black">
+                              {stats.totalGyms}
+                            </Text>
+                            <Text fontSize="xs" color="gray.500" fontWeight="400">
+                              Salle{stats.totalGyms > 1 ? 's' : ''}
+                            </Text>
+                          </VStack>
+                          
+                          <VStack spacing={1} align="start">
+                            <Text fontSize="xl" fontWeight="600" color="black">
+                              {stats.activeKiosks}
+                            </Text>
+                            <Text fontSize="xs" color="gray.500" fontWeight="400">
+                              Actif{stats.activeKiosks > 1 ? 's' : ''}
+                            </Text>
+                          </VStack>
+                          
+                          {stats.pendingKiosks > 0 && (
+                            <VStack spacing={1} align="start">
+                              <HStack spacing={1}>
+                                <Text fontSize="xl" fontWeight="600" color="black">
+                                  {stats.pendingKiosks}
+                                </Text>
+                                <Box
+                                  w={1.5}
+                                  h={1.5}
+                                  bg="gray.900"
+                                  borderRadius="50%"
+                                />
+                              </HStack>
+                              <Text fontSize="xs" color="gray.500" fontWeight="400">
+                                En attente
+                              </Text>
+                            </VStack>
+                          )}
+                        </HStack>
+
+                                                                          {/* Gyms preview */}
+                         {franchise.gyms && franchise.gyms.length > 0 && (
+                           <VStack spacing={2} align="start" w="full">
+                             <Text fontSize="xs" color="gray.500" fontWeight="500">
+                               SALLES
+                             </Text>
+                             <VStack spacing={1} align="start" w="full">
+                               {franchise.gyms.slice(0, 3).map((gym) => (
+                                 <HStack key={gym.id} spacing={2} w="full">
+                                   <Box
+                                     w={1}
+                                     h={1}
+                                     bg={gym.kiosk_config?.is_provisioned ? "gray.900" : "gray.400"}
+                                     borderRadius="50%"
+                                     flexShrink={0}
+                                   />
+                                   <Text fontSize="xs" color="gray.600" fontWeight="400">
+                                     {gym.name}
+                                   </Text>
+                                 </HStack>
+                               ))}
+                               {franchise.gyms.length > 3 && (
+                                 <Text fontSize="xs" color="gray.500" fontWeight="400">
+                                   +{franchise.gyms.length - 3} autres...
+                                 </Text>
+                               )}
+                             </VStack>
+                           </VStack>
+                         )}
+                      </VStack>
+                    </Box>
+                  </MotionBox>
+                )
+              })}
+            </SimpleGrid>
           )}
-        </motion.div>
-      </Container>
+        </MotionBox>
+      </MotionVStack>
     </Box>
   )
 } 

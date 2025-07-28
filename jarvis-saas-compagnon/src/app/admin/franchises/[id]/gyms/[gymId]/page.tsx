@@ -465,7 +465,7 @@ export default function GymDetailsPage() {
                             Membres
                           </StatLabel>
                           <StatNumber color="blue.700" fontSize="2xl">
-                            {gym.member_count || 0}
+                            0
                           </StatNumber>
                         </Stat>
                         <Stat 

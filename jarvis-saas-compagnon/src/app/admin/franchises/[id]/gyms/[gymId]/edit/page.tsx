@@ -79,8 +79,7 @@ export default function GymEditPage() {
     city: '',
     postal_code: '',
     status: 'active',
-    welcome_message: '',
-    member_count: 0
+    welcome_message: ''
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -113,8 +112,7 @@ export default function GymEditPage() {
         city: gymData.city || '',
         postal_code: gymData.postal_code || '',
         status: gymData.status || 'active',
-        welcome_message: gymData.kiosk_config?.welcome_message || '',
-        member_count: gymData.member_count || 0
+        welcome_message: gymData.kiosk_config?.welcome_message || ''
       })
 
     } catch (error) {
@@ -183,7 +181,7 @@ export default function GymEditPage() {
         city: formData.city.trim(),
         postal_code: formData.postal_code.trim(),
         status: formData.status as 'active' | 'maintenance' | 'offline',
-        member_count: formData.member_count,
+
         kiosk_config: {
           ...gym?.kiosk_config,
           welcome_message: formData.welcome_message.trim()
@@ -387,8 +385,8 @@ export default function GymEditPage() {
                           <FormLabel fontSize="sm" fontWeight="600" color="gray.700">Nombre de membres</FormLabel>
                           <Input
                             type="number"
-                            value={formData.member_count}
-                            onChange={(e) => handleInputChange('member_count', parseInt(e.target.value) || 0)}
+                                          value={0}
+              readOnly
                             borderRadius="12px"
                             border="1px solid"
                             borderColor="gray.200"

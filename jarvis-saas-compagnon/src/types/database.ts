@@ -50,6 +50,53 @@ export interface Database {
           updated_at?: string
         }
       }
+      gyms: {
+        Row: {
+          id: string
+          franchise_id: string
+          name: string
+          address: string
+          city: string
+          postal_code: string
+          kiosk_config: Json
+          opening_hours: Json
+          features: string[]
+          manager_id: string | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          franchise_id: string
+          name: string
+          address: string
+          city: string
+          postal_code: string
+          kiosk_config?: Json
+          opening_hours?: Json
+          features?: string[]
+          manager_id?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          franchise_id?: string
+          name?: string
+          address?: string
+          city?: string
+          postal_code?: string
+          kiosk_config?: Json
+          opening_hours?: Json
+          features?: string[]
+          manager_id?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
       users: {
         Row: {
           id: string

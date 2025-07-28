@@ -4,29 +4,16 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import {
   Box,
-  Container,
   VStack,
   HStack,
   Button,
   Icon,
   Heading,
   Text,
-  Card,
-  CardBody,
-  CardHeader,
   Badge,
   useToast,
-  Flex,
-  Spacer,
   SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  Spinner,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink
+  Spinner
 } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import { 
@@ -41,15 +28,30 @@ import {
   Mic,
   DollarSign,
   MessageSquare,
-  Bot,
-  BarChart3,
-  TrendingUp,
-  Clock,
-  Zap
+  Zap,
+  Plus
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../types/franchise'
 import { createClient } from '../../../../lib/supabase-simple'
-import { getRealTimeMetrics, getRealTimeMetricsByFranchise, convertUSDToEUR, formatCurrency } from '../../../../lib/openai-cost-tracker'
+import { getRealTimeMetrics, formatCurrency } from '../../../../lib/openai-cost-tracker'
+
+// Utiliser les types de base de données réels
+type DatabaseFranchise = {
+  id: string
+  name: string
+  address: string
+  city: string
+  postal_code: string
+  email: string
+  phone: string
+  owner_id: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+const MotionBox = motion(Box)
+const MotionVStack = motion(VStack)
 
 export default function FranchiseAnalyticsPage() {
   const router = useRouter()
@@ -57,58 +59,83 @@ export default function FranchiseAnalyticsPage() {
   const toast = useToast()
   
   const franchiseId = params.id as string
-
-  // États
-  const [franchise, setFranchise] = useState<Franchise | null>(null)
+  const [franchise, setFranchise] = useState<DatabaseFranchise | null>(null)
   const [gyms, setGyms] = useState<Gym[]>([])
+  const [metrics, setMetrics] = useState<any>({})
   const [loading, setLoading] = useState(true)
-  
-  // Analytics JARVIS states
-  const [jarvisMetricsLoading, setJarvisMetricsLoading] = useState(true)
-  const [jarvisMetrics, setJarvisMetrics] = useState<any>(null)
+
+  // Animations subtiles
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        duration: 0.8,
+        ease: [0.23, 1, 0.32, 1],
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  }
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { 
+        duration: 0.6, 
+        ease: [0.23, 1, 0.32, 1] 
+      }
+    }
+  }
 
   useEffect(() => {
-    loadFranchiseDetails()
-    loadJarvisMetrics()
+    if (franchiseId) {
+      loadFranchiseData()
+    }
   }, [franchiseId])
 
-  const loadFranchiseDetails = async () => {
+  const loadFranchiseData = async () => {
     try {
-      setLoading(true)
-
-      // Charger les détails de la franchise
       const supabase = createClient()
-      
-      const { data: franchiseData, error: franchiseError } = await supabase
-        .from('franchises')
-        .select('*')
-        .eq('id', franchiseId)
-        .single()
 
-      if (franchiseError) {
-        throw new Error('Erreur lors du chargement de la franchise')
-      }
+             // Charger la franchise avec ses gyms
+       const { data: franchiseData, error: franchiseError } = await supabase
+         .from('franchises')
+         .select(`
+           *,
+           gyms (
+             id,
+             name,
+             address,
+             city,
+             status,
+             kiosk_config,
+             created_at
+           )
+         `)
+         .eq('id', franchiseId)
+         .single()
 
-      setFranchise(franchiseData)
-      
-      // Charger les salles de la franchise
-      const { data: gymsData, error: gymsError } = await supabase
-        .from('gyms')
-        .select('*')
-        .eq('franchise_id', franchiseId)
+       if (franchiseError) {
+         console.error('Erreur Supabase:', franchiseError)
+         throw new Error(franchiseError.message || 'Erreur de base de données')
+       }
 
-      if (gymsError) {
-        console.error('Erreur chargement salles:', gymsError)
-      } else {
-        setGyms(gymsData || [])
-      }
+       setFranchise(franchiseData)
+       setGyms(franchiseData.gyms || [])
+
+      // Charger les métriques en temps réel
+      const realTimeMetrics = await getRealTimeMetrics()
+      setMetrics(realTimeMetrics)
 
     } catch (error) {
       console.error('Erreur chargement franchise:', error)
       toast({
-        title: 'Erreur de chargement',
-        description: 'Impossible de charger les détails de la franchise',
-        status: 'error',
+        title: "Erreur",
+        description: "Impossible de charger les données de la franchise",
+        status: "error",
         duration: 5000,
         isClosable: true,
       })
@@ -117,427 +144,505 @@ export default function FranchiseAnalyticsPage() {
     }
   }
 
-  // Charger les métriques JARVIS pour cette franchise
-  const loadJarvisMetrics = async () => {
-    try {
-      setJarvisMetricsLoading(true)
-      const metrics = await getRealTimeMetricsByFranchise(franchiseId)
-      setJarvisMetrics(metrics)
-    } catch (error) {
-      console.error('Erreur chargement métriques JARVIS:', error)
-      // Fallback avec métriques globales filtrées si la fonction spécifique échoue
-      try {
-        const fallbackMetrics = await getRealTimeMetrics({ franchiseId })
-        setJarvisMetrics(fallbackMetrics)
-      } catch (fallbackError) {
-        console.error('Erreur fallback métriques:', fallbackError)
-      }
-    } finally {
-      setJarvisMetricsLoading(false)
-    }
-  }
-
-  const handleBack = () => {
-    router.push('/dashboard')
-  }
-
-  const handleGymClick = (gym: Gym) => {
-    router.push(`/admin/franchises/${franchiseId}/gyms/${gym.id}`)
-  }
-
-  // Fonction utilitaire pour calculer les coûts détaillés
-  const getDetailedCosts = () => {
-    if (!jarvisMetrics?.today) {
-      return {
-        audioInputCost: '€0.00',
-        audioInputTokens: '0',
-        audioOutputCost: '€0.00', 
-        audioOutputTokens: '0',
-        textCost: '€0.00',
-        textTokens: '0'
-      }
-    }
-    
-    const today = jarvisMetrics.today
-    // Calcul approximatif des coûts par type (ces calculs seraient à affiner)
-    const totalCost = today.totalCostUSD || 0
-    const audioInputCost = totalCost * 0.4 // 40% pour l'audio input approximativement
-    const audioOutputCost = totalCost * 0.5 // 50% pour l'audio output approximativement  
-    const textCost = totalCost * 0.1 // 10% pour le texte approximativement
-    
-    return {
-      audioInputCost: formatCurrency(convertUSDToEUR(audioInputCost)),
-      audioInputTokens: `${Math.round((today.totalAudioInputTokens || 0) / 1000)}K`,
-      audioOutputCost: formatCurrency(convertUSDToEUR(audioOutputCost)),
-      audioOutputTokens: `${Math.round((today.totalAudioOutputTokens || 0) / 1000)}K`,
-      textCost: formatCurrency(convertUSDToEUR(textCost)),
-      textTokens: `${Math.round((today.totalTextInputTokens + today.totalTextOutputTokens || 0) / 1000)}K`
-    }
-  }
+     const getGymsStats = () => {
+     const totalGyms = gyms.length
+     const activeGyms = gyms.filter(gym => gym.status === 'active').length
+     const totalMembers = 0 // Pas de member_count dans la table gyms
+     const kioskProvisioned = gyms.filter(gym => gym.kiosk_config?.is_provisioned).length
+     
+     return { totalGyms, activeGyms, totalMembers, kioskProvisioned }
+   }
 
   if (loading) {
     return (
-      <Box minH="100vh" bg="#fafafa" py={8}>
-        <Container maxW="7xl">
-          <Flex justify="center" align="center" py={12}>
-            <VStack spacing={4}>
-              <Spinner size="xl" color="blue.500" thickness="4px" />
-              <Text color="gray.500">Chargement des analytics franchise...</Text>
-            </VStack>
-          </Flex>
-        </Container>
+      <Box 
+        minH="100vh" 
+        bg="white"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >
+        <VStack spacing={4}>
+          <Spinner size="lg" color="gray.600" />
+          <Text color="gray.600" fontSize="sm" fontWeight="400">
+            Chargement des données...
+          </Text>
+        </VStack>
       </Box>
     )
   }
 
   if (!franchise) {
     return (
-      <Box minH="100vh" bg="#fafafa" py={8}>
-        <Container maxW="7xl">
-          <VStack spacing={6} align="center" py={12}>
-            <Text fontSize="xl" color="gray.600">Franchise non trouvée</Text>
-            <Button leftIcon={<ArrowLeft />} onClick={handleBack} colorScheme="blue">
-              Retour au dashboard
-            </Button>
+      <Box 
+        minH="100vh" 
+        bg="white"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        fontFamily="system-ui, -apple-system, sans-serif"
+      >
+        <VStack spacing={4}>
+          <Box
+            w={12}
+            h={12}
+            bg="gray.100"
+            borderRadius="2px"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Icon as={Building2} color="gray.400" boxSize={6} />
+          </Box>
+          <VStack spacing={2}>
+            <Text fontSize="lg" fontWeight="500" color="black">
+              Franchise non trouvée
+            </Text>
+            <Text fontSize="sm" color="gray.600" fontWeight="400">
+              Cette franchise n'existe pas ou n'est plus accessible
+            </Text>
           </VStack>
-        </Container>
+          <Button
+            leftIcon={<ArrowLeft size={16} />}
+            bg="black"
+            color="white"
+            onClick={() => router.push('/admin/franchises')}
+            _hover={{ bg: "gray.900" }}
+            borderRadius="2px"
+            fontWeight="500"
+            fontSize="sm"
+          >
+            Retour aux franchises
+          </Button>
+        </VStack>
       </Box>
     )
   }
 
+  const stats = getGymsStats()
+
   return (
-    <Box minH="100vh" bg="#fafafa">
-      <Container maxW="7xl" py={8}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <VStack spacing={8} align="stretch">
+    <Box 
+      minH="100vh" 
+      bg="white"
+      fontFamily="system-ui, -apple-system, sans-serif"
+      position="relative"
+      p={8}
+    >
+      {/* Pattern de points subtil */}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        bottom={0}
+        opacity={0.02}
+        bgImage="radial-gradient(circle, black 1px, transparent 1px)"
+        bgSize="24px 24px"
+        pointerEvents="none"
+      />
 
-            {/* Header avec breadcrumb */}
-            <VStack spacing={4} align="start">
-              <Breadcrumb color="gray.500" fontSize="sm">
-                <BreadcrumbItem>
-                  <BreadcrumbLink onClick={() => router.push('/dashboard')}>
-                    Dashboard Global
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem isCurrentPage>
-                  <Text>{franchise.name}</Text>
-                </BreadcrumbItem>
-              </Breadcrumb>
-
-              <Flex justify="space-between" align="center" w="full">
-                <VStack align="start" spacing={2}>
-                  <HStack spacing={3}>
-                    <Button
-                      leftIcon={<ArrowLeft />}
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleBack}
-                      color="gray.600"
-                    >
-                      Dashboard Global
-                    </Button>
-                  </HStack>
-                  
-                  <HStack spacing={4} align="center">
-                    <Icon as={Building2} boxSize={8} color="blue.500" />
-                    <VStack align="start" spacing={1}>
-                      <Heading size="xl" color="gray.800" fontWeight="bold">
-                        {franchise.name}
-                      </Heading>
-                      <HStack spacing={4}>
-                        <HStack spacing={1}>
-                          <Icon as={MapPin} boxSize={4} color="gray.400" />
-                          <Text color="gray.600">{franchise.city}</Text>
-                        </HStack>
-                                               <Badge 
-                         colorScheme={franchise.status === 'active' ? "green" : "gray"}
-                         variant="subtle"
-                         borderRadius="full"
-                       >
-                         {franchise.status === 'active' ? "Actif" : franchise.status === 'trial' ? "Trial" : "Suspendu"}
-                       </Badge>
-                      </HStack>
-                    </VStack>
-                  </HStack>
+      <MotionVStack
+        spacing={10}
+        align="stretch"
+        maxW="1200px"
+        mx="auto"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        {/* Header */}
+        <MotionBox variants={itemVariants}>
+          <VStack spacing={6} align="start">
+            <Button
+              variant="ghost"
+              leftIcon={<ArrowLeft size={16} />}
+              onClick={() => router.push('/admin/franchises')}
+              color="gray.600"
+              fontSize="sm"
+              fontWeight="400"
+              px={3}
+              py={2}
+              h="auto"
+              borderRadius="2px"
+              _hover={{ 
+                color: 'black', 
+                bg: 'gray.50',
+                transition: "all 0.15s ease"
+              }}
+            >
+              Retour aux franchises
+            </Button>
+            
+            <VStack spacing={2} align="start">
+              <HStack spacing={3}>
+                <Box
+                  w={10}
+                  h={10}
+                  bg="black"
+                  borderRadius="2px"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Icon as={Building2} color="white" boxSize={5} />
+                </Box>
+                <VStack spacing={0} align="start">
+                  <Heading 
+                    size="xl" 
+                    color="black"
+                    fontWeight="400"
+                    letterSpacing="-0.5px"
+                  >
+                    {franchise.name}
+                  </Heading>
+                  <Text 
+                    color="gray.600" 
+                    fontSize="lg"
+                    fontWeight="400"
+                  >
+                    Gestion et analytics de la franchise
+                  </Text>
                 </VStack>
-              </Flex>
+              </HStack>
             </VStack>
-
-            {/* Analytics JARVIS pour cette franchise */}
-            <VStack spacing={6} align="stretch">
-              <Box>
-                <Heading size="lg" color="#374151" fontWeight="700" mb={2}>
-                  📊 Analytics JARVIS - {franchise.name}
-                </Heading>
-                <Text color="#6b7280" fontSize="md" mb={2}>
-                  Performance de l'ensemble des salles de cette franchise
-                </Text>
-                <Text color="#9ca3af" fontSize="sm">
-                  Cliquez sur une salle pour voir ses analytics détaillées →
-                </Text>
-              </Box>
-
-              {jarvisMetricsLoading ? (
-                <Flex justify="center" py={8}>
-                  <VStack spacing={4}>
-                    <Spinner color="blue.500" size="lg" />
-                    <Text color="gray.500">Chargement des métriques...</Text>
-                  </VStack>
-                </Flex>
-              ) : (
-                <>
-                  {/* Métriques principales franchise */}
-                  <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
-                    <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                      <CardBody>
-                        <Stat>
-                          <StatLabel color="#6b7280" fontWeight="500">
-                            <HStack>
-                              <Icon as={MessageSquare} color="blue.500" />
-                              <Text>Sessions Totales</Text>
-                            </HStack>
-                          </StatLabel>
-                          <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                            {jarvisMetrics?.today?.totalSessions || 0}
-                          </StatNumber>
-                          <StatHelpText color={jarvisMetrics?.changes?.sessions >= 0 ? "green.500" : "red.500"} fontWeight="500">
-                            <TrendingUp size={16} /> {jarvisMetrics?.changes?.sessions >= 0 ? '+' : ''}{jarvisMetrics?.changes?.sessions || 0}% vs hier
-                          </StatHelpText>
-                        </Stat>
-                      </CardBody>
-                    </Card>
-
-                    <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                      <CardBody>
-                        <Stat>
-                          <StatLabel color="#6b7280" fontWeight="500">
-                            <HStack>
-                              <Icon as={DollarSign} color="green.500" />
-                              <Text>Coût Total</Text>
-                            </HStack>
-                          </StatLabel>
-                          <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                            {jarvisMetrics?.today?.totalCostUSD ? formatCurrency(convertUSDToEUR(jarvisMetrics.today.totalCostUSD)) : '€0.00'}
-                          </StatNumber>
-                          <StatHelpText color={jarvisMetrics?.changes?.cost >= 0 ? "red.500" : "green.500"} fontWeight="500">
-                            <Activity size={16} /> {jarvisMetrics?.changes?.cost >= 0 ? '+' : ''}{jarvisMetrics?.changes?.cost || 0}% vs hier
-                          </StatHelpText>
-                        </Stat>
-                      </CardBody>
-                    </Card>
-
-                    <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                      <CardBody>
-                        <Stat>
-                          <StatLabel color="#6b7280" fontWeight="500">
-                            <HStack>
-                              <Icon as={Dumbbell} color="purple.500" />
-                              <Text>Salles Actives</Text>
-                            </HStack>
-                          </StatLabel>
-                          <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                            {gyms.filter(g => g.status === 'active').length}/{gyms.length}
-                          </StatNumber>
-                          <StatHelpText color="blue.500" fontWeight="500">
-                            <TrendingUp size={16} /> Toutes opérationnelles
-                          </StatHelpText>
-                        </Stat>
-                      </CardBody>
-                    </Card>
-
-                    <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                      <CardBody>
-                        <Stat>
-                          <StatLabel color="#6b7280" fontWeight="500">
-                            <HStack>
-                              <Icon as={Zap} color="orange.500" />
-                              <Text>Satisfaction Moy.</Text>
-                            </HStack>
-                          </StatLabel>
-                          <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                            {jarvisMetrics?.today?.averageSatisfaction ? `${jarvisMetrics.today.averageSatisfaction.toFixed(1)}/5` : '0/5'}
-                          </StatNumber>
-                          <StatHelpText color={jarvisMetrics?.changes?.satisfaction >= 0 ? "green.500" : "red.500"} fontWeight="500">
-                            <TrendingUp size={16} /> {jarvisMetrics?.changes?.satisfaction >= 0 ? '+' : ''}{jarvisMetrics?.changes?.satisfaction || 0}% vs hier
-                          </StatHelpText>
-                        </Stat>
-                      </CardBody>
-                    </Card>
-                  </SimpleGrid>
-
-                  {/* Coûts détaillés */}
-                  <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                    <CardHeader>
-                      <Heading size="md" color="#374151" fontWeight="600">
-                        💰 Répartition Coûts OpenAI - {franchise.name}
-                      </Heading>
-                    </CardHeader>
-                    <CardBody>
-                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                        <VStack spacing={3} align="start">
-                          <HStack>
-                            <Icon as={Mic} color="orange.500" boxSize={5} />
-                            <Text fontWeight="600" color="#374151">Audio Input</Text>
-                          </HStack>
-                          <Text fontSize="2xl" fontWeight="700" color="orange.500">
-                            {getDetailedCosts().audioInputCost}
-                          </Text>
-                          <Text fontSize="sm" color="#6b7280">
-                            {getDetailedCosts().audioInputTokens} tokens
-                          </Text>
-                           <Badge colorScheme="orange" variant="subtle">Audio Input</Badge>
-                         </VStack>
- 
-                         <VStack spacing={3} align="start">
-                           <HStack>
-                             <Icon as={MessageSquare} color="blue.500" boxSize={5} />
-                             <Text fontWeight="600" color="#374151">Audio Output</Text>
-                           </HStack>
-                           <Text fontSize="2xl" fontWeight="700" color="blue.500">
-                             {getDetailedCosts().audioOutputCost}
-                           </Text>
-                           <Text fontSize="sm" color="#6b7280">
-                             {getDetailedCosts().audioOutputTokens} tokens
-                           </Text>
-                           <Badge colorScheme="blue" variant="subtle">Audio Output</Badge>
-                         </VStack>
- 
-                         <VStack spacing={3} align="start">
-                           <HStack>
-                             <Icon as={BarChart3} color="green.500" boxSize={5} />
-                             <Text fontWeight="600" color="#374151">Text Tokens</Text>
-                           </HStack>
-                           <Text fontSize="2xl" fontWeight="700" color="green.500">
-                             {getDetailedCosts().textCost}
-                           </Text>
-                           <Text fontSize="sm" color="#6b7280">
-                             {getDetailedCosts().textTokens} tokens
-                           </Text>
-                           <Badge colorScheme="green" variant="subtle">Text Tokens</Badge>
-                        </VStack>
-                      </SimpleGrid>
-                    </CardBody>
-                  </Card>
-                </>
-              )}
-            </VStack>
-
-            {/* Liste des salles de la franchise */}
-            <VStack spacing={6} align="stretch">
-              <Box>
-                <Heading size="lg" color="gray.800" fontWeight="700" mb={2}>
-                  🏋️ Salles de {franchise.name}
-                </Heading>
-                <Text color="gray.600" fontSize="md">
-                  Cliquez sur une salle pour voir ses analytics détaillées
-                </Text>
-              </Box>
-
-              {gyms.length === 0 ? (
-                <Card bg="white" border="1px solid" borderColor="gray.200" borderRadius="12px">
-                  <CardBody textAlign="center" py={12}>
-                    <VStack spacing={4}>
-                      <Icon as={Dumbbell} boxSize={12} color="gray.300" />
-                      <VStack spacing={2}>
-                        <Text fontSize="lg" fontWeight="600" color="gray.600">
-                          Aucune salle configurée
-                        </Text>
-                        <Text color="gray.500">
-                          Cette franchise n'a pas encore de salles enregistrées
-                        </Text>
-                      </VStack>
-                    </VStack>
-                  </CardBody>
-                </Card>
-              ) : (
-                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                  {gyms.map((gym) => (
-                    <motion.div
-                      key={gym.id}
-                      whileHover={{ y: -4 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Card
-                        bg="white"
-                        border="1px solid"
-                        borderColor="gray.200"
-                        borderRadius="12px"
-                        cursor="pointer"
-                        overflow="hidden"
-                        _hover={{
-                          boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                          borderColor: "blue.300"
-                        }}
-                        transition="all 0.3s ease"
-                        onClick={() => handleGymClick(gym)}
-                      >
-                        <CardHeader>
-                          <Flex justify="space-between" align="start">
-                            <VStack align="start" spacing={1} flex="1">
-                              <Text fontWeight="bold" fontSize="lg" color="gray.800" noOfLines={1}>
-                                {gym.name}
-                              </Text>
-                              <HStack spacing={1}>
-                                <Icon as={MapPin} boxSize={3} color="gray.400" />
-                                <Text fontSize="sm" color="gray.500" noOfLines={1}>
-                                  {gym.address}
-                                </Text>
-                              </HStack>
-                            </VStack>
-                            <Badge 
-                              colorScheme={gym.status === 'active' ? "green" : "gray"}
-                              variant="subtle"
-                              borderRadius="full"
-                              fontSize="xs"
-                            >
-                              {gym.status === 'active' ? "Actif" : "Inactif"}
-                            </Badge>
-                          </Flex>
-                        </CardHeader>
-
-                        <CardBody pt={0}>
-                          <VStack spacing={3} align="stretch">
-                            <HStack justify="space-between">
-                              <Text fontSize="sm" color="gray.600">JARVIS Status</Text>
-                              <Badge 
-                                colorScheme={gym.kiosk_config?.kiosk_url_slug ? "green" : "orange"}
-                                variant="subtle"
-                                size="sm"
-                              >
-                                {gym.kiosk_config?.kiosk_url_slug ? "Configuré" : "En attente"}
-                              </Badge>
-                            </HStack>
-                            
-                            {gym.kiosk_config?.kiosk_url_slug && (
-                              <HStack justify="space-between">
-                                <Text fontSize="sm" color="gray.600">URL Kiosk</Text>
-                                <Text fontSize="sm" color="blue.500" fontWeight="500">
-                                  /{gym.kiosk_config.kiosk_url_slug}
-                                </Text>
-                              </HStack>
-                            )}
-
-                            <Box pt={2}>
-                              <Text fontSize="xs" color="gray.400" textAlign="center">
-                                Cliquez pour voir les analytics détaillées →
-                              </Text>
-                            </Box>
-                          </VStack>
-                        </CardBody>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </SimpleGrid>
-              )}
-            </VStack>
-
           </VStack>
-        </motion.div>
-      </Container>
+        </MotionBox>
+
+        {/* Stats principales */}
+        <MotionBox variants={itemVariants}>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={6}>
+            {[
+              { label: 'Salles totales', value: stats.totalGyms, icon: Dumbbell, description: 'Salles créées' },
+              { label: 'Salles actives', value: stats.activeGyms, icon: Activity, description: 'Salles opérationnelles' },
+              { label: 'Membres totaux', value: stats.totalMembers, icon: Users, description: 'Membres inscrits' },
+              { label: 'Kiosks actifs', value: stats.kioskProvisioned, icon: Zap, description: 'Kiosks provisionnés' }
+            ].map((stat, index) => (
+              <MotionBox
+                key={stat.label}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  duration: 0.5, 
+                  delay: index * 0.1,
+                  ease: [0.23, 1, 0.32, 1]
+                }}
+                whileHover={{ 
+                  scale: 1.02,
+                  transition: { duration: 0.2 }
+                }}
+              >
+                <Box
+                  bg="white"
+                  border="1px solid"
+                  borderColor="gray.200"
+                  borderRadius="2px"
+                  p={6}
+                  shadow="0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)"
+                  _hover={{
+                    borderColor: "gray.300",
+                    transition: "all 0.2s ease"
+                  }}
+                  position="relative"
+                  _before={{
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '1px',
+                    bg: 'linear-gradient(90deg, transparent, gray.100, transparent)',
+                  }}
+                >
+                  <VStack spacing={4} align="start">
+                    <Box
+                      w={10}
+                      h={10}
+                      bg="black"
+                      borderRadius="2px"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <Icon as={stat.icon} color="white" boxSize={5} />
+                    </Box>
+                    
+                    <VStack spacing={1} align="start">
+                      <Text 
+                        fontSize="2xl" 
+                        fontWeight="600" 
+                        color="black"
+                        lineHeight="1"
+                      >
+                        {stat.value}
+                      </Text>
+                      <Text 
+                        fontSize="sm" 
+                        color="gray.600"
+                        fontWeight="400"
+                      >
+                        {stat.label}
+                      </Text>
+                      <Text 
+                        fontSize="xs" 
+                        color="gray.500"
+                        fontWeight="400"
+                      >
+                        {stat.description}
+                      </Text>
+                    </VStack>
+                  </VStack>
+                </Box>
+              </MotionBox>
+            ))}
+          </SimpleGrid>
+        </MotionBox>
+
+        {/* Informations de contact */}
+        <MotionBox variants={itemVariants}>
+          <VStack spacing={6} align="start">
+            <Heading 
+              size="lg" 
+              color="black"
+              fontWeight="400"
+              letterSpacing="-0.5px"
+            >
+              Informations de contact
+            </Heading>
+            
+            <Box
+              bg="white"
+              border="1px solid"
+              borderColor="gray.200"
+              borderRadius="2px"
+              p={6}
+              shadow="0 1px 3px rgba(0, 0, 0, 0.06)"
+              w="full"
+            >
+              <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+                <VStack spacing={3} align="start">
+                  <HStack spacing={3}>
+                    <Icon as={Mail} color="gray.600" boxSize={4} />
+                    <Text fontSize="sm" color="gray.900" fontWeight="500">
+                      Email de contact
+                    </Text>
+                  </HStack>
+                                     <Text fontSize="sm" color="gray.600" fontWeight="400" ml={7}>
+                     {franchise.email}
+                   </Text>
+                </VStack>
+
+                                 <VStack spacing={3} align="start">
+                   <HStack spacing={3}>
+                     <Icon as={Phone} color="gray.600" boxSize={4} />
+                     <Text fontSize="sm" color="gray.900" fontWeight="500">
+                       Téléphone
+                     </Text>
+                   </HStack>
+                   <Text fontSize="sm" color="gray.600" fontWeight="400" ml={7}>
+                     {franchise.phone || 'Non renseigné'}
+                   </Text>
+                 </VStack>
+              </SimpleGrid>
+            </Box>
+          </VStack>
+        </MotionBox>
+
+        {/* Liste des salles */}
+        <MotionBox variants={itemVariants}>
+          <VStack spacing={6} align="start">
+            <HStack justify="space-between" w="full">
+              <Heading 
+                size="lg" 
+                color="black"
+                fontWeight="400"
+                letterSpacing="-0.5px"
+              >
+                Salles ({gyms.length})
+              </Heading>
+              
+              <Button
+                leftIcon={<Icon as={Plus} />}
+                bg="black"
+                color="white"
+                size="md"
+                onClick={() => router.push(`/admin/franchises/${franchiseId}/gyms/create`)}
+                _hover={{ 
+                  bg: "gray.900",
+                  transform: "translateY(-1px)",
+                  transition: "all 0.2s ease"
+                }}
+                _active={{ transform: "translateY(0)" }}
+                borderRadius="2px"
+                px={4}
+                py={2}
+                fontWeight="500"
+                fontSize="sm"
+              >
+                Nouvelle salle
+              </Button>
+            </HStack>
+            
+                                                                  {gyms.length === 0 ? (
+               <Box
+                 bg="white"
+                 border="1px solid"
+                 borderColor="gray.200"
+                 borderRadius="2px"
+                 p={12}
+                 textAlign="center"
+                 shadow="0 1px 3px rgba(0, 0, 0, 0.06)"
+                 w="full"
+               >
+                 <VStack spacing={4}>
+                   <Box
+                     w={12}
+                     h={12}
+                     bg="gray.100"
+                     borderRadius="2px"
+                     display="flex"
+                     alignItems="center"
+                     justifyContent="center"
+                   >
+                     <Icon as={Dumbbell} color="gray.400" boxSize={6} />
+                   </Box>
+                   <VStack spacing={2}>
+                     <Text fontSize="lg" fontWeight="500" color="black">
+                       Aucune salle
+                     </Text>
+                     <Text fontSize="sm" color="gray.600" fontWeight="400">
+                       Commencez par créer la première salle de cette franchise
+                     </Text>
+                   </VStack>
+                   <Button
+                     leftIcon={<Icon as={Plus} />}
+                     bg="black"
+                     color="white"
+                     onClick={() => router.push(`/admin/franchises/${franchiseId}/gyms/create`)}
+                     _hover={{ bg: "gray.900" }}
+                     borderRadius="2px"
+                     fontWeight="500"
+                     fontSize="sm"
+                   >
+                     Créer une salle
+                   </Button>
+                 </VStack>
+               </Box>
+             ) : (
+               <SimpleGrid columns={{ base: 1, lg: 2 }} gap={4} w="full">
+                 {gyms.map((gym, index) => (
+                   <MotionBox
+                     key={gym.id}
+                     initial={{ opacity: 0, x: -20 }}
+                     animate={{ opacity: 1, x: 0 }}
+                     transition={{ 
+                       duration: 0.4, 
+                       delay: index * 0.1,
+                       ease: "easeOut"
+                     }}
+                     whileHover={{ 
+                       scale: 1.01,
+                       transition: { duration: 0.15 }
+                     }}
+                   >
+                     <Box
+                       bg="white"
+                       border="1px solid"
+                       borderColor="gray.200"
+                       borderRadius="2px"
+                       p={6}
+                       shadow="0 1px 3px rgba(0, 0, 0, 0.06)"
+                       cursor="pointer"
+                       onClick={() => router.push(`/admin/franchises/${franchiseId}/gyms/${gym.id}`)}
+                       _hover={{
+                         borderColor: "gray.300",
+                         transition: "all 0.2s ease"
+                       }}
+                     >
+                       <VStack spacing={4} align="start">
+                         <HStack justify="space-between" w="full">
+                           <HStack spacing={3}>
+                             <Box
+                               w={8}
+                               h={8}
+                               bg="black"
+                               borderRadius="2px"
+                               display="flex"
+                               alignItems="center"
+                               justifyContent="center"
+                             >
+                               <Icon as={Dumbbell} color="white" boxSize={4} />
+                             </Box>
+                             <VStack spacing={0} align="start">
+                               <Text 
+                                 fontSize="md" 
+                                 fontWeight="500" 
+                                 color="black"
+                               >
+                                 {gym.name}
+                               </Text>
+                               <Text 
+                                 fontSize="xs" 
+                                 color="gray.600"
+                                 fontWeight="400"
+                               >
+                                 {gym.address || 'Adresse non renseignée'}
+                               </Text>
+                             </VStack>
+                           </HStack>
+                           
+                           <Badge 
+                             bg={gym.status === 'active' ? 'gray.900' : 'gray.300'}
+                             color={gym.status === 'active' ? 'white' : 'gray.600'}
+                             borderRadius="2px"
+                             px={2}
+                             py={1}
+                             fontSize="xs"
+                             fontWeight="400"
+                           >
+                             {gym.status === 'active' ? 'Actif' : 'Inactif'}
+                           </Badge>
+                         </HStack>
+
+                         <SimpleGrid columns={2} gap={4} w="full">
+                           <VStack spacing={1} align="start">
+                             <HStack spacing={1}>
+                               <Text fontSize="lg" fontWeight="600" color="black">
+                                 {gym.kiosk_config?.is_provisioned ? '1' : '0'}
+                               </Text>
+                               {gym.kiosk_config?.is_provisioned && (
+                                 <Box
+                                   w={1}
+                                   h={1}
+                                   bg="gray.900"
+                                   borderRadius="50%"
+                                 />
+                               )}
+                             </HStack>
+                             <Text fontSize="xs" color="gray.500" fontWeight="400">
+                               Kiosk
+                             </Text>
+                           </VStack>
+                           
+                           <VStack spacing={1} align="start">
+                             <Text fontSize="lg" fontWeight="600" color="black">
+                               {new Date(gym.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                             </Text>
+                             <Text fontSize="xs" color="gray.500" fontWeight="400">
+                               Créée
+                             </Text>
+                           </VStack>
+                         </SimpleGrid>
+                       </VStack>
+                     </Box>
+                   </MotionBox>
+                 ))}
+               </SimpleGrid>
+             )}
+          </VStack>
+        </MotionBox>
+      </MotionVStack>
     </Box>
   )
 } 

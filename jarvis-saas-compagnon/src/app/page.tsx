@@ -386,9 +386,13 @@ export default function LoginPage() {
         // Indiquer le succès avant la redirection
         setSuccess(true)
         
-        // Redirection vers dashboard pour tous (navigation hiérarchique cohérente)
+        // Redirection basée sur le rôle
         setTimeout(() => {
-          router.push('/dashboard') // Tous les rôles → dashboard global
+          if (userProfile?.role === 'super_admin') {
+            router.push('/admin') // Super admin → interface d'administration
+          } else {
+            router.push('/dashboard') // Autres rôles → dashboard
+          }
         }, 800)
       }
     } catch {

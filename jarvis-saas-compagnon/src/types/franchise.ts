@@ -126,18 +126,17 @@ export interface Gym {
   postal_code: string
   
   // JARVIS Equipment & Kiosk Linking
-  kiosk_config: KioskConfig
+  kiosk_config: any // JSON field
   
   // Management
   manager_id?: string
-  staff_ids: string[]
   
   // Business
-  member_count?: number
-  opening_hours: OpeningHours[]
+  opening_hours: any // JSON field
+  features: string[] // Array field
   
   // Status
-  status: 'active' | 'maintenance' | 'offline'
+  status: string
   
   // Timestamps
   created_at: string
