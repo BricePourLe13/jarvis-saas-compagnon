@@ -68,7 +68,8 @@ import {
   TrendingUp,
   RotateCcw,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../../../types/franchise'
 import { createClient } from '../../../../../../lib/supabase-simple'
@@ -548,6 +549,21 @@ export default function GymDetailsPage() {
               >
                 <Icon as={Monitor} mr={2} boxSize={4} />
                 Kiosk JARVIS
+              </Tab>
+              <Tab 
+                _selected={{ 
+                  bg: "#ffffff", 
+                  borderColor: "#e5e7eb",
+                  color: "#111827",
+                  fontWeight: "500"
+                }}
+                color="#6b7280"
+                fontSize="sm"
+                px={6}
+                py={3}
+              >
+                <Icon as={AlertTriangle} mr={2} boxSize={4} />
+                Monitoring
               </Tab>
 
             </TabList>
@@ -1133,6 +1149,128 @@ export default function GymDetailsPage() {
                       </SimpleGrid>
                     </VStack>
                   </motion.div>
+
+                </VStack>
+              </TabPanel>
+              
+              {/* Onglet Monitoring */}
+              <TabPanel p={8}>
+                <VStack spacing={8} align="stretch">
+                  
+                  {/* En-tête Monitoring */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Flex justify="space-between" align="center">
+                      <VStack align="start" spacing={1}>
+                        <Text fontSize="xl" fontWeight="700" color="#111827">
+                          Monitoring Erreurs JARVIS
+                        </Text>
+                        <Text fontSize="sm" color="#6b7280">
+                          Surveillance des erreurs de session et problèmes techniques
+                        </Text>
+                      </VStack>
+                      <Button
+                        leftIcon={<Icon as={RefreshCw} />}
+                        onClick={() => window.location.reload()}
+                        variant="outline"
+                        size="sm"
+                        borderRadius="8px"
+                      >
+                        Actualiser
+                      </Button>
+                    </Flex>
+                  </motion.div>
+
+                  {/* Section Erreurs Récentes */}
+                  <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                    <VStack spacing={4} align="stretch">
+                      <Text fontWeight="600" color="#111827" fontSize="lg">
+                        Erreurs Récentes (24h)
+                      </Text>
+                      <Text fontSize="sm" color="#6b7280">
+                        🚧 Section en cours de développement
+                      </Text>
+                      <Text fontSize="xs" color="#9ca3af">
+                        Les erreurs de création de session JARVIS seront affichées ici une fois la table créée en base.
+                      </Text>
+                    </VStack>
+                  </Card>
+
+                  {/* Section Statistiques Erreurs */}
+                  <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
+                    
+                    {/* Erreurs 24h */}
+                    <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                      <VStack spacing={3} align="stretch">
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="#6b7280">Erreurs 24h</Text>
+                          <Icon as={AlertTriangle} boxSize={4} color="#f59e0b" />
+                        </HStack>
+                        <Text fontSize="2xl" fontWeight="700" color="#111827">
+                          --
+                        </Text>
+                        <Text fontSize="xs" color="#6b7280">
+                          En attente de données
+                        </Text>
+                      </VStack>
+                    </Card>
+
+                    {/* Taux d'Erreur */}
+                    <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                      <VStack spacing={3} align="stretch">
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="#6b7280">Taux d'Erreur</Text>
+                          <Icon as={TrendingUp} boxSize={4} color="#ef4444" />
+                        </HStack>
+                        <Text fontSize="2xl" fontWeight="700" color="#111827">
+                          --%
+                        </Text>
+                        <Text fontSize="xs" color="#6b7280">
+                          En attente de données
+                        </Text>
+                      </VStack>
+                    </Card>
+
+                    {/* Dernière Erreur */}
+                    <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                      <VStack spacing={3} align="stretch">
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" color="#6b7280">Dernière Erreur</Text>
+                          <Icon as={Clock} boxSize={4} color="#6b7280" />
+                        </HStack>
+                        <Text fontSize="sm" fontWeight="600" color="#111827">
+                          Aucune
+                        </Text>
+                        <Text fontSize="xs" color="#6b7280">
+                          En attente de données
+                        </Text>
+                      </VStack>
+                    </Card>
+
+                  </SimpleGrid>
+
+                  {/* Instructions Configuration */}
+                  <Card bg="#fef3c7" border="1px solid #fbbf24" borderRadius="12px" p={6}>
+                    <VStack spacing={4} align="stretch">
+                      <HStack>
+                        <Icon as={AlertTriangle} boxSize={5} color="#d97706" />
+                        <Text fontWeight="600" color="#92400e">
+                          Configuration Requise
+                        </Text>
+                      </HStack>
+                      <Text fontSize="sm" color="#92400e">
+                        Pour activer le monitoring des erreurs, exécutez le script SQL suivant dans Supabase :
+                      </Text>
+                      <Box bg="#ffffff" p={4} borderRadius="8px" border="1px solid #fbbf24">
+                        <Code fontSize="xs" color="#92400e" fontFamily="mono">
+                          create-errors-log-table.sql
+                        </Code>
+                      </Box>
+                    </VStack>
+                  </Card>
 
                 </VStack>
               </TabPanel>

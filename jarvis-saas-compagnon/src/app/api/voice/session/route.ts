@@ -132,9 +132,52 @@ ${memoryContext}`
 
     if (!sessionResponse.ok) {
       const errorText = await sessionResponse.text()
-      console.error('OpenAI Session Error:', errorText)
+      
+      // 🚨 LOGGING RENFORCÉ POUR DEBUG ERREUR 400
+      console.error('🔥 [VOICE SESSION] ERREUR OPENAI:', {
+        status: sessionResponse.status,
+        statusText: sessionResponse.statusText,
+        error: errorText,
+        request_body: {
+          model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+          voice: 'verse',
+          gymSlug,
+          memberId,
+          memberName: memberData?.first_name,
+          hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+          keyPrefix: process.env.OPENAI_API_KEY?.substring(0, 7) + '...'
+        },
+        timestamp: new Date().toISOString()
+      })
+      
+      // 📊 TRACKING ERREUR POUR ADMIN DASHBOARD
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/debug/tracking`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'voice_session_error',
+            status: sessionResponse.status,
+            error: errorText,
+            gymSlug,
+            memberId,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(trackError => console.warn('Tracking error failed:', trackError))
+      } catch (trackError) {
+        console.warn('Failed to track voice session error:', trackError)
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to create OpenAI session', details: errorText },
+        { 
+          error: 'Failed to create OpenAI session', 
+          details: errorText,
+          status: sessionResponse.status,
+          debug: {
+            model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+            timestamp: new Date().toISOString()
+          }
+        },
         { status: sessionResponse.status }
       )
     }
