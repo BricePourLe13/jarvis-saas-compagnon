@@ -16,6 +16,7 @@ import {
   Grid
 } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
+import JarvisDemo from '@/components/login/JarvisDemo'
 
 let createClient: any = null
 async function loadSupabaseClient() {
@@ -404,9 +405,9 @@ export default function LoginPage() {
   return (
     <Box minH="100vh" bg="#ffffff">
       <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} h="100vh">
-        {/* Côté gauche - Illustration */}
+        {/* Côté gauche - Démo JARVIS Interactive */}
         <Box display={{ base: "none", lg: "block" }}>
-          <JarvisIllustration />
+          <JarvisDemo />
         </Box>
         
         {/* Côté droit - Formulaire */}
