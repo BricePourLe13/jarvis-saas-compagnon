@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
+import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -49,6 +50,32 @@ export function useVoiceChat(config: VoiceChatConfig) {
   const [currentTranscript, setCurrentTranscript] = useState('')
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error' | 'reconnecting'>('idle')
   const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'unknown'>('unknown')
+
+  // 📊 États de tracking de session
+  const sessionTrackingRef = useRef<{
+    sessionId: string | null
+    gymId: string | null
+    franchiseId: string | null
+    startTime: Date | null
+    textInputTokens: number
+    textOutputTokens: number
+    audioInputSeconds: number
+    audioOutputSeconds: number
+    errorOccurred: boolean
+    transcriptHistory: string[]
+    speechStartTime?: number
+  }>({
+    sessionId: null,
+    gymId: null,
+    franchiseId: null,
+    startTime: null,
+    textInputTokens: 0,
+    textOutputTokens: 0,
+    audioInputSeconds: 0,
+    audioOutputSeconds: 0,
+    errorOccurred: false,
+    transcriptHistory: []
+  })
   
   // Refs pour éviter les re-créations
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
@@ -74,6 +101,95 @@ export function useVoiceChat(config: VoiceChatConfig) {
   const updateStatus = useCallback((newStatus: typeof status) => {
     setStatus(newStatus)
     configRef.current.onStatusChange?.(newStatus)
+  }, [])
+
+  // 📊 Fonctions helper pour le tracking de session
+  const generateSessionId = useCallback(() => {
+    return `jarvis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  }, [])
+
+  const initSessionTracking = useCallback(async (gymData?: any) => {
+    const sessionId = generateSessionId()
+    
+    sessionTrackingRef.current = {
+      sessionId,
+      gymId: gymData?.gymId || null,
+      franchiseId: gymData?.franchiseId || null,
+      startTime: new Date(),
+      textInputTokens: 0,
+      textOutputTokens: 0,
+      audioInputSeconds: 0,
+      audioOutputSeconds: 0,
+      errorOccurred: false,
+      transcriptHistory: []
+    }
+
+    console.log('📊 [TRACKING] Session initialisée:', sessionId)
+  }, [generateSessionId])
+
+     const finalizeSessionTracking = useCallback(async () => {
+     const tracking = sessionTrackingRef.current
+     
+     // ✅ CORRECTION: Ne pas traiter si aucune session n'a jamais été initialisée
+     if (!tracking.sessionId) {
+       console.log('📊 [TRACKING] Aucune session à finaliser (pas de sessionId)')
+       return
+     }
+     
+     console.log('📊 [TRACKING] ===== DÉBUT FINALISATION SESSION =====')
+     console.log('📊 [TRACKING] Données de tracking actuelles:', tracking)
+     
+     if (!tracking.startTime || !tracking.gymId) {
+       console.error('📊 [TRACKING] ❌ DONNÉES INCOMPLÈTES:')
+       console.error('- sessionId:', tracking.sessionId)
+       console.error('- startTime:', tracking.startTime)
+       console.error('- gymId:', tracking.gymId)
+       console.error('- franchiseId:', tracking.franchiseId)
+       return
+     }
+
+    try {
+      const durationSeconds = Math.floor((Date.now() - tracking.startTime.getTime()) / 1000)
+      
+      // Calculer approximativement les tokens audio basés sur la durée
+      const audioInputTokens = Math.round(tracking.audioInputSeconds * 1667 / 60) // ~1667 tokens/minute
+      const audioOutputTokens = Math.round(tracking.audioOutputSeconds * 1667 / 60)
+
+      console.log('📊 [TRACKING] Finalisation session:', {
+        sessionId: tracking.sessionId,
+        durationSeconds,
+        audioInputTokens,
+        audioOutputTokens
+      })
+
+      await trackSessionCost({
+        sessionId: tracking.sessionId,
+        gymId: tracking.gymId,
+        franchiseId: tracking.franchiseId,
+        timestamp: tracking.startTime,
+        durationSeconds,
+        textInputTokens: tracking.textInputTokens,
+        textOutputTokens: tracking.textOutputTokens,
+        audioInputTokens,
+        audioOutputTokens,
+        userSatisfaction: undefined, // TODO: Collecter si nécessaire
+        errorOccurred: tracking.errorOccurred,
+        endReason: tracking.errorOccurred ? 'error' : 'user_ended',
+        audioInputSeconds: tracking.audioInputSeconds,
+        audioOutputSeconds: tracking.audioOutputSeconds
+      })
+
+             console.log('📊 [TRACKING] ✅ SESSION SAUVEGARDÉE AVEC SUCCÈS!')
+       console.log('📊 [TRACKING] Session ID final:', tracking.sessionId)
+       console.log('📊 [TRACKING] ===== FIN FINALISATION SESSION =====')
+     } catch (error) {
+       console.error('📊 [TRACKING] ❌ ERREUR CRITIQUE SAUVEGARDE:', error)
+       console.error('📊 [TRACKING] Détails erreur:', {
+         name: error instanceof Error ? error.name : 'Unknown',
+         message: error instanceof Error ? error.message : error,
+         stack: error instanceof Error ? error.stack : undefined
+       })
+     }
   }, [])
 
   // 🔧 BUGFIX: Utiliser les données membre passées directement au lieu du hardcodé
@@ -110,6 +226,45 @@ export function useVoiceChat(config: VoiceChatConfig) {
     try {
       const memberData = await getMemberData()
       
+             // 📊 [TRACKING] Récupérer les infos de gym/franchise pour le tracking
+       let gymData = null
+       try {
+         console.log('📊 [TRACKING] Récupération infos gym pour:', config.gymSlug)
+         const gymResponse = await fetch(`/api/kiosk/${config.gymSlug}`)
+         console.log('📊 [TRACKING] Réponse gym API:', gymResponse.status, gymResponse.ok)
+         
+                   if (gymResponse.ok) {
+            const gymInfo = await gymResponse.json()
+            console.log('📊 [TRACKING] Données gym complètes:', gymInfo)
+            
+            // ✅ CORRECTION: Plusieurs façons d'extraire les IDs pour compatibilité
+            const extractedGymId = gymInfo.data?.id || gymInfo.gym?.id || gymInfo.kiosk?.id
+            const extractedFranchiseId = gymInfo.data?.franchise_id || gymInfo.gym?.franchise_id
+            
+            gymData = {
+              gymId: extractedGymId,
+              franchiseId: extractedFranchiseId
+            }
+            console.log('📊 [TRACKING] Infos gym extraites:', gymData)
+            
+            if (!gymData.gymId) {
+              console.error('📊 [TRACKING] ❌ PROBLÈME: gymId manquant dans la réponse API')
+              console.error('📊 [TRACKING] Structure reçue:', {
+                hasData: !!gymInfo.data,
+                hasGym: !!gymInfo.gym,
+                hasKiosk: !!gymInfo.kiosk,
+                dataId: gymInfo.data?.id,
+                gymId: gymInfo.gym?.id,
+                kioskId: gymInfo.kiosk?.id
+              })
+            }
+         } else {
+           console.error('📊 [TRACKING] ❌ Erreur API gym:', gymResponse.status)
+         }
+       } catch (error) {
+         console.error('📊 [TRACKING] ❌ Exception récupération gym:', error)
+       }
+      
       const response = await fetch('/api/voice/session', {
         method: 'POST',
         headers: {
@@ -128,12 +283,16 @@ export function useVoiceChat(config: VoiceChatConfig) {
       }
 
       const data = await response.json()
+      
+      // 📊 [TRACKING] Initialiser le tracking de session
+      await initSessionTracking(gymData)
+      
       return data.session
     } catch (error) {
       console.error('Erreur création session:', error)
       throw error
     }
-  }, [config.memberId, config.gymSlug, getMemberData])
+  }, [config.memberId, config.gymSlug, getMemberData, initSessionTracking])
 
   // Initialiser la connexion WebRTC
   const initializeWebRTC = useCallback(async (session: VoiceChatSession) => {
@@ -267,11 +426,23 @@ export function useVoiceChat(config: VoiceChatConfig) {
         console.log('🎤 Début de parole détecté')
         updateStatus('listening')
         setAudioState(prev => ({ ...prev, isRecording: true }))
+        
+        // 📊 [TRACKING] Marquer le début d'input audio
+        if (sessionTrackingRef.current.sessionId) {
+          sessionTrackingRef.current.speechStartTime = Date.now()
+        }
         break
 
       case 'input_audio_buffer.speech_stopped':
         console.log('🤐 Fin de parole détectée')
         setAudioState(prev => ({ ...prev, isRecording: false }))
+        
+        // 📊 [TRACKING] Calculer la durée d'input audio
+        if (sessionTrackingRef.current.sessionId && sessionTrackingRef.current.speechStartTime) {
+          const duration = (Date.now() - sessionTrackingRef.current.speechStartTime) / 1000
+          sessionTrackingRef.current.audioInputSeconds += duration
+          delete sessionTrackingRef.current.speechStartTime
+        }
         break
 
       case 'response.created':
@@ -289,14 +460,28 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       case 'response.audio_transcript.done':
         console.log('📝 Transcript final:', event.transcript)
-        configRef.current.onTranscriptUpdate?.(event.transcript || transcriptBufferRef.current, true)
-        setCurrentTranscript(event.transcript || transcriptBufferRef.current)
+        const finalTranscript = event.transcript || transcriptBufferRef.current
+        configRef.current.onTranscriptUpdate?.(finalTranscript, true)
+        setCurrentTranscript(finalTranscript)
+        
+        // 📊 [TRACKING] Enregistrer la transcription
+        if (finalTranscript && sessionTrackingRef.current.sessionId) {
+          sessionTrackingRef.current.transcriptHistory.push(finalTranscript)
+          // Estimer les tokens de sortie (approximation: 1 token ≈ 4 caractères)
+          sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
+        }
+        
         transcriptBufferRef.current = ''
         break
 
       case 'response.audio.done':
         console.log('🔊 Audio de réponse terminé')
         setAudioState(prev => ({ ...prev, isPlaying: false }))
+        
+        // 📊 [TRACKING] Estimer la durée audio de sortie (approximatif)
+        if (sessionTrackingRef.current.sessionId) {
+          sessionTrackingRef.current.audioOutputSeconds += 3 // Estimation moyenne
+        }
         break
 
       case 'response.done':
@@ -307,6 +492,12 @@ export function useVoiceChat(config: VoiceChatConfig) {
       case 'error':
         console.error('❌ Erreur serveur OpenAI:', event)
         configRef.current.onError?.(event.error?.message || 'Erreur serveur')
+        
+        // 📊 [TRACKING] Marquer l'erreur
+        if (sessionTrackingRef.current.sessionId) {
+          sessionTrackingRef.current.errorOccurred = true
+        }
+        
         updateStatus('error')
         break
 
@@ -424,6 +615,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
       audioElementRef.current.srcObject = null
     }
 
+    // 📊 [TRACKING] Finaliser le tracking de session
+    finalizeSessionTracking()
+
     // Reset states
     setIsConnected(false)
     setCurrentTranscript('')
@@ -440,7 +634,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
     transcriptBufferRef.current = ''
     
     updateStatus('idle')
-  }, [updateStatus])
+  }, [updateStatus, finalizeSessionTracking])
 
   // Envoyer un message texte (optionnel)
   const sendTextMessage = useCallback((text: string) => {

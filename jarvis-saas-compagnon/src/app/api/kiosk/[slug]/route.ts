@@ -101,8 +101,15 @@ export async function GET(
       gym: {
         id: gym.id,
         name: gym.name,
+        franchise_id: gym.franchise_id, // ✅ Ajout pour le tracking
         address: '', // Pour compatibility
         franchise_name: franchiseName
+      },
+      // ✅ Ajout d'une section data pour compatibilité avec le tracking
+      data: {
+        id: gym.id,
+        franchise_id: gym.franchise_id,
+        name: gym.name
       }
     }
 

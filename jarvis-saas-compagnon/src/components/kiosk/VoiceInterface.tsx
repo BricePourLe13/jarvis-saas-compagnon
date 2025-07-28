@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Box, Button, Text, VStack, HStack } from '@chakra-ui/react'
+import { Box, Button, Text, VStack, HStack, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
 import AudioVisualizer from './AudioVisualizer'
@@ -77,11 +77,11 @@ export default function VoiceInterface({
   const getJarvisStatus = () => {
     switch (status) {
       case 'connecting': return 'Connexion...'
-      case 'connected': return 'Prêt'
-      case 'listening': return 'Écoute'
-      case 'speaking': return 'Parle'
+      case 'connected': return 'JARVIS vous écoute'
+      case 'listening': return 'Je vous écoute...'
+      case 'speaking': return 'Je réponds...'
       case 'error': return 'Erreur'
-      default: return 'Idle'
+      default: return 'Initialisation...'
     }
   }
 
@@ -116,8 +116,22 @@ export default function VoiceInterface({
         )}
         
         {status === 'connecting' && (
-          <Text color="blue.300" fontSize="sm" textAlign="center">
-            🎤 Connexion à JARVIS...
+          <VStack spacing={2}>
+            <Text color="blue.300" fontSize="sm" textAlign="center">
+              🎤 Connexion à JARVIS...
+            </Text>
+            <HStack spacing={1}>
+              <Spinner size="xs" color="blue.400" />
+              <Text color="blue.400" fontSize="xs">
+                Initialisation de l'IA
+              </Text>
+            </HStack>
+          </VStack>
+        )}
+        
+        {!isConnected && status !== 'connecting' && status !== 'error' && (
+          <Text color="gray.400" fontSize="sm" textAlign="center">
+            Prêt à se connecter...
           </Text>
         )}
         

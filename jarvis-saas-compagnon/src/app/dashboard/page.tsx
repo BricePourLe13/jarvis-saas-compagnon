@@ -46,19 +46,19 @@ const getDynamicStats = (franchises: Franchise[], jarvisMetrics: any) => [
   },
   { 
     label: "Sessions JARVIS", 
-    value: jarvisMetrics.totalSessions || 0, 
+    value: jarvisMetrics?.today?.totalSessions || 0, 
     icon: MessageSquare,
     description: "Sessions totales"
   },
   { 
     label: "Coût IA", 
-    value: `${formatCurrency(jarvisMetrics.totalCostEUR)}`, 
+    value: `${formatCurrency(convertUSDToEUR(jarvisMetrics?.today?.totalCostUSD || 0))}`, 
     icon: DollarSign,
     description: "Coût total OpenAI"
   },
   { 
     label: "Tokens utilisés", 
-    value: `${Math.round((jarvisMetrics.totalTokens || 0) / 1000)}k`, 
+    value: `${Math.round(((jarvisMetrics?.today?.totalTextInputTokens || 0) + (jarvisMetrics?.today?.totalTextOutputTokens || 0) + (jarvisMetrics?.today?.totalAudioInputTokens || 0) + (jarvisMetrics?.today?.totalAudioOutputTokens || 0)) / 1000)}k`, 
     icon: Zap,
     description: "Tokens traités"
   }
@@ -68,20 +68,20 @@ const getDynamicStats = (franchises: Franchise[], jarvisMetrics: any) => [
 const getDynamicJarvisAnalytics = (jarvisMetrics: any) => [
   {
     title: "Sessions audio",
-    value: jarvisMetrics.totalSessions || 0,
+    value: jarvisMetrics?.today?.totalSessions || 0,
     icon: Mic,
     description: "Sessions vocales",
   },
   {
     title: "Tokens traités", 
-    value: `${Math.round((jarvisMetrics.totalTokens || 0) / 1000)}k`,
+    value: `${Math.round(((jarvisMetrics?.today?.totalTextInputTokens || 0) + (jarvisMetrics?.today?.totalTextOutputTokens || 0) + (jarvisMetrics?.today?.totalAudioInputTokens || 0) + (jarvisMetrics?.today?.totalAudioOutputTokens || 0)) / 1000)}k`,
     icon: Activity,
     description: "Tokens OpenAI",
   },
   {
     title: "Coût moyen/session",
-    value: jarvisMetrics.totalSessions > 0 
-      ? `${formatCurrency(jarvisMetrics.totalCostEUR / jarvisMetrics.totalSessions)}`
+    value: (jarvisMetrics?.today?.totalSessions || 0) > 0 
+      ? `${formatCurrency(convertUSDToEUR((jarvisMetrics?.today?.totalCostUSD || 0) / (jarvisMetrics?.today?.totalSessions || 1)))}`
       : "€0.00",
     icon: DollarSign,
     description: "Coût par session",

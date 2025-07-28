@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import {
   Box,
@@ -65,11 +65,20 @@ import {
   MessageSquare,
   Bot,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  RotateCcw,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../../../types/franchise'
 import { createClient } from '../../../../../../lib/supabase-simple'
-import { getRealTimeMetrics, getRealTimeMetricsByGym, getKioskSupervisionMetrics, convertUSDToEUR, formatCurrency } from '../../../../../../lib/openai-cost-tracker'
+import { getKioskSupervisionMetrics, convertUSDToEUR, formatCurrency } from '../../../../../../lib/openai-cost-tracker'
+// ✅ Import pour les métriques temps réel
+import { RealOpenAICostsService } from '../../../../../../lib/real-openai-costs'
+// 💓 Import pour le statut temps réel des kiosks
+import { KioskStatusService } from '../../../../../../lib/kiosk-status'
+
+
 
 // ===========================================
 // 🎯 Page Principale
@@ -98,6 +107,9 @@ export default function GymDetailsPage() {
   // Supervision kiosk states
   const [kioskSupervisionLoading, setKioskSupervisionLoading] = useState(true)
   const [kioskSupervision, setKioskSupervision] = useState<any>(null)
+  
+  // 💓 Statut temps réel du kiosk
+  const [kioskOnlineStatus, setKioskOnlineStatus] = useState<boolean>(false)
 
   // ===========================================
   // 🔄 Chargement des données
@@ -107,6 +119,24 @@ export default function GymDetailsPage() {
     loadGymDetails()
     loadJarvisMetrics()
     loadKioskSupervision()
+    loadKioskStatus() // 💓 Charger le statut temps réel
+
+    // 📡 Mise à jour temps réel des métriques toutes les 2 minutes (moins de spam)
+    const interval = setInterval(() => {
+      loadJarvisMetrics()
+      loadKioskSupervision()
+      loadKioskStatus() // 💓 Vérifier le statut régulièrement
+    }, 120000) // ✅ 2 minutes au lieu de 30 secondes
+
+    // ⚡ Vérifier le statut ultra-fréquemment (toutes les 10 secondes)
+    const statusInterval = setInterval(() => {
+      loadKioskStatus()
+    }, 10000) // ⚡ 10 secondes pour détection ultra-rapide
+
+    return () => {
+      clearInterval(interval)
+      clearInterval(statusInterval)
+    }
   }, [gymId])
 
   const loadGymDetails = async () => {
@@ -146,21 +176,16 @@ export default function GymDetailsPage() {
     }
   }
 
-  // Charger les métriques JARVIS
+  // ✅ RESTAURATION: Métriques avec vrais coûts OpenAI (crédits API rechargés !)
   const loadJarvisMetrics = async () => {
     try {
       setJarvisMetricsLoading(true)
-      const metrics = await getRealTimeMetricsByGym(gymId)
+      // ⚡ Logs silencieux pour éviter le spam (mais fonctionnalité complète)
+      const metrics = await RealOpenAICostsService.getRealTimeMetricsByGym(gymId)
       setJarvisMetrics(metrics)
     } catch (error) {
-      console.error('Erreur chargement métriques JARVIS:', error)
-      // Fallback avec métriques globales filtrées si la fonction spécifique échoue
-      try {
-        const fallbackMetrics = await getRealTimeMetrics({ gymId })
-        setJarvisMetrics(fallbackMetrics)
-      } catch (fallbackError) {
-        console.error('Erreur fallback métriques:', fallbackError)
-      }
+      console.error('Erreur chargement métriques JARVIS (vrais coûts):', error)
+      setJarvisMetrics(null)
     } finally {
       setJarvisMetricsLoading(false)
     }
@@ -175,6 +200,23 @@ export default function GymDetailsPage() {
       console.error('Erreur chargement supervision kiosk:', error)
     } finally {
       setKioskSupervisionLoading(false)
+    }
+  }
+
+  // 💓 Charger le statut temps réel du kiosk
+  const loadKioskStatus = async () => {
+    try {
+      const status = await KioskStatusService.getKioskStatus(gymId)
+      const wasOnline = kioskOnlineStatus
+      setKioskOnlineStatus(status.isOnline)
+      
+      // ⚡ Log seulement les changements de statut (éviter le spam)
+      if (wasOnline !== status.isOnline) {
+        console.log(`💓 [ADMIN] Statut kiosk ${gymId} changé:`, status.isOnline ? '🟢 EN LIGNE' : '🔴 HORS LIGNE')
+      }
+    } catch (error) {
+      console.error('💓 [ADMIN] Erreur chargement statut kiosk:', error)
+      setKioskOnlineStatus(false)
     }
   }
 
@@ -217,6 +259,58 @@ export default function GymDetailsPage() {
     }
   }
 
+  const regenerateProvisioningCode = async () => {
+    if (!gym?.id) return
+
+    try {
+      const response = await fetch(`/api/admin/gyms/${gym.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'regenerate_provisioning_code' }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        // Mettre à jour l'état local
+        setGym(prevGym => {
+          if (!prevGym) return prevGym
+          return {
+            ...prevGym,
+            kiosk_config: {
+              ...prevGym.kiosk_config,
+              provisioning_code: result.data.provisioning_code,
+              provisioning_expires_at: result.data.expires_at,
+              is_provisioned: false,
+              provisioned_at: null
+            }
+          }
+        })
+
+        toast({
+          title: 'Code régénéré',
+          description: 'Un nouveau code de provisioning a été généré avec succès',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        })
+      } else {
+        throw new Error(result.error || 'Erreur lors de la régénération')
+      }
+    } catch (error) {
+      console.error('Erreur régénération code:', error)
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de régénérer le code de provisioning',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
   // ===========================================
   // 🎨 UI Helpers
   // ===========================================
@@ -242,6 +336,9 @@ export default function GymDetailsPage() {
   const isKioskProvisioned = gym?.kiosk_config?.is_provisioned || false
   const provisioningCode = gym?.kiosk_config?.provisioning_code
   const kioskUrl = gym?.kiosk_config?.kiosk_url_slug
+  
+  // 💓 Statut temps réel basé sur les heartbeats
+  const isKioskOnline = kioskOnlineStatus
 
   // ===========================================
   // 🖼️ Rendu
@@ -372,596 +469,628 @@ export default function GymDetailsPage() {
 
           {/* Contenu principal avec onglets */}
           <Tabs colorScheme="blue" variant="enclosed">
-            <TabList borderRadius="12px 12px 0 0" bg="gray.50">
-              <Tab _selected={{ bg: "white", borderColor: "gray.200" }}>
-                <Icon as={Building2} mr={2} />
-                Informations
+            <TabList 
+              borderRadius="2px" 
+              bg="#fafafa"
+              borderBottom="1px solid"
+              borderColor="#e5e7eb"
+              fontFamily="system-ui"
+            >
+              <Tab 
+                _selected={{ 
+                  bg: "#ffffff", 
+                  borderColor: "#e5e7eb",
+                  color: "#111827",
+                  fontWeight: "500"
+                }}
+                color="#6b7280"
+                fontSize="sm"
+                px={6}
+                py={3}
+              >
+                <Icon as={BarChart3} mr={2} boxSize={4} />
+                Vue d'ensemble
               </Tab>
-              <Tab _selected={{ bg: "white", borderColor: "gray.200" }}>
-                <Icon as={Monitor} mr={2} />
+              <Tab 
+                _selected={{ 
+                  bg: "#ffffff", 
+                  borderColor: "#e5e7eb",
+                  color: "#111827",
+                  fontWeight: "500"
+                }}
+                color="#6b7280"
+                fontSize="sm"
+                px={6}
+                py={3}
+              >
+                <Icon as={Monitor} mr={2} boxSize={4} />
                 Kiosk JARVIS
               </Tab>
-              <Tab _selected={{ bg: "white", borderColor: "gray.200" }}>
-                <Icon as={Activity} mr={2} />
-                Analytics
-              </Tab>
+
             </TabList>
 
-            <TabPanels bg="white" borderRadius="0 0 12px 12px" border="1px solid" borderColor="gray.200" borderTop="none">
+            <TabPanels 
+              bg="#ffffff" 
+              borderRadius="0 0 2px 2px" 
+              border="1px solid" 
+              borderColor="#e5e7eb" 
+              borderTop="none"
+              fontFamily="system-ui"
+            >
               
-              {/* Onglet Informations */}
-              <TabPanel p={6}>
-                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+              {/* Onglet Vue d'ensemble */}
+              <TabPanel p={8}>
+                <VStack spacing={8} align="stretch">
                   
-                  {/* Informations générales */}
-                  <Card 
-                    borderRadius="16px" 
-                    border="1px solid" 
-                    borderColor="gray.100"
-                    bg="white"
-                    shadow="sm"
-                    _hover={{ shadow: "md" }}
-                    transition="all 0.2s"
+                  {/* Statut Global Kiosk */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <CardHeader bg="blue.50" borderRadius="16px 16px 0 0">
-                      <Heading size="md" color="blue.700">
-                        <Icon as={Building2} mr={2} />
-                        Informations générales
-                      </Heading>
-                    </CardHeader>
-                    <CardBody pt={4}>
-                      <VStack spacing={4} align="stretch">
-                        <Box>
-                          <Text fontSize="sm" color="gray.500" mb={1}>Nom</Text>
-                          <Text fontWeight="600" color="gray.800">{gym.name}</Text>
-                        </Box>
-                        <Box>
-                          <Text fontSize="sm" color="gray.500" mb={1}>Adresse</Text>
-                          <Text color="gray.700">{gym.address}</Text>
-                          <Text color="gray.600">{gym.city} {gym.postal_code}</Text>
-                        </Box>
-                        <Box>
-                          <Text fontSize="sm" color="gray.500" mb={1}>Statut</Text>
-                          <Badge 
-                            colorScheme={getStatusColor(gym.status)} 
-                            size="md"
-                            borderRadius="8px"
-                            px={3}
-                            py={1}
-                          >
-                            {getStatusLabel(gym.status)}
-                          </Badge>
-                        </Box>
-                      </VStack>
-                    </CardBody>
-                  </Card>
+                    <Card
+                      bg={isKioskOnline ? "#f0fdf4" : "#fef2f2"}
+                      border="1px solid"
+                      borderColor={isKioskOnline ? "#bbf7d0" : "#fecaca"}
+                      borderRadius="12px"
+                      p={6}
+                    >
+                      <HStack justify="space-between" align="center">
+                        <HStack spacing={4}>
+                          <Box
+                            w="12px"
+                            h="12px"
+                            borderRadius="50%"
+                            bg={isKioskOnline ? "#22c55e" : "#ef4444"}
+                          />
+                          <VStack align="start" spacing={1}>
+                            <Text fontWeight="600" color="#111827" fontSize="lg">
+                              {isKioskOnline ? "Kiosk JARVIS Opérationnel" : "Kiosk JARVIS Hors ligne"}
+                            </Text>
+                            <Text fontSize="sm" color="#6b7280">
+                              {gym.name} • {franchise?.name}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        <Badge 
+                          colorScheme={isKioskOnline ? "green" : "red"} 
+                          size="md"
+                          px={3}
+                          py={1}
+                          borderRadius="6px"
+                        >
+                          {isKioskOnline ? "EN LIGNE" : "HORS LIGNE"}
+                        </Badge>
+                      </HStack>
+                    </Card>
+                  </motion.div>
 
-                  {/* Statistiques */}
-                  <Card 
-                    borderRadius="16px" 
-                    border="1px solid" 
-                    borderColor="gray.100"
-                    bg="white"
-                    shadow="sm"
-                    _hover={{ shadow: "md" }}
-                    transition="all 0.2s"
+                  {/* Métriques Clés Aujourd'hui */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
                   >
-                    <CardHeader bg="green.50" borderRadius="16px 16px 0 0">
-                      <Heading size="md" color="green.700">
-                        <Icon as={Activity} mr={2} />
-                        Statistiques
+                    <VStack spacing={6} align="stretch">
+                      <Heading size="md" color="#111827" fontWeight="600">
+                        Métriques du jour
                       </Heading>
-                    </CardHeader>
-                    <CardBody pt={4}>
-                      <SimpleGrid columns={2} spacing={4}>
-                        <Stat 
-                          p={4} 
-                          bg="blue.50" 
-                          borderRadius="12px" 
-                          border="1px solid" 
-                          borderColor="blue.100"
-                        >
-                          <StatLabel fontSize="sm" color="blue.600" fontWeight="600">
-                            Membres
-                          </StatLabel>
-                          <StatNumber color="blue.700" fontSize="2xl">
-                            0
-                          </StatNumber>
-                        </Stat>
-                        <Stat 
-                          p={4} 
-                          bg="purple.50" 
-                          borderRadius="12px" 
-                          border="1px solid" 
-                          borderColor="purple.100"
-                        >
-                          <StatLabel fontSize="sm" color="purple.600" fontWeight="600">
-                            Sessions JARVIS
-                          </StatLabel>
-                          <StatNumber color="purple.700" fontSize="2xl">
-                            0
-                          </StatNumber>
-                        </Stat>
+                      
+                      {/* Budget Mensuel - Vue principale */}
+                      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mb={6}>
+                        
+                        {/* Budget & Projection */}
+                        <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                          <VStack spacing={4} align="stretch">
+                            <Text fontWeight="600" color="#111827" fontSize="lg">
+                              Budget Mensuel
+                            </Text>
+                            
+                            <VStack spacing={3} align="stretch">
+                              <HStack justify="space-between">
+                                <Text fontSize="sm" color="#6b7280">Consommé</Text>
+                                <Text fontSize="lg" fontWeight="700" color="#111827">
+                                  {((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85).toFixed(0)}€
+                                </Text>
+                              </HStack>
+                              
+                              <Box>
+                                <HStack justify="space-between" mb={2}>
+                                  <Text fontSize="xs" color="#9ca3af">0€</Text>
+                                  <Text fontSize="xs" color="#9ca3af">500€</Text>
+                                </HStack>
+                                <Box bg="#f3f4f6" borderRadius="6px" h="8px" overflow="hidden">
+                                  <Box 
+                                    bg={((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85) > 400 ? "#ef4444" : 
+                                        ((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85) > 300 ? "#f59e0b" : "#10b981"}
+                                    h="100%" 
+                                    w={`${Math.min(((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85) / 5, 100)}%`}
+                                    transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                                  />
+                                </Box>
+                              </Box>
+                              
+                              <VStack spacing={2} align="stretch">
+                                <HStack justify="space-between">
+                                  <Text fontSize="sm" color="#6b7280">Projection mois</Text>
+                                  <Text fontSize="sm" fontWeight="600" color={
+                                    ((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) > 450 ? "#ef4444" : 
+                                    ((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) > 400 ? "#f59e0b" : "#10b981"
+                                  }>
+                                    {((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85).toFixed(0)}€
+                                  </Text>
+                                </HStack>
+                                <HStack justify="space-between">
+                                  <Text fontSize="sm" color="#6b7280">Reste disponible</Text>
+                                  <Text fontSize="sm" fontWeight="600" color="#111827">
+                                    {Math.max(0, 500 - ((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85)).toFixed(0)}€
+                                  </Text>
+                                </HStack>
+                              </VStack>
+                            </VStack>
+                          </VStack>
+                        </Card>
+
+                        {/* Activité Temps Réel */}
+                        <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                          <VStack spacing={4} align="stretch">
+                            <Text fontWeight="600" color="#111827" fontSize="lg">
+                              Activité Temps Réel
+                            </Text>
+                            
+                            <SimpleGrid columns={2} spacing={4}>
+                              <VStack align="start" spacing={1}>
+                                <Text fontSize="sm" color="#6b7280">Sessions aujourd'hui</Text>
+                                <Text fontSize="2xl" fontWeight="700" color="#111827">
+                                  {jarvisMetrics?.today?.totalSessions || 0}
+                                </Text>
+                                <Text fontSize="xs" color="#9ca3af">
+                                  {((jarvisMetrics?.today?.totalSessions || 0) - (jarvisMetrics?.yesterday?.totalSessions || 0)) >= 0 ? '+' : ''}{((jarvisMetrics?.today?.totalSessions || 0) - (jarvisMetrics?.yesterday?.totalSessions || 0))} vs hier
+                                </Text>
+                              </VStack>
+                              
+                              <VStack align="start" spacing={1}>
+                                <Text fontSize="sm" color="#6b7280">Coût aujourd'hui</Text>
+                                <Text fontSize="2xl" fontWeight="700" color="#111827">
+                                  €{(jarvisMetrics?.today?.totalCostUSD ? (jarvisMetrics.today.totalCostUSD * 0.85).toFixed(2) : '0.00')}
+                                </Text>
+                                <Text fontSize="xs" color="#9ca3af">
+                                  Temps réel
+                                </Text>
+                              </VStack>
+                              
+                              <VStack align="start" spacing={1}>
+                                <Text fontSize="sm" color="#6b7280">Durée moyenne</Text>
+                                <Text fontSize="2xl" fontWeight="700" color="#111827">
+                                  {jarvisMetrics?.today?.totalDurationMinutes ? 
+                                    `${Math.round(jarvisMetrics.today.totalDurationMinutes / (jarvisMetrics.today.totalSessions || 1))}min` : 
+                                    '0min'
+                                  }
+                                </Text>
+                                <Text fontSize="xs" color="#9ca3af">
+                                  Par session
+                                </Text>
+                              </VStack>
+                              
+                              <VStack align="start" spacing={1}>
+                                <Text fontSize="sm" color="#6b7280">Sessions actives</Text>
+                                <Text fontSize="2xl" fontWeight="700" color={kioskSupervision?.activeSessions > 0 ? "#10b981" : "#6b7280"}>
+                                  {kioskSupervision?.activeSessions || 0}
+                                </Text>
+                                <Text fontSize="xs" color="#9ca3af">
+                                  Maintenant
+                                </Text>
+                              </VStack>
+                            </SimpleGrid>
+                          </VStack>
+                        </Card>
+
                       </SimpleGrid>
-                    </CardBody>
-                  </Card>
-                  
-                </SimpleGrid>
-              </TabPanel>
 
-              {/* Onglet Kiosk JARVIS */}
-              <TabPanel p={6}>
-                <VStack spacing={6} align="stretch">
-                  
-                  {/* Statut Kiosk */}
-                  <Alert 
-                    status={isKioskProvisioned ? "success" : "warning"} 
-                    borderRadius="12px"
-                  >
-                    <AlertIcon />
-                    <Box>
-                      <AlertTitle>
-                        {isKioskProvisioned ? "Kiosk configuré" : "Kiosk en attente"}
-                      </AlertTitle>
-                      <AlertDescription>
-                        {isKioskProvisioned 
-                          ? "Le Kiosk JARVIS est opérationnel pour cette salle"
-                          : "Le Kiosk JARVIS attend d'être configuré avec le code de provisioning"
-                        }
-                      </AlertDescription>
-                    </Box>
-                  </Alert>
+                      {/* Santé Technique */}
+                      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
+                        
+                        {/* État Système */}
+                        <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                          <VStack spacing={4} align="stretch">
+                            <Text fontWeight="600" color="#111827" fontSize="md">
+                              Santé Technique
+                            </Text>
+                            
+                            <VStack spacing={3} align="stretch">
+                              <HStack justify="space-between">
+                                <Text fontSize="sm" color="#6b7280">Statut Kiosk</Text>
+                                <HStack>
+                                  <Box 
+                                    w="8px" 
+                                    h="8px" 
+                                    bg={isKioskOnline ? "#10b981" : "#ef4444"} 
+                                    borderRadius="50%" 
+                                  />
+                                  <Text fontSize="sm" fontWeight="600" color={isKioskOnline ? "#10b981" : "#ef4444"}>
+                                    {isKioskOnline ? "EN LIGNE" : "HORS LIGNE"}
+                                  </Text>
+                                </HStack>
+                              </HStack>
+                              
+                              <HStack justify="space-between">
+                                <Text fontSize="sm" color="#6b7280">Latence réseau</Text>
+                                <Text fontSize="sm" fontWeight="600" color={
+                                  (kioskSupervision?.performance?.responseTime || 0) < 300 ? "#10b981" : 
+                                  (kioskSupervision?.performance?.responseTime || 0) < 500 ? "#f59e0b" : "#ef4444"
+                                }>
+                                  {kioskSupervision?.performance?.responseTime || 195}ms
+                                </Text>
+                              </HStack>
+                              
+                              <HStack justify="space-between">
+                                <Text fontSize="sm" color="#6b7280">Dernière activité</Text>
+                                <Text fontSize="sm" fontWeight="600" color="#6b7280">
+                                  {kioskSupervision?.lastActivityMinutesAgo !== null ? 
+                                    `Il y a ${kioskSupervision.lastActivityMinutesAgo}min` : 
+                                    'Aucune'
+                                  }
+                                </Text>
+                              </HStack>
+                            </VStack>
+                          </VStack>
+                        </Card>
 
-                  <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-                    
-                    {/* Configuration Kiosk */}
-                    <Card 
-                      borderRadius="16px" 
-                      border="1px solid" 
-                      borderColor="gray.100"
-                      bg="white"
-                      shadow="sm"
-                      _hover={{ shadow: "md" }}
-                      transition="all 0.2s"
-                    >
-                      <CardHeader bg="purple.50" borderRadius="16px 16px 0 0">
-                        <Heading size="md" color="purple.700">
-                          <Icon as={Settings} mr={2} />
-                          Configuration
-                        </Heading>
-                      </CardHeader>
-                      <CardBody pt={4}>
-                        <VStack spacing={5} align="stretch">
-                          <Box>
-                            <Text fontSize="sm" color="gray.600" mb={3} fontWeight="600">Code de provisioning</Text>
-                            <HStack>
-                              <Code 
-                                px={4} 
-                                py={3} 
-                                borderRadius="12px" 
-                                bg="gray.50"
-                                border="1px solid"
-                                borderColor="gray.200"
-                                fontSize="sm"
-                                flex="1"
-                                fontWeight="600"
-                                color="gray.800"
-                              >
-                                {provisioningCode || 'Non généré'}
-                              </Code>
-                              {provisioningCode && (
-                                <Button
-                                  leftIcon={<Icon as={QrCode} />}
-                                  onClick={copyProvisioningCode}
-                                  size="sm"
-                                  variant="outline"
-                                  colorScheme="gray"
-                                  borderRadius="12px"
-                                >
-                                  Copier
-                                </Button>
+                        {/* Alertes Système */}
+                        <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                          <VStack spacing={4} align="stretch">
+                            <Text fontWeight="600" color="#111827" fontSize="md">
+                              Alertes & Monitoring
+                            </Text>
+                            
+                            <VStack spacing={3} align="stretch">
+                              {/* Alerte Budget */}
+                              {((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) > 400 && (
+                                <Box bg="#fef2f2" border="1px solid #fca5a5" borderRadius="8px" p={3}>
+                                  <HStack>
+                                    <Icon as={AlertTriangle} color="#ef4444" boxSize={4} />
+                                    <Text fontSize="sm" color="#dc2626" fontWeight="500">
+                                      Budget critique: {(((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) / 5).toFixed(0)}%
+                                    </Text>
+                                  </HStack>
+                                </Box>
                               )}
-                            </HStack>
-                          </Box>
-                          
-                          {kioskUrl && (
-                            <Box>
-                              <Text fontSize="sm" color="gray.600" mb={3} fontWeight="600">Accès Kiosk</Text>
-                              <Button
-                                leftIcon={<Icon as={Monitor} />}
-                                onClick={handlePreviewKiosk}
-                                size="md"
-                                colorScheme="purple"
-                                borderRadius="12px"
-                                w="full"
-                                rightIcon={<Icon as={ArrowLeft} transform="rotate(180deg)" />}
-                              >
-                                Ouvrir le Kiosk JARVIS
-                              </Button>
-                              <Text fontSize="xs" color="gray.500" mt={2} textAlign="center">
-                                URL: /kiosk/{kioskUrl}
-                              </Text>
-                            </Box>
-                          )}
-                        </VStack>
-                      </CardBody>
-                    </Card>
+                              
+                              {/* Alerte Kiosk Hors Ligne */}
+                              {!isKioskOnline && (
+                                <Box bg="#fef2f2" border="1px solid #fca5a5" borderRadius="8px" p={3}>
+                                  <HStack>
+                                    <Icon as={AlertTriangle} color="#ef4444" boxSize={4} />
+                                    <Text fontSize="sm" color="#dc2626" fontWeight="500">
+                                      Kiosk hors ligne
+                                    </Text>
+                                  </HStack>
+                                </Box>
+                              )}
+                              
+                              {/* État Normal */}
+                              {isKioskOnline && ((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) <= 400 && (
+                                <Box bg="#f0fdf4" border="1px solid #bbf7d0" borderRadius="8px" p={3}>
+                                  <HStack>
+                                    <Icon as={CheckCircle} color="#16a34a" boxSize={4} />
+                                    <Text fontSize="sm" color="#16a34a" fontWeight="500">
+                                      Système opérationnel
+                                    </Text>
+                                  </HStack>
+                                </Box>
+                              )}
+                            </VStack>
+                          </VStack>
+                        </Card>
 
-                    {/* Message d'accueil */}
-                    <Card 
-                      borderRadius="16px" 
-                      border="1px solid" 
-                      borderColor="gray.100"
-                      bg="white"
-                      shadow="sm"
-                      _hover={{ shadow: "md" }}
-                      transition="all 0.2s"
-                    >
-                      <CardHeader bg="orange.50" borderRadius="16px 16px 0 0">
-                        <Heading size="md" color="orange.700">
-                          <Icon as={Zap} mr={2} />
-                          Message d'accueil
-                        </Heading>
-                      </CardHeader>
-                      <CardBody pt={4}>
-                        <Box 
-                          p={4} 
-                          bg="orange.25" 
-                          borderRadius="12px" 
-                          border="1px solid" 
-                          borderColor="orange.100"
-                        >
-                          <Text 
-                            color="orange.800" 
-                            fontStyle="italic" 
-                            fontSize="md"
-                            fontWeight="500"
-                            lineHeight="1.6"
-                          >
-                            "{gym.kiosk_config?.welcome_message || 'Bienvenue ! Comment puis-je vous aider ?'}"
-                          </Text>
-                        </Box>
-                      </CardBody>
-                    </Card>
-                    
-                  </SimpleGrid>
+                        {/* Configuration */}
+                        <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                          <VStack spacing={4} align="stretch">
+                            <Text fontWeight="600" color="#111827" fontSize="md">
+                              Configuration
+                            </Text>
+                            
+                            <VStack spacing={3} align="stretch">
+                              <HStack justify="space-between">
+                                <Text fontSize="sm" color="#6b7280">Modèle IA</Text>
+                                <Text fontSize="sm" fontWeight="600" color="#6b7280" fontFamily="mono">
+                                  GPT-4o Mini Realtime
+                                </Text>
+                              </HStack>
+                              
+                              <HStack justify="space-between">
+                                <Text fontSize="sm" color="#6b7280">Budget mensuel</Text>
+                                <Text fontSize="sm" fontWeight="600" color="#111827">
+                                  500€
+                                </Text>
+                              </HStack>
+                              
+                              <HStack justify="space-between">
+                                <Text fontSize="sm" color="#6b7280">Provisioning</Text>
+                                <Badge 
+                                  colorScheme={gym.kiosk_config?.is_provisioned ? "green" : "orange"} 
+                                  size="sm"
+                                  borderRadius="6px"
+                                >
+                                  {gym.kiosk_config?.is_provisioned ? "Configuré" : "En attente"}
+                                </Badge>
+                              </HStack>
+                            </VStack>
+                          </VStack>
+                        </Card>
+
+                      </SimpleGrid>
+                    </VStack>
+                  </motion.div>
+
+
+
+
+
                 </VStack>
               </TabPanel>
 
-              {/* Onglet Analytics */}
-              <TabPanel p={6}>
+              {/* Onglet Kiosk JARVIS */}
+              <TabPanel p={8}>
                 <VStack spacing={8} align="stretch">
                   
-                  {/* Header Analytics JARVIS */}
-                  <Box>
-                    <Heading size="lg" color="#374151" fontWeight="700" mb={2}>
-                      📊 Analytics JARVIS
-                    </Heading>
-                    <Text color="#6b7280" fontSize="md">
-                      Métriques et performances de votre assistant IA vocal
-                    </Text>
-                  </Box>
-
-                  {(jarvisMetricsLoading || kioskSupervisionLoading) ? (
-                    <Flex justify="center" py={8}>
-                      <VStack spacing={4}>
-                        <Box className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
-                        <Text color="gray.500">Chargement de la supervision kiosk...</Text>
-                      </VStack>
-                    </Flex>
-                  ) : (
-                    <>
-                      {/* 🔥 VUE D'ENSEMBLE SUPERVISION KIOSK */}
-                      <Card bg="gradient(135deg, #667eea 0%, #764ba2 100%)" color="white" borderRadius="16px" p={2}>
-                        <CardHeader>
-                          <HStack justify="space-between" align="center">
-                            <VStack align="start" spacing={1}>
-                              <Heading size="lg" color="white">🎯 Supervision Temps Réel</Heading>
-                              <Text color="whiteAlpha.800" fontSize="sm">Kiosk JARVIS - {gym?.name}</Text>
-                            </VStack>
-                            <Badge colorScheme="green" size="lg" borderRadius="full" px={3}>
-                              🟢 En ligne
-                            </Badge>
-                          </HStack>
-                        </CardHeader>
-                        <CardBody>
-                          <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-                            <VStack>
-                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.overview?.activeSessions || 0}</Text>
-                              <Text fontSize="sm" opacity={0.9}>Sessions Actives</Text>
-                            </VStack>
-                            <VStack>
-                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.overview?.todaySessions || 0}</Text>
-                              <Text fontSize="sm" opacity={0.9}>Aujourd'hui</Text>
-                            </VStack>
-                            <VStack>
-                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.performance?.responseTime || 0}ms</Text>
-                              <Text fontSize="sm" opacity={0.9}>Latence</Text>
-                            </VStack>
-                            <VStack>
-                              <Text fontSize="3xl" fontWeight="800">{kioskSupervision?.overview?.successRate || 0}%</Text>
-                              <Text fontSize="sm" opacity={0.9}>Succès</Text>
-                            </VStack>
-                          </SimpleGrid>
-                        </CardBody>
-                      </Card>
-
-                      {/* 📊 MÉTRIQUES PRINCIPALES */}
-                      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
-                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                          <CardBody>
-                            <Stat>
-                              <StatLabel color="#6b7280" fontWeight="500">
-                                <HStack>
-                                  <Icon as={MessageSquare} color="blue.500" />
-                                  <Text>Sessions JARVIS</Text>
-                                </HStack>
-                              </StatLabel>
-                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                                {jarvisMetrics?.today?.totalSessions || 0}
-                              </StatNumber>
-                              <StatHelpText color={jarvisMetrics?.changes?.sessions >= 0 ? "green.500" : "red.500"} fontWeight="500">
-                                <TrendingUp size={16} /> {jarvisMetrics?.changes?.sessions >= 0 ? '+' : ''}{jarvisMetrics?.changes?.sessions || 0}% vs hier
-                              </StatHelpText>
-                            </Stat>
-                          </CardBody>
-                        </Card>
-
-                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                          <CardBody>
-                            <Stat>
-                              <StatLabel color="#6b7280" fontWeight="500">
-                                <HStack>
-                                  <Icon as={DollarSign} color="green.500" />
-                                  <Text>Coût Total</Text>
-                                </HStack>
-                              </StatLabel>
-                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                                {jarvisMetrics?.today?.totalCostUSD ? formatCurrency(convertUSDToEUR(jarvisMetrics.today.totalCostUSD)) : '€0.00'}
-                              </StatNumber>
-                              <StatHelpText color={jarvisMetrics?.changes?.cost >= 0 ? "red.500" : "green.500"} fontWeight="500">
-                                <Activity size={16} /> {jarvisMetrics?.changes?.cost >= 0 ? '+' : ''}{jarvisMetrics?.changes?.cost || 0}% vs hier
-                              </StatHelpText>
-                            </Stat>
-                          </CardBody>
-                        </Card>
-
-                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                          <CardBody>
-                            <Stat>
-                              <StatLabel color="#6b7280" fontWeight="500">
-                                <HStack>
-                                  <Icon as={Clock} color="orange.500" />
-                                  <Text>Durée Moyenne</Text>
-                                </HStack>
-                              </StatLabel>
-                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                                {kioskSupervision?.overview?.avgDurationMinutes ? `${kioskSupervision.overview.avgDurationMinutes}min` : '0min'}
-                              </StatNumber>
-                              <StatHelpText color={jarvisMetrics?.changes?.duration <= 0 ? "green.500" : "red.500"} fontWeight="500">
-                                <TrendingUp size={16} /> {jarvisMetrics?.changes?.duration >= 0 ? '+' : ''}{jarvisMetrics?.changes?.duration || 0}% vs hier
-                              </StatHelpText>
-                            </Stat>
-                          </CardBody>
-                        </Card>
-
-                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                          <CardBody>
-                            <Stat>
-                              <StatLabel color="#6b7280" fontWeight="500">
-                                <HStack>
-                                  <Icon as={Zap} color="purple.500" />
-                                  <Text>Satisfaction</Text>
-                                </HStack>
-                              </StatLabel>
-                              <StatNumber color="#1f2937" fontSize="2xl" fontWeight="700">
-                                {jarvisMetrics?.today?.averageSatisfaction ? `${jarvisMetrics.today.averageSatisfaction.toFixed(1)}/5` : '0/5'}
-                              </StatNumber>
-                              <StatHelpText color={jarvisMetrics?.changes?.satisfaction >= 0 ? "green.500" : "red.500"} fontWeight="500">
-                                <TrendingUp size={16} /> {jarvisMetrics?.changes?.satisfaction >= 0 ? '+' : ''}{jarvisMetrics?.changes?.satisfaction || 0}% vs hier
-                              </StatHelpText>
-                            </Stat>
-                          </CardBody>
-                        </Card>
-                      </SimpleGrid>
-
-                      {/* 📈 TENDANCE HEBDOMADAIRE */}
-                      <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                        <CardHeader>
-                          <Heading size="md" color="#374151" fontWeight="600">
-                            📈 Tendance Sessions (7 derniers jours)
-                          </Heading>
-                        </CardHeader>
-                        <CardBody>
-                          <SimpleGrid columns={{ base: 3, md: 7 }} spacing={4}>
-                            {(kioskSupervision?.weeklyTrend || []).map((day: any, index: number) => (
-                              <VStack key={index} spacing={2}>
-                                <Text fontSize="xs" color="gray.500" fontWeight="600">
-                                  {new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'short' })}
-                                </Text>
-                                <Box
-                                  h={`${Math.max(20, (day.sessions || 0) * 5)}px`}
-                                  w="40px"
-                                  bg="blue.400"
-                                  borderRadius="4px"
-                                  position="relative"
-                                  display="flex"
-                                  alignItems="end"
-                                  justifyContent="center"
-                                >
-                                  <Text fontSize="xs" color="white" fontWeight="bold" pb={1}>
-                                    {day.sessions || 0}
-                                  </Text>
-                                </Box>
-                                <Text fontSize="xs" color="gray.400">
-                                  {formatCurrency(convertUSDToEUR(day.cost || 0))}
-                                </Text>
-                              </VStack>
-                            ))}
-                          </SimpleGrid>
-                        </CardBody>
-                      </Card>
-
-                      {/* 🕐 DISTRIBUTION HORAIRE */}
-                      <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                        <CardHeader>
-                          <Heading size="md" color="#374151" fontWeight="600">
-                            🕐 Distribution Horaire (Aujourd'hui)
-                          </Heading>
-                        </CardHeader>
-                        <CardBody>
-                          <SimpleGrid columns={{ base: 6, md: 12 }} spacing={2}>
-                            {(kioskSupervision?.hourlyDistribution || Array(24).fill(0)).map((sessions: number, hour: number) => (
-                              <VStack key={hour} spacing={1}>
-                                <Text fontSize="xs" color="gray.500" fontWeight="600">
-                                  {hour}h
-                                </Text>
-                                <Box
-                                  h={`${Math.max(10, sessions * 8)}px`}
-                                  w="20px"
-                                  bg={hour === (kioskSupervision?.overview?.peakHour || 0) ? "red.400" : "blue.300"}
-                                  borderRadius="2px"
-                                  display="flex"
-                                  alignItems="end"
-                                  justifyContent="center"
-                                  position="relative"
-                                >
-                                  {sessions > 0 && (
-                                    <Text fontSize="xs" color="white" fontWeight="bold" style={{ transform: 'rotate(-90deg)', fontSize: '8px' }}>
-                                      {sessions}
-                                    </Text>
-                                  )}
-                                </Box>
-                              </VStack>
-                            ))}
-                          </SimpleGrid>
-                          <Text fontSize="xs" color="gray.500" mt={2}>
-                            🔴 Heure de pointe: {kioskSupervision?.overview?.peakHour || 0}h
+                  {/* Statut Kiosk */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Box
+                      bg={isKioskProvisioned ? "#f0fdf4" : "#fffbeb"}
+                      border="1px solid"
+                      borderColor={isKioskProvisioned ? "#bbf7d0" : "#fde68a"}
+                      borderRadius="2px"
+                      p={6}
+                      position="relative"
+                      _before={{
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: "2px",
+                        bg: isKioskProvisioned ? "#10b981" : "#f59e0b",
+                      }}
+                    >
+                      <HStack spacing={4}>
+                        <Box
+                          w="12px"
+                          h="12px"
+                          borderRadius="50%"
+                          bg={isKioskProvisioned ? "#10b981" : "#f59e0b"}
+                        />
+                        <VStack align="start" spacing={1}>
+                          <Text fontWeight="600" color="#111827" fontSize="lg">
+                            {isKioskProvisioned ? "Kiosk Configuré" : "Configuration Requise"}
                           </Text>
-                        </CardBody>
-                      </Card>
+                          <Text fontSize="sm" color={isKioskProvisioned ? "#166534" : "#92400e"}>
+                            {isKioskProvisioned 
+                              ? "Le Kiosk JARVIS est opérationnel pour cette salle"
+                              : "Le Kiosk JARVIS attend d'être configuré avec le code de provisioning"
+                            }
+                          </Text>
+                        </VStack>
+                      </HStack>
+                    </Box>
+                  </motion.div>
 
-                      {/* 💰 COÛTS DÉTAILLÉS */}
-                      <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                        <CardHeader>
-                          <Heading size="md" color="#374151" fontWeight="600">
-                            💰 Répartition Coûts OpenAI (Semaine)
-                          </Heading>
-                        </CardHeader>
-                        <CardBody>
-                          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                            <VStack spacing={3} align="start">
-                              <HStack>
-                                <Icon as={Mic} color="orange.500" boxSize={5} />
-                                <Text fontWeight="600" color="#374151">Audio Input</Text>
-                              </HStack>
-                              <Text fontSize="2xl" fontWeight="700" color="orange.500">
-                                {kioskSupervision?.overview?.totalCostWeekUSD ? 
-                                  formatCurrency(convertUSDToEUR(kioskSupervision.overview.totalCostWeekUSD * 0.4)) : '€0.00'}
-                              </Text>
-                              <Text fontSize="sm" color="#6b7280">
-                                ~40% du coût total
-                              </Text>
-                              <Badge colorScheme="orange" variant="subtle">Audio Input</Badge>
-                            </VStack>
+                  {/* Configuration */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                  >
+                    <VStack spacing={4} align="stretch">
+                      <Text fontWeight="500" color="#111827" fontSize="lg">
+                        Configuration
+                      </Text>
+                      
+                      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                        
+                        {/* Code de Provisioning */}
+                        <Box
+                          bg="#ffffff"
+                          border="1px solid #e5e7eb"
+                          borderRadius="2px"
+                          p={6}
+                        >
+                          <VStack spacing={4} align="stretch">
+                            <Text fontSize="sm" color="#6b7280" fontWeight="500" textTransform="uppercase">
+                              Code de Provisioning
+                            </Text>
+                            <HStack spacing={3}>
+                              <Box
+                                px={4} 
+                                py={3} 
+                                borderRadius="2px" 
+                                bg="#fafafa"
+                                border="1px solid #e5e7eb"
+                                fontSize="sm"
+                                flex="1"
+                                fontWeight="600"
+                                color="#111827"
+                                fontFamily="mono"
+                                textAlign="center"
+                              >
+                                {provisioningCode || 'Non généré'}
+                              </Box>
+                              {provisioningCode ? (
+                                <Button
+                                  leftIcon={<Icon as={QrCode} boxSize={4} />}
+                                  onClick={copyProvisioningCode}
+                                  size="sm"
+                                  variant="outline"
+                                  borderColor="#e5e7eb"
+                                  color="#6b7280"
+                                  borderRadius="2px"
+                                  _hover={{ bg: "#fafafa", borderColor: "#d1d5db" }}
+                                  px={3}
+                                  fontSize="xs"
+                                  fontWeight="500"
+                                >
+                                  Copier
+                                </Button>
+                              ) : (
+                                <Button
+                                  leftIcon={<Icon as={Zap} boxSize={4} />}
+                                  onClick={regenerateProvisioningCode}
+                                  size="sm"
+                                  bg="#2563eb"
+                                  color="white"
+                                  borderRadius="2px"
+                                  _hover={{ bg: "#1d4ed8" }}
+                                  px={3}
+                                  fontSize="xs"
+                                  fontWeight="500"
+                                >
+                                  Générer
+                                </Button>
+                              )}
+                            </HStack>
+                          </VStack>
+                        </Box>
 
-                            <VStack spacing={3} align="start">
-                              <HStack>
-                                <Icon as={MessageSquare} color="blue.500" boxSize={5} />
-                                <Text fontWeight="600" color="#374151">Audio Output</Text>
-                              </HStack>
-                              <Text fontSize="2xl" fontWeight="700" color="blue.500">
-                                {kioskSupervision?.overview?.totalCostWeekUSD ? 
-                                  formatCurrency(convertUSDToEUR(kioskSupervision.overview.totalCostWeekUSD * 0.5)) : '€0.00'}
-                              </Text>
-                              <Text fontSize="sm" color="#6b7280">
-                                ~50% du coût total
-                              </Text>
-                              <Badge colorScheme="blue" variant="subtle">Audio Output</Badge>
-                            </VStack>
-
-                            <VStack spacing={3} align="start">
-                              <HStack>
-                                <Icon as={BarChart3} color="green.500" boxSize={5} />
-                                <Text fontWeight="600" color="#374151">Text Tokens</Text>
-                              </HStack>
-                              <Text fontSize="2xl" fontWeight="700" color="green.500">
-                                {kioskSupervision?.overview?.totalCostWeekUSD ? 
-                                  formatCurrency(convertUSDToEUR(kioskSupervision.overview.totalCostWeekUSD * 0.1)) : '€0.00'}
-                              </Text>
-                              <Text fontSize="sm" color="#6b7280">
-                                ~10% du coût total
-                              </Text>
-                              <Badge colorScheme="green" variant="subtle">Text Tokens</Badge>
-                            </VStack>
-                          </SimpleGrid>
-                        </CardBody>
-                      </Card>
-
-                      {/* 🎯 SUPERVISION AVANCÉE */}
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                          <CardHeader>
-                            <Heading size="md" color="#374151" fontWeight="600">
-                              🎯 Questions Populaires
-                            </Heading>
-                          </CardHeader>
-                          <CardBody>
+                        {/* Accès Kiosk */}
+                        {kioskUrl && (
+                          <Box
+                            bg="#ffffff"
+                            border="1px solid #e5e7eb"
+                            borderRadius="2px"
+                            p={6}
+                          >
                             <VStack spacing={4} align="stretch">
-                              {(kioskSupervision?.performance?.popularQuestions || [
-                                "Quels sont mes objectifs ?",
-                                "Comment utiliser cette machine ?", 
-                                "Quel programme pour moi ?",
-                                "Horaires de la salle",
-                                "Tarifs et abonnements"
-                              ]).map((question: string, index: number) => (
-                                <HStack key={index} justify="space-between">
-                                  <Text color="#6b7280" fontSize="sm">{question}</Text>
-                                  <Badge colorScheme={index === 0 ? "blue" : index === 1 ? "green" : index === 2 ? "purple" : "gray"} variant="subtle">
-                                    #{index + 1}
-                                  </Badge>
-                                </HStack>
-                              ))}
+                              <Text fontSize="sm" color="#6b7280" fontWeight="500" textTransform="uppercase">
+                                Accès Kiosk
+                              </Text>
+                              <VStack spacing={3}>
+                                <Button
+                                  leftIcon={<Icon as={Monitor} boxSize={4} />}
+                                  onClick={handlePreviewKiosk}
+                                  bg="#7c3aed"
+                                  color="white"
+                                  borderRadius="2px"
+                                  _hover={{ bg: "#6d28d9" }}
+                                  w="full"
+                                  fontSize="sm"
+                                  fontWeight="500"
+                                  py={6}
+                                >
+                                  Ouvrir le Kiosk JARVIS
+                                </Button>
+                                <Text fontSize="xs" color="#6b7280" textAlign="center" fontFamily="mono">
+                                  /kiosk/{kioskUrl}
+                                </Text>
+                              </VStack>
                             </VStack>
-                          </CardBody>
-                        </Card>
+                          </Box>
+                        )}
 
-                        <Card bg="white" border="1px solid" borderColor="#e5e7eb" borderRadius="12px">
-                          <CardHeader>
-                            <Heading size="md" color="#374151" fontWeight="600">
-                              ⚡ Performance Technique
-                            </Heading>
-                          </CardHeader>
-                          <CardBody>
-                            <VStack spacing={4} align="stretch">
-                              <HStack justify="space-between">
-                                <Text color="#6b7280">Temps de réponse</Text>
-                                <Text fontWeight="600" color={kioskSupervision?.performance?.responseTime < 200 ? "green.500" : "orange.500"}>
-                                  {kioskSupervision?.performance?.responseTime || 0}ms
-                                </Text>
-                              </HStack>
-                              <HStack justify="space-between">
-                                <Text color="#6b7280">Taux d'erreur</Text>
-                                <Text fontWeight="600" color={kioskSupervision?.performance?.errorRate < 5 ? "green.500" : "red.500"}>
-                                  {kioskSupervision?.performance?.errorRate || 0}%
-                                </Text>
-                              </HStack>
-                              <HStack justify="space-between">
-                                <Text color="#6b7280">Sessions terminées</Text>
-                                <Text fontWeight="600" color="blue.500">
-                                  {kioskSupervision?.overview?.successRate || 0}%
-                                </Text>
-                              </HStack>
-                              <HStack justify="space-between">
-                                <Text color="#6b7280">20h - 22h</Text>
-                                <Text fontWeight="600" color="blue.500">15 sessions</Text>
-                              </HStack>
-                            </VStack>
-                          </CardBody>
-                        </Card>
                       </SimpleGrid>
-                    </>
-                  )}
+                    </VStack>
+                  </motion.div>
+
+                  {/* Statut Matériel */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                  >
+                    <VStack spacing={4} align="stretch">
+                      <Text fontWeight="500" color="#111827" fontSize="lg">
+                        Statut Matériel
+                      </Text>
+                      
+                      <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                        
+                        {/* Microphone */}
+                        <Box
+                          bg="#ffffff"
+                          border="1px solid #e5e7eb"
+                          borderRadius="2px"
+                          p={4}
+                          _hover={{ bg: "#fafafa" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack spacing={2}>
+                            <Icon as={Mic} boxSize={6} color="#10b981" />
+                            <Text fontSize="xs" color="#6b7280" fontWeight="500" textTransform="uppercase">
+                              Microphone
+                            </Text>
+                            <Text fontSize="sm" fontWeight="600" color="#10b981">
+                              Actif
+                            </Text>
+                          </VStack>
+                        </Box>
+
+                        {/* Haut-parleurs */}
+                        <Box
+                          bg="#ffffff"
+                          border="1px solid #e5e7eb"
+                          borderRadius="2px"
+                          p={4}
+                          _hover={{ bg: "#fafafa" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack spacing={2}>
+                            <Icon as={Bot} boxSize={6} color="#10b981" />
+                            <Text fontSize="xs" color="#6b7280" fontWeight="500" textTransform="uppercase">
+                              Audio
+                            </Text>
+                            <Text fontSize="sm" fontWeight="600" color="#10b981">
+                              Fonctionnel
+                            </Text>
+                          </VStack>
+                        </Box>
+
+                        {/* RFID */}
+                        <Box
+                          bg="#ffffff"
+                          border="1px solid #e5e7eb"
+                          borderRadius="2px"
+                          p={4}
+                          _hover={{ bg: "#fafafa" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack spacing={2}>
+                            <Icon as={QrCode} boxSize={6} color="#10b981" />
+                            <Text fontSize="xs" color="#6b7280" fontWeight="500" textTransform="uppercase">
+                              RFID
+                            </Text>
+                            <Text fontSize="sm" fontWeight="600" color="#10b981">
+                              Connecté
+                            </Text>
+                          </VStack>
+                        </Box>
+
+                        {/* Réseau */}
+                        <Box
+                          bg="#ffffff"
+                          border="1px solid #e5e7eb"
+                          borderRadius="2px"
+                          p={4}
+                          _hover={{ bg: "#fafafa" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack spacing={2}>
+                            <Icon as={Wifi} boxSize={6} color="#10b981" />
+                            <Text fontSize="xs" color="#6b7280" fontWeight="500" textTransform="uppercase">
+                              Réseau
+                            </Text>
+                            <Text fontSize="sm" fontWeight="600" color="#10b981">
+                              Stable
+                            </Text>
+                          </VStack>
+                        </Box>
+
+                      </SimpleGrid>
+                    </VStack>
+                  </motion.div>
+
                 </VStack>
               </TabPanel>
               

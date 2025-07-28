@@ -10,6 +10,8 @@ import BrowserPermissionsFallback from '@/components/kiosk/BrowserPermissionsFal
 import ProvisioningInterface from '@/components/kiosk/ProvisioningInterface'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
+// 💓 Import du hook de heartbeat pour le statut temps réel
+import { useKioskHeartbeat } from '@/hooks/useKioskHeartbeat'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 
@@ -102,6 +104,16 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   })
 
   const { sounds, hapticFeedback } = useSoundEffects({ enabled: false, volume: 0.1 })
+
+  // 💓 Heartbeat pour signaler que le kiosk est en ligne - OPTIMISÉ ⚡
+  useKioskHeartbeat({
+    gymId: kioskData?.kiosk?.id || '',
+    kioskSlug: slug,
+    enabled: !!kioskData?.kiosk?.id, // Activer seulement quand les données sont chargées
+    interval: 10000 // ⚡ 10 secondes pour détection ultra-rapide
+  })
+
+
 
   // 🎤 PRÉ-INITIALISATION MICROPHONE SUPPRIMÉE
   // RAISON: Conflit avec WebRTC getUserMedia() - permissions gérées dans VoiceInterface
@@ -541,14 +553,25 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   // Callback pour analyser les transcriptions
   const handleTranscriptUpdate = useCallback((transcript: string, isFinal: boolean) => {
+    console.log('📝 [TRANSCRIPT]', { transcript, isFinal, voiceActive })
+    
     if (isFinal && transcript.trim().length > 3) {
       // Détecter intention de départ sur transcription finale
       if (detectExitIntent(transcript)) {
+        console.log('👋 [TRANSCRIPT] Intention de sortie détectée:', transcript)
         console.log('👋 Intention de départ détectée - attente fin de réponse JARVIS...')
         setPendingSessionEnd('natural')
+        
+        // Terminer la session après un délai pour laisser JARVIS répondre
+        setTimeout(() => {
+          setVoiceActive(false)
+          setCurrentMember(null)
+          setKioskState(prev => ({ ...prev, status: 'idle' }))
+          setPendingSessionEnd(null)
+        }, 3000)
       }
     }
-  }, [detectExitIntent])
+  }, [detectExitIntent, voiceActive])
 
 
 

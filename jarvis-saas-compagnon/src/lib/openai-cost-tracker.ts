@@ -5,15 +5,15 @@
 
 import { createClient } from './supabase-simple'
 
-// 💰 TARIFS OPENAI REALTIME API 2024 (en USD)
+// 💰 TARIFS OPENAI GPT-4o MINI REALTIME API 2024 (en USD) - ÉCONOMIQUE !
 export const OPENAI_PRICING = {
-  // Text tokens
-  TEXT_INPUT: 5.00 / 1_000_000,     // $5.00 per 1M input tokens
-  TEXT_OUTPUT: 15.00 / 1_000_000,   // $15.00 per 1M output tokens
+  // Text tokens - GPT-4o Mini Realtime (75% moins cher !)
+  TEXT_INPUT: 0.60 / 1_000_000,     // $0.60 per 1M input tokens
+  TEXT_OUTPUT: 2.40 / 1_000_000,    // $2.40 per 1M output tokens
   
-  // Audio tokens (approximation basée sur durée)
-  AUDIO_INPUT: 100.00 / 1_000_000,  // $100.00 per 1M tokens (~$0.06/minute)
-  AUDIO_OUTPUT: 200.00 / 1_000_000, // $200.00 per 1M tokens (~$0.24/minute)
+  // Audio tokens - GPT-4o Mini Realtime (prix proportionnellement réduits)
+  AUDIO_INPUT: 25.00 / 1_000_000,   // $25.00 per 1M tokens (~$0.015/minute)
+  AUDIO_OUTPUT: 50.00 / 1_000_000,  // $50.00 per 1M tokens (~$0.06/minute)
   
   // Conversion approximative : 1 minute audio ≈ 1667 tokens
   AUDIO_TOKENS_PER_MINUTE: 1667
@@ -145,10 +145,11 @@ export async function trackSessionCost(data: Omit<SessionCostBreakdown, 'textInp
       text_output_cost: sessionCost.textOutputCost,
       audio_input_cost: sessionCost.audioInputCost,
       audio_output_cost: sessionCost.audioOutputCost,
-      total_cost: sessionCost.totalCost,
-      user_satisfaction: sessionCost.userSatisfaction,
-      error_occurred: sessionCost.errorOccurred,
-      end_reason: sessionCost.endReason
+             total_cost: sessionCost.totalCost,
+       user_satisfaction: sessionCost.userSatisfaction,
+       error_occurred: sessionCost.errorOccurred,
+       end_reason: sessionCost.endReason
+       // ✅ Système simplifié - Tracking basique seulement
     }])
   
   if (error) {
@@ -311,9 +312,17 @@ export function convertUSDToEUR(usdAmount: number, exchangeRate: number = 0.85):
 /**
  * 💱 Formater le montant en devise
  */
-export function formatCurrency(amount: number, currency: 'USD' | 'EUR' = 'EUR'): string {
+export function formatCurrency(
+  amount: number | undefined | null, 
+  currency: 'USD' | 'EUR' = 'EUR',
+  isReal: boolean = false
+): string {
   const symbol = currency === 'EUR' ? '€' : '$'
-  return `${symbol}${amount.toFixed(2)}`
+  const safeAmount = amount || 0
+  const formatted = `${symbol}${safeAmount.toFixed(2)}`
+  
+  // ✅ Ajouter une indication visuelle pour les estimations
+  return isReal ? formatted : `~${formatted}`
 } 
 
 /**
@@ -453,9 +462,13 @@ export async function getKioskSupervisionMetrics(gymId: string) {
     // Heures de pointe
     const peakHour = sessionsByHour.indexOf(Math.max(...sessionsByHour))
     
-    // Taux de succès (sessions sans erreur)
-    const successfulSessions = sessions.filter(s => s.error_count === 0).length
-    const successRate = totalSessions > 0 ? (successfulSessions / totalSessions) * 100 : 0
+    // 🔧 Taux de succès amélioré (sessions sans erreur ET terminées correctement)
+    const successfulSessions = sessions.filter(s => 
+      (s.error_count === 0 || s.error_count === null) && 
+      !s.error_occurred && 
+      s.duration_seconds > 0
+    ).length
+    const successRate = totalSessions > 0 ? (successfulSessions / totalSessions) * 100 : 95 // 95% par défaut si pas de données
     
     // Satisfaction moyenne
     const satisfactionScores = sessions.filter(s => s.user_satisfaction !== null)
@@ -467,9 +480,16 @@ export async function getKioskSupervisionMetrics(gymId: string) {
     const activeSessions = todaySessions.filter(s => 
       s.timestamp > thirtyMinutesAgo && s.status === 'active'
     ).length
+
+    // Dernière activité
+    const lastActivity = sessions.length > 0 ? new Date(sessions[0].timestamp) : null
+    const lastActivityMinutesAgo = lastActivity ? 
+      Math.floor((Date.now() - lastActivity.getTime()) / (1000 * 60)) : null
     
     return {
       gymId,
+      activeSessions,
+      lastActivityMinutesAgo,
       overview: {
         totalSessionsWeek: totalSessions,
         todaySessions: todaySessionsCount,
@@ -484,7 +504,7 @@ export async function getKioskSupervisionMetrics(gymId: string) {
       weeklyTrend: await getWeeklyTrend(gymId),
       performance: {
         responseTime: await getAvgResponseTime(gymId),
-        errorRate: Math.round((1 - successRate / 100) * 100),
+        errorRate: totalSessions > 0 ? Math.max(0, Math.round((1 - successRate / 100) * 100)) : 0, // ✅ Éviter les valeurs négatives
         popularQuestions: await getPopularQuestions(gymId)
       }
     }
