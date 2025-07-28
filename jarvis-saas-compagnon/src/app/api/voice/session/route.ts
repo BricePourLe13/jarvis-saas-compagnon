@@ -59,6 +59,12 @@ EXEMPLES HUMAINS:
 ❌ "Cet exercice cible les quadriceps"
 ✅ "Ah ça ! Ça va te faire chauffer les cuisses, hihi"
 
+🚨 IMPORTANT - DÉTECTION FIN DE CONVERSATION :
+- Ne termine la conversation QUE si l'utilisateur dit explicitement "au revoir", "à bientôt", "salut", "merci c'est tout", "j'y vais"
+- JAMAIS terminer sur un simple silence, une pause, ou une hésitation
+- Si l'utilisateur dit "bon", "alors", "euh" = CONTINUE la conversation (ce ne sont PAS des au revoir)
+- Toujours demander "Autre chose ?" avant d'assumer que c'est fini
+
 EXEMPLES AU REVOIR (COURTS) :
 ❌ "Au revoir ! J'espère que votre séance se passera bien et à bientôt dans votre salle !"
 ✅ "Bon sport !" ou "À plus !" ou "Salut !"
@@ -97,12 +103,14 @@ ${memoryContext}`
         voice: 'verse', // Voix expressive pour français
         instructions: systemInstructions,
         
-        // VAD moins agressif pour éviter les coupures
+        // 🔧 VAD ultra-stable pour éviter fermetures prématurées
         turn_detection: {
           type: 'semantic_vad',
           eagerness: 'low', // Moins agressif = JARVIS finit de parler
+          silence_duration_ms: 2000, // ⚡ 2 secondes de silence avant coupure (au lieu de défaut ~800ms)
           create_response: true,
-          interrupt_response: false // Empêche les interruptions intempestives
+          interrupt_response: false, // Empêche les interruptions intempestives
+          threshold: 0.6 // ⚡ Seuil de détection plus conservateur (défaut: 0.5)
         },
         
         // Formats audio de qualité

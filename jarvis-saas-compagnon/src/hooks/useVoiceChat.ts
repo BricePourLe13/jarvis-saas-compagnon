@@ -48,6 +48,10 @@ export function useVoiceChat(config: VoiceChatConfig) {
   
   const [isConnected, setIsConnected] = useState(false)
   const [currentTranscript, setCurrentTranscript] = useState('')
+  
+  // 🔧 STABILITÉ SESSION - Éviter les déconnexions accidentelles  
+  const lastActivityRef = useRef<number>(Date.now())
+  const stabilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error' | 'reconnecting'>('idle')
   const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'unknown'>('unknown')
 
@@ -101,7 +105,44 @@ export function useVoiceChat(config: VoiceChatConfig) {
   const updateStatus = useCallback((newStatus: typeof status) => {
     setStatus(newStatus)
     configRef.current.onStatusChange?.(newStatus)
+    
+    // 🔧 STABILITÉ: Marquer l'activité pour éviter les timeouts
+    lastActivityRef.current = Date.now()
   }, [])
+  
+  // 🔧 STABILITÉ SESSION - Fonction de maintien en vie
+  const maintainSessionStability = useCallback(() => {
+    if (!isConnected) return
+    
+    const timeSinceActivity = Date.now() - lastActivityRef.current
+    
+    // Si pas d'activité depuis plus de 45 secondes, marquer l'activité
+    if (timeSinceActivity > 45000) {
+      console.log('🔧 [STABILITÉ] Maintien session - refresh activité')
+      lastActivityRef.current = Date.now()
+    }
+    
+    // Programmer le prochain check dans 20 secondes
+    stabilityTimeoutRef.current = setTimeout(maintainSessionStability, 20000)
+  }, [isConnected])
+  
+  // Démarrer le maintien de stabilité quand connecté
+  useEffect(() => {
+    if (isConnected) {
+      lastActivityRef.current = Date.now()
+      maintainSessionStability()
+    } else if (stabilityTimeoutRef.current) {
+      clearTimeout(stabilityTimeoutRef.current)
+      stabilityTimeoutRef.current = null
+    }
+    
+    return () => {
+      if (stabilityTimeoutRef.current) {
+        clearTimeout(stabilityTimeoutRef.current)
+        stabilityTimeoutRef.current = null
+      }
+    }
+  }, [isConnected, maintainSessionStability])
 
   // 📊 Fonctions helper pour le tracking de session
   const generateSessionId = useCallback(() => {
@@ -427,6 +468,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
         updateStatus('listening')
         setAudioState(prev => ({ ...prev, isRecording: true }))
         
+        // 🔧 STABILITÉ: Activité détectée
+        lastActivityRef.current = Date.now()
+        
         // 📊 [TRACKING] Marquer le début d'input audio
         if (sessionTrackingRef.current.sessionId) {
           sessionTrackingRef.current.speechStartTime = Date.now()
@@ -436,6 +480,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
       case 'input_audio_buffer.speech_stopped':
         console.log('🤐 Fin de parole détectée')
         setAudioState(prev => ({ ...prev, isRecording: false }))
+        
+        // 🔧 STABILITÉ: Activité détectée
+        lastActivityRef.current = Date.now()
         
         // 📊 [TRACKING] Calculer la durée d'input audio
         if (sessionTrackingRef.current.sessionId && sessionTrackingRef.current.speechStartTime) {
@@ -590,7 +637,20 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
   // Déconnexion propre
   const disconnect = useCallback(() => {
-    console.log('🔌 Déconnexion voice chat')
+    console.log('🔌 DÉCONNEXION VOICE CHAT - RAISON:', {
+      timestamp: new Date().toISOString(),
+      isConnected,
+      status,
+      lastActivity: new Date(lastActivityRef.current).toISOString(),
+      timeSinceActivity: Date.now() - lastActivityRef.current,
+      sessionId: sessionTrackingRef.current.sessionId
+    })
+    
+    // Nettoyer les timeouts de stabilité
+    if (stabilityTimeoutRef.current) {
+      clearTimeout(stabilityTimeoutRef.current)
+      stabilityTimeoutRef.current = null
+    }
     
     // Nettoyer les timeouts
     if (reconnectTimeoutRef.current) {
