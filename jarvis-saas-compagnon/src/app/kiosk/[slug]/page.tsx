@@ -1382,6 +1382,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             display="flex"
             alignItems="center"
             justifyContent="center"
+            flexDirection="column"
           >
             <motion.div
               animate={{
@@ -1400,17 +1401,50 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               />
             </motion.div>
 
-            {/* Interface vocale cachée */}
-            <Box display="none">
-              <VoiceInterface
-                gymSlug={slug}
-                currentMember={currentMember}
-                isActive={voiceActive}
-                onActivate={() => setVoiceActive(true)}
-                onDeactivate={() => setVoiceActive(false)}
-                onTranscriptUpdate={handleTranscriptUpdate}
-              />
-            </Box>
+            {/* 👋 Indication de fin de session */}
+            <AnimatePresence>
+              {voiceActive && !sessionLoading && !sessionError && !pendingSessionEnd && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                  transition={{ delay: 1, duration: 0.8, ease: "easeOut" }}
+                >
+                  <Box
+                    mt={6}
+                    px={4}
+                    py={2}
+                    bg="rgba(255, 255, 255, 0.08)"
+                    border="1px solid rgba(255, 255, 255, 0.12)"
+                    borderRadius="12px"
+                    backdropFilter="blur(10px)"
+                    maxW="280px"
+                  >
+                    <Text 
+                      fontSize="sm" 
+                      color="rgba(255, 255, 255, 0.7)"
+                      textAlign="center"
+                      fontWeight="400"
+                      letterSpacing="0.01em"
+                    >
+                      💬 Dites <strong style={{color: 'rgba(255, 255, 255, 0.9)', fontWeight: '600'}}>"Au revoir"</strong> pour terminer
+                    </Text>
+                  </Box>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Box>
+
+          {/* Interface vocale cachée */}
+          <Box display="none">
+            <VoiceInterface
+              gymSlug={slug}
+              currentMember={currentMember}
+              isActive={voiceActive}
+              onActivate={() => setVoiceActive(true)}
+              onDeactivate={() => setVoiceActive(false)}
+              onTranscriptUpdate={handleTranscriptUpdate}
+            />
           </Box>
 
           {/* Informations subtiles - Droite */}

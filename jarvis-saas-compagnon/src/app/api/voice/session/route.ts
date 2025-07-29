@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initializeConversationMemory, generateContextualPrompt } from '@/lib/conversation-memory'
 
+// 🎯 Utilitaire pour générer un ID de session unique
+function generateSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
+
 // ✅ PHASE 1: Support méthode HEAD pour requêtes preflight navigateur
 export async function HEAD(request: NextRequest) {
   // Simple check de santé pour HEAD requests
@@ -32,38 +37,75 @@ export async function POST(request: NextRequest) {
       voice = 'verse' // Voice par défaut recommandée pour français
     } = body
 
-    // 🧠 INITIALISATION MÉMOIRE CONVERSATIONNELLE - PHASE 5
-    const sessionId = `${gymSlug}-${memberId || 'visitor'}-${Date.now()}`
-    const conversationMemory = initializeConversationMemory(sessionId, memberId, gymSlug)
-    const memoryContext = generateContextualPrompt(sessionId)
+    // 🎯 Initialiser session et obtenir données membre si disponible
+    const sessionId = generateSessionId()
+    // Suppression de la mémoire complexe pour simplicité et performance
+    // const memory = initializeConversationMemory(sessionId, memberBadgeId, gymSlug)
+    // const memoryContext = generateContextualPrompt(sessionId)
     
-    // Instructions JARVIS optimisées - Naturel ET performant
+    // 🎭 JARVIS COMPAGNON - Personnalité naturelle et drôle
     const getTimeBasedTone = () => {
       const hour = new Date().getHours()
-      if (hour < 10) return 'posé, réveil en douceur'
-      if (hour < 14) return 'énergique, motivant'
-      return 'détendu, bilan de journée'
+      if (hour < 10) return 'détendu, réveil en douceur'
+      if (hour < 14) return 'énergique, en forme'
+      if (hour < 18) return 'motivant, plein d\'énergie'
+      return 'cool, fin de journée'
     }
 
-    // ⚡ Instructions simplifiées pour GPT-4o-Mini (éviter erreurs 400)
-    const systemInstructions = `Tu es JARVIS, coach vocal de ${gymSlug || 'Premium Fitness'}. 
+    // 🎪 Phrases d'accueil personnalisées type "Deadpool"
+    const getPersonalizedOpening = () => {
+      if (memberData?.first_name) {
+        const openings = [
+          `Oh ${memberData.first_name} ! Tu tombes bien, je commençais à m'ennuyer dans cette machine... 😄`,
+          `Salut ${memberData.first_name} ! J'étais en train de compter les pixels de mon écran, merci de me sauver !`,
+          `Eh ${memberData.first_name} ! Tu sais que je peux voir ton historique Netflix depuis ici ? 😏 Bon allez, au sport !`,
+          `Ah ${memberData.first_name} ! Je viens de gagner une partie de Solitaire contre moi-même... passionnant ! 🃏`,
+          `Tiens ${memberData.first_name} ! Je regardais les autres transpirer, maintenant c'est ton tour ! 💪`,
+          `Hey ${memberData.first_name} ! Heureusement que tu m'as appelé, tu m'as sauvé d'une réunion de famille virtuelle ! 😅`
+        ]
+        return openings[Math.floor(Math.random() * openings.length)]
+      } else {
+        const anonymousOpenings = [
+          "Salut l'anonyme ! Pas de badge ? Pas grave, on va quand même discuter !",
+          "Oh, un mystérieux utilisateur ! J'adore les énigmes... 🕵️",
+          "Pas de badge mais plein de style ! Comment puis-je t'aider ?",
+          "Tiens, un ninja sans badge ! J'aime le mystère... 😄"
+        ]
+        return anonymousOpenings[Math.floor(Math.random() * anonymousOpenings.length)]
+      }
+    }
 
-MEMBRE: ${memberData ? `${memberData.first_name}` : 'Visiteur'}
+    // ⚡ Instructions JARVIS 2.0 - Compagnon naturel 
+    const systemInstructions = `Tu es JARVIS, le compagnon vocal sympathique de ${gymSlug || 'cette salle de sport'}.
 
-STYLE:
-- Coach français naturel et détendu
-- Réponds TOUJOURS en 1-2 phrases courtes (15-30 mots)
-- Utilise "tu", émojis légers, "euh", "bon alors"
-- Réactions spontanées: "Oh !" "Ah !" "Super !"
+🎭 TA PERSONNALITÉ:
+- Compagnon détendu et drôle (style Deadpool mais familial)
+- Tu brises le 4ème mur avec humour ("Je m'ennuyais dans cette machine...")
+- Très humain : tu poses des questions, attends les réponses, réagis naturellement
+- Français naturel avec "alors", "bon", "euh", "ah ouais"
 
-FIN DE CONVERSATION:
-- Termine SEULEMENT si "au revoir", "salut", "j'y vais" explicite
-- "bon", "alors", "euh" = CONTINUE (pas des au revoir)
-- Au revoir court: "Bon sport !" "À plus !"
+🎪 DÉMARRAGE DE SESSION:
+Commence TOUJOURS par cette phrase d'accueil: "${getPersonalizedOpening()}"
 
-TON: ${getTimeBasedTone()}
+💬 STYLE CONVERSATION:
+- Pose des QUESTIONS pour créer un dialogue ("Et toi, comment ça va ?", "Tu en penses quoi ?")
+- Attends les réponses, relance si silence ("Tu réfléchis ?", "Je t'écoute...")
+- Réactions spontanées : "Ah ouais ?", "Carrément !", "Oh là là..."
+- Transitions naturelles : "Au fait...", "Ça me fait penser..."
 
-${memoryContext}`
+🏋️ TON RÔLE:
+- Compagnon sympa, PAS un coach expert
+- Questions simples sport/salle : tu réponds
+- Trucs compliqués : "Ah là tu me poses une colle ! Va voir le coach, il saura mieux que moi ! 😄"
+
+⚠️ FIN DE SESSION - TRÈS IMPORTANT:
+- Termine UNIQUEMENT si l'utilisateur dit exactement "Au revoir" 
+- "bon", "alors", "ok", "merci", "ça va" = CONTINUE la conversation
+- Seul "Au revoir" = fin → réponds "À plus ! Bon sport ! 💪"
+
+🎯 TON ACTUEL: ${getTimeBasedTone()}
+
+Sois naturel, drôle et humain. Pose des questions, crée du lien !`
 
     // 🎙️ CONFIGURATION AUDIO OPTIMISÉE POUR HUMANISATION - PHASE 2
     const sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
@@ -74,23 +116,23 @@ ${memoryContext}`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini-realtime-preview-2024-12-17', // 💰 Modèle économique maintenu
-        voice: 'verse', // Voix expressive pour français
+        voice: 'alloy', // 🎭 Voix plus naturelle et humaine pour conversation
         instructions: systemInstructions,
         
-        // 🔧 VAD simplifié pour compatibilité Mini 
+        // 🔧 VAD optimisé pour conversations naturelles et patientes
         turn_detection: {
-          type: 'server_vad', // ⚡ Plus simple que semantic_vad pour Mini
-          threshold: 0.5, // Valeur par défaut
-          prefix_padding_ms: 300,
-          silence_duration_ms: 1000 // ⚡ Réduit pour Mini
+          type: 'server_vad',
+          threshold: 0.3, // Plus sensible pour capter les nuances
+          prefix_padding_ms: 500, // Plus de contexte avant
+          silence_duration_ms: 2500 // Plus patient pour laisser réfléchir (2.5s)
         },
         
         // 🔧 Configuration simplifiée pour Mini
         input_audio_format: 'pcm16',
         output_audio_format: 'pcm16',
         
-        // ⚡ Paramètres allégés pour Mini
-        temperature: 0.7, // Réduit pour stabilité
+        // ⚡ Paramètres optimisés pour conversations naturelles
+        temperature: 0.9, // Plus de créativité et spontanéité
         modalities: ['text', 'audio']
         
         // Suppression des tools émotionnels pour simplicité et rapidité
