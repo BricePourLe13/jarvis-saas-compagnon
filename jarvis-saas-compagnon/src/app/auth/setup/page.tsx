@@ -231,8 +231,7 @@ function SetupContent() {
       const { error: activateError } = await supabase
         .from('users')
         .update({ 
-          is_active: true,
-          last_login: new Date().toISOString()
+          is_active: true
         })
         .eq('id', (await supabase.auth.getUser()).data.user?.id)
 
