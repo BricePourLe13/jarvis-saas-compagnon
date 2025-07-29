@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSimpleClient, createAdminClient } from '@/lib/supabase-admin'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { createAdminClient } from '@/lib/supabase-admin'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -22,6 +24,26 @@ interface ApiResponse<T> {
 // ===========================================
 // 🛡️ VALIDATION & SÉCURITÉ
 // ===========================================
+
+async function validateSuperAdmin(supabase: any) {
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error || !user) {
+    return { valid: false, error: 'Non authentifié' }
+  }
+
+  const { data: userProfile, error: profileError } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !userProfile || userProfile.role !== 'super_admin') {
+    return { valid: false, error: 'Accès non autorisé - Super admin requis' }
+  }
+
+  return { valid: true, user }
+}
 
 function validateInviteRequest(body: any): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
@@ -53,50 +75,37 @@ function validateInviteRequest(body: any): { isValid: boolean; errors: string[] 
   return { isValid: errors.length === 0, errors }
 }
 
-async function verifyInviterPermissions(supabase: any, inviterId: string, targetRole: string, franchiseAccess?: string[]) {
-  // Récupérer le profil de l'inviteur
-  const { data: inviter, error } = await supabase
-    .from('users')
-    .select('role, franchise_access')
-    .eq('id', inviterId)
-    .single()
-    
-  if (error || !inviter) {
-    throw new Error('Inviteur non trouvé')
-  }
-  
-  // Seuls les super_admin peuvent inviter
-  if (inviter.role !== 'super_admin') {
-    throw new Error('Seuls les super admins peuvent envoyer des invitations')
-  }
-  
-  // Super admin peut tout faire
-  if (inviter.role === 'super_admin') {
-    return true
-  }
-  
-  // Vérifications supplémentaires si besoin
-  return true
-}
-
 // ===========================================
 // 🎯 ENDPOINT PRINCIPAL
 // ===========================================
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Initialisation clients Supabase
-    const supabase = createSimpleClient() // Pour auth normale
-    const adminSupabase = createAdminClient() // Pour invitations
+    // 1. Initialiser Supabase avec cookies pour auth
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
     
-    // 2. Vérification auth de l'inviteur
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    // Client admin pour les invitations
+    const adminSupabase = createAdminClient()
+    
+    // 2. Vérifier authentification Super Admin
+    const authResult = await validateSuperAdmin(supabase)
+    if (!authResult.valid) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Non authentifié',
-          message: 'Vous devez être connecté pour envoyer des invitations'
+          error: authResult.error,
+          message: 'Vous devez être connecté en tant que super admin'
         } as ApiResponse<null>,
         { status: 401 }
       )
@@ -117,10 +126,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Vérification des permissions de l'inviteur
-    await verifyInviterPermissions(supabase, user.id, body.role, body.franchise_access)
-
-    // 5. Vérifier si l'utilisateur existe déjà
+    // 4. Vérifier si l'utilisateur existe déjà
     const { data: existingUser } = await supabase
       .from('users')
       .select('id, email')
@@ -138,7 +144,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 6. 🔥 INVITATION NATIVE SUPABASE
+    // 5. 🔥 INVITATION NATIVE SUPABASE
     const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
       body.email.toLowerCase(),
       {
@@ -146,7 +152,7 @@ export async function POST(request: NextRequest) {
           full_name: body.full_name.trim(),
           role: body.role,
           franchise_access: body.franchise_access || [],
-          invited_by: user.id,
+          invited_by: authResult.user.id,
           invitation_type: 'admin_access'
         },
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/setup?type=admin`
@@ -165,7 +171,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. Créer le profil utilisateur en attente
+    // 6. Créer le profil utilisateur en attente
     const { error: profileError } = await adminSupabase
       .from('users')
       .insert({
@@ -185,7 +191,7 @@ export async function POST(request: NextRequest) {
       // On continue quand même, le profil sera créé au callback
     }
 
-    // 8. Log de l'action (pour audit)
+    // 7. Log de l'action (pour audit)
     await adminSupabase
       .from('jarvis_errors_log')
       .insert({
@@ -193,13 +199,13 @@ export async function POST(request: NextRequest) {
         details: {
           invited_email: body.email,
           invited_role: body.role,
-          invited_by: user.id,
+          invited_by: authResult.user.id,
           invitation_id: inviteData.user.id
         },
         timestamp: new Date().toISOString()
       })
 
-    // 9. Réponse de succès
+    // 8. Réponse de succès
     const response: ApiResponse<{ invitation_id: string; email: string }> = {
       success: true,
       data: {

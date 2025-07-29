@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSimpleClient } from '@/lib/supabase-admin'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -29,22 +30,24 @@ interface UserWithProfile {
 // 🛡️ VÉRIFICATION PERMISSIONS
 // ===========================================
 
-async function verifyAdminAccess(supabase: any, userId: string) {
-  const { data: user, error } = await supabase
+async function validateSuperAdmin(supabase: any) {
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error || !user) {
+    return { valid: false, error: 'Non authentifié' }
+  }
+
+  const { data: userProfile, error: profileError } = await supabase
     .from('users')
     .select('role')
-    .eq('id', userId)
+    .eq('id', user.id)
     .single()
-    
-  if (error || !user) {
-    throw new Error('Utilisateur non trouvé')
+
+  if (profileError || !userProfile || userProfile.role !== 'super_admin') {
+    return { valid: false, error: 'Accès non autorisé - Super admin requis' }
   }
-  
-  if (user.role !== 'super_admin') {
-    throw new Error('Accès refusé - Super admin requis')
-  }
-  
-  return true
+
+  return { valid: true, user }
 }
 
 // ===========================================
@@ -53,26 +56,34 @@ async function verifyAdminAccess(supabase: any, userId: string) {
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Initialisation Supabase
-    const supabase = createSimpleClient()
+    // 1. Initialiser Supabase avec cookies
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
     
-    // 2. Vérification authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    // 2. Vérifier authentification Super Admin
+    const authResult = await validateSuperAdmin(supabase)
+    if (!authResult.valid) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Non authentifié',
-          message: 'Vous devez être connecté'
+          error: authResult.error,
+          message: 'Vous devez être connecté en tant que super admin'
         } as ApiResponse<null>,
         { status: 401 }
       )
     }
 
-    // 3. Vérification permissions admin
-    await verifyAdminAccess(supabase, user.id)
-
-    // 4. Récupération des utilisateurs avec filtres
+    // 3. Récupération des utilisateurs avec filtres
     const { searchParams } = new URL(request.url)
     const role = searchParams.get('role')
     const status = searchParams.get('status') // 'active', 'inactive', 'all'
@@ -123,7 +134,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 5. Compter le total pour pagination
+    // 4. Compter le total pour pagination
     let countQuery = supabase
       .from('users')
       .select('id', { count: 'exact', head: true })
@@ -140,14 +151,14 @@ export async function GET(request: NextRequest) {
 
     const { count, error: countError } = await countQuery
 
-    // 6. Enrichir les données (optionnel)
+    // 5. Enrichir les données (optionnel)
     const enrichedUsers: UserWithProfile[] = users?.map(user => ({
       ...user,
       // Masquer les informations sensibles si nécessaire
       // franchise_access: user.role === 'super_admin' ? user.franchise_access : undefined
     })) || []
 
-    // 7. Réponse avec métadonnées
+    // 6. Réponse avec métadonnées
     const response: ApiResponse<{
       users: UserWithProfile[]
       pagination: {
@@ -200,7 +211,7 @@ export async function GET(request: NextRequest) {
         error: 'Erreur système',
         message: error.message || 'Une erreur inattendue s\'est produite'
       } as ApiResponse<null>,
-      { status: error.message.includes('Accès refusé') ? 403 : 500 }
+      { status: error.message && error.message.includes('Accès refusé') ? 403 : 500 }
     )
   }
 }
