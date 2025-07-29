@@ -71,8 +71,12 @@ export async function GET(request: NextRequest) {
     )
     
     // 2. Vérifier authentification Super Admin
+    console.log('🔍 DEBUG auth check...')
     const authResult = await validateSuperAdmin(supabase)
+    console.log('🔍 DEBUG auth result:', authResult)
+    
     if (!authResult.valid) {
+      console.log('❌ Auth failed:', authResult.error)
       return NextResponse.json(
         { 
           success: false, 
@@ -90,20 +94,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
+    // Requête simplifiée pour éviter les erreurs de colonnes manquantes
     let query = supabase
       .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        role,
-        franchise_access,
-        gym_access,
-        is_active,
-        last_login,
-        created_at,
-        updated_at
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     // Filtres optionnels
@@ -123,12 +117,18 @@ export async function GET(request: NextRequest) {
     const { data: users, error: usersError } = await query
 
     if (usersError) {
-      console.error('❌ Erreur récupération utilisateurs:', usersError)
+      console.error('❌ Erreur récupération utilisateurs:', {
+        message: usersError.message,
+        details: usersError.details,
+        hint: usersError.hint,
+        code: usersError.code
+      })
       return NextResponse.json(
         { 
           success: false, 
           error: 'Erreur base de données',
-          message: 'Impossible de récupérer les utilisateurs'
+          message: `Erreur DB: ${usersError.message}`,
+          debug: usersError
         } as ApiResponse<null>,
         { status: 500 }
       )
