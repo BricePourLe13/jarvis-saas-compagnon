@@ -7,11 +7,8 @@ import { createAdminClient } from '@/lib/supabase-admin'
 // 🔐 TYPES & INTERFACES
 // ===========================================
 
-interface InviteAdminRequest {
+interface ResendInviteRequest {
   email: string
-  full_name: string
-  role: 'super_admin' | 'franchise_owner'
-  franchise_access?: string[] // Pour franchise_owner uniquement
 }
 
 interface ApiResponse<T> {
@@ -45,43 +42,13 @@ async function validateSuperAdmin(supabase: any) {
   return { valid: true, user }
 }
 
-function validateInviteRequest(body: any): { isValid: boolean; errors: string[] } {
-  const errors: string[] = []
-  
-  // Email validation
-  if (!body.email || typeof body.email !== 'string') {
-    errors.push('Email requis')
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
-    errors.push('Format email invalide')
-  }
-  
-  // Nom complet
-  if (!body.full_name || typeof body.full_name !== 'string' || body.full_name.trim().length < 2) {
-    errors.push('Nom complet requis (minimum 2 caractères)')
-  }
-  
-  // Rôle validation
-  if (!body.role || !['super_admin', 'franchise_owner'].includes(body.role)) {
-    errors.push('Rôle invalide (super_admin ou franchise_owner uniquement)')
-  }
-  
-  // Franchise access pour franchise_owner
-  if (body.role === 'franchise_owner') {
-    if (!body.franchise_access || !Array.isArray(body.franchise_access) || body.franchise_access.length === 0) {
-      errors.push('Au moins une franchise requise pour franchise_owner')
-    }
-  }
-  
-  return { isValid: errors.length === 0, errors }
-}
-
 // ===========================================
 // 🎯 ENDPOINT PRINCIPAL
 // ===========================================
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Initialiser Supabase avec cookies pour auth
+    // 1. Initialiser clients Supabase
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -95,7 +62,6 @@ export async function POST(request: NextRequest) {
       }
     )
     
-    // Client admin pour les invitations
     const adminSupabase = createAdminClient()
     
     // 2. Vérifier authentification Super Admin
@@ -112,113 +78,141 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Parsing et validation des données
-    const body: InviteAdminRequest = await request.json()
-    const { isValid, errors } = validateInviteRequest(body)
+    const body: ResendInviteRequest = await request.json()
     
-    if (!isValid) {
+    if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Données invalides',
-          message: errors.join(', ')
+          error: 'Email invalide',
+          message: 'Adresse email valide requise'
         } as ApiResponse<null>,
         { status: 400 }
       )
     }
 
-    // 4. Vérifier si l'utilisateur existe déjà
-    const { data: existingUser } = await supabase
+    // 4. Récupérer l'utilisateur existant
+    const { data: existingUser, error: userError } = await supabase
       .from('users')
-      .select('id, email')
+      .select('*')
       .eq('email', body.email.toLowerCase())
       .single()
       
-    if (existingUser) {
+    if (userError || !existingUser) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Utilisateur existant',
-          message: `Un utilisateur avec l'email ${body.email} existe déjà`
+          error: 'Utilisateur non trouvé',
+          message: `Aucun utilisateur avec l'email ${body.email}`
+        } as ApiResponse<null>,
+        { status: 404 }
+      )
+    }
+
+    // 5. Vérifier que l'utilisateur n'est pas déjà actif
+    if (existingUser.is_active) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Utilisateur déjà actif',
+          message: `L'utilisateur ${body.email} est déjà actif`
         } as ApiResponse<null>,
         { status: 409 }
       )
     }
 
-    // 5. 🔥 INVITATION NATIVE SUPABASE
+    // 6. Supprimer l'utilisateur de Supabase Auth (si existe)
+    try {
+      await adminSupabase.auth.admin.deleteUser(existingUser.id)
+      console.log(`🗑️ Ancien utilisateur Auth supprimé: ${existingUser.id}`)
+    } catch (deleteError) {
+      console.log(`ℹ️ Utilisateur Auth non trouvé (normal): ${existingUser.id}`)
+    }
+
+    // 7. Supprimer de la table users
+    const { error: deleteUserError } = await adminSupabase
+      .from('users')
+      .delete()
+      .eq('id', existingUser.id)
+
+    if (deleteUserError) {
+      console.error('❌ Erreur suppression user:', deleteUserError)
+    }
+
+    // 8. 🔥 RENVOYER L'INVITATION
     const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
       body.email.toLowerCase(),
       {
         data: {
-          full_name: body.full_name.trim(),
-          role: body.role,
-          franchise_access: body.franchise_access || [],
+          full_name: existingUser.full_name,
+          role: existingUser.role,
+          franchise_access: existingUser.franchise_access || [],
           invited_by: authResult.user.id,
-          invitation_type: 'admin_access'
+          invitation_type: 'admin_access_resend'
         },
         redirectTo: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-saas-compagnon.vercel.app'}/auth/setup?type=admin`
       }
     )
 
     if (inviteError) {
-      console.error('❌ Erreur invitation Supabase:', inviteError)
+      console.error('❌ Erreur réenvoi invitation:', inviteError)
       return NextResponse.json(
         { 
           success: false, 
           error: 'Erreur invitation',
-          message: inviteError.message || 'Impossible d\'envoyer l\'invitation'
+          message: inviteError.message || 'Impossible de renvoyer l\'invitation'
         } as ApiResponse<null>,
         { status: 500 }
       )
     }
 
-    // 6. Créer le profil utilisateur en attente
+    // 9. Recréer le profil utilisateur
     const { error: profileError } = await adminSupabase
       .from('users')
       .insert({
         id: inviteData.user.id,
         email: body.email.toLowerCase(),
-        full_name: body.full_name.trim(),
-        role: body.role,
-        franchise_access: body.franchise_access || [],
-        is_active: false, // Sera activé lors de la première connexion
+        full_name: existingUser.full_name,
+        role: existingUser.role,
+        franchise_access: existingUser.franchise_access || [],
+        is_active: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
 
     if (profileError) {
-      console.error('❌ Erreur création profil:', profileError)
-      // L'invitation a été envoyée mais le profil n'a pas pu être créé
-      // On continue quand même, le profil sera créé au callback
+      console.error('❌ Erreur recréation profil:', profileError)
     }
 
-    // 7. Log de l'action (pour audit)
+    // 10. Log de l'action
     await adminSupabase
       .from('jarvis_errors_log')
       .insert({
-        type: 'admin_invitation_sent',
+        type: 'admin_invitation_resent',
         details: {
-          invited_email: body.email,
-          invited_role: body.role,
-          invited_by: authResult.user.id,
-          invitation_id: inviteData.user.id
+          resent_email: body.email,
+          resent_role: existingUser.role,
+          resent_by: authResult.user.id,
+          new_invitation_id: inviteData.user.id,
+          old_user_id: existingUser.id
         },
         timestamp: new Date().toISOString()
       })
 
-    // 8. Réponse de succès
+    // 11. Réponse de succès
     const response: ApiResponse<{ invitation_id: string; email: string }> = {
       success: true,
       data: {
         invitation_id: inviteData.user.id,
         email: body.email
       },
-      message: `Invitation envoyée avec succès à ${body.email}`
+      message: `Invitation renvoyée avec succès à ${body.email}`
     }
 
     return NextResponse.json(response, { status: 201 })
 
   } catch (error: any) {
-    console.error('💥 Erreur système invitation:', error)
+    console.error('💥 Erreur système réenvoi invitation:', error)
     
     return NextResponse.json(
       { 

@@ -328,6 +328,7 @@ export default function TeamPage() {
     super_admins: 0
   })
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const toast = useToast()
 
   useEffect(() => {
     fetchUsers()
@@ -339,24 +340,67 @@ export default function TeamPage() {
       const response = await fetch('/api/admin/users')
       const data = await response.json()
       
-      if (data.success) {
+      console.log('🔍 DEBUG fetchUsers response:', { status: response.status, data })
+      
+      if (data.success && data.data) {
         setUsers(data.data)
         
         // Calculer les stats
         const activeUsers = data.data.filter((u: User) => u.is_active)
         const superAdmins = data.data.filter((u: User) => u.role === 'super_admin')
         
-        setStats({
+        const newStats = {
           total: data.data.length,
           active: activeUsers.length,
           pending: data.data.length - activeUsers.length,
           super_admins: superAdmins.length
+        }
+        
+        console.log('📊 DEBUG stats calculées:', newStats)
+        setStats(newStats)
+      } else {
+        console.error('❌ Réponse API invalide:', data)
+      }
+    } catch (error) {
+      console.error('❌ Erreur chargement utilisateurs:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendInvitation = async (email: string) => {
+    try {
+      const response = await fetch('/api/admin/invitations/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast({
+          title: 'Invitation renvoyée',
+          description: result.message,
+          status: 'success',
+          duration: 5000,
+        })
+        fetchUsers() // Rafraîchir la liste
+      } else {
+        toast({
+          title: 'Erreur',
+          description: result.message || 'Impossible de renvoyer l\'invitation',
+          status: 'error',
+          duration: 5000,
         })
       }
     } catch (error) {
-      console.error('Erreur chargement utilisateurs:', error)
-    } finally {
-      setLoading(false)
+      toast({
+        title: 'Erreur système',
+        description: 'Une erreur inattendue s\'est produite',
+        status: 'error',
+        duration: 5000,
+      })
     }
   }
 
@@ -490,9 +534,22 @@ export default function TeamPage() {
                           </Badge>
                         </Td>
                         <Td>
-                          <Badge colorScheme={user.is_active ? 'green' : 'orange'}>
-                            {user.is_active ? 'Actif' : 'En attente'}
-                          </Badge>
+                          <HStack spacing={2}>
+                            <Badge colorScheme={user.is_active ? 'green' : 'orange'}>
+                              {user.is_active ? 'Actif' : 'En attente'}
+                            </Badge>
+                            {!user.is_active && (
+                              <Button
+                                size="xs"
+                                colorScheme="blue"
+                                variant="ghost"
+                                onClick={() => handleResendInvitation(user.email)}
+                                leftIcon={<Icon as={Mail} />}
+                              >
+                                Renvoyer
+                              </Button>
+                            )}
+                          </HStack>
                         </Td>
                         <Td>
                           <Text fontSize="sm" color="gray.600">
