@@ -516,15 +516,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
         // 🔧 ACTIVITÉ: Fin de réponse JARVIS = activité
         lastActivityRef.current = Date.now()
         
-        // 👋 DÉTECTION "AU REVOIR" côté client pour fermeture forcée
-        if (finalTranscript.toLowerCase().includes('à plus') || 
-            finalTranscript.toLowerCase().includes('bon sport') ||
-            finalTranscript.toLowerCase().includes('au revoir')) {
-          console.log('👋 [AUTO-CLOSE] JARVIS a dit au revoir, fermeture session dans 2s')
-          setTimeout(() => {
-            disconnect()
-          }, 2000) // Laisser le temps à JARVIS de finir sa phrase
-        }
+        // 👋 DÉTECTION "AU REVOIR" SUPPRIMÉE - gérée côté VoiceInterface pour éviter conflits
         
         configRef.current.onTranscriptUpdate?.(finalTranscript, true)
         setCurrentTranscript(finalTranscript)

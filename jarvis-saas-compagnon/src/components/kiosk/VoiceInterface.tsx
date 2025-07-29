@@ -74,22 +74,37 @@ export default function VoiceInterface({
     }
   }, [isActive, isConnected, disconnect])
 
-  // 👋 DÉTECTION "AU REVOIR" utilisateur pour fermeture forcée
+  // 👋 DÉTECTION "AU REVOIR" utilisateur pour fermeture forcée - VERSION CORRIGÉE
+  const lastGoodbyeRef = useRef<string>('')
+  
   useEffect(() => {
     if (currentTranscript && isConnected) {
       const transcript = currentTranscript.toLowerCase().trim()
+      
+      // Éviter les redéclenchements sur le même transcript
+      if (transcript === lastGoodbyeRef.current) return
+      
       if (transcript === 'au revoir' || 
           transcript === 'au revoir.' ||
           transcript.endsWith(' au revoir') ||
           transcript.endsWith(' au revoir.')) {
+        
+        lastGoodbyeRef.current = transcript
         console.log('👋 [USER GOODBYE] Utilisateur a dit "Au revoir", fermeture session...')
-        setTimeout(() => {
-          disconnect()
-          onDeactivate() // Désactiver l'interface
-        }, 1000) // Laisser un peu de temps pour que JARVIS réponde
+        
+        // Fermeture immédiate et propre
+        disconnect()
+        onDeactivate()
       }
     }
   }, [currentTranscript, isConnected, disconnect, onDeactivate])
+  
+  // Nettoyer la référence quand déconnecté
+  useEffect(() => {
+    if (!isConnected) {
+      lastGoodbyeRef.current = ''
+    }
+  }, [isConnected])
 
   const getJarvisStatus = () => {
     switch (status) {
