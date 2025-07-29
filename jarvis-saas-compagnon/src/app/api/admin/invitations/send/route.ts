@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
           invited_by: authResult.user.id,
           invitation_type: 'admin_access'
         },
-        redirectTo: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-saas-compagnon.vercel.app'}/auth/setup?type=admin`
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-group.net'}/auth/setup?type=admin`
       }
     )
 

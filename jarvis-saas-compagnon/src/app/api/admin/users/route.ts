@@ -71,12 +71,8 @@ export async function GET(request: NextRequest) {
     )
     
     // 2. Vérifier authentification Super Admin
-    console.log('🔍 DEBUG auth check...')
     const authResult = await validateSuperAdmin(supabase)
-    console.log('🔍 DEBUG auth result:', authResult)
-    
     if (!authResult.valid) {
-      console.log('❌ Auth failed:', authResult.error)
       return NextResponse.json(
         { 
           success: false, 
@@ -117,18 +113,12 @@ export async function GET(request: NextRequest) {
     const { data: users, error: usersError } = await query
 
     if (usersError) {
-      console.error('❌ Erreur récupération utilisateurs:', {
-        message: usersError.message,
-        details: usersError.details,
-        hint: usersError.hint,
-        code: usersError.code
-      })
+      console.error('❌ Erreur récupération utilisateurs:', usersError)
       return NextResponse.json(
         { 
           success: false, 
           error: 'Erreur base de données',
-          message: `Erreur DB: ${usersError.message}`,
-          debug: usersError
+          message: 'Impossible de récupérer les utilisateurs'
         } as ApiResponse<null>,
         { status: 500 }
       )
