@@ -16,7 +16,7 @@ import {
   Grid
 } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import JarvisDemo from '@/components/login/JarvisDemo'
+import Avatar3D from '@/components/kiosk/Avatar3D'
 
 let createClient: any = null
 async function loadSupabaseClient() {
@@ -278,52 +278,27 @@ const JarvisIllustration = () => {
       
       <ModernFluidShapes />
       
-      {/* Logo JARVIS central */}
+      {/* Avatar JARVIS central avec la vraie sphère du kiosk */}
       <Flex align="center" justify="center" h="full" position="relative" zIndex={2}>
         <VStack spacing={8}>
-          {/* Cercle avec effet de "scan" */}
+          {/* Sphère JARVIS réelle du kiosk */}
           <Box position="relative">
             <motion.div
-              style={{
-                width: '200px',
-                height: '200px',
-                borderRadius: '50%',
-                border: '3px solid #6b7280',
-                position: 'relative'
-              }}
               animate={{
-                rotate: 360
+                y: [-6, 6, -6],
+                rotateY: [0, 1, 0],
               }}
               transition={{
                 duration: 8,
                 repeat: Infinity,
-                ease: "linear"
+                ease: "easeInOut"
               }}
-            />
-            
-            {/* Logo JARVIS au centre */}
-            <Box
-              position="absolute"
-              top="50%"
-              left="50%"
-              transform="translate(-50%, -50%)"
-              textAlign="center"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 1, delay: 0.5 }}
-              >
-                <Text
-                  fontSize="4xl"
-                  fontWeight="900"
-                  color="#1a1a1a"
-                  letterSpacing="6px"
-                >
-                  J
-                </Text>
-              </motion.div>
-            </Box>
+              <Avatar3D 
+                status="idle"
+                size={200}
+              />
+            </motion.div>
           </Box>
           
           {/* Texte descriptif */}
@@ -405,9 +380,9 @@ export default function LoginPage() {
   return (
     <Box minH="100vh" bg="#ffffff">
       <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} h="100vh">
-        {/* Côté gauche - Démo JARVIS Interactive */}
+        {/* Côté gauche - Avatar JARVIS avec sphère du kiosk */}
         <Box display={{ base: "none", lg: "block" }}>
-          <JarvisDemo />
+          <JarvisIllustration />
         </Box>
         
         {/* Côté droit - Formulaire */}
