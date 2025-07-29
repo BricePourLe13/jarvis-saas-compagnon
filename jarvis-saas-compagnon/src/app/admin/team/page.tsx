@@ -404,6 +404,43 @@ export default function TeamPage() {
     }
   }
 
+  const handleCleanupUser = async (email: string) => {
+    try {
+      const response = await fetch('/api/admin/users/cleanup', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast({
+          title: 'Utilisateur nettoyé',
+          description: `${email} supprimé, vous pouvez renvoyer une invitation`,
+          status: 'success',
+          duration: 3000,
+        })
+        // Rafraîchir la liste
+        await fetchUsers()
+      } else {
+        toast({
+          title: 'Erreur',
+          description: result.message || 'Erreur lors du nettoyage',
+          status: 'error',
+          duration: 5000,
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Erreur système',
+        description: 'Une erreur inattendue s\'est produite',
+        status: 'error',
+        duration: 5000,
+      })
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -539,15 +576,26 @@ export default function TeamPage() {
                               {user.is_active ? 'Actif' : 'En attente'}
                             </Badge>
                             {!user.is_active && (
-                              <Button
-                                size="xs"
-                                colorScheme="blue"
-                                variant="ghost"
-                                onClick={() => handleResendInvitation(user.email)}
-                                leftIcon={<Icon as={Mail} />}
-                              >
-                                Renvoyer
-                              </Button>
+                              <>
+                                <Button
+                                  size="xs"
+                                  colorScheme="blue"
+                                  variant="ghost"
+                                  onClick={() => handleResendInvitation(user.email)}
+                                  leftIcon={<Icon as={Mail} />}
+                                >
+                                  Renvoyer
+                                </Button>
+                                <Button
+                                  size="xs"
+                                  colorScheme="red"
+                                  variant="ghost"
+                                  onClick={() => handleCleanupUser(user.email)}
+                                  title="Supprimer cet utilisateur pour renvoyer une nouvelle invitation"
+                                >
+                                  🗑️ Nettoyer
+                                </Button>
+                              </>
                             )}
                           </HStack>
                         </Td>
