@@ -172,6 +172,12 @@ export default function AdminPage() {
       action: () => router.push('/admin/franchises')
     },
     {
+      label: 'Gestion équipe',
+      description: 'Inviter et gérer les administrateurs',
+      icon: Users,
+      action: () => router.push('/admin/team')
+    },
+    {
       label: 'Analytics',
       description: 'Voir les statistiques détaillées',
       icon: BarChart3,
