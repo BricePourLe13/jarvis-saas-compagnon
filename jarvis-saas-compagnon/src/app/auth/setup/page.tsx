@@ -61,32 +61,68 @@ function SetupContent() {
       setVerifying(true)
       const supabase = createClient()
       
-      // Vérifier si l'utilisateur est connecté (invitation acceptée)
-      const { data: { user }, error } = await supabase.auth.getUser()
+      // 🔄 NOUVELLE LOGIQUE: Gérer les invitations Supabase
       
-      if (error || !user) {
-        setTokenValid(false)
-        return
+      // 1. Vérifier d'abord si l'utilisateur est déjà connecté (cas setup après login)
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (user && !userError) {
+        // Utilisateur déjà connecté, vérifier son profil
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (!profileError && userProfile) {
+          setUserInfo({
+            email: userProfile.email,
+            full_name: userProfile.full_name,
+            role: userProfile.role
+          })
+          setTokenValid(true)
+          return
+        }
       }
 
-      // Récupérer les infos utilisateur
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      // 2. Si pas connecté, vérifier les paramètres URL pour invitation
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasInvitationParams = urlParams.has('token_hash') || urlParams.has('token')
+      
+      if (hasInvitationParams) {
+        // Il y a des paramètres d'invitation dans l'URL
+        // Supabase devrait traiter automatiquement l'invitation
+        console.log('🔍 Paramètres d\'invitation détectés dans l\'URL')
+        
+        // Attendre un peu que Supabase traite l'invitation
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Re-vérifier si l'utilisateur est maintenant connecté
+        const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser()
+        
+        if (retryUser && !retryError) {
+          // L'invitation a été traitée, récupérer le profil
+          const { data: userProfile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', retryUser.id)
+            .single()
 
-      if (profileError || !userProfile) {
-        setTokenValid(false)
-        return
+          if (!profileError && userProfile) {
+            setUserInfo({
+              email: userProfile.email,
+              full_name: userProfile.full_name,
+              role: userProfile.role
+            })
+            setTokenValid(true)
+            return
+          }
+        }
       }
 
-      setUserInfo({
-        email: userProfile.email,
-        full_name: userProfile.full_name,
-        role: userProfile.role
-      })
-      setTokenValid(true)
+      // 3. Si toujours pas de succès, marquer comme invalide
+      console.log('❌ Invitation invalide ou expirée')
+      setTokenValid(false)
 
     } catch (error) {
       console.error('Erreur vérification invitation:', error)
@@ -198,6 +234,15 @@ function SetupContent() {
   }
 
   if (!tokenValid) {
+    // Debug: afficher les paramètres URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const debugInfo = {
+      type: urlParams.get('type'),
+      token_hash: urlParams.get('token_hash'),
+      token: urlParams.get('token'),
+      redirect_to: urlParams.get('redirect_to')
+    }
+
     return (
       <Box minH="100vh" bg="gray.50" display="flex" alignItems="center" justifyContent="center">
         <Container maxW="md">
@@ -209,6 +254,18 @@ function SetupContent() {
                 <Text color="gray.600">
                   Cette invitation n'est plus valide ou a déjà été utilisée.
                 </Text>
+                
+                {/* Debug info en développement */}
+                {process.env.NODE_ENV === 'development' && (
+                  <Box mt={4} p={3} bg="gray.100" borderRadius="md" fontSize="sm">
+                    <Text fontWeight="bold" mb={2}>Debug Info:</Text>
+                    <Text>URL: {window.location.href}</Text>
+                    <Text>Type: {debugInfo.type || 'N/A'}</Text>
+                    <Text>Token Hash: {debugInfo.token_hash ? 'Présent' : 'Absent'}</Text>
+                    <Text>Token: {debugInfo.token ? 'Présent' : 'Absent'}</Text>
+                  </Box>
+                )}
+                
                 <Button colorScheme="blue" onClick={() => router.push('/')}>
                   Retour à l'accueil
                 </Button>
