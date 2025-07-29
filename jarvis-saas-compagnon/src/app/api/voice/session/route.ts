@@ -113,15 +113,15 @@ Reste COURT et drôle !`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini-realtime-preview-2024-12-17', // 💰 Modèle économique maintenu
-        voice: 'nova', // 🇫🇷 Voix française neutre (pas d'accent québécois)
+        voice: 'verse', // 🔄 Retour à la voix qui fonctionnait avant
         instructions: systemInstructions,
         
-        // 🔧 VAD optimisé pour conversations naturelles et stabilité
+        // 🔄 VAD retour aux paramètres qui fonctionnaient
         turn_detection: {
           type: 'server_vad',
-          threshold: 0.4, // Plus stable (moins sensible aux bruits)
-          prefix_padding_ms: 300, // Moins de contexte pour éviter les bugs
-          silence_duration_ms: 2000 // Patient mais pas trop pour éviter timeouts
+          threshold: 0.5, // Valeur par défaut qui marchait
+          prefix_padding_ms: 300,
+          silence_duration_ms: 1000 // Retour à la valeur qui fonctionnait
         },
         
         // 🔧 Configuration simplifiée pour stabilité maximale
