@@ -61,12 +61,19 @@ function SetupContent() {
       setVerifying(true)
       const supabase = createClient()
       
+      console.log('🔍 [DEBUG] Début vérification invitation')
+      console.log('🔍 [DEBUG] URL actuelle:', window.location.href)
+      
       // 🔄 NOUVELLE LOGIQUE: Gérer les invitations Supabase
       
       // 1. Vérifier d'abord si l'utilisateur est déjà connecté (cas setup après login)
+      console.log('🔍 [DEBUG] Vérification utilisateur connecté...')
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
+      console.log('🔍 [DEBUG] Résultat getUser:', { user: user?.id, email: user?.email, error: userError })
+      
       if (user && !userError) {
+        console.log('✅ [DEBUG] Utilisateur connecté détecté, vérification profil...')
         // Utilisateur déjà connecté, vérifier son profil
         const { data: userProfile, error: profileError } = await supabase
           .from('users')
@@ -74,7 +81,10 @@ function SetupContent() {
           .eq('id', user.id)
           .single()
 
+        console.log('🔍 [DEBUG] Résultat profil:', { userProfile, profileError })
+
         if (!profileError && userProfile) {
+          console.log('✅ [DEBUG] Profil trouvé, invitation valide!')
           setUserInfo({
             email: userProfile.email,
             full_name: userProfile.full_name,
@@ -89,18 +99,30 @@ function SetupContent() {
       const urlParams = new URLSearchParams(window.location.search)
       const hasInvitationParams = urlParams.has('token_hash') || urlParams.has('token')
       
+      console.log('🔍 [DEBUG] Paramètres URL:', {
+        type: urlParams.get('type'),
+        token_hash: urlParams.has('token_hash') ? 'Présent' : 'Absent',
+        token: urlParams.has('token') ? 'Présent' : 'Absent',
+        hasInvitationParams
+      })
+      
       if (hasInvitationParams) {
         // Il y a des paramètres d'invitation dans l'URL
         // Supabase devrait traiter automatiquement l'invitation
-        console.log('🔍 Paramètres d\'invitation détectés dans l\'URL')
+        console.log('🔍 [DEBUG] Paramètres d\'invitation détectés dans l\'URL')
         
         // Attendre un peu que Supabase traite l'invitation
+        console.log('⏳ [DEBUG] Attente traitement Supabase (1s)...')
         await new Promise(resolve => setTimeout(resolve, 1000))
         
         // Re-vérifier si l'utilisateur est maintenant connecté
+        console.log('🔄 [DEBUG] Re-vérification après délai...')
         const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser()
         
+        console.log('🔍 [DEBUG] Retry getUser:', { user: retryUser?.id, email: retryUser?.email, error: retryError })
+        
         if (retryUser && !retryError) {
+          console.log('✅ [DEBUG] Utilisateur connecté après retry, récupération profil...')
           // L'invitation a été traitée, récupérer le profil
           const { data: userProfile, error: profileError } = await supabase
             .from('users')
@@ -108,7 +130,39 @@ function SetupContent() {
             .eq('id', retryUser.id)
             .single()
 
+          console.log('🔍 [DEBUG] Profil après retry:', { userProfile, profileError })
+
           if (!profileError && userProfile) {
+            console.log('✅ [DEBUG] Profil trouvé après retry, invitation valide!')
+            setUserInfo({
+              email: userProfile.email,
+              full_name: userProfile.full_name,
+              role: userProfile.role
+            })
+            setTokenValid(true)
+            return
+          }
+        }
+        
+        // Essayer une deuxième fois avec un délai plus long
+        console.log('⏳ [DEBUG] Tentative 2 avec délai plus long (3s)...')
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        
+        const { data: { user: retry2User }, error: retry2Error } = await supabase.auth.getUser()
+        console.log('🔍 [DEBUG] Retry2 getUser:', { user: retry2User?.id, email: retry2User?.email, error: retry2Error })
+        
+        if (retry2User && !retry2Error) {
+          console.log('✅ [DEBUG] Utilisateur connecté après retry2, récupération profil...')
+          const { data: userProfile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', retry2User.id)
+            .single()
+
+          console.log('🔍 [DEBUG] Profil après retry2:', { userProfile, profileError })
+
+          if (!profileError && userProfile) {
+            console.log('✅ [DEBUG] Profil trouvé après retry2, invitation valide!')
             setUserInfo({
               email: userProfile.email,
               full_name: userProfile.full_name,
@@ -121,11 +175,11 @@ function SetupContent() {
       }
 
       // 3. Si toujours pas de succès, marquer comme invalide
-      console.log('❌ Invitation invalide ou expirée')
+      console.log('❌ [DEBUG] Invitation invalide ou expirée')
       setTokenValid(false)
 
     } catch (error) {
-      console.error('Erreur vérification invitation:', error)
+      console.error('❌ [DEBUG] Erreur vérification invitation:', error)
       setTokenValid(false)
     } finally {
       setVerifying(false)
