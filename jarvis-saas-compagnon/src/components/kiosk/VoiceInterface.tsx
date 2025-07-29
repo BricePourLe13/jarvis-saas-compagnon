@@ -74,6 +74,23 @@ export default function VoiceInterface({
     }
   }, [isActive, isConnected, disconnect])
 
+  // 👋 DÉTECTION "AU REVOIR" utilisateur pour fermeture forcée
+  useEffect(() => {
+    if (currentTranscript && isConnected) {
+      const transcript = currentTranscript.toLowerCase().trim()
+      if (transcript === 'au revoir' || 
+          transcript === 'au revoir.' ||
+          transcript.endsWith(' au revoir') ||
+          transcript.endsWith(' au revoir.')) {
+        console.log('👋 [USER GOODBYE] Utilisateur a dit "Au revoir", fermeture session...')
+        setTimeout(() => {
+          disconnect()
+          onDeactivate() // Désactiver l'interface
+        }, 1000) // Laisser un peu de temps pour que JARVIS réponde
+      }
+    }
+  }, [currentTranscript, isConnected, disconnect, onDeactivate])
+
   const getJarvisStatus = () => {
     switch (status) {
       case 'connecting': return 'Connexion...'

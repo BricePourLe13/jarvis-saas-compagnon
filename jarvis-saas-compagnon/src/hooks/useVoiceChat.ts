@@ -495,6 +495,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
       case 'response.created':
         console.log('💭 Réponse IA en cours de génération')
         updateStatus('speaking')
+        // 🔧 ACTIVITÉ: JARVIS parle = activité (pas d'inactivité)
+        lastActivityRef.current = Date.now()
         break
 
       case 'response.audio_transcript.delta':
@@ -502,12 +504,28 @@ export function useVoiceChat(config: VoiceChatConfig) {
           transcriptBufferRef.current += event.delta
           configRef.current.onTranscriptUpdate?.(transcriptBufferRef.current, false)
           setCurrentTranscript(transcriptBufferRef.current)
+          // 🔧 ACTIVITÉ: JARVIS parle = activité
+          lastActivityRef.current = Date.now()
         }
         break
 
       case 'response.audio_transcript.done':
         console.log('📝 Transcript final:', event.transcript)
         const finalTranscript = event.transcript || transcriptBufferRef.current
+        
+        // 🔧 ACTIVITÉ: Fin de réponse JARVIS = activité
+        lastActivityRef.current = Date.now()
+        
+        // 👋 DÉTECTION "AU REVOIR" côté client pour fermeture forcée
+        if (finalTranscript.toLowerCase().includes('à plus') || 
+            finalTranscript.toLowerCase().includes('bon sport') ||
+            finalTranscript.toLowerCase().includes('au revoir')) {
+          console.log('👋 [AUTO-CLOSE] JARVIS a dit au revoir, fermeture session dans 2s')
+          setTimeout(() => {
+            disconnect()
+          }, 2000) // Laisser le temps à JARVIS de finir sa phrase
+        }
+        
         configRef.current.onTranscriptUpdate?.(finalTranscript, true)
         setCurrentTranscript(finalTranscript)
         
