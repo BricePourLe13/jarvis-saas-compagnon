@@ -49,27 +49,26 @@ export async function POST(request: NextRequest) {
       if (hour < 10) return 'détendu, réveil en douceur'
       if (hour < 14) return 'énergique, en forme'
       if (hour < 18) return 'motivant, plein d\'énergie'
-      return 'cool, fin de journée'
+      return 'cool, soirée tranquille' // Éviter le mot "fin"
     }
 
-    // 🎪 Phrases d'accueil personnalisées type "Deadpool"
+    // 🎪 Phrases d'accueil simplifiées sans emojis
     const getPersonalizedOpening = () => {
       if (memberData?.first_name) {
         const openings = [
-          `Oh ${memberData.first_name} ! Tu tombes bien, je commençais à m'ennuyer dans cette machine... 😄`,
-          `Salut ${memberData.first_name} ! J'étais en train de compter les pixels de mon écran, merci de me sauver !`,
-          `Eh ${memberData.first_name} ! Tu sais que je peux voir ton historique Netflix depuis ici ? 😏 Bon allez, au sport !`,
-          `Ah ${memberData.first_name} ! Je viens de gagner une partie de Solitaire contre moi-même... passionnant ! 🃏`,
-          `Tiens ${memberData.first_name} ! Je regardais les autres transpirer, maintenant c'est ton tour ! 💪`,
-          `Hey ${memberData.first_name} ! Heureusement que tu m'as appelé, tu m'as sauvé d'une réunion de famille virtuelle ! 😅`
+          `Salut ${memberData.first_name} ! Tu tombes bien, je m'ennuyais !`,
+          `Hey ${memberData.first_name} ! J'étais en train de compter les pixels...`,
+          `Oh ${memberData.first_name} ! Tu me sauves, j'étais en mode veille !`,
+          `Ah ${memberData.first_name} ! Parfait timing, j'avais rien à faire !`,
+          `Salut ${memberData.first_name} ! Tu arrives à pic !`
         ]
         return openings[Math.floor(Math.random() * openings.length)]
       } else {
         const anonymousOpenings = [
-          "Salut l'anonyme ! Pas de badge ? Pas grave, on va quand même discuter !",
-          "Oh, un mystérieux utilisateur ! J'adore les énigmes... 🕵️",
-          "Pas de badge mais plein de style ! Comment puis-je t'aider ?",
-          "Tiens, un ninja sans badge ! J'aime le mystère... 😄"
+          "Salut toi ! Pas de badge ? Pas grave, on discute quand même !",
+          "Oh, un mystérieux visiteur ! J'adore les énigmes...",
+          "Pas de badge mais tu as du style ! Comment ça va ?",
+          "Salut l'anonyme ! Moi c'est JARVIS, et toi ?"
         ]
         return anonymousOpenings[Math.floor(Math.random() * anonymousOpenings.length)]
       }
@@ -97,8 +96,10 @@ RÔLE:
 - Trucs compliqués: "Va voir le coach !"
 
 FIN SESSION:
-- Termine SEULEMENT si "Au revoir" exact
-- "bon", "alors", "ok" = CONTINUE
+- Termine SEULEMENT si utilisateur dit exactement "Au revoir"
+- JAMAIS terminer sur "bon", "alors", "ok", "merci", "salut"
+- Continue TOUJOURS la conversation sauf "Au revoir" précis
+- Si "Au revoir" → "A plus ! Bon sport !"
 
 TON: ${getTimeBasedTone()}
 
