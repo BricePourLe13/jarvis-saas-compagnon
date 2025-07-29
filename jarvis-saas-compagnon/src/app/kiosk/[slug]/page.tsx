@@ -68,7 +68,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   const [error, setError] = useState<string | null>(null)
   const [voiceActive, setVoiceActive] = useState(false)
   const [currentMember, setCurrentMember] = useState<GymMember | null>(null)
-  const [showAdminMenu, setShowAdminMenu] = useState(true)
+  const [showAdminMenu, setShowAdminMenu] = useState(false) // 🔧 Fermé par défaut pour interface propre
   const [sessionLoading, setSessionLoading] = useState(false)
   
   // États pour la progression de chargement
@@ -1507,6 +1507,41 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         </Box>
 
 
+        {/* 🔧 BOUTON ADMIN DISCRET */}
+        {!showAdminMenu && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              zIndex: 100
+            }}
+          >
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowAdminMenu(true)}
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: 'rgba(255, 255, 255, 0.7)'
+              }}
+            >
+              ⚙️
+            </motion.div>
+          </motion.div>
+        )}
 
         {/* 🛠️ PANNEAU ADMIN MODERNE */}
         <AnimatePresence>
@@ -1525,19 +1560,19 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                 position: 'absolute',
                 top: 0,
                 right: 0,
-                width: '320px',
+                width: '280px', // 🔧 Plus compact (320px → 280px)
                 height: '100%',
                 background: 'rgba(0, 0, 0, 0.92)',
                 backdropFilter: 'blur(40px)',
                 borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '32px 24px',
+                padding: '24px 20px', // 🔧 Padding réduit
                 zIndex: 1000,
                 fontFamily: 'SF Pro Display, -apple-system, system-ui'
               }}
             >
-              <VStack spacing={6} align="stretch">
-                <HStack justify="space-between" mb={4}>
-                  <Text color="white" fontWeight="600" fontSize="lg">Menu Admin - Test</Text>
+              <VStack spacing={4} align="stretch"> {/* 🔧 Espacement réduit */}
+                <HStack justify="space-between" mb={2}> {/* 🔧 Margin réduite */}
+                  <Text color="white" fontWeight="600" fontSize="md">Admin</Text> {/* 🔧 Titre simplifié */}
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
@@ -1553,35 +1588,19 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                 </HStack>
                 
                 <Box>
-                  <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">Simulateur RFID:</Text>
+                  <Text color="gray.300" fontSize="sm" mb={2} fontWeight="500">Simulateur:</Text> {/* 🔧 Titre simplifié */}
                   <RFIDSimulator onMemberScanned={handleMemberScanned} isActive={false} />
                 </Box>
 
-                <Box>
-                  <Text color="gray.300" fontSize="sm" mb={3} fontWeight="500">État système:</Text>
-                  <VStack spacing={2} align="stretch">
-                    <HStack justify="space-between">
-                      <Text color="white" fontSize="xs">Kiosk:</Text>
-                      <Text color="green.300" fontSize="xs" fontWeight="500">
-                        {kioskData.gym.name}
-                      </Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text color="white" fontSize="xs">Status:</Text>
-                      <Text color="blue.300" fontSize="xs" fontWeight="500">
-                        {kioskState.status}
-                      </Text>
-                    </HStack>
-                    {currentMember && (
-                      <HStack justify="space-between">
-                        <Text color="white" fontSize="xs">Membre:</Text>
-                        <Text color="purple.300" fontSize="xs" fontWeight="500">
-                          {currentMember.first_name}
-                        </Text>
-                      </HStack>
-                    )}
-                  </VStack>
-                </Box>
+                {/* 🔧 Infos système minimales */}
+                {currentMember && (
+                  <Box>
+                    <Text color="gray.300" fontSize="xs" mb={1}>Membre connecté:</Text>
+                    <Text color="purple.300" fontSize="sm" fontWeight="500">
+                      {currentMember.first_name}
+                    </Text>
+                  </Box>
+                )}
               </VStack>
             </motion.div>
           )}
