@@ -196,10 +196,11 @@ export async function GET(request: NextRequest) {
       message: `${enrichedUsers.length} utilisateur(s) récupéré(s)`
     }
 
-    // Pour la compatibilité avec le composant, on retourne aussi les users directement
+    // Retour simple pour compatibilité frontend
     return NextResponse.json({
-      ...response,
-      data: enrichedUsers // Compatibilité simple
+      success: true,
+      data: enrichedUsers,
+      message: `${enrichedUsers.length} utilisateur(s) récupéré(s)`
     })
 
   } catch (error: any) {
