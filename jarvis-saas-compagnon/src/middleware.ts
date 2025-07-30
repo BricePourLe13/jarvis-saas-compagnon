@@ -124,14 +124,14 @@ function setBrowserSpecificHeaders(response: NextResponse, browserInfo: any) {
     response.headers.set('Autoplay-Policy', 'user-gesture-required')
     
     // Safari prefers stricter CSP
-    const safariCSP = [
-      "default-src 'self'",
-      "media-src 'self' blob: mediastream:",
-      "connect-src 'self' wss: https: *.cloudflare.com",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.cloudflare.com",
-      "style-src 'self' 'unsafe-inline'",
-      "frame-src *.cloudflare.com"
-    ].join('; ')
+                const safariCSP = [
+              "default-src 'self'",
+              "media-src 'self' blob: mediastream:",
+              "connect-src 'self' wss: https: *.hcaptcha.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.hcaptcha.com",
+              "style-src 'self' 'unsafe-inline'",
+              "frame-src *.hcaptcha.com"
+            ].join('; ')
     response.headers.set('Content-Security-Policy', safariCSP)
   }
   
@@ -145,17 +145,17 @@ function setBrowserSpecificHeaders(response: NextResponse, browserInfo: any) {
 // ✅ WebRTC optimization headers
 function setWebRTCOptimizationHeaders(response: NextResponse) {
   // ✅ Content Security Policy for WebRTC
-  const cspDirectives = [
-    "default-src 'self'",
-    "media-src 'self' blob: mediastream:",
-    "connect-src 'self' wss: https: *.openai.com *.cloudflare.com",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.cloudflare.com",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "font-src 'self' data:",
-    "worker-src 'self' blob:",
-    "frame-src *.cloudflare.com"
-  ]
+          const cspDirectives = [
+          "default-src 'self'",
+          "media-src 'self' blob: mediastream:",
+          "connect-src 'self' wss: https: *.openai.com *.hcaptcha.com",
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.hcaptcha.com",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob:",
+          "font-src 'self' data:",
+          "worker-src 'self' blob:",
+          "frame-src *.hcaptcha.com"
+        ]
   
   response.headers.set('Content-Security-Policy', cspDirectives.join('; '))
   

@@ -17,7 +17,7 @@ import {
 } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Avatar3D from '@/components/kiosk/Avatar3D'
-import { Turnstile } from '@marsidev/react-turnstile'
+import HCaptcha from '@hcaptcha/react-hcaptcha'
 
 let createClient: any = null
 async function loadSupabaseClient() {
@@ -345,17 +345,24 @@ export default function LoginPage() {
     setError('')
     
     try {
-      // Debug: Test sans CAPTCHA complètement
-      console.log('🔍 Email:', email)
-      console.log('🔍 Password length:', password.length)
+      // Vérifier que le CAPTCHA est résolu
+      if (!captchaToken && process.env.NODE_ENV === 'production') {
+        setError('Veuillez compléter le CAPTCHA')
+        setLoading(false)
+        return
+      }
+      
+      // Debug info
+      console.log('🔍 captchaToken:', captchaToken)
       console.log('🔍 Environment:', process.env.NODE_ENV)
 
       const supabase = await loadSupabaseClient()
-      
-      // Test de connexion basique sans captchaToken
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
-        password
+        password,
+        options: {
+          captchaToken: captchaToken
+        }
       })
       
       if (error) { 
@@ -364,9 +371,9 @@ export default function LoginPage() {
         console.error('❌ Message détaillé:', error.message)
         setError(error.message)
         setLoading(false)
-        // Reset Turnstile en cas d'erreur
+        // Reset hCaptcha en cas d'erreur
         if (captchaRef.current) {
-          captchaRef.current.reset()
+          captchaRef.current.resetCaptcha()
           setCaptchaToken(null)
         }
         return 
@@ -557,29 +564,34 @@ export default function LoginPage() {
                     />
                   </FormControl>
 
-                  {/* Cloudflare Turnstile */}
+                  {/* hCaptcha */}
                   <Box display="flex" justifyContent="center" w="full">
-                    <Turnstile
+                    <HCaptcha
                       ref={captchaRef}
-                      siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
-                      onSuccess={(token) => {
-                        console.log('✅ Turnstile vérifié:', token)
+                      sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "10000000-ffff-ffff-ffff-000000000001"}
+                      onVerify={(token) => {
+                        console.log('✅ hCaptcha vérifié:', token)
                         setCaptchaToken(token)
                       }}
                       onError={(err) => {
-                        console.error('❌ Turnstile erreur:', err)
+                        console.error('❌ hCaptcha erreur:', err)
                         setCaptchaToken(null)
                       }}
                       onExpire={() => {
-                        console.log('⏰ Turnstile expiré')
+                        console.log('⏰ hCaptcha expiré')
                         setCaptchaToken(null)
                       }}
+                      onLoad={() => {
+                        console.log('📦 hCaptcha chargé')
+                      }}
+                      theme="light"
+                      size="normal"
                     />
                   </Box>
                   
                   {/* Debug info */}
                   <Text fontSize="xs" color="gray.500" textAlign="center">
-                    Debug: Site Key = {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || 'Test key'}
+                    Debug: Site Key = {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || 'Test key'}
                   </Text>
 
                   <Button
