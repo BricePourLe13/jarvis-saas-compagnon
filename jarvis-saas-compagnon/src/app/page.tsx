@@ -583,11 +583,9 @@ export default function LoginPage() {
                   </Box>
                   
                   {/* Debug info */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <Text fontSize="xs" color="gray.500" textAlign="center">
-                      Debug: Site Key = {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || 'Test key'}
-                    </Text>
-                  )}
+                  <Text fontSize="xs" color="gray.500" textAlign="center">
+                    Debug: Site Key = {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || 'Test key'}
+                  </Text>
 
                   <Button
                     type="submit"
