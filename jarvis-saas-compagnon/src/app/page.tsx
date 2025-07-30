@@ -345,22 +345,17 @@ export default function LoginPage() {
     setError('')
     
     try {
-      // Vérifier que le CAPTCHA est résolu (désactivé temporairement pour debug)
-      if (!captchaToken && process.env.NODE_ENV === 'production') {
-        setError('Veuillez compléter le CAPTCHA')
-        setLoading(false)
-        return
-      }
-      
-      // Debug info
-      console.log('🔍 captchaToken:', captchaToken)
+      // Debug: Test sans CAPTCHA complètement
+      console.log('🔍 Email:', email)
+      console.log('🔍 Password length:', password.length)
       console.log('🔍 Environment:', process.env.NODE_ENV)
 
       const supabase = await loadSupabaseClient()
+      
+      // Test de connexion basique sans captchaToken
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
-        password,
-        captchaToken: captchaToken
+        password
       })
       
       if (error) { 
