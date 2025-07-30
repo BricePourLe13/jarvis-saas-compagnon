@@ -568,7 +568,7 @@ export default function LoginPage() {
                   <Box display="flex" justifyContent="center" w="full">
                     <HCaptcha
                       ref={captchaRef}
-                      sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "10000000-ffff-ffff-ffff-000000000001"}
+                      sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "59b4e250-bc3c-4940-bf1c-38b0883a1a14"}
                       onVerify={(token) => {
                         console.log('✅ hCaptcha vérifié:', token)
                         setCaptchaToken(token)
@@ -591,7 +591,7 @@ export default function LoginPage() {
                   
                   {/* Debug info */}
                   <Text fontSize="xs" color="gray.500" textAlign="center">
-                    Debug: Site Key = {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || 'Test key'}
+                    Debug: Site Key = {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || '59b4e250-bc3c-4940-bf1c-38b0883a1a14'}
                   </Text>
 
                   <Button
