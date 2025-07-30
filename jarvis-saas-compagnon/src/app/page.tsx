@@ -17,7 +17,7 @@ import {
 } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Avatar3D from '@/components/kiosk/Avatar3D'
-import HCaptcha from '@hcaptcha/react-hcaptcha'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 let createClient: any = null
 async function loadSupabaseClient() {
@@ -369,7 +369,7 @@ export default function LoginPage() {
         console.error('❌ Message détaillé:', error.message)
         setError(error.message)
         setLoading(false)
-        // Reset CAPTCHA en cas d'erreur
+        // Reset Turnstile en cas d'erreur
         if (captchaRef.current) {
           captchaRef.current.reset()
           setCaptchaToken(null)
@@ -562,35 +562,30 @@ export default function LoginPage() {
                     />
                   </FormControl>
 
-                  {/* hCaptcha */}
+                  {/* Cloudflare Turnstile */}
                   <Box display="flex" justifyContent="center" w="full">
-                    <HCaptcha
+                    <Turnstile
                       ref={captchaRef}
-                      sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "10000000-ffff-ffff-ffff-000000000001"}
-                      onLoad={() => {
-                        console.log('🔄 hCaptcha chargé avec sitekey:', process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY)
-                      }}
-                      onVerify={(token) => {
-                        console.log('✅ hCaptcha vérifié:', token)
+                      siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"}
+                      onSuccess={(token) => {
+                        console.log('✅ Turnstile vérifié:', token)
                         setCaptchaToken(token)
                       }}
                       onError={(err) => {
-                        console.error('❌ hCaptcha erreur:', err)
+                        console.error('❌ Turnstile erreur:', err)
                         setCaptchaToken(null)
                       }}
                       onExpire={() => {
-                        console.log('⏰ hCaptcha expiré')
+                        console.log('⏰ Turnstile expiré')
                         setCaptchaToken(null)
                       }}
-                      size="normal"
-                      theme="light"
                     />
                   </Box>
                   
                   {/* Debug info */}
                   {process.env.NODE_ENV === 'development' && (
                     <Text fontSize="xs" color="gray.500" textAlign="center">
-                      Debug: Site Key = {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || 'Non définie'}
+                      Debug: Site Key = {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || 'Test key'}
                     </Text>
                   )}
 

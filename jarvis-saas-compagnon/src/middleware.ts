@@ -127,10 +127,10 @@ function setBrowserSpecificHeaders(response: NextResponse, browserInfo: any) {
     const safariCSP = [
       "default-src 'self'",
       "media-src 'self' blob: mediastream:",
-      "connect-src 'self' wss: https: *.hcaptcha.com",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.hcaptcha.com",
+      "connect-src 'self' wss: https: *.cloudflare.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
-      "frame-src *.hcaptcha.com"
+      "frame-src *.cloudflare.com"
     ].join('; ')
     response.headers.set('Content-Security-Policy', safariCSP)
   }
@@ -148,13 +148,13 @@ function setWebRTCOptimizationHeaders(response: NextResponse) {
   const cspDirectives = [
     "default-src 'self'",
     "media-src 'self' blob: mediastream:",
-    "connect-src 'self' wss: https: *.openai.com *.hcaptcha.com",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.hcaptcha.com",
+    "connect-src 'self' wss: https: *.openai.com *.cloudflare.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     "worker-src 'self' blob:",
-    "frame-src *.hcaptcha.com"
+    "frame-src *.cloudflare.com"
   ]
   
   response.headers.set('Content-Security-Policy', cspDirectives.join('; '))
