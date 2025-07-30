@@ -64,11 +64,14 @@ jarvis-saas-platforrm/
 - **RLS**: Row Level Security avec bypass intelligent
 - **Sécurité**: Rate limiting + headers sécurisés
 
-### 🗄️ **Base de Données**
+### 🗄️ **Base de Données** 
 - **Provider**: Supabase PostgreSQL
 - **URL**: vurnokaxnvittopqteno.supabase.co
-- **Tables**: users, franchises, etc.
-- **Migrations**: Scripts SQL dans `/sql/`
+- **Schéma**: v2 unifié (schema-v2-franchises.sql)
+- **Tables**: franchises, gyms, users, jarvis_sessions, analytics_daily
+- **Architecture**: Multi-tenant (Franchise → Gym → Kiosk)
+- **Rôles**: super_admin, franchise_owner, gym_manager, gym_staff
+- **Migrations**: `/sql/migration-to-v2-schema.sql` (migration unifiée)
 
 ### 🚀 **Déploiement**
 - **Platform**: Vercel
