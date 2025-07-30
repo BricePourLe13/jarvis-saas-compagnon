@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '../../../lib/supabase-simple'
+import { createBrowserClientWithConfig } from '../../../lib/supabase-admin'
 
 const MotionBox = motion(Box)
 const MotionVStack = motion(VStack)
@@ -83,7 +83,7 @@ export default function FranchisesPage() {
 
   const loadFranchises = async () => {
     try {
-      const supabase = createClient()
+      const supabase = createBrowserClientWithConfig()
       
              const { data, error } = await supabase
          .from('franchises')

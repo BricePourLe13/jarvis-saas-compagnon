@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '../../lib/supabase-simple'
+import { createBrowserClientWithConfig } from '../../lib/supabase-admin'
 import { Database } from '../../types/database'
 import { useRouter } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
@@ -38,7 +38,7 @@ export default function FranchisePage() {
   const [loading, setLoading] = useState(true)
 
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = createBrowserClientWithConfig()
 
   // Animations subtiles
   const containerVariants = {

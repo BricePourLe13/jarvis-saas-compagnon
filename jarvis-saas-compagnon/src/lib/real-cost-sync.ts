@@ -3,7 +3,7 @@
  * Remplace les estimations par les vrais coûts de facturation
  */
 
-import { createClient } from './supabase-simple'
+import { createSimpleClient } from './supabase-admin'
 
 interface OpenAIUsageDay {
   timestamp: number
@@ -60,7 +60,7 @@ export class RealCostSyncService {
    */
   static async getSessionsWithEstimatedCosts(startDate: string, endDate: string): Promise<SessionCostData[]> {
     try {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       
       const { data: sessions, error } = await supabase
         .from('jarvis_session_costs')
@@ -128,7 +128,7 @@ export class RealCostSyncService {
    */
   static async updateRealCosts(costDistribution: Map<string, number>): Promise<boolean> {
     try {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       const updates = []
 
       for (const [sessionId, realCost] of costDistribution) {
@@ -245,7 +245,7 @@ export class RealCostSyncService {
    */
   static async needsSync(): Promise<boolean> {
     try {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       
       // Vérifier s'il y a des sessions avec coûts estimés des dernières 24h
       const yesterday = new Date()

@@ -3,7 +3,7 @@
  * Système de tracking et calcul des coûts OpenAI Realtime API
  */
 
-import { createClient } from './supabase-simple'
+import { createSimpleClient } from './supabase-admin'
 
 // 💰 TARIFS OPENAI GPT-4o MINI REALTIME API 2024 (en USD) - ÉCONOMIQUE !
 export const OPENAI_PRICING = {
@@ -127,7 +127,7 @@ export async function trackSessionCost(data: Omit<SessionCostBreakdown, 'textInp
   }
   
   // Sauvegarder en base de données
-  const supabase = createClient()
+  const supabase = createSimpleClient()
   
   const { error } = await supabase
     .from('jarvis_session_costs')
@@ -170,7 +170,7 @@ export async function getDailyCostSummary(
   filters?: { gymId?: string; franchiseId?: string }
 ): Promise<DailyCostSummary | null> {
   
-  const supabase = createClient()
+  const supabase = createSimpleClient()
   
   let query = supabase
     .from('jarvis_session_costs')
@@ -426,7 +426,7 @@ export async function getKioskSupervisionMetrics(gymId: string) {
   const today = new Date().toISOString().split('T')[0]
   
   try {
-    const supabase = createClient()
+    const supabase = createSimpleClient()
     
     // Sessions des 7 derniers jours
     const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]

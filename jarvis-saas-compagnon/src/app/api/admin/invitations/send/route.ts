@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { createAdminClient } from '@/lib/supabase-admin'
+import { createAdminClient, getEnvironmentConfig, createServerClientWithConfig } from '@/lib/supabase-admin'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -83,17 +83,7 @@ export async function POST(request: NextRequest) {
   try {
     // 1. Initialiser Supabase avec cookies pour auth
     const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
+    const supabase = createServerClientWithConfig(cookieStore)
     
     // Client admin pour les invitations
     const adminSupabase = createAdminClient()
@@ -155,7 +145,7 @@ export async function POST(request: NextRequest) {
           invited_by: authResult.user.id,
           invitation_type: 'admin_access'
         },
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-group.net'}/auth/setup?type=admin`
+        redirectTo: `${getEnvironmentConfig().appUrl}/auth/setup?type=admin`
       }
     )
 

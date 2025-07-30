@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
     if (action === 'verify_results') {
       console.log('💰 [TEST AVANCÉ] Vérification des résultats...')
       
-      const { createClient } = await import('@/lib/supabase-simple')
-      const supabase = createClient()
+      const { createSimpleClient } = await import('@/lib/supabase-admin')
+      const supabase = createSimpleClient()
       
       const { data: estimatedSessions } = await supabase
         .from('jarvis_session_costs')

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -17,12 +17,13 @@ import {
 } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Avatar3D from '@/components/kiosk/Avatar3D'
+import HCaptcha from '@hcaptcha/react-hcaptcha'
 
 let createClient: any = null
 async function loadSupabaseClient() {
   if (!createClient) {
-    const supabaseModule = await import('../lib/supabase-simple')
-    createClient = supabaseModule.createClient
+    const supabaseModule = await import('../lib/supabase-admin')
+    createClient = supabaseModule.createBrowserClientWithConfig
   }
   return createClient()
 }
@@ -328,6 +329,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<any>(null)
   const router = useRouter()
 
   // Force clear des champs au montage du composant
@@ -342,12 +345,30 @@ export default function LoginPage() {
     setError('')
     
     try {
+      // Vérifier que le CAPTCHA est résolu
+      if (!captchaToken) {
+        setError('Veuillez compléter le CAPTCHA')
+        setLoading(false)
+        return
+      }
+
       const supabase = await loadSupabaseClient()
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password,
+        options: {
+          captchaToken: captchaToken
+        }
+      })
       
       if (error) { 
         setError(error.message)
         setLoading(false)
+        // Reset CAPTCHA en cas d'erreur
+        if (captchaRef.current) {
+          captchaRef.current.reset()
+          setCaptchaToken(null)
+        }
         return 
       }
       
@@ -535,6 +556,28 @@ export default function LoginPage() {
                       required
                     />
                   </FormControl>
+
+                  {/* hCaptcha */}
+                  <Box display="flex" justifyContent="center" w="full">
+                    <HCaptcha
+                      ref={captchaRef}
+                      sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "10000000-ffff-ffff-ffff-000000000001"}
+                      onVerify={(token) => {
+                        console.log('hCaptcha vérifié:', token)
+                        setCaptchaToken(token)
+                      }}
+                      onError={(err) => {
+                        console.error('hCaptcha erreur:', err)
+                        setCaptchaToken(null)
+                      }}
+                      onExpire={() => {
+                        console.log('hCaptcha expiré')
+                        setCaptchaToken(null)
+                      }}
+                      size="normal"
+                      theme="light"
+                    />
+                  </Box>
 
                   <Button
                     type="submit"

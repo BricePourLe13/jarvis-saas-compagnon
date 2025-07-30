@@ -41,8 +41,8 @@ export class RealOpenAICostsService {
        }
 
       // 2. Récupérer les sessions depuis Supabase pour compter
-      const { createClient } = await import('./supabase-simple')
-      const supabase = createClient()
+      const { createSimpleClient } = await import('./supabase-admin')
+      const supabase = createSimpleClient()
       
       let query = supabase
         .from('jarvis_session_costs')

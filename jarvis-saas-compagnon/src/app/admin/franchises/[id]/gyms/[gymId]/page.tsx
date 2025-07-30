@@ -72,7 +72,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../../../types/franchise'
-import { createClient } from '../../../../../../lib/supabase-simple'
+import { createBrowserClientWithConfig } from '../../../../../../lib/supabase-admin'
 import { getKioskSupervisionMetrics, convertUSDToEUR, formatCurrency } from '../../../../../../lib/openai-cost-tracker'
 // ✅ Import pour les métriques temps réel
 import { RealOpenAICostsService } from '../../../../../../lib/real-openai-costs'

@@ -22,8 +22,8 @@ NEXTAUTH_URL=https://jarvis-saas-compagnon.vercel.app
 NEXTAUTH_SECRET=generate_32_char_random_string
 
 # App Settings
-NEXT_PUBLIC_APP_URL=https://jarvis-saas-compagnon.vercel.app
-NEXT_PUBLIC_ADMIN_EMAIL=admin@jarvis-compagnon.com
+NEXT_PUBLIC_APP_URL=https://jarvis-group.net
+NEXT_PUBLIC_ADMIN_EMAIL=brice@jarvis-group.net
 ```
 
 ### 2. 🛡️ Sécurité Supabase

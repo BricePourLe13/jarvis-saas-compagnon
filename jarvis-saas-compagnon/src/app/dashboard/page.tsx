@@ -27,7 +27,7 @@ import {
   MessageSquare,
   Settings
 } from 'lucide-react'
-import { createClient } from '../../lib/supabase-simple'
+import { createBrowserClientWithConfig } from '../../lib/supabase-admin'
 import type { Database } from '../../types/database'
 import { getRealTimeMetrics, convertUSDToEUR, formatCurrency } from '../../lib/openai-cost-tracker'
 
@@ -129,7 +129,7 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      const supabase = createClient()
+      const supabase = createBrowserClientWithConfig()
       
       // Charger les franchises
       const { data: franchisesData, error } = await supabase

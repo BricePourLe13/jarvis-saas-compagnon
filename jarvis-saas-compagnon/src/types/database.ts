@@ -101,30 +101,42 @@ export interface Database {
         Row: {
           id: string
           email: string
-          full_name: string | null
-          role: 'super_admin' | 'franchise_owner' | 'franchise_admin' | 'user'
-          franchise_id: string | null
+          full_name: string
+          role: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
+          franchise_access: string[] | null
+          gym_access: string[] | null
+          dashboard_preferences: Json | null
+          notification_settings: Json | null
           is_active: boolean
+          last_login: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
           email: string
-          full_name?: string | null
-          role?: 'super_admin' | 'franchise_owner' | 'franchise_admin' | 'user'
-          franchise_id?: string | null
+          full_name: string
+          role?: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
+          franchise_access?: string[] | null
+          gym_access?: string[] | null
+          dashboard_preferences?: Json | null
+          notification_settings?: Json | null
           is_active?: boolean
+          last_login?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           email?: string
-          full_name?: string | null
-          role?: 'super_admin' | 'franchise_owner' | 'franchise_admin' | 'user'
-          franchise_id?: string | null
+          full_name?: string
+          role?: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
+          franchise_access?: string[] | null
+          gym_access?: string[] | null
+          dashboard_preferences?: Json | null
+          notification_settings?: Json | null
           is_active?: boolean
+          last_login?: string | null
           created_at?: string
           updated_at?: string
         }

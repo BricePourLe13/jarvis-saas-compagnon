@@ -21,7 +21,7 @@ import {
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { UserPlus, CheckCircle, AlertCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase-simple'
+import { createBrowserClientWithConfig } from '@/lib/supabase-admin'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -59,7 +59,7 @@ function SetupContent() {
   const verifyInvitation = async () => {
     try {
       setVerifying(true)
-      const supabase = createClient()
+      const supabase = createBrowserClientWithConfig()
       
       console.log('🔍 [DEBUG] Début vérification invitation')
       console.log('🔍 [DEBUG] URL actuelle:', window.location.href)
@@ -210,7 +210,7 @@ function SetupContent() {
 
     setLoading(true)
     try {
-      const supabase = createClient()
+      const supabase = createBrowserClientWithConfig()
 
       // Mettre à jour le mot de passe
       const { error: updateError } = await supabase.auth.updateUser({

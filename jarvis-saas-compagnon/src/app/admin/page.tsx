@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '../../lib/supabase-simple'
+import { createBrowserClientWithConfig } from '../../lib/supabase-admin'
 
 const MotionBox = motion(Box)
 const MotionFlex = motion(Flex)
@@ -88,7 +88,7 @@ export default function AdminPage() {
 
   const loadStats = async () => {
     try {
-      const supabase = createClient()
+      const supabase = createBrowserClientWithConfig()
 
       // Charger les statistiques en parallèle
       const [franchisesResponse, gymsResponse] = await Promise.all([

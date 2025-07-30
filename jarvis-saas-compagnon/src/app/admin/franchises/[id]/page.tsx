@@ -32,7 +32,7 @@ import {
   Plus
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../types/franchise'
-import { createClient } from '../../../../lib/supabase-simple'
+import { createBrowserClientWithConfig } from '../../../../lib/supabase-admin'
 import { getRealTimeMetrics, formatCurrency } from '../../../../lib/openai-cost-tracker'
 
 // Utiliser les types de base de données réels
@@ -98,7 +98,7 @@ export default function FranchiseAnalyticsPage() {
 
   const loadFranchiseData = async () => {
     try {
-      const supabase = createClient()
+      const supabase = createBrowserClientWithConfig()
 
              // Charger la franchise avec ses gyms
        const { data: franchiseData, error: franchiseError } = await supabase

@@ -1,4 +1,4 @@
-import { createClient } from './supabase-simple'
+import { createSimpleClient } from './supabase-admin'
 
 export interface KioskStatus {
   gymId: string
@@ -18,7 +18,7 @@ export class KioskStatusService {
    */
   static async isKioskOnline(gymId: string): Promise<boolean> {
     try {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       
       // ⚡ Vérifier les heartbeats des 45 dernières secondes (détection ultra-rapide)
       const fortyFiveSecondsAgo = new Date(Date.now() - 45 * 1000).toISOString()
@@ -48,7 +48,7 @@ export class KioskStatusService {
    */
   static async getKioskStatus(gymId: string): Promise<KioskStatus> {
     try {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       
       const { data: heartbeat, error } = await supabase
         .from('kiosk_heartbeats')
@@ -102,7 +102,7 @@ export class KioskStatusService {
    */
   static async getAllKioskStatuses(): Promise<KioskStatus[]> {
     try {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       
       const { data: heartbeats, error } = await supabase
         .from('kiosk_heartbeats')
@@ -139,7 +139,7 @@ export class KioskStatusService {
    */
   static async cleanupOldHeartbeats(): Promise<void> {
     try {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       
       await supabase.rpc('cleanup_old_heartbeats')
       console.log('🧹 [KIOSK STATUS] Nettoyage des anciens heartbeats effectué')

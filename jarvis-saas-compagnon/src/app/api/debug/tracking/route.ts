@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-simple'
+import { createSimpleClient } from '@/lib/supabase-admin'
 
 // 📊 POST: Tracker les erreurs de session JARVIS pour monitoring admin
 export async function POST(request: NextRequest) {
@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const { type, status, error, gymSlug, memberId, timestamp } = body
     
     if (type === 'voice_session_error') {
-      const supabase = createClient()
+      const supabase = createSimpleClient()
       
       // Stocker l'erreur en base pour monitoring admin
       const { data, error: insertError } = await supabase
@@ -59,7 +59,7 @@ export async function GET() {
   try {
     console.log('🔍 [DEBUG] Test du système de tracking...')
     
-    const supabase = createClient()
+    const supabase = createSimpleClient()
     
     // 1. Vérifier que la table existe
     const { data: tables, error: tablesError } = await supabase

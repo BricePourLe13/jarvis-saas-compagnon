@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '../../../../lib/supabase-simple'
+import { createSimpleClient } from '../../../../lib/supabase-admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = createSimpleClient()
 
     // Insérer ou mettre à jour le heartbeat
     const { error } = await supabase
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = createSimpleClient()
     
     // ⚡ Récupérer tous les heartbeats récents (moins de 45 secondes)
     const fortyFiveSecondsAgo = new Date(Date.now() - 45 * 1000).toISOString()
