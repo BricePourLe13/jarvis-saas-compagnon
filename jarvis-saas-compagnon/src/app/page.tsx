@@ -345,12 +345,16 @@ export default function LoginPage() {
     setError('')
     
     try {
-      // Vérifier que le CAPTCHA est résolu
-      if (!captchaToken) {
+      // Vérifier que le CAPTCHA est résolu (désactivé temporairement pour debug)
+      if (!captchaToken && process.env.NODE_ENV === 'production') {
         setError('Veuillez compléter le CAPTCHA')
         setLoading(false)
         return
       }
+      
+      // Debug info
+      console.log('🔍 captchaToken:', captchaToken)
+      console.log('🔍 Environment:', process.env.NODE_ENV)
 
       const supabase = await loadSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword({ 
@@ -562,22 +566,32 @@ export default function LoginPage() {
                     <HCaptcha
                       ref={captchaRef}
                       sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "10000000-ffff-ffff-ffff-000000000001"}
+                      onLoad={() => {
+                        console.log('🔄 hCaptcha chargé avec sitekey:', process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY)
+                      }}
                       onVerify={(token) => {
-                        console.log('hCaptcha vérifié:', token)
+                        console.log('✅ hCaptcha vérifié:', token)
                         setCaptchaToken(token)
                       }}
                       onError={(err) => {
-                        console.error('hCaptcha erreur:', err)
+                        console.error('❌ hCaptcha erreur:', err)
                         setCaptchaToken(null)
                       }}
                       onExpire={() => {
-                        console.log('hCaptcha expiré')
+                        console.log('⏰ hCaptcha expiré')
                         setCaptchaToken(null)
                       }}
                       size="normal"
                       theme="light"
                     />
                   </Box>
+                  
+                  {/* Debug info */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <Text fontSize="xs" color="gray.500" textAlign="center">
+                      Debug: Site Key = {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || 'Non définie'}
+                    </Text>
+                  )}
 
                   <Button
                     type="submit"
