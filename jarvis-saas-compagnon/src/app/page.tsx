@@ -357,6 +357,10 @@ export default function LoginPage() {
       console.log('🔍 Environment:', process.env.NODE_ENV)
 
       const supabase = await loadSupabaseClient()
+      // Debug: test avec et sans CAPTCHA
+      console.log('🔍 Email saisi:', email)
+      console.log('🔍 Password length:', password.length)
+      
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password,
@@ -364,6 +368,10 @@ export default function LoginPage() {
           captchaToken: captchaToken
         }
       })
+      
+      // Debug détaillé
+      console.log('🔍 Supabase response data:', data)
+      console.log('🔍 Supabase response error:', error)
       
       if (error) { 
         console.error('❌ Erreur Supabase Auth:', error)
