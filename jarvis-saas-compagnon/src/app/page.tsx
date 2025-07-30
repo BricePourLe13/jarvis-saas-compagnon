@@ -360,12 +360,13 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password,
-        options: {
-          captchaToken: captchaToken
-        }
+        captchaToken: captchaToken
       })
       
       if (error) { 
+        console.error('❌ Erreur Supabase Auth:', error)
+        console.error('❌ Code d\'erreur:', error.status)
+        console.error('❌ Message détaillé:', error.message)
         setError(error.message)
         setLoading(false)
         // Reset CAPTCHA en cas d'erreur

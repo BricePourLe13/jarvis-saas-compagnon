@@ -182,7 +182,7 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
         setIsLookingAround(true)
         setEyePosition({ x: currentPattern.x, y: currentPattern.y })
         
-        console.log(`👁️ JARVIS regarde: ${currentPattern.description} (${currentPattern.x}, ${currentPattern.y})`)
+        // console.log(`👁️ JARVIS regarde: ${currentPattern.description} (${currentPattern.x}, ${currentPattern.y})`)
         
         // Passer au prochain mouvement
         const nextTimer = addTimer(setTimeout(() => {
