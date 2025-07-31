@@ -39,8 +39,10 @@ import {
   Divider
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2 } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
+import EditUserModal from '@/components/admin/EditUserModal'
+import DeleteUserModal from '@/components/admin/DeleteUserModal'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -52,9 +54,13 @@ interface User {
   full_name: string
   role: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
   franchise_access?: string[]
+  gym_access?: string[]
   is_active: boolean
   last_login?: string
   created_at: string
+  updated_at: string
+  dashboard_preferences?: Record<string, any>
+  notification_settings?: Record<string, any>
   invitation_status?: 'pending' | 'accepted' | 'expired'
   invited_at?: string
 }
@@ -436,6 +442,9 @@ export default function TeamPage() {
     super_admins: 0
   })
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure()
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const toast = useToast()
 
   useEffect(() => {
@@ -529,6 +538,16 @@ export default function TeamPage() {
         duration: 5000,
       })
     }
+  }
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user)
+    onEditOpen()
+  }
+
+  const handleDeleteUser = (user: User) => {
+    setSelectedUser(user)
+    onDeleteOpen()
   }
 
   const handleCleanupUser = async (email: string) => {
@@ -881,11 +900,36 @@ export default function TeamPage() {
                         </Td>
                         <Td>
                           <HStack spacing={2}>
-                            {!user.is_active && (
+                            {/* Bouton Éditer - toujours visible */}
+                            <Button
+                              size="sm"
+                              bg="#374151"
+                              color="white"
+                              borderRadius="8px"
+                              h="32px"
+                              px={3}
+                              fontSize="xs"
+                              fontWeight="500"
+                              onClick={() => handleEditUser(user)}
+                              leftIcon={<Icon as={Edit} boxSize={3} />}
+                              _hover={{
+                                bg: "#1f2937",
+                                transform: "translateY(-1px)"
+                              }}
+                              _active={{
+                                transform: "translateY(0px)"
+                              }}
+                              transition="all 0.2s"
+                            >
+                              Éditer
+                            </Button>
+
+                            {/* Actions selon statut */}
+                            {!user.is_active ? (
                               <>
                                 <Button
                                   size="sm"
-                                  bg="#374151"
+                                  bg="#059669"
                                   color="white"
                                   borderRadius="8px"
                                   h="32px"
@@ -895,7 +939,7 @@ export default function TeamPage() {
                                   onClick={() => handleResendInvitation(user.email)}
                                   leftIcon={<Icon as={Mail} boxSize={3} />}
                                   _hover={{
-                                    bg: "#1f2937",
+                                    bg: "#047857",
                                     transform: "translateY(-1px)"
                                   }}
                                   _active={{
@@ -925,6 +969,30 @@ export default function TeamPage() {
                                   🗑️ Nettoyer
                                 </Button>
                               </>
+                            ) : (
+                              /* Bouton Supprimer - pour utilisateurs actifs */
+                              <Button
+                                size="sm"
+                                bg="#dc2626"
+                                color="white"
+                                borderRadius="8px"
+                                h="32px"
+                                px={3}
+                                fontSize="xs"
+                                fontWeight="500"
+                                onClick={() => handleDeleteUser(user)}
+                                leftIcon={<Icon as={Trash2} boxSize={3} />}
+                                _hover={{
+                                  bg: "#b91c1c",
+                                  transform: "translateY(-1px)"
+                                }}
+                                _active={{
+                                  transform: "translateY(0px)"
+                                }}
+                                transition="all 0.2s"
+                              >
+                                Supprimer
+                              </Button>
                             )}
                           </HStack>
                         </Td>
@@ -940,6 +1008,22 @@ export default function TeamPage() {
             <InviteModal
               isOpen={isOpen}
               onClose={onClose}
+              onSuccess={fetchUsers}
+            />
+
+            {/* Modal d'édition utilisateur */}
+            <EditUserModal
+              isOpen={isEditOpen}
+              onClose={onEditClose}
+              user={selectedUser}
+              onSuccess={fetchUsers}
+            />
+
+            {/* Modal de suppression utilisateur */}
+            <DeleteUserModal
+              isOpen={isDeleteOpen}
+              onClose={onDeleteClose}
+              user={selectedUser}
               onSuccess={fetchUsers}
             />
           </VStack>
