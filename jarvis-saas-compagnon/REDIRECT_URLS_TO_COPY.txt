@@ -1,0 +1,7 @@
+https://jarvis-group.net/auth/setup
+https://jarvis-group.net/auth/callback
+https://jarvis-saas-compagnon-dhb3s92md-jarvis-projects-64c74b6d.vercel.app/auth/setup
+https://jarvis-saas-compagnon-dhb3s92md-jarvis-projects-64c74b6d.vercel.app/auth/callback
+http://localhost:3000/auth/setup
+http://localhost:3000/auth/callback
+https://**--jarvis-projects-64c74b6d.vercel.app/**

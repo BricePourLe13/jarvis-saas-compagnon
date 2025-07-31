@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
           invited_by: authResult.user.id,
           invitation_type: 'admin_access'
         },
-        redirectTo: `${getEnvironmentConfig().appUrl}/auth/setup?type=admin`
+        redirectTo: `${getEnvironmentConfig().appUrl}/auth/setup?type=admin&role=${body.role}`
       }
     )
 

@@ -51,6 +51,7 @@ function SetupContent() {
   const searchParams = useSearchParams()
   const toast = useToast()
   const type = searchParams.get('type')
+  const role = searchParams.get('role')
 
   useEffect(() => {
     verifyInvitation()
@@ -67,8 +68,11 @@ function SetupContent() {
       // même si un utilisateur est déjà connecté (cas invitation différente)
       
       // 1. Vérifier d'abord les paramètres URL pour invitation
+      // Supabase met les tokens dans le fragment (#) et non les query params (?)
       const urlParams = new URLSearchParams(window.location.search)
-      const hasInvitationParams = urlParams.has('token_hash') || urlParams.has('token')
+      const fragmentParams = new URLSearchParams(window.location.hash.substring(1))
+      const hasInvitationParams = urlParams.has('token_hash') || urlParams.has('token') || 
+                                  fragmentParams.has('access_token') || fragmentParams.has('type')
       
       // Si pas de paramètres d'invitation, vérifier si utilisateur déjà connecté
       if (!hasInvitationParams) {
@@ -98,9 +102,39 @@ function SetupContent() {
       
       if (hasInvitationParams) {
         // Il y a des paramètres d'invitation dans l'URL
-        // Supabase devrait traiter automatiquement l'invitation
         console.log('🔍 [DEBUG] Paramètres d\'invitation détectés dans l\'URL')
         
+        // Cas spécial : si on a un access_token dans le fragment, l'utilisateur est déjà connecté
+        if (fragmentParams.has('access_token')) {
+          console.log('✅ [DEBUG] Access token trouvé dans fragment, utilisateur connecté!')
+          
+          // Récupérer directement l'utilisateur connecté
+          const { data: { user }, error: userError } = await supabase.auth.getUser()
+          
+          if (user && !userError) {
+            console.log('✅ [DEBUG] Utilisateur confirmé:', user.email)
+            
+            // Récupérer le profil
+            const { data: userProfile, error: profileError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', user.id)
+              .single()
+
+            if (!profileError && userProfile) {
+              console.log('✅ [DEBUG] Profil trouvé, invitation valide!')
+              setUserInfo({
+                email: userProfile.email,
+                full_name: userProfile.full_name,
+                role: userProfile.role
+              })
+              setTokenValid(true)
+              return
+            }
+          }
+        }
+        
+        // Sinon, traitement classique des tokens dans query params
         // Attendre un peu que Supabase traite l'invitation
         console.log('⏳ [DEBUG] Attente traitement Supabase (1s)...')
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -286,13 +320,21 @@ function SetupContent() {
   }
 
   if (!tokenValid) {
-    // Debug: afficher les paramètres URL
+    // Debug: afficher les paramètres URL et fragments
     const urlParams = new URLSearchParams(window.location.search)
+    const fragmentParams = new URLSearchParams(window.location.hash.substring(1))
     const debugInfo = {
+      // Query params
       type: urlParams.get('type'),
       token_hash: urlParams.get('token_hash'),
       token: urlParams.get('token'),
-      redirect_to: urlParams.get('redirect_to')
+      redirect_to: urlParams.get('redirect_to'),
+      // Fragment params (où Supabase met les tokens)
+      access_token: fragmentParams.get('access_token'),
+      refresh_token: fragmentParams.get('refresh_token'),
+      expires_at: fragmentParams.get('expires_at'),
+      token_type: fragmentParams.get('token_type'),
+      type_fragment: fragmentParams.get('type')
     }
 
     return (
@@ -312,9 +354,13 @@ function SetupContent() {
                   <Box mt={4} p={3} bg="gray.100" borderRadius="md" fontSize="sm">
                     <Text fontWeight="bold" mb={2}>Debug Info:</Text>
                     <Text>URL: {window.location.href}</Text>
-                    <Text>Type: {debugInfo.type || 'N/A'}</Text>
-                    <Text>Token Hash: {debugInfo.token_hash ? 'Présent' : 'Absent'}</Text>
-                    <Text>Token: {debugInfo.token ? 'Présent' : 'Absent'}</Text>
+                    <Text>Query Type: {debugInfo.type || 'N/A'}</Text>
+                    <Text>Query Token Hash: {debugInfo.token_hash ? 'Présent' : 'Absent'}</Text>
+                    <Text>Query Token: {debugInfo.token ? 'Présent' : 'Absent'}</Text>
+                    <Text fontWeight="bold" color="blue.600" mt={2}>Fragment Params:</Text>
+                    <Text>Access Token: {debugInfo.access_token ? 'Présent' : 'Absent'}</Text>
+                    <Text>Type Fragment: {debugInfo.type_fragment || 'N/A'}</Text>
+                    <Text>Expires At: {debugInfo.expires_at || 'N/A'}</Text>
                   </Box>
                 )}
                 
@@ -338,7 +384,7 @@ function SetupContent() {
             <Icon as={UserPlus} boxSize={12} color="blue.500" />
             <Heading size="lg" color="gray.800">Finaliser votre compte</Heading>
             <Text color="gray.600">
-              Définissez votre mot de passe pour accéder à JARVIS
+              {role && `En tant que ${getRoleLabel(role)}, définissez`} votre mot de passe pour accéder à JARVIS
             </Text>
           </VStack>
 
