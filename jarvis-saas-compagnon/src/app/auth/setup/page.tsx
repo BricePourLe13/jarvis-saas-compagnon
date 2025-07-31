@@ -63,38 +63,38 @@ function SetupContent() {
       
       // 🔄 NOUVELLE LOGIQUE: Gérer les invitations Supabase
       
-      // 1. Vérifier d'abord si l'utilisateur est déjà connecté (cas setup après login)
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      // IMPORTANT: Pour les invitations, on doit TOUJOURS traiter les paramètres URL
+      // même si un utilisateur est déjà connecté (cas invitation différente)
       
-      if (user && !userError) {
-        // Utilisateur déjà connecté, vérifier son profil
-        const { data: userProfile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-
-        if (!profileError && userProfile) {
-          setUserInfo({
-            email: userProfile.email,
-            full_name: userProfile.full_name,
-            role: userProfile.role
-          })
-          setTokenValid(true)
-          return
-        }
-      }
-
-      // 2. Si pas connecté, vérifier les paramètres URL pour invitation
+      // 1. Vérifier d'abord les paramètres URL pour invitation
       const urlParams = new URLSearchParams(window.location.search)
       const hasInvitationParams = urlParams.has('token_hash') || urlParams.has('token')
       
-      console.log('🔍 [DEBUG] Paramètres URL:', {
-        type: urlParams.get('type'),
-        token_hash: urlParams.has('token_hash') ? 'Présent' : 'Absent',
-        token: urlParams.has('token') ? 'Présent' : 'Absent',
-        hasInvitationParams
-      })
+      // Si pas de paramètres d'invitation, vérifier si utilisateur déjà connecté
+      if (!hasInvitationParams) {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        
+        if (user && !userError) {
+          // Utilisateur déjà connecté, vérifier son profil
+          const { data: userProfile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+
+          if (!profileError && userProfile) {
+            setUserInfo({
+              email: userProfile.email,
+              full_name: userProfile.full_name,
+              role: userProfile.role
+            })
+            setTokenValid(true)
+            return
+          }
+        }
+      }
+
+      // 2. Traiter les paramètres d'invitation s'ils existent
       
       if (hasInvitationParams) {
         // Il y a des paramètres d'invitation dans l'URL
