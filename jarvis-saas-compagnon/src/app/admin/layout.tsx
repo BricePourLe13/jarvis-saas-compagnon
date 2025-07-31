@@ -1,8 +1,25 @@
 'use client'
 
-import { Box, Flex, VStack, HStack, Text, Button, Icon, Badge } from '@chakra-ui/react'
+import { 
+  Box, 
+  Flex, 
+  VStack, 
+  HStack, 
+  Text, 
+  Button, 
+  Icon, 
+  Badge,
+  Avatar,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  MenuDivider,
+  useToast
+} from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter, usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { 
   LayoutDashboard, 
   Building2, 
@@ -11,8 +28,12 @@ import {
   BarChart3, 
   Plus,
   ArrowLeft,
-  Zap
+  Zap,
+  User,
+  LogOut,
+  ChevronDown
 } from 'lucide-react'
+import { createBrowserClientWithConfig } from '@/lib/supabase-admin'
 
 const MotionBox = motion(Box)
 const MotionButton = motion(Button)
@@ -34,6 +55,57 @@ interface NavItem {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const toast = useToast()
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadUserProfile()
+  }, [])
+
+  const loadUserProfile = async () => {
+    try {
+      const supabase = createBrowserClientWithConfig()
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      
+      if (authUser) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single()
+        
+        setUser(profile)
+      }
+    } catch (error) {
+      console.error('Erreur chargement profil:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      const supabase = createBrowserClientWithConfig()
+      await supabase.auth.signOut()
+      
+      toast({
+        title: 'Déconnexion réussie',
+        description: 'À bientôt !',
+        status: 'success',
+        duration: 2000,
+      })
+      
+      router.push('/')
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de se déconnecter',
+        status: 'error',
+        duration: 3000,
+      })
+    }
+  }
 
   const navItems: NavItem[] = [
     {
@@ -190,8 +262,84 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <Flex minH="100vh" bg="white" fontFamily="system-ui, -apple-system, sans-serif">
-      {/* Sidebar épurée */}
+    <Flex direction="column" minH="100vh" bg="white" fontFamily="system-ui, -apple-system, sans-serif">
+      {/* Header avec menu utilisateur */}
+      <Box
+        borderBottom="1px solid"
+        borderColor="gray.100"
+        bg="white"
+        px={6}
+        py={4}
+        zIndex={10}
+      >
+        <Flex justify="space-between" align="center">
+          <HStack spacing={4}>
+            <Text 
+              fontSize="xl" 
+              fontWeight="600" 
+              color="black"
+              letterSpacing="-0.5px"
+            >
+              JARVIS Admin
+            </Text>
+          </HStack>
+
+          {!loading && user && (
+            <Menu>
+              <MenuButton
+                as={Button}
+                variant="ghost"
+                size="sm"
+                rightIcon={<Icon as={ChevronDown} boxSize={4} />}
+                _hover={{ bg: 'gray.50' }}
+                _active={{ bg: 'gray.100' }}
+              >
+                <HStack spacing={3}>
+                  <Avatar 
+                    size="sm" 
+                    name={user.full_name} 
+                    bg="blue.500"
+                    color="white"
+                  />
+                  <VStack spacing={0} align="start">
+                    <Text fontSize="sm" fontWeight="500" color="black">
+                      {user.full_name}
+                    </Text>
+                    <Text fontSize="xs" color="gray.500">
+                      {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                    </Text>
+                  </VStack>
+                </HStack>
+              </MenuButton>
+              <MenuList>
+                <MenuItem 
+                  icon={<Icon as={User} />}
+                  onClick={() => router.push('/admin/profile')}
+                >
+                  Mon profil
+                </MenuItem>
+                <MenuItem 
+                  icon={<Icon as={Settings} />}
+                  onClick={() => router.push('/admin/settings')}
+                >
+                  Paramètres
+                </MenuItem>
+                <MenuDivider />
+                <MenuItem 
+                  icon={<Icon as={LogOut} />}
+                  onClick={handleLogout}
+                  color="red.500"
+                >
+                  Se déconnecter
+                </MenuItem>
+              </MenuList>
+            </Menu>
+          )}
+        </Flex>
+      </Box>
+
+      <Flex flex="1">
+        {/* Sidebar épurée */}
       <MotionBox
         w="280px"
         bg="white"
@@ -300,6 +448,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       >
         {children}
       </MotionBox>
+      </Flex>
     </Flex>
   )
 } 
