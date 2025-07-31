@@ -287,21 +287,34 @@ function SetupContent() {
 
       console.log('✅ Compte activé avec succès pour:', user.email)
 
+      // Message personnalisé selon le rôle
+      const getWelcomeMessage = (role: string) => {
+        switch (role) {
+          case 'super_admin': return 'Accès administrateur accordé !'
+          case 'franchise_owner': return 'Bienvenue propriétaire de franchise !'
+          case 'gym_manager': return 'Accès manager de salle accordé !'
+          case 'gym_staff': return 'Bienvenue dans l\'équipe !'
+          default: return 'Compte configuré avec succès !'
+        }
+      }
+      
       toast({
-        title: 'Compte configuré !',
-        description: 'Redirection vers le dashboard...',
+        title: getWelcomeMessage(userInfo?.role || ''),
+        description: 'Redirection en cours...',
         status: 'success',
         duration: 3000,
       })
 
       // Redirection selon le rôle
       setTimeout(() => {
-        if (userInfo?.role === 'super_admin') {
+        if (userInfo?.role === 'super_admin' || userInfo?.role === 'franchise_owner') {
           router.push('/admin')
+        } else if (userInfo?.role === 'gym_manager' || userInfo?.role === 'gym_staff') {
+          router.push('/franchise')
         } else {
-          router.push('/dashboard')
+          router.push('/admin') // Fallback vers admin
         }
-      }, 1000)
+      }, 2000)
 
     } catch (error) {
       toast({
