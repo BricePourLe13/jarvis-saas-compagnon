@@ -40,7 +40,7 @@ import {
   Checkbox
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor, Building2 } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor, Building2, History } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
@@ -49,6 +49,7 @@ import ActivityLogsModal from '@/components/admin/ActivityLogsModal'
 import BulkOperationsModal from '@/components/admin/BulkOperationsModal'
 import UserSessionsModal from '@/components/admin/UserSessionsModal'
 import AccessManagementModal from '@/components/admin/AccessManagementModal'
+import UserAuditModal from '@/components/admin/UserAuditModal'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -455,6 +456,7 @@ export default function TeamPage() {
   const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure()
   const { isOpen: isSessionsOpen, onOpen: onSessionsOpen, onClose: onSessionsClose } = useDisclosure()
   const { isOpen: isAccessOpen, onOpen: onAccessOpen, onClose: onAccessClose } = useDisclosure()
+  const { isOpen: isAuditOpen, onOpen: onAuditOpen, onClose: onAuditClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<User[]>([])
   const [selectAllMode, setSelectAllMode] = useState(false)
@@ -602,6 +604,11 @@ export default function TeamPage() {
   const handleManageAccess = (user: User) => {
     setSelectedUser(user)
     onAccessOpen()
+  }
+
+  const handleViewAudit = (user: User) => {
+    setSelectedUser(user)
+    onAuditOpen()
   }
 
   const handleCleanupUser = async (email: string) => {
@@ -1114,6 +1121,30 @@ export default function TeamPage() {
                               </Button>
                             )}
 
+                            {/* Bouton Audit - toujours visible */}
+                            <Button
+                              size="sm"
+                              bg="#7c3aed"
+                              color="white"
+                              borderRadius="8px"
+                              h="32px"
+                              px={3}
+                              fontSize="xs"
+                              fontWeight="500"
+                              onClick={() => handleViewAudit(user)}
+                              leftIcon={<Icon as={History} boxSize={3} />}
+                              _hover={{
+                                bg: "#6d28d9",
+                                transform: "translateY(-1px)"
+                              }}
+                              _active={{
+                                transform: "translateY(0px)"
+                              }}
+                              transition="all 0.2s"
+                            >
+                              Audit
+                            </Button>
+
                             {/* Actions selon statut */}
                             {!user.is_active ? (
                               <>
@@ -1254,6 +1285,13 @@ export default function TeamPage() {
               onClose={onAccessClose}
               user={selectedUser}
               onSuccess={fetchUsers}
+            />
+
+            {/* Modal d'audit utilisateur */}
+            <UserAuditModal
+              isOpen={isAuditOpen}
+              onClose={onAuditClose}
+              user={selectedUser}
             />
           </VStack>
         </Container>
