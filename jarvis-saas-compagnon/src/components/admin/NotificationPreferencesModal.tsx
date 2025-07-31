@@ -49,7 +49,7 @@ export default function NotificationPreferencesModal({ isOpen, onClose, user, on
     }
   }, [isOpen, user])
 
-  const handleChange = (field: keyof NotificationSettings, value: any) => {
+  const handleChange = (field: keyof NotificationSettings, value: unknown) => {
     setSettings(prev => ({ ...prev, [field]: value }))
   }
 

@@ -52,7 +52,7 @@ import AccessManagementModal from '@/components/admin/AccessManagementModal'
 import UserAuditModal from '@/components/admin/UserAuditModal'
 import NotificationPreferencesModal from '@/components/admin/NotificationPreferencesModal'
 import { Bell } from 'lucide-react'
-import type { User } from '@/types/franchise'
+import type { User, UserRole } from '@/types/franchise'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -302,7 +302,7 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
               </FormLabel>
               <Select
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
                 bg="#ffffff"
                 border="1px solid"
                 borderColor="#e5e7eb"
@@ -412,7 +412,7 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
               }}
               transition="all 0.2s"
             >
-              Envoyer l'invitation
+              Envoyer l&apos;invitation
             </Button>
           </HStack>
         </ModalFooter>
@@ -492,7 +492,7 @@ export default function TeamPage() {
       
       if (data.success && data.data) {
         // Enrichir les données avec le statut d'invitation
-        const enrichedUsers: User[] = data.data.map((user: any) => {
+        const enrichedUsers: User[] = data.data.map((user: Record<string, unknown>) => {
           // Déterminer le statut d'invitation
           let invitationStatus: 'pending' | 'accepted' | 'expired' = 'accepted'
           

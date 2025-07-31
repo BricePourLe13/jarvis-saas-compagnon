@@ -56,9 +56,9 @@ interface ActivityLog {
   target_id: string | null
   target_name: string | null
   description: string
-  details: Record<string, any>
-  old_values: Record<string, any>
-  new_values: Record<string, any>
+  details: Record<string, unknown>
+  old_values: Record<string, unknown>
+  new_values: Record<string, unknown>
   risk_level: 'low' | 'medium' | 'high' | 'critical'
   severity: 'debug' | 'info' | 'warning' | 'error' | 'critical'
   success: boolean

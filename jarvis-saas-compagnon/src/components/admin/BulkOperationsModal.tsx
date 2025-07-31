@@ -41,7 +41,7 @@ interface BulkOperation {
   id: string
   label: string
   description: string
-  icon: any
+  icon: React.ElementType
   color: string
   confirmationRequired: boolean
   riskLevel: 'low' | 'medium' | 'high' | 'critical'
