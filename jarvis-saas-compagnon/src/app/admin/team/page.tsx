@@ -50,27 +50,13 @@ import BulkOperationsModal from '@/components/admin/BulkOperationsModal'
 import UserSessionsModal from '@/components/admin/UserSessionsModal'
 import AccessManagementModal from '@/components/admin/AccessManagementModal'
 import UserAuditModal from '@/components/admin/UserAuditModal'
+import NotificationPreferencesModal from '@/components/admin/NotificationPreferencesModal'
+import { Bell } from 'lucide-react'
+import type { User } from '@/types/franchise'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
 // ===========================================
-
-interface User {
-  id: string
-  email: string
-  full_name: string
-  role: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
-  franchise_access?: string[]
-  gym_access?: string[]
-  is_active: boolean
-  last_login?: string
-  created_at: string
-  updated_at: string
-  dashboard_preferences?: Record<string, any>
-  notification_settings?: Record<string, any>
-  invitation_status?: 'pending' | 'accepted' | 'expired'
-  invited_at?: string
-}
 
 interface InviteForm {
   email: string
@@ -457,6 +443,7 @@ export default function TeamPage() {
   const { isOpen: isSessionsOpen, onOpen: onSessionsOpen, onClose: onSessionsClose } = useDisclosure()
   const { isOpen: isAccessOpen, onOpen: onAccessOpen, onClose: onAccessClose } = useDisclosure()
   const { isOpen: isAuditOpen, onOpen: onAuditOpen, onClose: onAuditClose } = useDisclosure()
+  const { isOpen: isNotifOpen, onOpen: onNotifOpen, onClose: onNotifClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<User[]>([])
   const [selectAllMode, setSelectAllMode] = useState(false)
@@ -505,7 +492,7 @@ export default function TeamPage() {
       
       if (data.success && data.data) {
         // Enrichir les données avec le statut d'invitation
-        const enrichedUsers = data.data.map((user: User) => {
+        const enrichedUsers: User[] = data.data.map((user: any) => {
           // Déterminer le statut d'invitation
           let invitationStatus: 'pending' | 'accepted' | 'expired' = 'accepted'
           
@@ -522,7 +509,7 @@ export default function TeamPage() {
             ...user,
             invitation_status: invitationStatus,
             invited_at: user.created_at
-          }
+          } as User
         })
         
         setUsers(enrichedUsers)
@@ -609,6 +596,11 @@ export default function TeamPage() {
   const handleViewAudit = (user: User) => {
     setSelectedUser(user)
     onAuditOpen()
+  }
+
+  const handleNotifications = (user: User) => {
+    setSelectedUser(user)
+    onNotifOpen()
   }
 
   const handleCleanupUser = async (email: string) => {
@@ -1145,6 +1137,27 @@ export default function TeamPage() {
                               Audit
                             </Button>
 
+                            {/* Bouton Notifications - sauf pour super_admin */}
+                            {user.role !== 'super_admin' && (
+                              <Button
+                                size="sm"
+                                bg="#f59e0b"
+                                color="white"
+                                borderRadius="8px"
+                                h="32px"
+                                px={3}
+                                fontSize="xs"
+                                fontWeight="500"
+                                onClick={() => handleNotifications(user)}
+                                leftIcon={<Icon as={Bell} boxSize={3} />}
+                                _hover={{ bg: "#d97706", transform: "translateY(-1px)" }}
+                                _active={{ transform: "translateY(0px)" }}
+                                transition="all 0.2s"
+                              >
+                                Notifications
+                              </Button>
+                            )}
+
                             {/* Actions selon statut */}
                             {!user.is_active ? (
                               <>
@@ -1292,6 +1305,14 @@ export default function TeamPage() {
               isOpen={isAuditOpen}
               onClose={onAuditClose}
               user={selectedUser}
+            />
+
+            {/* Modal de préférences de notification */}
+            <NotificationPreferencesModal
+              isOpen={isNotifOpen}
+              onClose={onNotifClose}
+              user={selectedUser}
+              onSuccess={fetchUsers}
             />
           </VStack>
         </Container>

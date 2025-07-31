@@ -38,20 +38,11 @@ import {
 import { useState, useEffect } from 'react'
 import { Building2, MapPin, Search, Users, Shield, CheckCircle, AlertTriangle, Save } from 'lucide-react'
 import { logPermissionsUpdate } from '@/lib/activity-logger'
+import type { User } from '@/types/franchise'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
 // ===========================================
-
-interface User {
-  id: string
-  email: string
-  full_name: string
-  role: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
-  franchise_access: string[] | null
-  gym_access: string[] | null
-  is_active: boolean
-}
 
 interface Franchise {
   id: string

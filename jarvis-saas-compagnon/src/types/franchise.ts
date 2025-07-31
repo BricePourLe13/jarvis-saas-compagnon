@@ -211,6 +211,9 @@ export interface User {
   // Timestamps
   created_at: string
   updated_at: string
+  // Ajout pour compatibilité Team page et invitations
+  invitation_status?: 'pending' | 'accepted' | 'expired'
+  invited_at?: string
 }
 
 export interface UserCreateRequest {
