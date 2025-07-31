@@ -39,11 +39,12 @@ import {
   Divider
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2 } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
 import ManagePermissionsModal from '@/components/admin/ManagePermissionsModal'
+import ActivityLogsModal from '@/components/admin/ActivityLogsModal'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -446,6 +447,7 @@ export default function TeamPage() {
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure()
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
   const { isOpen: isPermissionsOpen, onOpen: onPermissionsOpen, onClose: onPermissionsClose } = useDisclosure()
+  const { isOpen: isActivityOpen, onOpen: onActivityOpen, onClose: onActivityClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const toast = useToast()
 
@@ -687,27 +689,50 @@ export default function TeamPage() {
                     </VStack>
                   </HStack>
                 </VStack>
-                <Button
-                  bg="#374151"
-                  color="white"
-                  borderRadius="12px"
-                  h="50px"
-                  px={6}
-                  fontWeight="600"
-                  leftIcon={<Icon as={UserPlus} />}
-                  onClick={onOpen}
-                  _hover={{
-                    bg: "#1f2937",
-                    transform: "translateY(-1px)",
-                    boxShadow: "0 4px 12px rgba(55, 65, 81, 0.3)"
-                  }}
-                  _active={{
-                    transform: "translateY(0px)"
-                  }}
-                  transition="all 0.2s"
-                >
-                  Inviter un admin
-                </Button>
+                <HStack spacing={4}>
+                  <Button
+                    bg="#6366f1"
+                    color="white"
+                    borderRadius="12px"
+                    h="50px"
+                    px={6}
+                    fontWeight="600"
+                    leftIcon={<Icon as={Activity} />}
+                    onClick={onActivityOpen}
+                    _hover={{
+                      bg: "#4f46e5",
+                      transform: "translateY(-1px)",
+                      boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
+                    }}
+                    _active={{
+                      transform: "translateY(0px)"
+                    }}
+                    transition="all 0.2s"
+                  >
+                    Analytics
+                  </Button>
+                  <Button
+                    bg="#374151"
+                    color="white"
+                    borderRadius="12px"
+                    h="50px"
+                    px={6}
+                    fontWeight="600"
+                    leftIcon={<Icon as={UserPlus} />}
+                    onClick={onOpen}
+                    _hover={{
+                      bg: "#1f2937",
+                      transform: "translateY(-1px)",
+                      boxShadow: "0 4px 12px rgba(55, 65, 81, 0.3)"
+                    }}
+                    _active={{
+                      transform: "translateY(0px)"
+                    }}
+                    transition="all 0.2s"
+                  >
+                    Inviter un admin
+                  </Button>
+                </HStack>
               </HStack>
             </Box>
 
@@ -1066,6 +1091,12 @@ export default function TeamPage() {
               onClose={onPermissionsClose}
               user={selectedUser}
               onSuccess={fetchUsers}
+            />
+
+            {/* Modal des logs d'activité */}
+            <ActivityLogsModal
+              isOpen={isActivityOpen}
+              onClose={onActivityClose}
             />
           </VStack>
         </Container>
