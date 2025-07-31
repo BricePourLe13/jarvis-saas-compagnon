@@ -43,6 +43,7 @@ import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Tras
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
+import ManagePermissionsModal from '@/components/admin/ManagePermissionsModal'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -444,6 +445,7 @@ export default function TeamPage() {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure()
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
+  const { isOpen: isPermissionsOpen, onOpen: onPermissionsOpen, onClose: onPermissionsClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const toast = useToast()
 
@@ -548,6 +550,11 @@ export default function TeamPage() {
   const handleDeleteUser = (user: User) => {
     setSelectedUser(user)
     onDeleteOpen()
+  }
+
+  const handleManagePermissions = (user: User) => {
+    setSelectedUser(user)
+    onPermissionsOpen()
   }
 
   const handleCleanupUser = async (email: string) => {
@@ -924,6 +931,32 @@ export default function TeamPage() {
                               Éditer
                             </Button>
 
+                            {/* Bouton Permissions - sauf pour super_admin */}
+                            {user.role !== 'super_admin' && (
+                              <Button
+                                size="sm"
+                                bg="#6366f1"
+                                color="white"
+                                borderRadius="8px"
+                                h="32px"
+                                px={3}
+                                fontSize="xs"
+                                fontWeight="500"
+                                onClick={() => handleManagePermissions(user)}
+                                leftIcon={<Icon as={Shield} boxSize={3} />}
+                                _hover={{
+                                  bg: "#4f46e5",
+                                  transform: "translateY(-1px)"
+                                }}
+                                _active={{
+                                  transform: "translateY(0px)"
+                                }}
+                                transition="all 0.2s"
+                              >
+                                Permissions
+                              </Button>
+                            )}
+
                             {/* Actions selon statut */}
                             {!user.is_active ? (
                               <>
@@ -1023,6 +1056,14 @@ export default function TeamPage() {
             <DeleteUserModal
               isOpen={isDeleteOpen}
               onClose={onDeleteClose}
+              user={selectedUser}
+              onSuccess={fetchUsers}
+            />
+
+            {/* Modal de gestion des permissions */}
+            <ManagePermissionsModal
+              isOpen={isPermissionsOpen}
+              onClose={onPermissionsClose}
               user={selectedUser}
               onSuccess={fetchUsers}
             />
