@@ -104,21 +104,33 @@ function SetupContent() {
         // Il y a des paramètres d'invitation dans l'URL
         console.log('🔍 [DEBUG] Paramètres d\'invitation détectés dans l\'URL')
         
-        // Cas spécial : si on a un access_token dans le fragment, l'utilisateur est déjà connecté
+        // Cas spécial : si on a un access_token dans le fragment, établir la session
         if (fragmentParams.has('access_token')) {
-          console.log('✅ [DEBUG] Access token trouvé dans fragment, utilisateur connecté!')
+          console.log('✅ [DEBUG] Access token trouvé dans fragment, établissement session...')
           
-          // Récupérer directement l'utilisateur connecté
-          const { data: { user }, error: userError } = await supabase.auth.getUser()
+          // Forcer l'établissement de session avec les tokens du fragment
+          const accessToken = fragmentParams.get('access_token')
+          const refreshToken = fragmentParams.get('refresh_token')
           
-          if (user && !userError) {
-            console.log('✅ [DEBUG] Utilisateur confirmé:', user.email)
+          if (accessToken && refreshToken) {
+            console.log('🔄 [DEBUG] Établissement session avec tokens fragment...')
+            
+            // Établir la session avec les tokens
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            })
+            
+            if (sessionError) {
+              console.error('❌ [DEBUG] Erreur établissement session:', sessionError)
+            } else if (sessionData.user) {
+              console.log('✅ [DEBUG] Session établie, utilisateur:', sessionData.user.email)
             
             // Récupérer le profil
             const { data: userProfile, error: profileError } = await supabase
               .from('users')
               .select('*')
-              .eq('id', user.id)
+              .eq('id', sessionData.user.id)
               .single()
 
             if (!profileError && userProfile) {
@@ -131,6 +143,8 @@ function SetupContent() {
               setTokenValid(true)
               return
             }
+          } else {
+            console.log('❌ [DEBUG] Tokens manquants dans fragment')
           }
         }
         
