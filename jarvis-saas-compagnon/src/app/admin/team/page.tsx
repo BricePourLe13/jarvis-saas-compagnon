@@ -933,17 +933,18 @@ export default function TeamPage() {
                   </Tbody>
                 </Table>
               )}
-            </CardBody>
-          </Card>
-        </VStack>
+              </Box>
+            </Box>
 
-        {/* Modal d'invitation */}
-        <InviteModal
-          isOpen={isOpen}
-          onClose={onClose}
-          onSuccess={fetchUsers}
-        />
-      </Container>
+            {/* Modal d'invitation */}
+            <InviteModal
+              isOpen={isOpen}
+              onClose={onClose}
+              onSuccess={fetchUsers}
+            />
+          </VStack>
+        </Container>
+      </Box>
     </AuthGuard>
   )
 } 
