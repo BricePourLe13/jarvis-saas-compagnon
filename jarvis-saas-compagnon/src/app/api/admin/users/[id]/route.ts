@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { logUserUpdate, logUserDeletion } from '@/lib/activity-logger'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -167,6 +168,24 @@ export async function PUT(
         console.warn('⚠️ Erreur mise à jour Auth (non bloquante):', authError)
       }
     }
+
+    // Log de l'activité
+    const changedFields = Object.keys(updateData).filter(key => key !== 'updated_at')
+    const oldValues = Object.fromEntries(
+      changedFields.map(field => [field, existingUser[field]])
+    )
+    const newValues = Object.fromEntries(
+      changedFields.map(field => [field, updateData[field]])
+    )
+
+    // Log asynchrone (ne pas bloquer la réponse)
+    logUserUpdate(
+      userId,
+      updatedUser.full_name,
+      oldValues,
+      newValues,
+      changedFields
+    ).catch(err => console.warn('⚠️ Erreur logging:', err))
 
     console.log('✅ Utilisateur mis à jour:', updatedUser.email)
 

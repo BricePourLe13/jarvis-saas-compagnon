@@ -36,15 +36,17 @@ import {
   Card,
   CardBody,
   CardHeader,
-  Divider
+  Divider,
+  Checkbox
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
 import ManagePermissionsModal from '@/components/admin/ManagePermissionsModal'
 import ActivityLogsModal from '@/components/admin/ActivityLogsModal'
+import BulkOperationsModal from '@/components/admin/BulkOperationsModal'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -448,12 +450,46 @@ export default function TeamPage() {
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
   const { isOpen: isPermissionsOpen, onOpen: onPermissionsOpen, onClose: onPermissionsClose } = useDisclosure()
   const { isOpen: isActivityOpen, onOpen: onActivityOpen, onClose: onActivityClose } = useDisclosure()
+  const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([])
+  const [selectAllMode, setSelectAllMode] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
     fetchUsers()
   }, [])
+
+  // Fonctions de sélection multiple
+  const toggleUserSelection = (user: User) => {
+    setSelectedUsers(prev => {
+      const isSelected = prev.some(u => u.id === user.id)
+      if (isSelected) {
+        return prev.filter(u => u.id !== user.id)
+      } else {
+        return [...prev, user]
+      }
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.length === users.length) {
+      setSelectedUsers([])
+      setSelectAllMode(false)
+    } else {
+      setSelectedUsers([...users])
+      setSelectAllMode(true)
+    }
+  }
+
+  const clearSelection = () => {
+    setSelectedUsers([])
+    setSelectAllMode(false)
+  }
+
+  const isUserSelected = (userId: string) => {
+    return selectedUsers.some(u => u.id === userId)
+  }
 
   const fetchUsers = async () => {
     try {
@@ -690,6 +726,33 @@ export default function TeamPage() {
                   </HStack>
                 </VStack>
                 <HStack spacing={4}>
+                  {selectedUsers.length > 0 && (
+                    <HStack spacing={3} p={3} bg="#fef3c7" borderRadius="12px" border="1px solid #f59e0b">
+                      <Text fontSize="sm" fontWeight="600" color="#92400e">
+                        {selectedUsers.length} sélectionné(s)
+                      </Text>
+                      <Button
+                        size="sm"
+                        bg="#f59e0b"
+                        color="white"
+                        borderRadius="8px"
+                        leftIcon={<Icon as={MoreHorizontal} boxSize={3} />}
+                        onClick={onBulkOpen}
+                        _hover={{ bg: "#d97706" }}
+                      >
+                        Actions
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        color="#92400e"
+                        onClick={clearSelection}
+                        _hover={{ bg: "#fde68a" }}
+                      >
+                        Annuler
+                      </Button>
+                    </HStack>
+                  )}
                   <Button
                     bg="#6366f1"
                     color="white"
@@ -892,6 +955,13 @@ export default function TeamPage() {
                 <Table variant="simple">
                   <Thead>
                     <Tr>
+                      <Th w="50px">
+                        <Checkbox
+                          isChecked={selectedUsers.length === users.length && users.length > 0}
+                          isIndeterminate={selectedUsers.length > 0 && selectedUsers.length < users.length}
+                          onChange={toggleSelectAll}
+                        />
+                      </Th>
                       <Th>Utilisateur</Th>
                       <Th>Rôle</Th>
                       <Th>Statut</Th>
@@ -902,7 +972,13 @@ export default function TeamPage() {
                   </Thead>
                   <Tbody>
                     {users.map((user) => (
-                      <Tr key={user.id}>
+                      <Tr key={user.id} bg={isUserSelected(user.id) ? "#f0f9ff" : "white"}>
+                        <Td>
+                          <Checkbox
+                            isChecked={isUserSelected(user.id)}
+                            onChange={() => toggleUserSelection(user)}
+                          />
+                        </Td>
                         <Td>
                           <HStack spacing={3}>
                             <Avatar size="sm" name={user.full_name} />
@@ -1097,6 +1173,17 @@ export default function TeamPage() {
             <ActivityLogsModal
               isOpen={isActivityOpen}
               onClose={onActivityClose}
+            />
+
+            {/* Modal des opérations en masse */}
+            <BulkOperationsModal
+              isOpen={isBulkOpen}
+              onClose={onBulkClose}
+              selectedUsers={selectedUsers}
+              onSuccess={() => {
+                fetchUsers()
+                clearSelection()
+              }}
             />
           </VStack>
         </Container>
