@@ -25,7 +25,7 @@ export default function AuthGuard({ children, requiredRole = 'super_admin' }: Au
         
         if (authError || !user) {
           console.log('Pas d\'utilisateur authentifié, redirection vers login')
-          router.push('/auth/login')
+          router.push('/')
           return
         }
 
@@ -40,13 +40,13 @@ export default function AuthGuard({ children, requiredRole = 'super_admin' }: Au
 
         if (profileError) {
           console.error('Erreur récupération profil:', profileError)
-          router.push('/auth/login')
+          router.push('/')
           return
         }
 
         if (!profile) {
           console.log('Profil utilisateur non trouvé')
-          router.push('/auth/login')
+          router.push('/')
           return
         }
 
@@ -60,7 +60,7 @@ export default function AuthGuard({ children, requiredRole = 'super_admin' }: Au
         setUserProfile(profile)
       } catch (error) {
         console.error('Erreur authentification:', error)
-        router.push('/auth/login')
+        router.push('/')
       } finally {
         setLoading(false)
       }

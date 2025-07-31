@@ -61,19 +61,12 @@ function SetupContent() {
       setVerifying(true)
       const supabase = createBrowserClientWithConfig()
       
-      console.log('🔍 [DEBUG] Début vérification invitation')
-      console.log('🔍 [DEBUG] URL actuelle:', window.location.href)
-      
       // 🔄 NOUVELLE LOGIQUE: Gérer les invitations Supabase
       
       // 1. Vérifier d'abord si l'utilisateur est déjà connecté (cas setup après login)
-      console.log('🔍 [DEBUG] Vérification utilisateur connecté...')
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
-      console.log('🔍 [DEBUG] Résultat getUser:', { user: user?.id, email: user?.email, error: userError })
-      
       if (user && !userError) {
-        console.log('✅ [DEBUG] Utilisateur connecté détecté, vérification profil...')
         // Utilisateur déjà connecté, vérifier son profil
         const { data: userProfile, error: profileError } = await supabase
           .from('users')
@@ -81,10 +74,7 @@ function SetupContent() {
           .eq('id', user.id)
           .single()
 
-        console.log('🔍 [DEBUG] Résultat profil:', { userProfile, profileError })
-
         if (!profileError && userProfile) {
-          console.log('✅ [DEBUG] Profil trouvé, invitation valide!')
           setUserInfo({
             email: userProfile.email,
             full_name: userProfile.full_name,
@@ -227,17 +217,26 @@ function SetupContent() {
         return
       }
 
-      // Activer le compte
+      // Activer le compte ET mettre à jour last_login
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('Utilisateur non trouvé après mise à jour mot de passe')
+      }
+
       const { error: activateError } = await supabase
         .from('users')
         .update({ 
-          is_active: true
+          is_active: true,
+          last_login: new Date().toISOString()
         })
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', user.id)
 
       if (activateError) {
-        console.error('Erreur activation:', activateError)
+        console.error('❌ Erreur activation:', activateError)
+        throw new Error('Impossible d\'activer le compte: ' + activateError.message)
       }
+
+      console.log('✅ Compte activé avec succès pour:', user.email)
 
       toast({
         title: 'Compte configuré !',

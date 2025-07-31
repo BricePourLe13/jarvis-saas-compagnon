@@ -10,8 +10,9 @@ import { createAdminClient, getEnvironmentConfig, createServerClientWithConfig }
 interface InviteAdminRequest {
   email: string
   full_name: string
-  role: 'super_admin' | 'franchise_owner'
+  role: 'super_admin' | 'franchise_owner' | 'franchise_admin'
   franchise_access?: string[] // Pour franchise_owner uniquement
+  department?: string // Pour franchise_admin
 }
 
 interface ApiResponse<T> {
@@ -60,9 +61,9 @@ function validateInviteRequest(body: any): { isValid: boolean; errors: string[] 
     errors.push('Nom complet requis (minimum 2 caractères)')
   }
   
-  // Rôle validation
-  if (!body.role || !['super_admin', 'franchise_owner'].includes(body.role)) {
-    errors.push('Rôle invalide (super_admin ou franchise_owner uniquement)')
+  // Rôle validation - Supporte franchise_admin pour cohérence avec le code frontend
+  if (!body.role || !['super_admin', 'franchise_owner', 'franchise_admin'].includes(body.role)) {
+    errors.push('Rôle invalide (super_admin, franchise_owner, ou franchise_admin uniquement)')
   }
   
   // Franchise access pour franchise_owner

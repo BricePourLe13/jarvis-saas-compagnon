@@ -340,8 +340,6 @@ export default function TeamPage() {
       const response = await fetch('/api/admin/users')
       const data = await response.json()
       
-      console.log('🔍 DEBUG fetchUsers response:', { status: response.status, data })
-      
       if (data.success && data.data) {
         setUsers(data.data)
         
@@ -356,7 +354,6 @@ export default function TeamPage() {
           super_admins: superAdmins.length
         }
         
-        console.log('📊 DEBUG stats calculées:', newStats)
         setStats(newStats)
       } else {
         console.error('❌ Réponse API invalide:', data)
