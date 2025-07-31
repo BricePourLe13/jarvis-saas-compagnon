@@ -143,6 +143,7 @@ function SetupContent() {
               setTokenValid(true)
               return
             }
+            }
           } else {
             console.log('❌ [DEBUG] Tokens manquants dans fragment')
           }
