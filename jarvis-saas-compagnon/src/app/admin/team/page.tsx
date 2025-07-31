@@ -40,13 +40,14 @@ import {
   Checkbox
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
 import ManagePermissionsModal from '@/components/admin/ManagePermissionsModal'
 import ActivityLogsModal from '@/components/admin/ActivityLogsModal'
 import BulkOperationsModal from '@/components/admin/BulkOperationsModal'
+import UserSessionsModal from '@/components/admin/UserSessionsModal'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -451,6 +452,7 @@ export default function TeamPage() {
   const { isOpen: isPermissionsOpen, onOpen: onPermissionsOpen, onClose: onPermissionsClose } = useDisclosure()
   const { isOpen: isActivityOpen, onOpen: onActivityOpen, onClose: onActivityClose } = useDisclosure()
   const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure()
+  const { isOpen: isSessionsOpen, onOpen: onSessionsOpen, onClose: onSessionsClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<User[]>([])
   const [selectAllMode, setSelectAllMode] = useState(false)
@@ -753,6 +755,27 @@ export default function TeamPage() {
                       </Button>
                     </HStack>
                   )}
+                  <Button
+                    bg="#059669"
+                    color="white"
+                    borderRadius="12px"
+                    h="50px"
+                    px={6}
+                    fontWeight="600"
+                    leftIcon={<Icon as={Monitor} />}
+                    onClick={onSessionsOpen}
+                    _hover={{
+                      bg: "#047857",
+                      transform: "translateY(-1px)",
+                      boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
+                    }}
+                    _active={{
+                      transform: "translateY(0px)"
+                    }}
+                    transition="all 0.2s"
+                  >
+                    Sessions
+                  </Button>
                   <Button
                     bg="#6366f1"
                     color="white"
@@ -1184,6 +1207,12 @@ export default function TeamPage() {
                 fetchUsers()
                 clearSelection()
               }}
+            />
+
+            {/* Modal des sessions utilisateur */}
+            <UserSessionsModal
+              isOpen={isSessionsOpen}
+              onClose={onSessionsClose}
             />
           </VStack>
         </Container>
