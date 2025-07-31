@@ -40,7 +40,7 @@ import {
   Checkbox
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor, Building2 } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
@@ -48,6 +48,7 @@ import ManagePermissionsModal from '@/components/admin/ManagePermissionsModal'
 import ActivityLogsModal from '@/components/admin/ActivityLogsModal'
 import BulkOperationsModal from '@/components/admin/BulkOperationsModal'
 import UserSessionsModal from '@/components/admin/UserSessionsModal'
+import AccessManagementModal from '@/components/admin/AccessManagementModal'
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -453,6 +454,7 @@ export default function TeamPage() {
   const { isOpen: isActivityOpen, onOpen: onActivityOpen, onClose: onActivityClose } = useDisclosure()
   const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure()
   const { isOpen: isSessionsOpen, onOpen: onSessionsOpen, onClose: onSessionsClose } = useDisclosure()
+  const { isOpen: isAccessOpen, onOpen: onAccessOpen, onClose: onAccessClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<User[]>([])
   const [selectAllMode, setSelectAllMode] = useState(false)
@@ -595,6 +597,11 @@ export default function TeamPage() {
   const handleManagePermissions = (user: User) => {
     setSelectedUser(user)
     onPermissionsOpen()
+  }
+
+  const handleManageAccess = (user: User) => {
+    setSelectedUser(user)
+    onAccessOpen()
   }
 
   const handleCleanupUser = async (email: string) => {
@@ -1081,6 +1088,32 @@ export default function TeamPage() {
                               </Button>
                             )}
 
+                            {/* Bouton Accès - sauf pour super_admin */}
+                            {user.role !== 'super_admin' && (
+                              <Button
+                                size="sm"
+                                bg="#dc2626"
+                                color="white"
+                                borderRadius="8px"
+                                h="32px"
+                                px={3}
+                                fontSize="xs"
+                                fontWeight="500"
+                                onClick={() => handleManageAccess(user)}
+                                leftIcon={<Icon as={Building2} boxSize={3} />}
+                                _hover={{
+                                  bg: "#b91c1c",
+                                  transform: "translateY(-1px)"
+                                }}
+                                _active={{
+                                  transform: "translateY(0px)"
+                                }}
+                                transition="all 0.2s"
+                              >
+                                Accès
+                              </Button>
+                            )}
+
                             {/* Actions selon statut */}
                             {!user.is_active ? (
                               <>
@@ -1213,6 +1246,14 @@ export default function TeamPage() {
             <UserSessionsModal
               isOpen={isSessionsOpen}
               onClose={onSessionsClose}
+            />
+
+            {/* Modal de gestion des accès */}
+            <AccessManagementModal
+              isOpen={isAccessOpen}
+              onClose={onAccessClose}
+              user={selectedUser}
+              onSuccess={fetchUsers}
             />
           </VStack>
         </Container>
