@@ -62,24 +62,26 @@ ORDER BY g.created_at DESC;
 
 -- Vérifier les heartbeats récents
 DO $$
+DECLARE
+  heartbeat_count INTEGER;
+  latest_heartbeat TIMESTAMP WITH TIME ZONE;
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'kiosk_heartbeats') THEN
     RAISE NOTICE 'Table kiosk_heartbeats existe - Analyse...';
     
-    -- Afficher les heartbeats des dernières 24h
-    PERFORM (
-      SELECT 
-        kh.gym_id,
-        kh.kiosk_slug,
-        kh.status,
-        kh.last_heartbeat,
-        EXTRACT(EPOCH FROM (now() - kh.last_heartbeat))::integer as seconds_ago,
-        g.name as gym_name
-      FROM kiosk_heartbeats kh
-      LEFT JOIN gyms g ON kh.gym_id = g.id
-      WHERE kh.last_heartbeat > now() - INTERVAL '24 hours'
-      ORDER BY kh.last_heartbeat DESC
-    );
+    -- Compter les heartbeats des dernières 24h
+    SELECT COUNT(*), MAX(last_heartbeat) 
+    INTO heartbeat_count, latest_heartbeat
+    FROM kiosk_heartbeats kh
+    WHERE kh.last_heartbeat > now() - INTERVAL '24 hours';
+    
+    RAISE NOTICE 'Heartbeats dernières 24h: % | Dernier: %', heartbeat_count, latest_heartbeat;
+    
+    -- Afficher détails si il y en a
+    IF heartbeat_count > 0 THEN
+      RAISE NOTICE 'Utilisez cette requête pour voir les détails:';
+      RAISE NOTICE 'SELECT kh.gym_id, kh.kiosk_slug, kh.status, kh.last_heartbeat, g.name FROM kiosk_heartbeats kh LEFT JOIN gyms g ON kh.gym_id = g.id WHERE kh.last_heartbeat > now() - INTERVAL ''24 hours'' ORDER BY kh.last_heartbeat DESC;';
+    END IF;
   ELSE
     RAISE NOTICE 'Table kiosk_heartbeats n''existe pas encore';
   END IF;
@@ -90,22 +92,25 @@ END $$;
 -- ====================================
 
 DO $$
+DECLARE
+  error_count INTEGER;
+  error_types TEXT;
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'jarvis_errors_log') THEN
     RAISE NOTICE 'Table jarvis_errors_log existe - Analyse...';
     
-    -- Statistiques des erreurs par type
-    PERFORM (
-      SELECT 
-        error_type,
-        COUNT(*) as error_count,
-        COUNT(CASE WHEN resolved THEN 1 END) as resolved_count,
-        MAX(timestamp) as last_error
-      FROM jarvis_errors_log
-      WHERE timestamp > now() - INTERVAL '7 days'
-      GROUP BY error_type
-      ORDER BY error_count DESC
-    );
+    -- Compter les erreurs des 7 derniers jours
+    SELECT COUNT(*) INTO error_count
+    FROM jarvis_errors_log
+    WHERE timestamp > now() - INTERVAL '7 days';
+    
+    RAISE NOTICE 'Erreurs derniers 7 jours: %', error_count;
+    
+    -- Afficher les types d'erreurs si il y en a
+    IF error_count > 0 THEN
+      RAISE NOTICE 'Utilisez cette requête pour voir les détails:';
+      RAISE NOTICE 'SELECT error_type, COUNT(*) as count, MAX(timestamp) as last_error FROM jarvis_errors_log WHERE timestamp > now() - INTERVAL ''7 days'' GROUP BY error_type ORDER BY count DESC;';
+    END IF;
   ELSE
     RAISE NOTICE 'Table jarvis_errors_log n''existe pas encore';
   END IF;
