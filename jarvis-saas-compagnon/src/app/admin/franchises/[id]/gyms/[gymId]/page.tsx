@@ -44,7 +44,7 @@ import {
   AlertDescription
 } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import OpenAIRealtimeMonitoring from '@/components/admin/monitoring/OpenAIRealtimeMonitoring'
+import OpenAIRealtimeMonitoringFixed from '@/components/admin/monitoring/OpenAIRealtimeMonitoringFixed'
 import { 
   ArrowLeft,
   Building2, 
@@ -885,7 +885,7 @@ export default function GymDetailsPage() {
                       </Text>
                     </VStack>
 
-                    <OpenAIRealtimeMonitoring 
+                    <OpenAIRealtimeMonitoringFixed 
                       gymId={gym.id}
                       gymName={gym.name}
                       kioskSlug={gym.kiosk_config?.kiosk_url_slug || null}

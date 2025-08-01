@@ -3,7 +3,7 @@
  * Basé sur les métriques techniques RÉELLES de l'API
  */
 
-import { createBrowserClientWithConfig } from './supabase-admin'
+import { getSupabaseSingleton } from './supabase-singleton'
 
 // ====================================
 // 🏷️ Types basés sur OpenAI Realtime API
@@ -193,7 +193,7 @@ export interface KioskRealtimeStats24h {
 // ====================================
 
 export class OpenAIRealtimeMonitoringService {
-  private supabase = createBrowserClientWithConfig()
+  private supabase = getSupabaseSingleton()
 
   /**
    * 📊 Sessions actives en temps réel
