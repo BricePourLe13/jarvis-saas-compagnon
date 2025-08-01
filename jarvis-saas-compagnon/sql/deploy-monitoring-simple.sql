@@ -125,7 +125,8 @@ CREATE INDEX IF NOT EXISTS idx_openai_cost_gym_id ON openai_realtime_cost_tracki
 -- 3. CRÉER FONCTIONS ESSENTIELLES
 -- ==========================================
 
--- Fonction: Incrémenter tours utilisateur
+-- Fonction: Incrémenter tours utilisateur (supprimer l'ancienne version d'abord)
+DROP FUNCTION IF EXISTS increment_session_user_turns(VARCHAR);
 CREATE OR REPLACE FUNCTION increment_session_user_turns(p_session_id VARCHAR)
 RETURNS INTEGER AS $$
 DECLARE
@@ -141,7 +142,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Fonction: Incrémenter tours IA
+-- Fonction: Incrémenter tours IA (supprimer l'ancienne version d'abord)
+DROP FUNCTION IF EXISTS increment_session_ai_turns(VARCHAR);
 CREATE OR REPLACE FUNCTION increment_session_ai_turns(p_session_id VARCHAR)
 RETURNS INTEGER AS $$
 DECLARE
@@ -157,7 +159,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Fonction: Métriques temps réel gym
+-- Fonction: Métriques temps réel gym (supprimer l'ancienne version d'abord)
+DROP FUNCTION IF EXISTS get_kiosk_realtime_metrics(UUID, INTEGER);
+DROP FUNCTION IF EXISTS get_kiosk_realtime_metrics(UUID);
 CREATE OR REPLACE FUNCTION get_kiosk_realtime_metrics(p_gym_id UUID, p_hours_back INTEGER DEFAULT 24)
 RETURNS TABLE (
     total_sessions INTEGER,
@@ -186,7 +190,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Fonction: Sessions actives d'un gym
+-- Fonction: Sessions actives d'un gym (supprimer l'ancienne version d'abord)
+DROP FUNCTION IF EXISTS get_gym_active_sessions(UUID);
 CREATE OR REPLACE FUNCTION get_gym_active_sessions(p_gym_id UUID)
 RETURNS TABLE (
     session_id VARCHAR,
