@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
 import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
+import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -220,9 +221,45 @@ export function useVoiceChat(config: VoiceChatConfig) {
         audioOutputSeconds: tracking.audioOutputSeconds
       })
 
-             console.log('📊 [TRACKING] ✅ SESSION SAUVEGARDÉE AVEC SUCCÈS!')
-       console.log('📊 [TRACKING] Session ID final:', tracking.sessionId)
-       console.log('📊 [TRACKING] ===== FIN FINALISATION SESSION =====')
+      // 🎯 [INSTRUMENTATION] Finaliser la session OpenAI Realtime
+      try {
+        if (sessionRef.current?.session_id) {
+          const costBreakdown = calculateSessionCost({
+            durationSeconds,
+            textInputTokens: tracking.textInputTokens,
+            textOutputTokens: tracking.textOutputTokens,
+            audioInputSeconds: tracking.audioInputSeconds,
+            audioOutputSeconds: tracking.audioOutputSeconds
+          })
+
+          await openaiRealtimeInstrumentation.endSession(sessionRef.current.session_id, {
+            session_id: sessionRef.current.session_id,
+            total_tokens: tracking.textInputTokens + tracking.textOutputTokens + costBreakdown.audioInputTokens + costBreakdown.audioOutputTokens,
+            input_tokens: tracking.textInputTokens + costBreakdown.audioInputTokens,
+            output_tokens: tracking.textOutputTokens + costBreakdown.audioOutputTokens,
+            total_cost_usd: costBreakdown.totalCost,
+            input_text_tokens_cost_usd: costBreakdown.textInputCost,
+            input_audio_tokens_cost_usd: costBreakdown.audioInputCost,
+            output_text_tokens_cost_usd: costBreakdown.textOutputCost,
+            output_audio_tokens_cost_usd: costBreakdown.audioOutputCost,
+            session_duration_seconds: durationSeconds,
+            total_user_turns: Math.max(1, Math.floor(tracking.transcriptHistory.length / 2)), // Estimation
+            total_ai_turns: Math.max(1, Math.ceil(tracking.transcriptHistory.length / 2)), // Estimation
+            total_interruptions: 0, // TODO: Compter les vraies interruptions
+            final_transcript: tracking.transcriptHistory.join(' | '),
+            end_reason: tracking.errorOccurred ? 'error' : 'user_goodbye'
+          })
+
+          console.log('🎯 [INSTRUMENTATION] Session OpenAI finalisée avec succès')
+        }
+      } catch (instrumentationError) {
+        console.error('❌ [INSTRUMENTATION] Erreur finalisation session:', instrumentationError)
+        // Ne pas faire échouer le tracking normal
+      }
+
+      console.log('📊 [TRACKING] ✅ SESSION SAUVEGARDÉE AVEC SUCCÈS!')
+      console.log('📊 [TRACKING] Session ID final:', tracking.sessionId)
+      console.log('📊 [TRACKING] ===== FIN FINALISATION SESSION =====')
      } catch (error) {
        console.error('📊 [TRACKING] ❌ ERREUR CRITIQUE SAUVEGARDE:', error)
        console.error('📊 [TRACKING] Détails erreur:', {
@@ -475,6 +512,19 @@ export function useVoiceChat(config: VoiceChatConfig) {
         if (sessionTrackingRef.current.sessionId) {
           sessionTrackingRef.current.speechStartTime = Date.now()
         }
+        
+        // 🎯 [INSTRUMENTATION] Enregistrer événement audio
+        try {
+          if (sessionRef.current?.session_id) {
+            openaiRealtimeInstrumentation.recordAudioEvent({
+              session_id: sessionRef.current.session_id,
+              event_type: 'speech_started',
+              event_timestamp: new Date()
+            })
+          }
+        } catch (error) {
+          console.error('❌ [INSTRUMENTATION] Erreur speech_started:', error)
+        }
         break
 
       case 'input_audio_buffer.speech_stopped':
@@ -489,6 +539,19 @@ export function useVoiceChat(config: VoiceChatConfig) {
           const duration = (Date.now() - sessionTrackingRef.current.speechStartTime) / 1000
           sessionTrackingRef.current.audioInputSeconds += duration
           delete sessionTrackingRef.current.speechStartTime
+        }
+        
+        // 🎯 [INSTRUMENTATION] Enregistrer événement audio
+        try {
+          if (sessionRef.current?.session_id) {
+            openaiRealtimeInstrumentation.recordAudioEvent({
+              session_id: sessionRef.current.session_id,
+              event_type: 'speech_stopped',
+              event_timestamp: new Date()
+            })
+          }
+        } catch (error) {
+          console.error('❌ [INSTRUMENTATION] Erreur speech_stopped:', error)
         }
         break
 
@@ -526,6 +589,20 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sessionTrackingRef.current.transcriptHistory.push(finalTranscript)
           // Estimer les tokens de sortie (approximation: 1 token ≈ 4 caractères)
           sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
+        }
+        
+        // 🎯 [INSTRUMENTATION] Enregistrer la transcription IA finale
+        try {
+          if (sessionRef.current?.session_id && finalTranscript) {
+            openaiRealtimeInstrumentation.recordAudioEvent({
+              session_id: sessionRef.current.session_id,
+              event_type: 'response_completed',
+              ai_transcript_final: finalTranscript,
+              event_timestamp: new Date()
+            })
+          }
+        } catch (error) {
+          console.error('❌ [INSTRUMENTATION] Erreur response_completed:', error)
         }
         
         transcriptBufferRef.current = ''

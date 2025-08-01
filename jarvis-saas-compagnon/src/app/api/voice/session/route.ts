@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initializeConversationMemory, generateContextualPrompt } from '@/lib/conversation-memory'
+import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
+import { getSupabaseSingleton } from '@/lib/supabase-singleton'
 
 // 🎯 Utilitaire pour générer un ID de session unique
 function generateSessionId(): string {
@@ -192,6 +194,45 @@ Reste COURT et drôle !`
     const sessionData = await sessionResponse.json()
     
     console.log(`✅ Session JARVIS optimisée créée pour ${memberData?.first_name || 'visiteur'} - ${gymSlug}`)
+    
+    // 🎯 INSTRUMENTATION: Enregistrer la session OpenAI Realtime dans notre base
+    try {
+      // Récupérer gym_id depuis le slug
+      const supabase = getSupabaseSingleton()
+      const { data: gym } = await supabase
+        .from('gyms')
+        .select('id, name')
+        .eq('kiosk_config->>kiosk_url_slug', gymSlug)
+        .single()
+
+      if (gym) {
+        await openaiRealtimeInstrumentation.startSession({
+          session_id: sessionData.id || sessionId,
+          gym_id: gym.id,
+          kiosk_slug: gymSlug,
+          ai_model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+          voice_model: 'verse',
+          connection_type: 'webrtc', // Par défaut, sera mis à jour par le frontend
+          turn_detection_type: 'server_vad',
+          member_badge_id: memberId,
+          member_name: memberData?.first_name
+        })
+
+        // Notification temps réel
+        await openaiRealtimeInstrumentation.notifySessionStart(
+          sessionData.id || sessionId,
+          memberData?.first_name,
+          gym.name
+        )
+
+        console.log('🎯 [INSTRUMENTATION] Session enregistrée:', sessionData.id || sessionId)
+      } else {
+        console.warn('⚠️ [INSTRUMENTATION] Gym non trouvé pour slug:', gymSlug)
+      }
+    } catch (instrumentationError) {
+      console.error('❌ [INSTRUMENTATION] Erreur enregistrement session:', instrumentationError)
+      // Ne pas faire échouer la création de session pour un problème d'instrumentation
+    }
     
     return NextResponse.json({
       success: true,
