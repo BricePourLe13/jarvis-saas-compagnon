@@ -8,6 +8,8 @@ import {
   HStack,
   Text,
   Button,
+  IconButton,
+  Tooltip,
   Table,
   Thead,
   Tbody,
@@ -40,7 +42,7 @@ import {
   Checkbox
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor, Building2, History } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor, Building2, History, Bell } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
@@ -603,6 +605,11 @@ export default function TeamPage() {
     onNotifOpen()
   }
 
+  const handleUserSessions = (user: User) => {
+    setSelectedUser(user)
+    onSessionsOpen()
+  }
+
   const handleCleanupUser = async (email: string) => {
     try {
       const response = await fetch('/api/admin/users/cleanup', {
@@ -1037,196 +1044,213 @@ export default function TeamPage() {
                         </Td>
                         <Td>
                           <HStack spacing={2}>
-                            {/* Bouton Éditer - toujours visible */}
-                            <Button
-                              size="sm"
-                              bg="#374151"
-                              color="white"
-                              borderRadius="8px"
-                              h="32px"
-                              px={3}
-                              fontSize="xs"
-                              fontWeight="500"
-                              onClick={() => handleEditUser(user)}
-                              leftIcon={<Icon as={Edit} boxSize={3} />}
-                              _hover={{
-                                bg: "#1f2937",
-                                transform: "translateY(-1px)"
-                              }}
-                              _active={{
-                                transform: "translateY(0px)"
-                              }}
-                              transition="all 0.2s"
-                            >
-                              Éditer
-                            </Button>
-
-                            {/* Bouton Permissions - sauf pour super_admin */}
-                            {user.role !== 'super_admin' && (
-                              <Button
+                            {/* Icône Éditer - toujours visible */}
+                            <Tooltip label="Éditer l'utilisateur" hasArrow>
+                              <IconButton
+                                aria-label="Éditer"
+                                icon={<Icon as={Edit} boxSize={4} />}
                                 size="sm"
-                                bg="#6366f1"
+                                bg="#374151"
                                 color="white"
                                 borderRadius="8px"
                                 h="32px"
-                                px={3}
-                                fontSize="xs"
-                                fontWeight="500"
-                                onClick={() => handleManagePermissions(user)}
-                                leftIcon={<Icon as={Shield} boxSize={3} />}
+                                w="32px"
+                                onClick={() => handleEditUser(user)}
                                 _hover={{
-                                  bg: "#4f46e5",
+                                  bg: "#1f2937",
                                   transform: "translateY(-1px)"
                                 }}
                                 _active={{
                                   transform: "translateY(0px)"
                                 }}
                                 transition="all 0.2s"
-                              >
-                                Permissions
-                              </Button>
-                            )}
+                              />
+                            </Tooltip>
 
-                            {/* Bouton Accès - sauf pour super_admin */}
+                            {/* Icône Permissions - sauf pour super_admin */}
                             {user.role !== 'super_admin' && (
-                              <Button
-                                size="sm"
-                                bg="#dc2626"
-                                color="white"
-                                borderRadius="8px"
-                                h="32px"
-                                px={3}
-                                fontSize="xs"
-                                fontWeight="500"
-                                onClick={() => handleManageAccess(user)}
-                                leftIcon={<Icon as={Building2} boxSize={3} />}
-                                _hover={{
-                                  bg: "#b91c1c",
-                                  transform: "translateY(-1px)"
-                                }}
-                                _active={{
-                                  transform: "translateY(0px)"
-                                }}
-                                transition="all 0.2s"
-                              >
-                                Accès
-                              </Button>
-                            )}
-
-                            {/* Bouton Audit - toujours visible */}
-                            <Button
-                              size="sm"
-                              bg="#7c3aed"
-                              color="white"
-                              borderRadius="8px"
-                              h="32px"
-                              px={3}
-                              fontSize="xs"
-                              fontWeight="500"
-                              onClick={() => handleViewAudit(user)}
-                              leftIcon={<Icon as={History} boxSize={3} />}
-                              _hover={{
-                                bg: "#6d28d9",
-                                transform: "translateY(-1px)"
-                              }}
-                              _active={{
-                                transform: "translateY(0px)"
-                              }}
-                              transition="all 0.2s"
-                            >
-                              Audit
-                            </Button>
-
-                            {/* Bouton Notifications - sauf pour super_admin */}
-                            {user.role !== 'super_admin' && (
-                              <Button
-                                size="sm"
-                                bg="#f59e0b"
-                                color="white"
-                                borderRadius="8px"
-                                h="32px"
-                                px={3}
-                                fontSize="xs"
-                                fontWeight="500"
-                                onClick={() => handleNotifications(user)}
-                                leftIcon={<Icon as={Bell} boxSize={3} />}
-                                _hover={{ bg: "#d97706", transform: "translateY(-1px)" }}
-                                _active={{ transform: "translateY(0px)" }}
-                                transition="all 0.2s"
-                              >
-                                Notifications
-                              </Button>
-                            )}
-
-                            {/* Actions selon statut */}
-                            {!user.is_active ? (
-                              <>
-                                <Button
+                              <Tooltip label="Gérer les permissions" hasArrow>
+                                <IconButton
+                                  aria-label="Permissions"
+                                  icon={<Icon as={Shield} boxSize={4} />}
                                   size="sm"
-                                  bg="#059669"
+                                  bg="#6366f1"
                                   color="white"
                                   borderRadius="8px"
                                   h="32px"
-                                  px={3}
-                                  fontSize="xs"
-                                  fontWeight="500"
-                                  onClick={() => handleResendInvitation(user.email)}
-                                  leftIcon={<Icon as={Mail} boxSize={3} />}
+                                  w="32px"
+                                  onClick={() => handleManagePermissions(user)}
                                   _hover={{
-                                    bg: "#047857",
+                                    bg: "#4f46e5",
                                     transform: "translateY(-1px)"
                                   }}
                                   _active={{
                                     transform: "translateY(0px)"
                                   }}
                                   transition="all 0.2s"
-                                >
-                                  Renvoyer
-                                </Button>
-                                <Button
+                                />
+                              </Tooltip>
+                            )}
+
+                            {/* Icône Sessions - uniquement pour users actifs */}
+                            {user.is_active && (
+                              <Tooltip label="Voir les sessions actives" hasArrow>
+                                <IconButton
+                                  aria-label="Sessions"
+                                  icon={<Icon as={Monitor} boxSize={4} />}
                                   size="sm"
-                                  bg="#f3f4f6"
-                                  color="#6b7280"
+                                  bg="#3b82f6"
+                                  color="white"
                                   borderRadius="8px"
                                   h="32px"
-                                  px={3}
-                                  fontSize="xs"
-                                  fontWeight="500"
-                                  onClick={() => handleCleanupUser(user.email)}
-                                  title="Supprimer cet utilisateur pour renvoyer une nouvelle invitation"
+                                  w="32px"
+                                  onClick={() => handleUserSessions(user)}
                                   _hover={{
-                                    bg: "#e5e7eb",
-                                    color: "#374151"
+                                    bg: "#2563eb",
+                                    transform: "translateY(-1px)"
+                                  }}
+                                  _active={{
+                                    transform: "translateY(0px)"
                                   }}
                                   transition="all 0.2s"
-                                >
-                                  🗑️ Nettoyer
-                                </Button>
-                              </>
-                            ) : (
-                              /* Bouton Supprimer - pour utilisateurs actifs */
-                              <Button
+                                />
+                              </Tooltip>
+                            )}
+
+                            {/* Icône Accès - sauf pour super_admin */}
+                            {user.role !== 'super_admin' && (
+                              <Tooltip label="Gérer les accès franchises/salles" hasArrow>
+                                <IconButton
+                                  aria-label="Accès"
+                                  icon={<Icon as={Building2} boxSize={4} />}
+                                  size="sm"
+                                  bg="#dc2626"
+                                  color="white"
+                                  borderRadius="8px"
+                                  h="32px"
+                                  w="32px"
+                                  onClick={() => handleManageAccess(user)}
+                                  _hover={{
+                                    bg: "#b91c1c",
+                                    transform: "translateY(-1px)"
+                                  }}
+                                  _active={{
+                                    transform: "translateY(0px)"
+                                  }}
+                                  transition="all 0.2s"
+                                />
+                              </Tooltip>
+                            )}
+
+                            {/* Icône Audit - toujours visible */}
+                            <Tooltip label="Voir l'historique des modifications" hasArrow>
+                              <IconButton
+                                aria-label="Audit"
+                                icon={<Icon as={History} boxSize={4} />}
                                 size="sm"
-                                bg="#dc2626"
+                                bg="#7c3aed"
                                 color="white"
                                 borderRadius="8px"
                                 h="32px"
-                                px={3}
-                                fontSize="xs"
-                                fontWeight="500"
-                                onClick={() => handleDeleteUser(user)}
-                                leftIcon={<Icon as={Trash2} boxSize={3} />}
+                                w="32px"
+                                onClick={() => handleViewAudit(user)}
                                 _hover={{
-                                  bg: "#b91c1c",
+                                  bg: "#6d28d9",
                                   transform: "translateY(-1px)"
                                 }}
                                 _active={{
                                   transform: "translateY(0px)"
                                 }}
                                 transition="all 0.2s"
-                              >
-                                Supprimer
-                              </Button>
+                              />
+                            </Tooltip>
+
+                            {/* Icône Notifications - sauf pour super_admin */}
+                            {user.role !== 'super_admin' && (
+                              <Tooltip label="Gérer les notifications" hasArrow>
+                                <IconButton
+                                  aria-label="Notifications"
+                                  icon={<Icon as={Bell} boxSize={4} />}
+                                  size="sm"
+                                  bg="#f59e0b"
+                                  color="white"
+                                  borderRadius="8px"
+                                  h="32px"
+                                  w="32px"
+                                  onClick={() => handleNotifications(user)}
+                                  _hover={{ bg: "#d97706", transform: "translateY(-1px)" }}
+                                  _active={{ transform: "translateY(0px)" }}
+                                  transition="all 0.2s"
+                                />
+                              </Tooltip>
+                            )}
+
+                            {/* Actions selon statut */}
+                            {!user.is_active ? (
+                              <>
+                                <Tooltip label="Renvoyer l'invitation" hasArrow>
+                                  <IconButton
+                                    aria-label="Renvoyer"
+                                    icon={<Icon as={Mail} boxSize={4} />}
+                                    size="sm"
+                                    bg="#059669"
+                                    color="white"
+                                    borderRadius="8px"
+                                    h="32px"
+                                    w="32px"
+                                    onClick={() => handleResendInvitation(user.email)}
+                                    _hover={{
+                                      bg: "#047857",
+                                      transform: "translateY(-1px)"
+                                    }}
+                                    _active={{
+                                      transform: "translateY(0px)"
+                                    }}
+                                    transition="all 0.2s"
+                                  />
+                                </Tooltip>
+                                <Tooltip label="Supprimer pour renvoyer une nouvelle invitation" hasArrow>
+                                  <IconButton
+                                    aria-label="Nettoyer"
+                                    icon={<Icon as={Trash2} boxSize={4} />}
+                                    size="sm"
+                                    bg="#f3f4f6"
+                                    color="#6b7280"
+                                    borderRadius="8px"
+                                    h="32px"
+                                    w="32px"
+                                    onClick={() => handleCleanupUser(user.email)}
+                                    _hover={{
+                                      bg: "#e5e7eb",
+                                      color: "#374151"
+                                    }}
+                                    transition="all 0.2s"
+                                  />
+                                </Tooltip>
+                              </>
+                            ) : (
+                              /* Icône Supprimer - pour utilisateurs actifs */
+                              <Tooltip label="Supprimer l'utilisateur" hasArrow>
+                                <IconButton
+                                  aria-label="Supprimer"
+                                  icon={<Icon as={Trash2} boxSize={4} />}
+                                  size="sm"
+                                  bg="#dc2626"
+                                  color="white"
+                                  borderRadius="8px"
+                                  h="32px"
+                                  w="32px"
+                                  onClick={() => handleDeleteUser(user)}
+                                  _hover={{
+                                    bg: "#b91c1c",
+                                    transform: "translateY(-1px)"
+                                  }}
+                                  _active={{
+                                    transform: "translateY(0px)"
+                                  }}
+                                  transition="all 0.2s"
+                                />
+                              </Tooltip>
                             )}
                           </HStack>
                         </Td>
