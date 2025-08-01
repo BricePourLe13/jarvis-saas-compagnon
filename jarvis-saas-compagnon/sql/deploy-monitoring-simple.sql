@@ -1,8 +1,8 @@
--- 🚀 DÉPLOIEMENT COMPLET MONITORING OPENAI REALTIME
--- Script pour créer TOUTES les tables et fonctions nécessaires
+-- 🚀 DÉPLOIEMENT MONITORING OPENAI - VERSION SIMPLE SANS RLS
+-- Script pour créer UNIQUEMENT les tables et fonctions essentielles
 
 -- ==========================================
--- 1. VÉRIFIER ET CRÉER TABLES PRINCIPAL
+-- 1. CRÉER TABLES PRINCIPALES
 -- ==========================================
 
 -- Table sessions OpenAI Realtime
@@ -217,7 +217,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ==========================================
--- 4. CRÉER VUES OPTIMISÉES
+-- 4. CRÉER VUES SIMPLES
 -- ==========================================
 
 -- Vue: Sessions actives globales
@@ -256,63 +256,12 @@ WHERE s.session_started_at >= NOW() - INTERVAL '24 hours'
 GROUP BY s.gym_id, g.name, s.kiosk_slug;
 
 -- ==========================================
--- 5. RLS (ROW LEVEL SECURITY)
--- ==========================================
-
--- Activer RLS sur toutes les tables
-ALTER TABLE openai_realtime_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE openai_realtime_audio_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE openai_realtime_webrtc_stats ENABLE ROW LEVEL SECURITY;
-ALTER TABLE openai_realtime_cost_tracking ENABLE ROW LEVEL SECURITY;
-
--- Policies pour accès utilisateurs authentifiés (compatible avec votre système existant)
-DROP POLICY IF EXISTS "OpenAI sessions access" ON openai_realtime_sessions;
-CREATE POLICY "OpenAI sessions access" ON openai_realtime_sessions
-FOR ALL TO authenticated USING (
-    EXISTS (
-        SELECT 1 FROM users 
-        WHERE users.id = auth.uid() 
-        AND (users.role = 'super_admin' OR users.role = 'admin')
-    )
-);
-
-DROP POLICY IF EXISTS "OpenAI audio access" ON openai_realtime_audio_events;
-CREATE POLICY "OpenAI audio access" ON openai_realtime_audio_events
-FOR ALL TO authenticated USING (
-    EXISTS (
-        SELECT 1 FROM users 
-        WHERE users.id = auth.uid() 
-        AND (users.role = 'super_admin' OR users.role = 'admin')
-    )
-);
-
-DROP POLICY IF EXISTS "OpenAI webrtc access" ON openai_realtime_webrtc_stats;
-CREATE POLICY "OpenAI webrtc access" ON openai_realtime_webrtc_stats
-FOR ALL TO authenticated USING (
-    EXISTS (
-        SELECT 1 FROM users 
-        WHERE users.id = auth.uid() 
-        AND (users.role = 'super_admin' OR users.role = 'admin')
-    )
-);
-
-DROP POLICY IF EXISTS "OpenAI costs access" ON openai_realtime_cost_tracking;
-CREATE POLICY "OpenAI costs access" ON openai_realtime_cost_tracking
-FOR ALL TO authenticated USING (
-    EXISTS (
-        SELECT 1 FROM users 
-        WHERE users.id = auth.uid() 
-        AND (users.role = 'super_admin' OR users.role = 'admin')
-    )
-);
-
--- ==========================================
 -- SUCCÈS
 -- ==========================================
 
 SELECT 
-    '🎉 DÉPLOIEMENT MONITORING COMPLET RÉUSSI' as status,
+    '🎉 DÉPLOIEMENT MONITORING SIMPLE RÉUSSI' as status,
     'Tables créées: openai_realtime_sessions, openai_realtime_audio_events, openai_realtime_webrtc_stats, openai_realtime_cost_tracking' as tables,
     'Fonctions créées: get_kiosk_realtime_metrics, get_gym_active_sessions, increment_session_*_turns' as functions,
     'Vues créées: v_openai_realtime_active_sessions, v_openai_realtime_kiosk_stats_24h' as views,
-    'RLS activé avec policies pour super_admin' as security;
+    'RLS désactivé pour éviter conflits - accès libre aux tables' as security;
