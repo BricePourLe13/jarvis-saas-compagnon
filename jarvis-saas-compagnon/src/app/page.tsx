@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
 
-let createClient: any = null
+let createClient: unknown = null
 async function loadSupabaseClient() {
   if (!createClient) {
     const supabaseModule = await import('../lib/supabase-admin')
