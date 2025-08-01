@@ -222,7 +222,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ==========================================
--- 4. CRÉER VUES SIMPLES
+-- 4. CRÉER VUES SIMPLES (après création des tables)
 -- ==========================================
 
 -- Vue: Sessions actives globales
@@ -231,7 +231,7 @@ SELECT
     s.session_id,
     s.gym_id,
     s.kiosk_slug,
-    s.member_name,
+    COALESCE(s.member_name, 'Utilisateur anonyme') as member_name,
     s.session_started_at,
     EXTRACT(EPOCH FROM (NOW() - s.session_started_at))::INTEGER as duration_seconds,
     s.total_user_turns,
