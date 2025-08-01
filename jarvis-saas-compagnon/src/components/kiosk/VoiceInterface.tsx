@@ -74,48 +74,71 @@ export default function VoiceInterface({
     }
   }, [isActive, isConnected, disconnect])
 
-  // 👋 DÉTECTION "AU REVOIR" utilisateur pour fermeture forcée - VERSION AMÉLIORÉE
+  // 👋 DÉTECTION "AU REVOIR" utilisateur - VERSION ULTRA PRÉCISE
   const lastGoodbyeRef = useRef<string>('')
   const goodbyeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const jarvisSpeakingRef = useRef(false)
+  
+  // Tracker quand JARVIS parle pour éviter faux positifs
+  useEffect(() => {
+    jarvisSpeakingRef.current = status === 'speaking'
+  }, [status])
   
   useEffect(() => {
-    if (currentTranscript && isConnected) {
+    if (currentTranscript && isConnected && !jarvisSpeakingRef.current) {
       const transcript = currentTranscript.toLowerCase().trim()
       
       // Éviter les redéclenchements sur le même transcript
       if (transcript === lastGoodbyeRef.current) return
       
-      // ✅ DÉTECTION PLUS PRÉCISE - Uniquement phrases courtes qui COMMENCENT par "au revoir"
-      const isGoodbyeIntent = (
+      // ✅ DÉTECTION ULTRA STRICTE - UNIQUEMENT utilisateur qui dit exactement "au revoir"
+      const isExactGoodbye = (
         transcript === 'au revoir' || 
         transcript === 'au revoir.' ||
-        transcript === 'au revoir merci' ||
+        transcript === 'au revoir !' ||
         transcript === 'au revoir jarvis' ||
-        (transcript.startsWith('au revoir') && transcript.length <= 25) // Max 25 caractères
+        transcript === 'au revoir jarvis.' ||
+        transcript === 'au revoir merci'
       )
       
-      // ✅ ÉVITER les faux positifs de JARVIS qui dit "au revoir"
-      const isJarvisResponse = (
-        transcript.includes('je vous souhaite') ||
-        transcript.includes('bonne journée') ||
-        transcript.includes('à bientôt') ||
-        transcript.length > 50 // Réponses longues = probablement JARVIS
+      // ❌ EXCLUSIONS STRICTES - Ne JAMAIS fermer si:
+      const shouldIgnore = (
+        jarvisSpeakingRef.current ||           // JARVIS parle actuellement
+        status === 'speaking' ||              // Status speaking actif
+        transcript.length > 30 ||             // Phrase trop longue
+        transcript.includes('vous') ||         // Contient "vous" (politesse JARVIS)
+        transcript.includes('bonne') ||        // "Bonne journée"
+        transcript.includes('à bientôt') ||    // "À bientôt"
+        transcript.includes('souhaite') ||     // "Je vous souhaite"
+        transcript.includes('journée') ||      // "Bonne journée"
+        transcript.includes('sport') ||        // "Bon sport"
+        transcript.includes('séance') ||       // "Bonne séance"
+        transcript.includes('entraînement')    // "Bon entraînement"
       )
       
-      if (isGoodbyeIntent && !isJarvisResponse) {
+      if (isExactGoodbye && !shouldIgnore) {
         lastGoodbyeRef.current = transcript
-        console.log('👋 [USER GOODBYE] Détection "Au revoir" utilisateur:', transcript)
+        console.log('👋 [USER GOODBYE] Détection stricte "Au revoir":', transcript)
+        console.log('👋 [USER GOODBYE] Status actuel:', status)
+        console.log('👋 [USER GOODBYE] JARVIS speaking:', jarvisSpeakingRef.current)
         
-        // ✅ DÉLAI DE GRÂCE de 2 secondes pour éviter fermetures accidentelles
+        // ✅ DÉLAI DE GRÂCE de 3 secondes pour éviter fermetures accidentelles
         if (goodbyeTimeoutRef.current) {
           clearTimeout(goodbyeTimeoutRef.current)
         }
         
         goodbyeTimeoutRef.current = setTimeout(() => {
-          console.log('👋 [USER GOODBYE] Fermeture session après délai de grâce')
-          disconnect()
-          onDeactivate()
-        }, 2000)
+          // Double vérification avant fermeture
+          if (!jarvisSpeakingRef.current && status !== 'speaking') {
+            console.log('👋 [USER GOODBYE] Fermeture session confirmée')
+            disconnect()
+            onDeactivate()
+          } else {
+            console.log('👋 [USER GOODBYE] Fermeture annulée - JARVIS parle encore')
+          }
+        }, 3000)
+      } else if (isExactGoodbye && shouldIgnore) {
+        console.log('👋 [USER GOODBYE] Détection ignorée (JARVIS response):', transcript)
       }
     }
   }, [currentTranscript, isConnected, disconnect, onDeactivate])
