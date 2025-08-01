@@ -1,5 +1,5 @@
 -- ========================================================
--- FONCTIONS SQL POUR L'INSTRUMENTATION OPENAI REALTIME
+-- FONCTIONS SQL POUR L'INSTRUMENTATION OPENAI REALTIME - VERSION CORRIGÉE
 -- ========================================================
 
 -- Fonction pour incrémenter les tours utilisateur
@@ -208,8 +208,8 @@ LEFT JOIN openai_realtime_sessions s ON g.id = s.gym_id
 GROUP BY g.id, g.name, f.name;
 
 -- Index pour les performances
-CREATE INDEX IF NOT EXISTS idx_openai_sessions_gym_started ON openai_realtime_sessions(gym_id, started_at);
-CREATE INDEX IF NOT EXISTS idx_openai_sessions_active ON openai_realtime_sessions(gym_id) WHERE ended_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_openai_sessions_gym_started ON openai_realtime_sessions(gym_id, session_started_at);
+CREATE INDEX IF NOT EXISTS idx_openai_sessions_active ON openai_realtime_sessions(gym_id) WHERE session_ended_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_openai_audio_events_session_time ON openai_realtime_audio_events(session_id, event_timestamp);
 CREATE INDEX IF NOT EXISTS idx_openai_webrtc_session_time ON openai_realtime_webrtc_stats(session_id, timestamp);
 
@@ -222,4 +222,4 @@ COMMENT ON FUNCTION get_kiosk_realtime_metrics IS 'Calcule les métriques temps 
 COMMENT ON FUNCTION detect_session_anomalies IS 'Détecte les anomalies dans les sessions d''un gym';
 COMMENT ON VIEW v_realtime_dashboard IS 'Vue consolidée pour le dashboard temps réel';
 
-SELECT '✅ Fonctions d''instrumentation OpenAI Realtime créées avec succès!' as status;
+SELECT '✅ Fonctions d''instrumentation OpenAI Realtime CORRIGÉES créées avec succès!' as status;

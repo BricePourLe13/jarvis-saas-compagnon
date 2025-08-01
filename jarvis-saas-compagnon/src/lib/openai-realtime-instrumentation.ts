@@ -104,12 +104,12 @@ class OpenAIRealtimeInstrumentation {
           connection_type: sessionData.connection_type,
           turn_detection_type: sessionData.turn_detection_type,
           member_badge_id: sessionData.member_badge_id,
-          started_at: new Date().toISOString(),
+          session_started_at: new Date().toISOString(),
           // Initialisation avec des valeurs par défaut
           total_user_turns: 0,
           total_ai_turns: 0,
           total_interruptions: 0,
-          metadata: {
+          session_metadata: {
             member_name: sessionData.member_name,
             started_by: 'kiosk_session',
             instrumentation_version: '1.0'
@@ -140,7 +140,7 @@ class OpenAIRealtimeInstrumentation {
       const { error } = await this.supabase
         .from('openai_realtime_sessions')
         .update({
-          ended_at: new Date().toISOString(),
+          session_ended_at: new Date().toISOString(),
           total_tokens: endData.total_tokens,
           input_tokens: endData.input_tokens,
           output_tokens: endData.output_tokens,
@@ -155,7 +155,7 @@ class OpenAIRealtimeInstrumentation {
           total_interruptions: endData.total_interruptions,
           final_transcript: endData.final_transcript,
           updated_at: new Date().toISOString(),
-          metadata: {
+          session_metadata: {
             end_reason: endData.end_reason,
             ended_by: 'kiosk_session',
             session_completed: true
@@ -185,19 +185,28 @@ class OpenAIRealtimeInstrumentation {
    */
   async recordAudioEvent(eventData: OpenAIRealtimeAudioEvent): Promise<boolean> {
     try {
+      // D'abord récupérer l'UUID de la session et le gym_id
+      const { data: sessionData } = await this.supabase
+        .from('openai_realtime_sessions')
+        .select('id, gym_id')
+        .eq('session_id', eventData.session_id)
+        .single()
+
+      if (!sessionData) {
+        console.warn('❌ [INSTRUMENTATION] Session non trouvée pour audio event:', eventData.session_id)
+        return false
+      }
+
       const { error } = await this.supabase
         .from('openai_realtime_audio_events')
         .insert({
-          session_id: eventData.session_id,
+          session_id: sessionData.id, // UUID de la session
+          gym_id: sessionData.gym_id,
           event_type: eventData.event_type,
           event_timestamp: eventData.event_timestamp.toISOString(),
-          payload: {
-            user_transcript: eventData.user_transcript,
-            ai_transcript_delta: eventData.ai_transcript_delta,
-            ai_transcript_final: eventData.ai_transcript_final,
-            function_name: eventData.function_name,
-            function_args: eventData.function_args
-          }
+          user_transcript: eventData.user_transcript,
+          ai_transcript_final: eventData.ai_transcript_final,
+          ai_transcript_delta: eventData.ai_transcript_delta
         })
 
       if (error) {
@@ -324,10 +333,10 @@ class OpenAIRealtimeInstrumentation {
       console.log('💥 [INSTRUMENTATION] Erreur session:', { sessionId, errorType, errorMessage })
 
       // Marquer la session comme ayant eu une erreur
-      await this.supabase
+              await this.supabase
         .from('openai_realtime_sessions')
         .update({
-          metadata: {
+          session_metadata: {
             has_error: true,
             error_type: errorType,
             error_message: errorMessage,
