@@ -214,11 +214,38 @@ export default function AdminPage() {
   return (
     <Box 
       minH="100vh" 
-      bg="white"
+      bg="linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #eeeeee 100%)"
       fontFamily="system-ui, -apple-system, sans-serif"
       position="relative"
       p={8}
+      overflow="hidden"
     >
+      {/* Formes fluides arrière-plan comme page login */}
+      <Box
+        position="absolute"
+        top="15%"
+        right="10%"
+        width="40%"
+        height="50%"
+        background="linear-gradient(225deg, rgba(107, 114, 128, 0.3) 0%, rgba(156, 163, 175, 0.2) 60%, rgba(209, 213, 219, 0.1) 100%)"
+        borderRadius="40% 50% 30% 60%"
+        filter="blur(2px)"
+        transform="rotate(-10deg)"
+        zIndex={0}
+      />
+      <Box
+        position="absolute"
+        bottom="20%"
+        left="15%"
+        width="45%"
+        height="55%"
+        background="linear-gradient(45deg, rgba(229, 231, 235, 0.4) 0%, rgba(243, 244, 246, 0.2) 100%)"
+        borderRadius="60% 40% 50% 30%"
+        filter="blur(1.5px)"
+        transform="rotate(8deg)"
+        zIndex={0}
+      />
+      
       {/* Pattern de points subtil en arrière-plan */}
       <Box
         position="absolute"
@@ -230,6 +257,7 @@ export default function AdminPage() {
         bgImage="radial-gradient(circle, black 1px, transparent 1px)"
         bgSize="24px 24px"
         pointerEvents="none"
+        zIndex={1}
       />
 
       <MotionVStack
@@ -284,39 +312,35 @@ export default function AdminPage() {
                 onClick={stat.action}
               >
                 <Box
-                  bg="white"
+                  bg="rgba(255, 255, 255, 0.95)"
                   border="1px solid"
-                  borderColor={stat.highlight ? "gray.400" : "gray.200"}
-                  borderRadius="2px"
+                  borderColor="rgba(255, 255, 255, 0.2)"
+                  borderRadius="20px"
                   p={6}
-                  shadow="0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)"
+                  backdropFilter="blur(20px)"
+                  shadow={stat.highlight ? "0 20px 40px rgba(0, 0, 0, 0.15)" : "0 8px 32px rgba(0, 0, 0, 0.12)"}
                   position="relative"
+                  zIndex={2}
                   _hover={{
-                    borderColor: "gray.300",
-                    transition: "all 0.2s ease"
-                  }}
-                  _before={{
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '1px',
-                    bg: 'linear-gradient(90deg, transparent, gray.100, transparent)',
+                    bg: "rgba(255, 255, 255, 0.98)",
+                    shadow: "0 20px 40px rgba(0, 0, 0, 0.15)",
+                    transform: "translateY(-2px)",
+                    transition: "all 0.3s ease"
                   }}
                 >
                   <VStack spacing={4} align="start">
                     <HStack justify="space-between" w="full">
                       <Box
-                        w={10}
-                        h={10}
-                        bg="black"
-                        borderRadius="2px"
+                        w={12}
+                        h={12}
+                        bg="linear-gradient(135deg, #1a1a1a 0%, #404040 100%)"
+                        borderRadius="16px"
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
+                        shadow="0 4px 12px rgba(0, 0, 0, 0.15)"
                       >
-                        <Icon as={stat.icon} color="white" boxSize={5} />
+                        <Icon as={stat.icon} color="white" boxSize={6} />
                       </Box>
                       {stat.highlight && (
                         <Box
@@ -381,32 +405,38 @@ export default function AdminPage() {
                   }}
                 >
                   <Box
-                    bg="white"
+                    bg="rgba(255, 255, 255, 0.95)"
                     border="1px solid"
-                    borderColor="gray.200"
-                    borderRadius="2px"
+                    borderColor="rgba(255, 255, 255, 0.2)"
+                    borderRadius="16px"
                     p={6}
-                    shadow="0 1px 3px rgba(0, 0, 0, 0.06)"
+                    backdropFilter="blur(20px)"
+                    shadow="0 8px 32px rgba(0, 0, 0, 0.12)"
                     cursor={action.disabled ? "not-allowed" : "pointer"}
                     opacity={action.disabled ? 0.6 : 1}
                     onClick={action.disabled ? undefined : action.action}
+                    position="relative"
+                    zIndex={2}
                     _hover={action.disabled ? {} : {
-                      borderColor: "gray.300",
-                      transition: "all 0.2s ease"
+                      bg: "rgba(255, 255, 255, 0.98)",
+                      shadow: "0 12px 24px rgba(0, 0, 0, 0.15)",
+                      transform: "translateY(-1px)",
+                      transition: "all 0.3s ease"
                     }}
                   >
                     <HStack spacing={4} align="start">
                       <Box
-                        w={10}
-                        h={10}
-                        bg={action.disabled ? "gray.300" : "black"}
-                        borderRadius="2px"
+                        w={12}
+                        h={12}
+                        bg={action.disabled ? "gray.300" : "linear-gradient(135deg, #1a1a1a 0%, #404040 100%)"}
+                        borderRadius="14px"
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
                         flexShrink={0}
+                        shadow={action.disabled ? "none" : "0 4px 12px rgba(0, 0, 0, 0.15)"}
                       >
-                        <Icon as={action.icon} color="white" boxSize={5} />
+                        <Icon as={action.icon} color="white" boxSize={6} />
                       </Box>
                       
                       <VStack spacing={1} align="start" flex="1">

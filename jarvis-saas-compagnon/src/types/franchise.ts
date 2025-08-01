@@ -126,7 +126,7 @@ export interface Gym {
   postal_code: string
   
   // JARVIS Equipment & Kiosk Linking
-  kiosk_config: unknown // JSON field
+  kiosk_config: KioskConfig | null // JSON field
   
   // Management
   manager_id?: string

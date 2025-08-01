@@ -63,7 +63,7 @@ import type { User, UserRole } from '@/types/franchise'
 interface InviteForm {
   email: string
   full_name: string
-  role: 'super_admin' | 'franchise_owner'
+  role: UserRole
   franchise_access: string[]
 }
 
@@ -716,8 +716,38 @@ export default function TeamPage() {
 
   return (
     <AuthGuard requiredRole="super_admin">
-      <Box minH="100vh" bg="#fafafa">
-        <Container maxW="7xl" py={12}>
+      <Box 
+        minH="100vh" 
+        bg="linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #eeeeee 100%)"
+        position="relative"
+        overflow="hidden"
+      >
+        {/* Formes fluides arrière-plan */}
+        <Box
+          position="absolute"
+          top="10%"
+          right="5%"
+          width="35%"
+          height="45%"
+          background="linear-gradient(225deg, rgba(107, 114, 128, 0.25) 0%, rgba(156, 163, 175, 0.15) 60%, rgba(209, 213, 219, 0.08) 100%)"
+          borderRadius="40% 50% 30% 60%"
+          filter="blur(2px)"
+          transform="rotate(-5deg)"
+          zIndex={0}
+        />
+        <Box
+          position="absolute"
+          bottom="15%"
+          left="10%"
+          width="40%"
+          height="50%"
+          background="linear-gradient(45deg, rgba(229, 231, 235, 0.3) 0%, rgba(243, 244, 246, 0.15) 100%)"
+          borderRadius="60% 40% 50% 30%"
+          filter="blur(1.5px)"
+          transform="rotate(3deg)"
+          zIndex={0}
+        />
+        <Container maxW="7xl" py={12} position="relative" zIndex={2}>
           <VStack spacing={10} align="stretch">
             {/* Header moderne */}
             <Box>
