@@ -19,13 +19,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
 
-let createClient: unknown = null
+let createClient: (() => unknown) | null = null
 async function loadSupabaseClient() {
   if (!createClient) {
     const supabaseModule = await import('../lib/supabase-admin')
     createClient = supabaseModule.createBrowserClientWithConfig
   }
-  return createClient()
+  return createClient!()
 }
 
 // Composant avec formes fluides modernes

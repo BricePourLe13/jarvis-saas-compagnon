@@ -149,7 +149,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
     return `jarvis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }, [])
 
-  const initSessionTracking = useCallback(async (gymData?: unknown) => {
+  const initSessionTracking = useCallback(async (gymData?: { gymId?: string; franchiseId?: string }) => {
     const sessionId = generateSessionId()
     
     sessionTrackingRef.current = {
@@ -453,7 +453,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
   }, [status, updateStatus])
 
   // Gérer les événements du serveur OpenAI
-  const handleServerEvent = useCallback((event: Record<string, unknown>) => {
+  const handleServerEvent = useCallback((event: { type: string; [key: string]: unknown }) => {
     switch (event.type) {
       case 'session.created':
         console.log('🎯 Session OpenAI créée')
@@ -511,7 +511,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       case 'response.audio_transcript.done':
         console.log('📝 Transcript final:', event.transcript)
-        const finalTranscript = event.transcript || transcriptBufferRef.current
+        const finalTranscript = (event.transcript as string) || transcriptBufferRef.current
         
         // 🔧 ACTIVITÉ: Fin de réponse JARVIS = activité
         lastActivityRef.current = Date.now()
@@ -548,7 +548,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       case 'error':
         console.error('❌ Erreur serveur OpenAI:', event)
-        configRef.current.onError?.(event.error?.message || 'Erreur serveur')
+        configRef.current.onError?.((event.error as { message?: string })?.message || 'Erreur serveur')
         
         // 📊 [TRACKING] Marquer l'erreur
         if (sessionTrackingRef.current.sessionId) {

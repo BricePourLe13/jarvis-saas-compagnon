@@ -130,7 +130,7 @@ export default function CreateFranchisePage() {
     } catch (error: unknown) {
       toast({
         title: "Erreur",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Une erreur est survenue",
         status: "error",
         duration: 5000,
         isClosable: true,

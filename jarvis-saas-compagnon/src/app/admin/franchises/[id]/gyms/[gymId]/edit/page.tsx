@@ -183,7 +183,7 @@ export default function GymEditPage() {
         status: formData.status as 'active' | 'maintenance' | 'offline',
 
         kiosk_config: {
-          ...gym?.kiosk_config,
+          ...(gym?.kiosk_config as Record<string, unknown> || {}),
           welcome_message: formData.welcome_message.trim()
         }
       }

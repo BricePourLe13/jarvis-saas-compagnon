@@ -40,7 +40,7 @@ interface Franchise {
   gyms?: {
     id: string
     name: string
-    kiosk_config: unknown
+    kiosk_config: { is_provisioned?: boolean } | null
     status: string
   }[]
 }
