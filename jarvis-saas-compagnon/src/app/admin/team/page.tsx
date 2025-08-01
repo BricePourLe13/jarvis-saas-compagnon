@@ -42,7 +42,7 @@ import {
   Checkbox
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor, Building2, History, Bell } from 'lucide-react'
+import { UserPlus, Users, Shield, Mail, Calendar, CheckCircle, Clock, Edit, Trash2, Activity, MoreHorizontal, Monitor, Building2, History, Bell, KeyRound } from 'lucide-react'
 import AuthGuard from '@/components/auth/AuthGuard'
 import EditUserModal from '@/components/admin/EditUserModal'
 import DeleteUserModal from '@/components/admin/DeleteUserModal'
@@ -53,6 +53,7 @@ import UserSessionsModal from '@/components/admin/UserSessionsModal'
 import AccessManagementModal from '@/components/admin/AccessManagementModal'
 import UserAuditModal from '@/components/admin/UserAuditModal'
 import NotificationPreferencesModal from '@/components/admin/NotificationPreferencesModal'
+import SuperAdminAccessModal from '@/components/admin/SuperAdminAccessModal'
 import type { User, UserRole } from '@/types/franchise'
 
 // ===========================================
@@ -447,6 +448,7 @@ export default function TeamPage() {
   const { isOpen: isAccessOpen, onOpen: onAccessOpen, onClose: onAccessClose } = useDisclosure()
   const { isOpen: isAuditOpen, onOpen: onAuditOpen, onClose: onAuditClose } = useDisclosure()
   const { isOpen: isNotifOpen, onOpen: onNotifOpen, onClose: onNotifClose } = useDisclosure()
+  const { isOpen: isSuperAdminAccessOpen, onOpen: onSuperAdminAccessOpen, onClose: onSuperAdminAccessClose } = useDisclosure()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<User[]>([])
   const [selectAllMode, setSelectAllMode] = useState(false)
@@ -609,6 +611,11 @@ export default function TeamPage() {
   const handleUserSessions = (user: User) => {
     setSelectedUser(user)
     onSessionsOpen()
+  }
+
+  const handleSuperAdminAccess = (user: User) => {
+    setSelectedUser(user)
+    onSuperAdminAccessOpen()
   }
 
   const handleCleanupUser = async (email: string) => {
@@ -1186,6 +1193,26 @@ export default function TeamPage() {
                               </Tooltip>
                             )}
 
+                            {/* Bouton accès avancé pour super admins */}
+                            {user.role === 'super_admin' && (
+                              <Tooltip label="Gestion accès avancée" hasArrow>
+                                <IconButton
+                                  aria-label="Accès avancé"
+                                  icon={<Icon as={KeyRound} boxSize={4} />}
+                                  size="sm"
+                                  bg="#7c3aed"
+                                  color="white"
+                                  borderRadius="8px"
+                                  h="32px"
+                                  w="32px"
+                                  onClick={() => handleSuperAdminAccess(user)}
+                                  _hover={{ bg: "#6d28d9", transform: "translateY(-1px)" }}
+                                  _active={{ transform: "translateY(0px)" }}
+                                  transition="all 0.2s"
+                                />
+                              </Tooltip>
+                            )}
+
                             {/* Actions selon statut */}
                             {!user.is_active ? (
                               <>
@@ -1336,6 +1363,14 @@ export default function TeamPage() {
             <NotificationPreferencesModal
               isOpen={isNotifOpen}
               onClose={onNotifClose}
+              user={selectedUser}
+              onSuccess={fetchUsers}
+            />
+
+            {/* Modal de gestion des accès super admin */}
+            <SuperAdminAccessModal
+              isOpen={isSuperAdminAccessOpen}
+              onClose={onSuperAdminAccessClose}
               user={selectedUser}
               onSuccess={fetchUsers}
             />

@@ -150,11 +150,38 @@ export default function FranchisesPage() {
   return (
     <Box 
       minH="100vh" 
-      bg="white"
+      bg="linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #eeeeee 100%)"
       fontFamily="system-ui, -apple-system, sans-serif"
       position="relative"
       p={8}
+      overflow="hidden"
     >
+      {/* Formes fluides arrière-plan comme page login */}
+      <Box
+        position="absolute"
+        top="20%"
+        right="15%"
+        width="45%"
+        height="55%"
+        background="linear-gradient(225deg, rgba(107, 114, 128, 0.4) 0%, rgba(156, 163, 175, 0.3) 60%, rgba(209, 213, 219, 0.2) 100%)"
+        borderRadius="40% 50% 30% 60%"
+        filter="blur(2px)"
+        transform="rotate(-15deg)"
+        zIndex={0}
+      />
+      <Box
+        position="absolute"
+        bottom="10%"
+        left="20%"
+        width="50%"
+        height="60%"
+        background="linear-gradient(45deg, rgba(229, 231, 235, 0.5) 0%, rgba(243, 244, 246, 0.3) 100%)"
+        borderRadius="60% 40% 50% 30%"
+        filter="blur(1.5px)"
+        transform="rotate(12deg)"
+        zIndex={0}
+      />
+      
       {/* Pattern de points subtil */}
       <Box
         position="absolute"
@@ -166,6 +193,7 @@ export default function FranchisesPage() {
         bgImage="radial-gradient(circle, black 1px, transparent 1px)"
         bgSize="24px 24px"
         pointerEvents="none"
+        zIndex={1}
       />
 
       <MotionVStack
@@ -268,7 +296,7 @@ export default function FranchisesPage() {
               </VStack>
             </Box>
           ) : (
-            <SimpleGrid columns={{ base: 1, lg: 2 }} gap={6}>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
               {franchises.map((franchise, index) => {
                 const stats = getFranchiseStats(franchise)
                 
@@ -283,33 +311,32 @@ export default function FranchisesPage() {
                       ease: [0.23, 1, 0.32, 1]
                     }}
                     whileHover={{ 
-                      scale: 1.01,
+                      scale: 1.02,
+                      y: -2,
                       transition: { duration: 0.2 }
                     }}
                     cursor="pointer"
-                    onClick={() => router.push(`/admin/franchises/${franchise.id}`)}
+                    position="relative"
+                    zIndex={2}
                   >
                     <Box
-                      bg="white"
+                      bg="rgba(255, 255, 255, 0.95)"
                       border="1px solid"
-                      borderColor="gray.200"
-                      borderRadius="2px"
+                      borderColor="rgba(255, 255, 255, 0.2)"
+                      borderRadius="20px"
                       p={6}
-                      shadow="0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)"
+                      backdropFilter="blur(20px)"
+                      shadow="0 8px 32px rgba(0, 0, 0, 0.12)"
                       _hover={{
-                        borderColor: "gray.300",
-                        transition: "all 0.2s ease"
+                        bg: "rgba(255, 255, 255, 0.98)",
+                        shadow: "0 20px 40px rgba(0, 0, 0, 0.15)",
+                        transition: "all 0.3s ease"
                       }}
                       position="relative"
-                      _before={{
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: '1px',
-                        bg: 'linear-gradient(90deg, transparent, gray.100, transparent)',
-                      }}
+                      h="280px"
+                      display="flex"
+                      flexDirection="column"
+                      justifyContent="space-between"
                     >
                       <VStack spacing={4} align="start">
                         {/* Header */}
@@ -388,35 +415,45 @@ export default function FranchisesPage() {
                           )}
                         </HStack>
 
-                                                                          {/* Gyms preview */}
-                         {franchise.gyms && franchise.gyms.length > 0 && (
-                           <VStack spacing={2} align="start" w="full">
-                             <Text fontSize="xs" color="gray.500" fontWeight="500">
-                               SALLES
-                             </Text>
-                             <VStack spacing={1} align="start" w="full">
-                               {franchise.gyms.slice(0, 3).map((gym) => (
-                                 <HStack key={gym.id} spacing={2} w="full">
-                                   <Box
-                                     w={1}
-                                     h={1}
-                                     bg={gym.kiosk_config?.is_provisioned ? "gray.900" : "gray.400"}
-                                     borderRadius="50%"
-                                     flexShrink={0}
-                                   />
-                                   <Text fontSize="xs" color="gray.600" fontWeight="400">
-                                     {gym.name}
-                                   </Text>
-                                 </HStack>
-                               ))}
-                               {franchise.gyms.length > 3 && (
-                                 <Text fontSize="xs" color="gray.500" fontWeight="400">
-                                   +{franchise.gyms.length - 3} autres...
-                                 </Text>
-                               )}
-                             </VStack>
-                           </VStack>
-                         )}
+                        {/* Boutons d'action directe */}
+                        <VStack spacing={2} w="full" pt={2}>
+                          <Button
+                            w="full"
+                            size="sm"
+                            bg="black"
+                            color="white"
+                            borderRadius="12px"
+                            fontWeight="500"
+                            _hover={{ bg: "gray.800" }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/admin/franchises/${franchise.id}`)
+                            }}
+                            leftIcon={<Icon as={ArrowRight} boxSize={4} />}
+                          >
+                            Gérer la franchise
+                          </Button>
+                          
+                          {franchise.gyms && franchise.gyms.length > 0 && (
+                            <Button
+                              w="full"
+                              size="sm"
+                              variant="outline"
+                              borderColor="gray.200"
+                              color="gray.700"
+                              borderRadius="12px"
+                              fontWeight="500"
+                              _hover={{ bg: "gray.50", borderColor: "gray.300" }}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/admin/franchises/${franchise.id}#salles`)
+                              }}
+                              leftIcon={<Icon as={Building2} boxSize={4} />}
+                            >
+                              Voir les {stats.totalGyms} salle{stats.totalGyms > 1 ? 's' : ''}
+                            </Button>
+                          )}
+                        </VStack>
                       </VStack>
                     </Box>
                   </MotionBox>

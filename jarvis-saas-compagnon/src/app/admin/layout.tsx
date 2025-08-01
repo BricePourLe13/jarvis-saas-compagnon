@@ -378,7 +378,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 variant="ghost"
                 size="sm"
                 leftIcon={<ArrowLeft size={16} />}
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/admin')}
                 color="gray.600"
                 fontSize="sm"
                 fontWeight="400"
@@ -392,7 +392,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   transition: "all 0.15s ease"
                 }}
               >
-                Dashboard
+                Vue d'ensemble
               </Button>
               
               <VStack spacing={1} align="start">
