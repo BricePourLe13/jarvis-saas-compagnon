@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createBrowserClientWithConfig } from '../../lib/supabase-admin'
+import { getSupabaseSingleton } from '@/lib/supabase-singleton'
 import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 
@@ -15,7 +15,7 @@ export default function AuthGuard({ children, requiredRole = 'super_admin' }: Au
   const [userProfile, setUserProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = createBrowserClientWithConfig()
+  const supabase = getSupabaseSingleton()
 
   useEffect(() => {
     async function checkAuth() {

@@ -74,8 +74,9 @@ export default function VoiceInterface({
     }
   }, [isActive, isConnected, disconnect])
 
-  // 👋 DÉTECTION "AU REVOIR" utilisateur pour fermeture forcée - VERSION CORRIGÉE
+  // 👋 DÉTECTION "AU REVOIR" utilisateur pour fermeture forcée - VERSION AMÉLIORÉE
   const lastGoodbyeRef = useRef<string>('')
+  const goodbyeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   useEffect(() => {
     if (currentTranscript && isConnected) {
@@ -84,17 +85,37 @@ export default function VoiceInterface({
       // Éviter les redéclenchements sur le même transcript
       if (transcript === lastGoodbyeRef.current) return
       
-      if (transcript === 'au revoir' || 
-          transcript === 'au revoir.' ||
-          transcript.endsWith(' au revoir') ||
-          transcript.endsWith(' au revoir.')) {
-        
+      // ✅ DÉTECTION PLUS PRÉCISE - Uniquement phrases courtes qui COMMENCENT par "au revoir"
+      const isGoodbyeIntent = (
+        transcript === 'au revoir' || 
+        transcript === 'au revoir.' ||
+        transcript === 'au revoir merci' ||
+        transcript === 'au revoir jarvis' ||
+        (transcript.startsWith('au revoir') && transcript.length <= 25) // Max 25 caractères
+      )
+      
+      // ✅ ÉVITER les faux positifs de JARVIS qui dit "au revoir"
+      const isJarvisResponse = (
+        transcript.includes('je vous souhaite') ||
+        transcript.includes('bonne journée') ||
+        transcript.includes('à bientôt') ||
+        transcript.length > 50 // Réponses longues = probablement JARVIS
+      )
+      
+      if (isGoodbyeIntent && !isJarvisResponse) {
         lastGoodbyeRef.current = transcript
-        console.log('👋 [USER GOODBYE] Utilisateur a dit "Au revoir", fermeture session...')
+        console.log('👋 [USER GOODBYE] Détection "Au revoir" utilisateur:', transcript)
         
-        // Fermeture immédiate et propre
-        disconnect()
-        onDeactivate()
+        // ✅ DÉLAI DE GRÂCE de 2 secondes pour éviter fermetures accidentelles
+        if (goodbyeTimeoutRef.current) {
+          clearTimeout(goodbyeTimeoutRef.current)
+        }
+        
+        goodbyeTimeoutRef.current = setTimeout(() => {
+          console.log('👋 [USER GOODBYE] Fermeture session après délai de grâce')
+          disconnect()
+          onDeactivate()
+        }, 2000)
       }
     }
   }, [currentTranscript, isConnected, disconnect, onDeactivate])
@@ -103,8 +124,21 @@ export default function VoiceInterface({
   useEffect(() => {
     if (!isConnected) {
       lastGoodbyeRef.current = ''
+      if (goodbyeTimeoutRef.current) {
+        clearTimeout(goodbyeTimeoutRef.current)
+        goodbyeTimeoutRef.current = null
+      }
     }
   }, [isConnected])
+  
+  // Cleanup au démontage du composant
+  useEffect(() => {
+    return () => {
+      if (goodbyeTimeoutRef.current) {
+        clearTimeout(goodbyeTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const getJarvisStatus = () => {
     switch (status) {

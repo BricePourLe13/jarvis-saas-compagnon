@@ -1,14 +1,11 @@
 'use client'
 
-import { createBrowserClient } from '@supabase/ssr'
+import { getSupabaseSingleton } from '@/lib/supabase-singleton'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 
 export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = getSupabaseSingleton()
 
   if (!isOpen) return null
 
