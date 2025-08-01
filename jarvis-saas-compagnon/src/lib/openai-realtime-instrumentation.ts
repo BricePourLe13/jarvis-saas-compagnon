@@ -238,7 +238,7 @@ class OpenAIRealtimeInstrumentation {
         .from('openai_realtime_webrtc_stats')
         .insert({
           session_id: sessionId,
-          timestamp: new Date().toISOString(),
+          measured_at: new Date().toISOString(),
           connection_state: stats.connection_state,
           ice_connection_state: stats.ice_connection_state,
           ice_gathering_state: stats.ice_gathering_state,

@@ -211,7 +211,7 @@ GROUP BY g.id, g.name, f.name;
 CREATE INDEX IF NOT EXISTS idx_openai_sessions_gym_started ON openai_realtime_sessions(gym_id, session_started_at);
 CREATE INDEX IF NOT EXISTS idx_openai_sessions_active ON openai_realtime_sessions(gym_id) WHERE session_ended_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_openai_audio_events_session_time ON openai_realtime_audio_events(session_id, event_timestamp);
-CREATE INDEX IF NOT EXISTS idx_openai_webrtc_session_time ON openai_realtime_webrtc_stats(session_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_openai_webrtc_session_time ON openai_realtime_webrtc_stats(session_id, measured_at);
 
 -- Commentaires pour la documentation
 COMMENT ON FUNCTION increment_session_user_turns IS 'Incrémente le compteur de tours utilisateur pour une session';
