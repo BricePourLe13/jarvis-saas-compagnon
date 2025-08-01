@@ -53,7 +53,6 @@ import UserSessionsModal from '@/components/admin/UserSessionsModal'
 import AccessManagementModal from '@/components/admin/AccessManagementModal'
 import UserAuditModal from '@/components/admin/UserAuditModal'
 import NotificationPreferencesModal from '@/components/admin/NotificationPreferencesModal'
-import { Bell } from 'lucide-react'
 import type { User, UserRole } from '@/types/franchise'
 
 // ===========================================
@@ -320,8 +319,10 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
                   borderColor: "#d1d5db"
                 }}
               >
-                <option value="franchise_owner">Propriétaire de Franchise</option>
                 <option value="super_admin">Super Administrateur</option>
+                <option value="franchise_owner">Propriétaire de Franchise</option>
+                <option value="gym_manager">Manager de Salle</option>
+                <option value="gym_staff">Staff de Salle</option>
               </Select>
             </FormControl>
 
@@ -501,7 +502,7 @@ export default function TeamPage() {
           if (!user.is_active && !user.last_login) {
             // Utilisateur jamais connecté = invitation en attente
             const daysSinceCreation = user.created_at 
-              ? Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24))
+              ? Math.floor((Date.now() - new Date(user.created_at as string).getTime()) / (1000 * 60 * 60 * 24))
               : 0
             
             invitationStatus = daysSinceCreation > 7 ? 'expired' : 'pending'
