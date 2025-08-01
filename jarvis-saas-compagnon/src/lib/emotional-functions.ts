@@ -214,7 +214,7 @@ export const emotionalResponseBank: Record<string, EmotionalResponse> = {
 export function processEmotionalAnalysis(
   userMessage: string, 
   voiceToneIndicators: string[] = [],
-  sessionContext: any = {}
+  sessionContext: Record<string, unknown> = {}
 ): EmotionalState {
   
   // Analyse simple basée sur des mots-clés (en réalité, JARVIS fera ça avec l'IA)

@@ -59,7 +59,7 @@ function detectBrowser(userAgent: string) {
 }
 
 // ✅ Advanced permissions headers - multi-layer approach
-function setAdvancedPermissionsHeaders(response: NextResponse, browserInfo: any) {
+function setAdvancedPermissionsHeaders(response: NextResponse, browserInfo: Record<string, unknown>) {
   // ✅ Modern Permissions-Policy (Chrome 88+, Firefox, Safari 16.4+)
   const permissionsPolicy = [
     'microphone=(self)',
@@ -101,7 +101,7 @@ function setAdvancedPermissionsHeaders(response: NextResponse, browserInfo: any)
 }
 
 // ✅ Browser-specific headers and hints
-function setBrowserSpecificHeaders(response: NextResponse, browserInfo: any) {
+function setBrowserSpecificHeaders(response: NextResponse, browserInfo: Record<string, unknown>) {
   // ✅ Chrome-specific optimizations
   if (browserInfo.name === 'Chrome') {
     response.headers.set('Accept-CH', 'Sec-CH-UA, Sec-CH-UA-Mobile, Sec-CH-UA-Platform')

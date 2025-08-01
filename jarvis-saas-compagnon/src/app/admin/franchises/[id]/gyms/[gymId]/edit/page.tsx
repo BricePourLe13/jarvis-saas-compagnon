@@ -248,7 +248,7 @@ export default function GymEditPage() {
           <AlertIcon />
           <AlertTitle>Salle introuvable</AlertTitle>
           <AlertDescription>
-            Cette salle n'existe pas ou vous n'avez pas les permissions pour la modifier.
+            Cette salle n&apos;existe pas ou vous n&apos;avez pas les permissions pour la modifier.
           </AlertDescription>
         </Alert>
       </Container>
@@ -460,7 +460,7 @@ export default function GymEditPage() {
                   <CardHeader bg="purple.50" borderRadius="16px 16px 0 0">
                     <Heading size="md" color="purple.700">
                       <Icon as={Zap} mr={2} />
-                      Message d'accueil JARVIS
+                      Message d&apos;accueil JARVIS
                     </Heading>
                   </CardHeader>
                   <CardBody pt={4}>
@@ -480,7 +480,7 @@ export default function GymEditPage() {
                         resize="vertical"
                       />
                       <Text fontSize="xs" color="gray.500" mt={2}>
-                        Ce message sera affiché par JARVIS lors de l'accueil des membres sur le Kiosk de cette salle.
+                        Ce message sera affiché par JARVIS lors de l&apos;accueil des membres sur le Kiosk de cette salle.
                       </Text>
                     </FormControl>
                   </CardBody>

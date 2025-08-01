@@ -40,7 +40,7 @@ interface Franchise {
   gyms?: {
     id: string
     name: string
-    kiosk_config: any
+    kiosk_config: unknown
     status: string
   }[]
 }

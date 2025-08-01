@@ -59,7 +59,7 @@ function createAdminClient() {
 /**
  * Client Server avec gestion des cookies (pour les APIs Next.js)
  */
-function createServerClientWithConfig(cookieStore: any) {
+function createServerClientWithConfig(cookieStore: unknown) {
   const { supabaseUrl, supabaseAnonKey } = getEnvironmentConfig()
   
   return createServerClient(

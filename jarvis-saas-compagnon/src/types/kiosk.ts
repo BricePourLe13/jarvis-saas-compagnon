@@ -68,7 +68,7 @@ export interface KioskConfig {
   last_heartbeat?: string | null
   rfid_reader_id?: string | null
   screen_resolution?: string | null
-  browser_info?: Record<string, any>
+  browser_info?: Record<string, unknown>
   
   // UI & Avatar
   avatar_style: 'friendly' | 'professional' | 'energetic'
@@ -118,7 +118,7 @@ export interface JarvisSessionExtended {
   
   // Metadata
   timestamp: string
-  session_metadata: Record<string, any>
+  session_metadata: Record<string, unknown>
 }
 
 // ===========================================

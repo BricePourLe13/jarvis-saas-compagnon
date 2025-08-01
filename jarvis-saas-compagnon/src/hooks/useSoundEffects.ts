@@ -11,7 +11,7 @@ export function useSoundEffects({ enabled = true, volume = 0.3 }: SoundEffectsOp
   // Initialiser le contexte audio
   const initAudioContext = useCallback(() => {
     if (!audioContextRef.current && enabled) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)()
     }
     return audioContextRef.current
   }, [enabled])

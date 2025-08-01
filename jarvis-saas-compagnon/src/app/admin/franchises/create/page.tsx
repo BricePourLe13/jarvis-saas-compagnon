@@ -127,7 +127,7 @@ export default function CreateFranchisePage() {
         router.push('/admin/franchises')
       }, 2000)
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erreur",
         description: error.message,

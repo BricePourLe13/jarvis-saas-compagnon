@@ -149,7 +149,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
     return `jarvis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }, [])
 
-  const initSessionTracking = useCallback(async (gymData?: any) => {
+  const initSessionTracking = useCallback(async (gymData?: unknown) => {
     const sessionId = generateSessionId()
     
     sessionTrackingRef.current = {
@@ -453,7 +453,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
   }, [status, updateStatus])
 
   // Gérer les événements du serveur OpenAI
-  const handleServerEvent = useCallback((event: any) => {
+  const handleServerEvent = useCallback((event: Record<string, unknown>) => {
     switch (event.type) {
       case 'session.created':
         console.log('🎯 Session OpenAI créée')

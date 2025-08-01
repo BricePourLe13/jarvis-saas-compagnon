@@ -15,7 +15,7 @@ export interface BrandColors {
 
 export interface AvatarSettings {
   style?: 'friendly' | 'professional' | 'energetic'
-  customizations?: Record<string, any>
+  customizations?: Record<string, unknown>
 }
 
 export interface JarvisConfig {
@@ -98,7 +98,7 @@ export interface KioskConfig {
   // Hardware
   rfid_reader_id?: string
   screen_resolution?: string
-  browser_info?: Record<string, any>
+  browser_info?: Record<string, unknown>
   
   // Configuration
   avatar_style: 'friendly' | 'professional' | 'energetic'
@@ -126,13 +126,13 @@ export interface Gym {
   postal_code: string
   
   // JARVIS Equipment & Kiosk Linking
-  kiosk_config: any // JSON field
+  kiosk_config: unknown // JSON field
   
   // Management
   manager_id?: string
   
   // Business
-  opening_hours: any // JSON field
+  opening_hours: unknown // JSON field
   features: string[] // Array field
   
   // Status
@@ -201,7 +201,7 @@ export interface User {
   gym_access?: string[]
   
   // Preferences
-  dashboard_preferences?: Record<string, any>
+  dashboard_preferences?: Record<string, unknown>
   notification_settings?: NotificationSettings
   
   // Status
@@ -265,7 +265,7 @@ export interface JarvisSession {
   
   // Metadata
   timestamp: string
-  session_metadata?: Record<string, any>
+  session_metadata?: Record<string, unknown>
 }
 
 // ===========================================
@@ -363,7 +363,7 @@ export interface TableColumn<T> {
   key: keyof T
   label: string
   sortable?: boolean
-  render?: (value: any, item: T) => React.ReactNode
+  render?: (value: unknown, item: T) => React.ReactNode
 }
 
 export interface FilterOptions {
