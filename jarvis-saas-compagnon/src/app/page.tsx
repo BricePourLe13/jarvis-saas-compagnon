@@ -16,7 +16,7 @@ import {
   Grid
 } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Avatar3D from '@/components/kiosk/Avatar3D'
+import JarvisAvatar from '@/components/common/JarvisAvatar'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
 
 let createClient: any = null
@@ -279,46 +279,17 @@ const JarvisIllustration = () => {
       
       <ModernFluidShapes />
       
-      {/* Avatar JARVIS central avec la vraie sphère du kiosk */}
-      <Flex align="center" justify="center" h="full" position="relative" zIndex={2}>
-        <VStack spacing={8}>
-          {/* Sphère JARVIS réelle du kiosk */}
-          <Box position="relative">
-            <motion.div
-              animate={{
-                y: [-6, 6, -6],
-                rotateY: [0, 1, 0],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <Avatar3D 
-                status="idle"
-                size={200}
-              />
-            </motion.div>
-          </Box>
-          
-          {/* Texte descriptif */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1 }}
-          >
-            <VStack spacing={3} textAlign="center">
-              <Heading size="lg" color="#374151" fontWeight="700">
-                Intelligence Platform
-              </Heading>
-              <Text color="#6b7280" fontSize="lg" maxW="300px">
-                Analyse conversationnelle et insights analytiques pour salles de sport
-              </Text>
-            </VStack>
-          </motion.div>
-        </VStack>
-      </Flex>
+      {/* Avatar JARVIS central avec composant réutilisable */}
+      <Box position="relative" zIndex={2} h="full">
+        <JarvisAvatar 
+          size={200}
+          showText={true}
+          title="Intelligence Platform"
+          description="Analyse conversationnelle et insights analytiques pour salles de sport"
+          variant="default"
+          status="idle"
+        />
+      </Box>
     </Box>
   )
 }
@@ -587,10 +558,7 @@ export default function LoginPage() {
                     />
                   </Box>
                   
-                  {/* Debug info */}
-                  <Text fontSize="xs" color="gray.500" textAlign="center">
-                    Debug: Site Key = {process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || '59b4e250-bc3c-4940-bf1c-38b0883a1a14'}
-                  </Text>
+
 
                   <Button
                     type="submit"

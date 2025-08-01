@@ -402,29 +402,29 @@ export default function FranchiseAnalyticsPage() {
                 label: 'Salles totales', 
                 value: stats.totalGyms, 
                 icon: Dumbbell, 
-                color: '#3b82f6',
-                bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
+                color: '#374151',
+                bg: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)'
               },
               { 
                 label: 'Salles actives', 
                 value: stats.activeGyms, 
                 icon: Activity, 
-                color: '#10b981',
-                bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)'
+                color: '#1f2937',
+                bg: 'linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%)'
               },
               { 
                 label: 'Kiosks actifs', 
                 value: stats.kioskProvisioned, 
                 icon: Zap, 
-                color: '#f59e0b',
-                bg: 'linear-gradient(135deg, #fefbf3 0%, #fef3c7 100%)'
+                color: '#111827',
+                bg: 'linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)'
               },
               { 
                 label: 'Membres totaux', 
                 value: stats.totalMembers, 
                 icon: Users, 
-                color: '#8b5cf6',
-                bg: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)'
+                color: '#4b5563',
+                bg: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)'
               }
             ].map((stat, index) => (
               <MotionBox
@@ -596,12 +596,12 @@ export default function FranchiseAnalyticsPage() {
                             <Box
                               w={12}
                               h={12}
-                              bg="linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+                              bg="linear-gradient(135deg, #374151 0%, #1f2937 100%)"
                               borderRadius="16px"
                               display="flex"
                               alignItems="center"
                               justifyContent="center"
-                              shadow="0 4px 12px rgba(59, 130, 246, 0.3)"
+                              shadow="0 4px 12px rgba(0, 0, 0, 0.15)"
                             >
                               <Icon as={Dumbbell} color="white" boxSize={6} />
                             </Box>
