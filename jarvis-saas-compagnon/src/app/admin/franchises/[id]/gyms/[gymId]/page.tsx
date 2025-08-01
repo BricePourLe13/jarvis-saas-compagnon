@@ -44,6 +44,7 @@ import {
   AlertDescription
 } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
+import OpenAIRealtimeMonitoring from '@/components/admin/monitoring/OpenAIRealtimeMonitoring'
 import { 
   ArrowLeft,
   Building2, 
@@ -872,119 +873,23 @@ export default function GymDetailsPage() {
 
 
                   
-                  {/* Section Monitoring Intégrée */}
+                  {/* Section Monitoring OpenAI Realtime */}
                   <VStack spacing={6} align="stretch" pt={8}>
                     <Divider />
-                    <HStack justify="space-between" align="center">
-                      <VStack align="start" spacing={1}>
-                        <Heading size="md" color="#111827" fontWeight="600">
-                          Monitoring Erreurs JARVIS
-                        </Heading>
-                        <Text fontSize="sm" color="#6b7280">
-                          Surveillance des erreurs et performance système
-                        </Text>
-                      </VStack>
-                      <Button
-                        leftIcon={<Icon as={RefreshCw} />}
-                        onClick={() => window.location.reload()}
-                        variant="outline"
-                        size="sm"
-                        borderRadius="8px"
-                      >
-                        Actualiser
-                      </Button>
-                    </HStack>
+                    <VStack align="start" spacing={1}>
+                      <Heading size="md" color="#111827" fontWeight="600">
+                        Monitoring OpenAI Realtime
+                      </Heading>
+                      <Text fontSize="sm" color="#6b7280">
+                        Surveillance en temps réel des sessions, performance et coûts
+                      </Text>
+                    </VStack>
 
-                    {/* Erreurs Récentes Card */}
-                    <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
-                      <VStack spacing={4} align="stretch">
-                        <Text fontWeight="600" color="#111827" fontSize="md">
-                          Erreurs Récentes (24h)
-                        </Text>
-                        <Alert status="warning" borderRadius="8px">
-                          <AlertIcon />
-                          <Box>
-                            <AlertTitle fontSize="sm">Section en développement</AlertTitle>
-                            <AlertDescription fontSize="xs">
-                              Les erreurs de création de session JARVIS seront affichées ici une fois la table créée en base.
-                            </AlertDescription>
-                          </Box>
-                        </Alert>
-                      </VStack>
-                    </Card>
-
-                    {/* Métriques Monitoring */}
-                    <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
-                      
-                      {/* Erreurs 24h */}
-                      <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
-                        <VStack spacing={3} align="stretch">
-                          <HStack justify="space-between">
-                            <Text fontSize="sm" color="#6b7280">Erreurs 24h</Text>
-                            <Icon as={AlertTriangle} boxSize={4} color="#f59e0b" />
-                          </HStack>
-                          <Text fontSize="2xl" fontWeight="700" color="#111827">
-                            --
-                          </Text>
-                          <Text fontSize="xs" color="#6b7280">
-                            En attente de données
-                          </Text>
-                        </VStack>
-                      </Card>
-
-                      {/* Taux d'Erreur */}
-                      <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
-                        <VStack spacing={3} align="stretch">
-                          <HStack justify="space-between">
-                            <Text fontSize="sm" color="#6b7280">Taux d'Erreur</Text>
-                            <Icon as={TrendingUp} boxSize={4} color="#ef4444" />
-                          </HStack>
-                          <Text fontSize="2xl" fontWeight="700" color="#111827">
-                            --%
-                          </Text>
-                          <Text fontSize="xs" color="#6b7280">
-                            En attente de données
-                          </Text>
-                        </VStack>
-                      </Card>
-
-                      {/* Dernière Erreur */}
-                      <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
-                        <VStack spacing={3} align="stretch">
-                          <HStack justify="space-between">
-                            <Text fontSize="sm" color="#6b7280">Dernière Erreur</Text>
-                            <Icon as={Clock} boxSize={4} color="#6b7280" />
-                          </HStack>
-                          <Text fontSize="sm" fontWeight="600" color="#111827">
-                            Aucune
-                          </Text>
-                          <Text fontSize="xs" color="#6b7280">
-                            En attente de données
-                          </Text>
-                        </VStack>
-                      </Card>
-
-                    </SimpleGrid>
-
-                    {/* Instructions Configuration */}
-                    <Card bg="#fef3c7" border="1px solid #fbbf24" borderRadius="12px" p={6}>
-                      <VStack spacing={4} align="stretch">
-                        <HStack>
-                          <Icon as={AlertTriangle} boxSize={5} color="#d97706" />
-                          <Text fontWeight="600" color="#92400e">
-                            Configuration Requise
-                          </Text>
-                        </HStack>
-                        <Text fontSize="sm" color="#92400e">
-                          Pour activer le monitoring des erreurs, exécutez le script SQL suivant dans Supabase :
-                        </Text>
-                        <Box bg="#ffffff" p={4} borderRadius="8px" border="1px solid #fbbf24">
-                          <Code fontSize="xs" color="#92400e" fontFamily="mono">
-                            create-errors-log-table.sql
-                          </Code>
-                        </Box>
-                      </VStack>
-                    </Card>
+                    <OpenAIRealtimeMonitoring 
+                      gymId={gym.id}
+                      gymName={gym.name}
+                      kioskSlug={gym.kiosk_config?.kiosk_url_slug || null}
+                    />
 
                   </VStack>
 
