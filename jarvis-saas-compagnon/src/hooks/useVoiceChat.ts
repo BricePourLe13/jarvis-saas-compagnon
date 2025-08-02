@@ -223,6 +223,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       // 🎯 [INSTRUMENTATION] Finaliser la session OpenAI Realtime
       try {
+        console.log('🔍 [DEBUG SESSION FINALIZE] sessionRef.current:', sessionRef.current)
+        console.log('🔍 [DEBUG SESSION FINALIZE] sessionRef.current?.session_id:', sessionRef.current?.session_id)
+        
         if (sessionRef.current?.session_id) {
           const costBreakdown = calculateSessionCost({
             durationSeconds,
@@ -362,6 +365,10 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       const data = await response.json()
       
+      console.log('🔍 [DEBUG SESSION] Réponse API complète:', data)
+      console.log('🔍 [DEBUG SESSION] data.session:', data.session)
+      console.log('🔍 [DEBUG SESSION] data.session?.id:', data.session?.id)
+      
       // 📊 [TRACKING] Initialiser le tracking de session
       await initSessionTracking(gymData)
       
@@ -481,6 +488,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
       await pc.setRemoteDescription(answer)
 
       sessionRef.current = session
+      console.log('🔍 [DEBUG SESSION ASSIGN] sessionRef.current assigné:', session)
+      console.log('🔍 [DEBUG SESSION ASSIGN] session.session_id:', session?.session_id)
       console.log('✅ Connexion WebRTC établie avec OpenAI Realtime')
 
     } catch (error) {
