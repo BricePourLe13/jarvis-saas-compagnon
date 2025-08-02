@@ -234,9 +234,15 @@ Reste COURT et drôle !`
       // Ne pas faire échouer la création de session pour un problème d'instrumentation
     }
     
+    // 🔧 CORRIGER sessionData pour avoir session_id attendu par useVoiceChat
+    const correctedSessionData = {
+      ...sessionData,
+      session_id: sessionData.id || sessionId // Mapper id → session_id
+    }
+
     return NextResponse.json({
       success: true,
-      session: sessionData,
+      session: correctedSessionData, // Session avec session_id corrigé
       conversation_session_id: sessionId,
       member_context: {
         member_id: memberId,
