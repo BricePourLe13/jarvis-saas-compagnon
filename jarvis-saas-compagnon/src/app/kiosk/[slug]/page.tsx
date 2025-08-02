@@ -530,24 +530,11 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     await handleMemberScanned(currentMember)
   }, [currentMember, handleMemberScanned])
 
-  // Fonction de détection d'intention de départ
+  // 🚫 ANCIENNE DÉTECTION AU REVOIR DÉSACTIVÉE
+  // Maintenant gérée par useGoodbyeDetection avec Web Speech API
   const detectExitIntent = useCallback((transcript: string) => {
-    const exitPhrases = [
-      'au revoir', 'bye', 'à bientôt', 'à plus', 'salut',
-      'merci', 'merci beaucoup', 'c\'est bon', 'c\'est parfait',
-      'je dois y aller', 'fini', 'terminé', 'j\'ai terminé',
-      'stop', 'arrête', 'ça suffit', 'on arrête',
-      'je pars', 'je m\'en vais', 'bonne journée', 'bonne soirée'
-    ]
-    
-    const lowerTranscript = transcript.toLowerCase()
-    const hasExitIntent = exitPhrases.some(phrase => lowerTranscript.includes(phrase))
-    
-    if (hasExitIntent) {
-      console.log(`👋 Intention de départ détectée: "${transcript}"`)
-      return true
-    }
-    
+    // Toujours retourner false - détection gérée par useGoodbyeDetection
+    console.log('🔇 [OLD EXIT DETECTION] Désactivé, utilise useGoodbyeDetection:', transcript)
     return false
   }, [])
 
