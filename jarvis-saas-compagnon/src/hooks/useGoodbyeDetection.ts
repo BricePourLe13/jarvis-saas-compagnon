@@ -7,11 +7,13 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 
 interface UseGoodbyeDetectionProps {
   isActive: boolean
+  isJarvisSpeaking?: boolean // Nouveau: bloquer quand JARVIS parle
   onGoodbyeDetected: () => void
 }
 
 export const useGoodbyeDetection = ({ 
   isActive, 
+  isJarvisSpeaking = false,
   onGoodbyeDetected 
 }: UseGoodbyeDetectionProps) => {
   const [isListening, setIsListening] = useState(false)
@@ -50,12 +52,18 @@ export const useGoodbyeDetection = ({
         const transcript = lastResult[0].transcript.toLowerCase().trim()
         console.log('🎯 [GOODBYE] Speech Recognition:', transcript)
 
+        // ❌ IGNORER SI JARVIS PARLE
+        if (isJarvisSpeaking) {
+          console.log('🔇 [GOODBYE] Ignoré - JARVIS parle:', transcript)
+          return
+        }
+
         // Détection stricte "au revoir" uniquement
         const isGoodbye = (
           transcript === 'au revoir' ||
           transcript === 'au revoir.' ||
           transcript === 'au revoir !' ||
-          transcript.startsWith('au revoir ') && transcript.length <= 15
+          (transcript.startsWith('au revoir ') && transcript.length <= 15)
         )
 
         if (isGoodbye) {
@@ -72,6 +80,8 @@ export const useGoodbyeDetection = ({
           // Arrêter la reconnaissance et déclencher la fermeture
           recognition.stop()
           onGoodbyeDetected()
+        } else {
+          console.log('➡️ [GOODBYE] Pas un au revoir:', transcript)
         }
       }
     }
@@ -157,12 +167,23 @@ export const useGoodbyeDetection = ({
 
   // Gérer l'activation/désactivation
   useEffect(() => {
-    if (isActive && !isListening) {
+    if (isActive && !isListening && !isJarvisSpeaking) {
       startListening()
     } else if (!isActive && isListening) {
       stopListening()
     }
-  }, [isActive, isListening, startListening, stopListening])
+  }, [isActive, isListening, isJarvisSpeaking, startListening, stopListening])
+
+  // Pauser/reprendre quand JARVIS parle
+  useEffect(() => {
+    if (isJarvisSpeaking && isListening && recognitionRef.current) {
+      console.log('⏸️ [GOODBYE] Pause - JARVIS parle')
+      recognitionRef.current.stop()
+    } else if (!isJarvisSpeaking && isActive && !isListening) {
+      console.log('▶️ [GOODBYE] Reprise - JARVIS arrêté')
+      startListening()
+    }
+  }, [isJarvisSpeaking, isActive, isListening, startListening])
 
   // Cleanup au démontage
   useEffect(() => {

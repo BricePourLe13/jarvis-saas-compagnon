@@ -84,6 +84,7 @@ export default function VoiceInterface({
 
   const { isListening: goodbyeListening, isSupported: goodbyeSupported } = useGoodbyeDetection({
     isActive: isActive && isConnected,
+    isJarvisSpeaking: status === 'speaking',
     onGoodbyeDetected: handleGoodbyeDetected
   })
   
@@ -127,9 +128,15 @@ export default function VoiceInterface({
               <Text color="white" fontSize="sm">
                 Status: {getJarvisStatus()}
               </Text>
-              {goodbyeSupported && goodbyeListening && (
-                <Text color="green.300" fontSize="xs" display="flex" alignItems="center" gap={1}>
-                  🎯 Détection "au revoir" active
+              {goodbyeSupported && (
+                <Text 
+                  color={goodbyeListening ? "green.300" : "orange.300"} 
+                  fontSize="xs" 
+                  display="flex" 
+                  alignItems="center" 
+                  gap={1}
+                >
+                  {goodbyeListening ? "🎯 Détection \"au revoir\" active" : "⏸️ Détection pausée (JARVIS parle)"}
                 </Text>
               )}
             </VStack>
