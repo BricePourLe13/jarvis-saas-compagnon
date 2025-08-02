@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Box, Button, Text, VStack, HStack, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
+import { useGoodbyeDetection } from '@/hooks/useGoodbyeDetection'
 import AudioVisualizer from './AudioVisualizer'
 
 interface VoiceInterfaceProps {
@@ -74,100 +75,24 @@ export default function VoiceInterface({
     }
   }, [isActive, isConnected, disconnect])
 
-  // 👋 DÉTECTION "AU REVOIR" utilisateur - VERSION ULTRA PRÉCISE
-  const lastGoodbyeRef = useRef<string>('')
-  const goodbyeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const jarvisSpeakingRef = useRef(false)
+  // 🎯 NOUVELLE DÉTECTION "AU REVOIR" avec Web Speech API en parallèle
+  const handleGoodbyeDetected = useCallback(() => {
+    console.log('👋 [GOODBYE DETECTED] Fermeture session par détection au revoir')
+    disconnect()
+    onDeactivate()
+  }, [disconnect, onDeactivate])
+
+  const { isListening: goodbyeListening, isSupported: goodbyeSupported } = useGoodbyeDetection({
+    isActive: isActive && isConnected,
+    onGoodbyeDetected: handleGoodbyeDetected
+  })
   
-  // Tracker quand JARVIS parle pour éviter faux positifs
+  // Status pour debug
   useEffect(() => {
-    jarvisSpeakingRef.current = status === 'speaking'
-  }, [status])
-  
-  useEffect(() => {
-    if (currentTranscript && isConnected && !jarvisSpeakingRef.current) {
-      const transcript = currentTranscript.toLowerCase().trim()
-      
-      // Éviter les redéclenchements sur le même transcript
-      if (transcript === lastGoodbyeRef.current) return
-      
-      // ✅ DÉTECTION ULTRA STRICTE - UNIQUEMENT utilisateur qui dit exactement "au revoir"
-      const isExactGoodbye = (
-        transcript === 'au revoir' || 
-        transcript === 'au revoir.' ||
-        transcript === 'au revoir !' ||
-        transcript === 'au revoir jarvis' ||
-        transcript === 'au revoir jarvis.' ||
-        transcript === 'au revoir merci'
-      )
-      
-      // ❌ EXCLUSIONS STRICTES - Ne JAMAIS fermer si:
-      const shouldIgnore = (
-        jarvisSpeakingRef.current ||           // JARVIS parle actuellement
-        status === 'speaking' ||              // Status speaking actif
-        transcript.length > 15 ||             // Phrase trop longue (réduit à 15)
-        transcript.includes('vous') ||         // Contient "vous" (politesse JARVIS)
-        transcript.includes('bonne') ||        // "Bonne journée"
-        transcript.includes('à bientôt') ||    // "À bientôt"
-        transcript.includes('souhaite') ||     // "Je vous souhaite"
-        transcript.includes('journée') ||      // "Bonne journée"
-        transcript.includes('sport') ||        // "Bon sport" ← CRITICAL !
-        transcript.includes('séance') ||       // "Bonne séance"
-        transcript.includes('entraînement') || // "Bon entraînement"
-        transcript.includes('a plus') ||       // "A plus" ← AJOUTER !
-        transcript.includes('à plus') ||       // "À plus" ← AJOUTER !
-        transcript.includes('plus !') ||       // "plus !" ← AJOUTER !
-        transcript.includes('bon ') ||         // "bon " ← AJOUTER !
-        transcript.startsWith('a ') ||         // Commence par "a " ← AJOUTER !
-        transcript.startsWith('à ')            // Commence par "à " ← AJOUTER !
-      )
-      
-      if (isExactGoodbye && !shouldIgnore) {
-        lastGoodbyeRef.current = transcript
-        console.log('👋 [USER GOODBYE] Détection stricte "Au revoir":', transcript)
-        console.log('👋 [USER GOODBYE] Status actuel:', status)
-        console.log('👋 [USER GOODBYE] JARVIS speaking:', jarvisSpeakingRef.current)
-        
-        // ✅ DÉLAI DE GRÂCE de 3 secondes pour éviter fermetures accidentelles
-        if (goodbyeTimeoutRef.current) {
-          clearTimeout(goodbyeTimeoutRef.current)
-        }
-        
-        goodbyeTimeoutRef.current = setTimeout(() => {
-          // Double vérification avant fermeture
-          if (!jarvisSpeakingRef.current && status !== 'speaking') {
-            console.log('👋 [USER GOODBYE] Fermeture session confirmée')
-            disconnect()
-            onDeactivate()
-          } else {
-            console.log('👋 [USER GOODBYE] Fermeture annulée - JARVIS parle encore')
-          }
-        }, 3000)
-      } else if (isExactGoodbye && shouldIgnore) {
-        console.log('👋 [USER GOODBYE] Détection ignorée (JARVIS response):', transcript)
-      }
+    if (goodbyeSupported && goodbyeListening) {
+      console.log('🎯 [GOODBYE] Détection "au revoir" active en parallèle')
     }
-  }, [currentTranscript, isConnected, disconnect, onDeactivate])
-  
-  // Nettoyer la référence quand déconnecté
-  useEffect(() => {
-    if (!isConnected) {
-      lastGoodbyeRef.current = ''
-      if (goodbyeTimeoutRef.current) {
-        clearTimeout(goodbyeTimeoutRef.current)
-        goodbyeTimeoutRef.current = null
-      }
-    }
-  }, [isConnected])
-  
-  // Cleanup au démontage du composant
-  useEffect(() => {
-    return () => {
-      if (goodbyeTimeoutRef.current) {
-        clearTimeout(goodbyeTimeoutRef.current)
-      }
-    }
-  }, [])
+  }, [goodbyeSupported, goodbyeListening])
 
   const getJarvisStatus = () => {
     switch (status) {
@@ -198,9 +123,16 @@ export default function VoiceInterface({
               size="sm"
               style="bars"
             />
-            <Text color="white" fontSize="sm">
-              Status: {getJarvisStatus()}
-            </Text>
+            <VStack spacing={1} align="start">
+              <Text color="white" fontSize="sm">
+                Status: {getJarvisStatus()}
+              </Text>
+              {goodbyeSupported && goodbyeListening && (
+                <Text color="green.300" fontSize="xs" display="flex" alignItems="center" gap={1}>
+                  🎯 Détection "au revoir" active
+                </Text>
+              )}
+            </VStack>
           </HStack>
         )}
         
