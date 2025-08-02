@@ -105,15 +105,21 @@ export default function VoiceInterface({
       const shouldIgnore = (
         jarvisSpeakingRef.current ||           // JARVIS parle actuellement
         status === 'speaking' ||              // Status speaking actif
-        transcript.length > 30 ||             // Phrase trop longue
+        transcript.length > 15 ||             // Phrase trop longue (réduit à 15)
         transcript.includes('vous') ||         // Contient "vous" (politesse JARVIS)
         transcript.includes('bonne') ||        // "Bonne journée"
         transcript.includes('à bientôt') ||    // "À bientôt"
         transcript.includes('souhaite') ||     // "Je vous souhaite"
         transcript.includes('journée') ||      // "Bonne journée"
-        transcript.includes('sport') ||        // "Bon sport"
+        transcript.includes('sport') ||        // "Bon sport" ← CRITICAL !
         transcript.includes('séance') ||       // "Bonne séance"
-        transcript.includes('entraînement')    // "Bon entraînement"
+        transcript.includes('entraînement') || // "Bon entraînement"
+        transcript.includes('a plus') ||       // "A plus" ← AJOUTER !
+        transcript.includes('à plus') ||       // "À plus" ← AJOUTER !
+        transcript.includes('plus !') ||       // "plus !" ← AJOUTER !
+        transcript.includes('bon ') ||         // "bon " ← AJOUTER !
+        transcript.startsWith('a ') ||         // Commence par "a " ← AJOUTER !
+        transcript.startsWith('à ')            // Commence par "à " ← AJOUTER !
       )
       
       if (isExactGoodbye && !shouldIgnore) {
