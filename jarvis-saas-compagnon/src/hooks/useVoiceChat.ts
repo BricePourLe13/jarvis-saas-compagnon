@@ -655,6 +655,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
   // Fonction principale de connexion
   const connect = useCallback(async () => {
+    console.log('🔥 [CONNECT DEBUG] connect() appelée, isConnectingRef.current:', isConnectingRef.current, 'isConnected:', isConnected)
+    
     if (isConnectingRef.current || isConnected) {
       console.log('⚠️ Connexion déjà en cours ou établie')
       return
@@ -662,13 +664,17 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
     isConnectingRef.current = true
     updateStatus('connecting')
+    console.log('🔥 [CONNECT DEBUG] Début connexion, appel createSession()')
 
     try {
       // 1. Créer la session OpenAI avec token ephémère
       const session = await createSession()
+      console.log('🔥 [CONNECT DEBUG] createSession() réussie, session:', session)
       
       // 2. Initialiser WebRTC avec la session
+      console.log('🔥 [CONNECT DEBUG] Appel initializeWebRTC()')
       await initializeWebRTC(session)
+      console.log('🔥 [CONNECT DEBUG] initializeWebRTC() réussie')
       
       console.log('🚀 Connexion voice chat établie avec succès')
       
