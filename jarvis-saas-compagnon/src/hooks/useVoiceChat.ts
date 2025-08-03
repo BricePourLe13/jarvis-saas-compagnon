@@ -379,6 +379,26 @@ export function useVoiceChat(config: VoiceChatConfig) {
     }
   }, [config.memberId, config.gymSlug, getMemberData, initSessionTracking])
 
+  // Programmer une reconnexion avec backoff exponentiel (AVANT connect pour éviter dépendance circulaire)
+  const scheduleReconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) return
+
+    reconnectAttempts.current++
+    const delay = Math.min(
+      RECONNECT_CONFIG.baseDelay * Math.pow(RECONNECT_CONFIG.backoffMultiplier, reconnectAttempts.current - 1),
+      RECONNECT_CONFIG.maxDelay
+    )
+
+    console.log(`🔄 Reconnexion programmée dans ${delay}ms (tentative ${reconnectAttempts.current}/${RECONNECT_CONFIG.maxAttempts})`)
+    updateStatus('reconnecting')
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      reconnectTimeoutRef.current = null
+      // Utiliser la référence directe pour éviter dépendance circulaire
+      connect()
+    }, delay)
+  }, [updateStatus])
+
   // Initialiser la connexion WebRTC
   const initializeWebRTC = useCallback(async (session: VoiceChatSession) => {
     try {
@@ -708,36 +728,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
     } finally {
       isConnectingRef.current = false
     }
-  }, [isConnected, createSession, initializeWebRTC, updateStatus])
+  }, [isConnected, createSession, initializeWebRTC, updateStatus, scheduleReconnect])
 
-  // Programmer une reconnexion avec backoff exponentiel
-  const scheduleReconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) return
-
-    reconnectAttempts.current++
-    const delay = Math.min(
-      RECONNECT_CONFIG.baseDelay * Math.pow(RECONNECT_CONFIG.backoffMultiplier, reconnectAttempts.current - 1),
-      RECONNECT_CONFIG.maxDelay
-    )
-
-    console.log(`🔄 Reconnexion programmée dans ${delay}ms (tentative ${reconnectAttempts.current}/${RECONNECT_CONFIG.maxAttempts})`)
-    updateStatus('reconnecting')
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      reconnectTimeoutRef.current = null
-      connect()
-    }, delay)
-  }, [connect, updateStatus])
-
-  // Forcer une reconnexion
-  const forceReconnect = useCallback(async () => {
-    console.log('🔄 Reconnexion forcée demandée')
-    await disconnect()
-    reconnectAttempts.current = 0
-    setTimeout(() => connect(), 1000)
-  }, [connect, disconnect])
-
-  // Déconnexion propre
+  // Déconnexion propre (DÉCLARÉE EN PREMIER pour éviter erreur hoisting)
   const disconnect = useCallback(async () => {
     console.log('🔌 DÉCONNEXION VOICE CHAT - RAISON:', {
       timestamp: new Date().toISOString(),
@@ -797,6 +790,14 @@ export function useVoiceChat(config: VoiceChatConfig) {
     
     updateStatus('idle')
   }, [updateStatus, finalizeSessionTracking])
+
+  // Forcer une reconnexion
+  const forceReconnect = useCallback(async () => {
+    console.log('🔄 Reconnexion forcée demandée')
+    await disconnect()
+    reconnectAttempts.current = 0
+    setTimeout(() => connect(), 1000)
+  }, [connect, disconnect])
 
   // Envoyer un message texte (optionnel)
   const sendTextMessage = useCallback((text: string) => {
