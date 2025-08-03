@@ -730,15 +730,15 @@ export function useVoiceChat(config: VoiceChatConfig) {
   }, [connect, updateStatus])
 
   // Forcer une reconnexion
-  const forceReconnect = useCallback(() => {
+  const forceReconnect = useCallback(async () => {
     console.log('🔄 Reconnexion forcée demandée')
-    disconnect()
+    await disconnect()
     reconnectAttempts.current = 0
     setTimeout(() => connect(), 1000)
-  }, [connect])
+  }, [connect, disconnect])
 
   // Déconnexion propre
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
     console.log('🔌 DÉCONNEXION VOICE CHAT - RAISON:', {
       timestamp: new Date().toISOString(),
       isConnected,
@@ -777,8 +777,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
       audioElementRef.current.srcObject = null
     }
 
-    // 📊 [TRACKING] Finaliser le tracking de session
-    finalizeSessionTracking()
+    // 📊 [TRACKING] Finaliser le tracking de session AVANT de reset sessionRef
+    await finalizeSessionTracking()
 
     // Reset states
     setIsConnected(false)
@@ -831,7 +831,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
   // Nettoyage à la déconnexion du composant
   useEffect(() => {
     return () => {
-      disconnect()
+      // Note: cleanup function cannot be async, but disconnect should be called
+      disconnect().catch(console.error)
     }
   }, [disconnect])
 

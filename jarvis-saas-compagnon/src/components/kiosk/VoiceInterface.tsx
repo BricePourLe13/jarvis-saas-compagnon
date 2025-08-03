@@ -71,14 +71,14 @@ export default function VoiceInterface({
 
   useEffect(() => {
     if (!isActive && isConnected) {
-      disconnect()
+      disconnect().catch(console.error)
     }
   }, [isActive, isConnected, disconnect])
 
   // 🎯 NOUVELLE DÉTECTION "AU REVOIR" avec Web Speech API en parallèle
-  const handleGoodbyeDetected = useCallback(() => {
+  const handleGoodbyeDetected = useCallback(async () => {
     console.log('👋 [GOODBYE DETECTED] Fermeture session par détection au revoir')
-    disconnect()
+    await disconnect()
     onDeactivate()
   }, [disconnect, onDeactivate])
 
