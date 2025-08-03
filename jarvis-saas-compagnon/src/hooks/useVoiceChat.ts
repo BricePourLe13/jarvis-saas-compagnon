@@ -249,7 +249,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
             total_user_turns: Math.max(1, Math.floor(tracking.transcriptHistory.length / 2)), // Estimation
             total_ai_turns: Math.max(1, Math.ceil(tracking.transcriptHistory.length / 2)), // Estimation
             total_interruptions: 0, // TODO: Compter les vraies interruptions
-            final_transcript: tracking.transcriptHistory.join(' | '),
+            // final_transcript retiré - colonne inexistante en DB
             end_reason: tracking.errorOccurred ? 'error' : 'user_goodbye'
           })
 

@@ -138,9 +138,18 @@ export const useGoodbyeDetection = ({
       }
 
       if (recognitionRef.current) {
-        recognitionRef.current.start()
-        setIsListening(true)
-        console.log('✅ [GOODBYE] Détection démarrée')
+        // Vérifier que la reconnaissance n'est pas déjà en cours
+        try {
+          recognitionRef.current.start()
+          setIsListening(true)
+          console.log('✅ [GOODBYE] Détection démarrée')
+        } catch (startError) {
+          if (startError instanceof Error && startError.message.includes('already started')) {
+            console.log('⚠️ [GOODBYE] Reconnaissance déjà active, pas de redémarrage')
+          } else {
+            throw startError
+          }
+        }
       }
 
     } catch (error) {

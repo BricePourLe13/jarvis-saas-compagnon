@@ -31,7 +31,7 @@ export interface OpenAIRealtimeSessionEnd {
   total_user_turns: number
   total_ai_turns: number
   total_interruptions: number
-  final_transcript?: string
+  // final_transcript?: string  // Retiré - colonne inexistante
   end_reason: 'user_goodbye' | 'timeout' | 'error' | 'manual'
 }
 
@@ -153,7 +153,7 @@ class OpenAIRealtimeInstrumentation {
           total_user_turns: endData.total_user_turns,
           total_ai_turns: endData.total_ai_turns,
           total_interruptions: endData.total_interruptions,
-          final_transcript: endData.final_transcript,
+          // final_transcript retiré - colonne inexistante en DB
           updated_at: new Date().toISOString(),
           session_metadata: {
             end_reason: endData.end_reason,
