@@ -26,7 +26,13 @@ import {
   Zap,
   TrendingUp,
   ArrowRight,
-  Clock
+  Clock,
+  Wifi,
+  WifiOff,
+  DollarSign,
+  AlertTriangle,
+  Monitor,
+  Eye
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -44,6 +50,15 @@ interface AdminStats {
   pendingProvisioning: number
 }
 
+interface MonitoringStats {
+  activeSessions: number
+  onlineKiosks: number
+  offlineKiosks: number
+  todayCosts: number
+  recentErrors: number
+  avgSessionDuration: number
+}
+
 export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats>({
     totalFranchises: 0,
@@ -51,6 +66,14 @@ export default function AdminPage() {
     totalActiveKiosks: 0,
     todaySessions: 0,
     pendingProvisioning: 0
+  })
+  const [monitoring, setMonitoring] = useState<MonitoringStats>({
+    activeSessions: 0,
+    onlineKiosks: 0,
+    offlineKiosks: 0,
+    todayCosts: 0,
+    recentErrors: 0,
+    avgSessionDuration: 0
   })
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -84,6 +107,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     loadStats()
+    loadMonitoring()
+    
+    // Refresh monitoring toutes les 30 secondes
+    const interval = setInterval(loadMonitoring, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const loadStats = async () => {
@@ -130,6 +158,55 @@ export default function AdminPage() {
     }
   }
 
+  const loadMonitoring = async () => {
+    try {
+      const supabase = createBrowserClientWithConfig()
+
+      // Charger les sessions actives (dernière heure)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+      
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('openai_realtime_sessions')
+        .select('id, session_start, session_end, cost_usd, gym_id')
+        .gte('session_start', oneHourAgo)
+
+      if (sessionsError) {
+        console.warn('Erreur sessions:', sessionsError)
+      }
+
+      const activeSessions = sessions?.filter(s => !s.session_end).length || 0
+      const todaySessions = sessions?.length || 0
+      const todayCosts = sessions?.reduce((sum, s) => sum + (s.cost_usd || 0), 0) || 0
+      const avgSessionDuration = sessions?.length ? 
+        sessions.reduce((sum, s) => {
+          if (s.session_end) {
+            const duration = new Date(s.session_end).getTime() - new Date(s.session_start).getTime()
+            return sum + duration / 1000 / 60 // en minutes
+          }
+          return sum
+        }, 0) / sessions.filter(s => s.session_end).length : 0
+
+      // Simuler status kiosks (à améliorer plus tard)
+      const onlineKiosks = stats.totalActiveKiosks
+      const offlineKiosks = 0
+
+      setMonitoring({
+        activeSessions,
+        onlineKiosks,
+        offlineKiosks,
+        todayCosts: Math.round(todayCosts * 100) / 100,
+        recentErrors: 0, // À implémenter
+        avgSessionDuration: Math.round(avgSessionDuration * 10) / 10
+      })
+
+      // Mettre à jour aussi todaySessions dans stats
+      setStats(prev => ({ ...prev, todaySessions }))
+
+    } catch (error) {
+      console.error('Erreur monitoring:', error)
+    }
+  }
+
   const statsCards = [
     {
       label: 'Franchises',
@@ -158,6 +235,38 @@ export default function AdminPage() {
     }
   ]
 
+  const monitoringCards = [
+    {
+      label: 'Sessions actives',
+      value: monitoring.activeSessions,
+      icon: Activity,
+      color: monitoring.activeSessions > 0 ? 'green' : 'gray',
+      action: () => router.push('/admin/monitoring')
+    },
+    {
+      label: 'Kiosks en ligne',
+      value: `${monitoring.onlineKiosks}/${monitoring.onlineKiosks + monitoring.offlineKiosks}`,
+      icon: monitoring.offlineKiosks > 0 ? WifiOff : Wifi,
+      color: monitoring.offlineKiosks > 0 ? 'red' : 'green',
+      action: () => router.push('/admin/monitoring'),
+      highlight: monitoring.offlineKiosks > 0
+    },
+    {
+      label: 'Coûts aujourd\'hui',
+      value: `$${monitoring.todayCosts}`,
+      icon: DollarSign,
+      color: 'blue',
+      action: () => router.push('/admin/monitoring')
+    },
+    {
+      label: 'Durée moy. session',
+      value: `${monitoring.avgSessionDuration}min`,
+      icon: Clock,
+      color: 'gray',
+      action: () => router.push('/admin/monitoring')
+    }
+  ]
+
   const quickActions = [
     {
       label: 'Nouvelle franchise',
@@ -176,6 +285,12 @@ export default function AdminPage() {
       description: 'Inviter et gérer les administrateurs',
       icon: Users,
       action: () => router.push('/admin/team')
+    },
+    {
+      label: 'Monitoring temps réel',
+      description: 'Supervision kiosks et sessions',
+      icon: Monitor,
+      action: () => router.push('/admin/monitoring')
     },
     {
       label: 'Analytics',
@@ -374,6 +489,118 @@ export default function AdminPage() {
               </MotionBox>
             ))}
           </SimpleGrid>
+        </MotionBox>
+
+        {/* Section Monitoring Temps Réel */}
+        <MotionBox variants={itemVariants}>
+          <VStack spacing={6} w="full" align="start">
+            <HStack justify="space-between" w="full">
+              <Heading 
+                size="lg" 
+                color="black"
+                fontWeight="400"
+                letterSpacing="-0.5px"
+              >
+                Monitoring temps réel
+              </Heading>
+              <Badge 
+                bg="green.50" 
+                color="green.600" 
+                px={3} 
+                py={1} 
+                borderRadius="full"
+                fontSize="xs"
+                fontWeight="500"
+              >
+                LIVE
+              </Badge>
+            </HStack>
+            
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={4} w="full">
+              {monitoringCards.map((card, index) => (
+                <MotionBox
+                  key={card.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.4, 
+                    delay: index * 0.05,
+                    ease: "easeOut"
+                  }}
+                  whileHover={{ 
+                    scale: 1.02,
+                    transition: { duration: 0.15 }
+                  }}
+                  cursor="pointer"
+                  onClick={card.action}
+                >
+                  <Box
+                    bg="rgba(255, 255, 255, 0.95)"
+                    border="1px solid"
+                    borderColor={card.highlight ? "red.200" : "rgba(255, 255, 255, 0.2)"}
+                    borderRadius="16px"
+                    p={5}
+                    backdropFilter="blur(20px)"
+                    shadow={card.highlight ? "0 8px 32px rgba(239, 68, 68, 0.15)" : "0 4px 20px rgba(0, 0, 0, 0.08)"}
+                    position="relative"
+                    zIndex={2}
+                    _hover={{
+                      bg: "rgba(255, 255, 255, 0.98)",
+                      shadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+                      transform: "translateY(-1px)",
+                      transition: "all 0.3s ease"
+                    }}
+                  >
+                    <HStack justify="space-between" align="start">
+                      <VStack spacing={2} align="start" flex="1">
+                        <Text 
+                          fontSize="sm" 
+                          color="gray.600"
+                          fontWeight="400"
+                        >
+                          {card.label}
+                        </Text>
+                        <Text 
+                          fontSize="xl" 
+                          fontWeight="600" 
+                          color="black"
+                          lineHeight="1"
+                        >
+                          {card.value}
+                        </Text>
+                      </VStack>
+                      
+                      <Box
+                        w={10}
+                        h={10}
+                        bg={`${card.color}.500`}
+                        borderRadius="12px"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        flexShrink={0}
+                      >
+                        <Icon as={card.icon} color="white" boxSize={5} />
+                      </Box>
+                    </HStack>
+                    
+                    {card.highlight && (
+                      <Box
+                        position="absolute"
+                        top={2}
+                        right={2}
+                        w={2}
+                        h={2}
+                        bg="red.400"
+                        borderRadius="50%"
+                        animation="pulse 2s infinite"
+                      />
+                    )}
+                  </Box>
+                </MotionBox>
+              ))}
+            </SimpleGrid>
+          </VStack>
         </MotionBox>
 
         {/* Quick Actions */}
