@@ -95,7 +95,7 @@ export default function FranchisePage() {
       setUserProfile(profile)
 
       if (profile.role !== 'franchise_owner' && profile.role !== 'franchise_admin') {
-        router.push('/dashboard')
+        router.push('/admin')
         return
       }
 
@@ -179,7 +179,7 @@ export default function FranchisePage() {
           <Button
             bg="black"
             color="white"
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/admin')}
             _hover={{ bg: "gray.900" }}
             borderRadius="2px"
             fontWeight="500"
@@ -363,7 +363,7 @@ export default function FranchisePage() {
                 {
                   label: 'Dashboard global',
                   description: 'Vue d\'ensemble de la plateforme',
-                  action: () => router.push('/dashboard')
+                  action: () => router.push('/admin')
                 },
                 {
                   label: 'Profil utilisateur',

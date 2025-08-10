@@ -53,7 +53,18 @@ export class OpenAIRealtimeMonitoringServiceFixed {
 
       if (error) {
         console.error('❌ [MONITORING] Erreur fonction SQL:', error)
-        return null
+        // Retourner des valeurs par défaut pour éviter de spammer la console et casser l'UI
+        return {
+          gym_id: gymId,
+          sessions_24h: 0,
+          active_sessions: 0,
+          total_cost_24h_usd: 0,
+          avg_session_duration: 0,
+          total_user_turns: 0,
+          total_ai_turns: 0,
+          last_session_time: null,
+          error_rate_percent: 0
+        }
       }
 
       if (!data || data.length === 0) {

@@ -1,3 +1,4 @@
+import { formatCurrency } from '../../../../../../lib/currency'
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
@@ -23,9 +24,6 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
   Code,
   Tabs,
   TabList,
@@ -45,6 +43,7 @@ import {
 } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import OpenAIRealtimeMonitoringFixed from '@/components/admin/monitoring/OpenAIRealtimeMonitoringFixed'
+import { UnifiedLayout } from '@/components/unified/UnifiedLayout'
 import { 
   ArrowLeft,
   Building2, 
@@ -74,7 +73,7 @@ import {
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../../../types/franchise'
 import { createBrowserClientWithConfig } from '../../../../../../lib/supabase-admin'
-import { getKioskSupervisionMetrics, convertUSDToEUR, formatCurrency } from '../../../../../../lib/openai-cost-tracker'
+import { getKioskSupervisionMetrics, convertUSDToEUR } from '../../../../../../lib/openai-cost-tracker'
 // ✅ Import pour les métriques temps réel
 import { RealOpenAICostsService } from '../../../../../../lib/real-openai-costs'
 // 💓 Import pour le statut temps réel des kiosks
@@ -270,7 +269,7 @@ export default function GymDetailsPage() {
   // ===========================================
 
   const handleBack = () => {
-    router.push(`/admin/franchises/${franchiseId}`)
+    router.push(`/admin/franchises/${franchiseId}/gyms`)
   }
 
   const handleEdit = () => {
@@ -414,30 +413,28 @@ export default function GymDetailsPage() {
   }
 
   return (
-    <Container maxW="7xl" py={8}>
+    <UnifiedLayout
+      title={gym?.name || 'Salle'}
+      currentLevel="gym"
+      franchiseId={franchiseId}
+      franchiseName={franchise?.name}
+      gymId={gymId}
+      gymName={gym?.name}
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/admin' },
+        { label: franchise?.name || 'Franchise', href: `/admin/franchises/${franchiseId}/gyms` },
+        { label: 'Salles', href: `/admin/franchises/${franchiseId}/gyms` },
+        { label: gym?.name || 'Salle', href: `/admin/franchises/${franchiseId}/gyms/${gymId}` }
+      ]}
+    >
+      <Container maxW="7xl" py={0}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <VStack spacing={6} align="stretch">
-          
-          {/* Navigation Hiérarchique */}
-          <Breadcrumb fontSize="sm" color="gray.500">
-            <BreadcrumbItem>
-              <BreadcrumbLink onClick={() => router.push('/dashboard')}>
-                Dashboard Global
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbLink onClick={() => router.push(`/admin/franchises/${franchiseId}`)}>
-                {franchise?.name || 'Franchise'}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem isCurrentPage>
-              <Text color="gray.700" fontWeight="500">{gym.name}</Text>
-            </BreadcrumbItem>
-          </Breadcrumb>
+          {/* Breadcrumb rendu par UnifiedLayout */}
 
           {/* Header avec actions */}
           <Flex align="center">
@@ -635,14 +632,14 @@ export default function GymDetailsPage() {
                               <HStack justify="space-between">
                                 <Text fontSize="sm" color="#6b7280">Consommé</Text>
                                 <Text fontSize="lg" fontWeight="700" color="#111827">
-                                  {((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85).toFixed(0)}€
+                                  ${((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85).toFixed(0)}
                                 </Text>
                               </HStack>
                               
                               <Box>
                                 <HStack justify="space-between" mb={2}>
-                                  <Text fontSize="xs" color="#9ca3af">0€</Text>
-                                  <Text fontSize="xs" color="#9ca3af">500€</Text>
+                                  <Text fontSize="xs" color="#9ca3af">$0</Text>
+                                  <Text fontSize="xs" color="#9ca3af">$500</Text>
                                 </HStack>
                                 <Box bg="#f3f4f6" borderRadius="6px" h="8px" overflow="hidden">
                                   <Box 
@@ -662,13 +659,13 @@ export default function GymDetailsPage() {
                                     ((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) > 450 ? "#ef4444" : 
                                     ((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) > 400 ? "#f59e0b" : "#10b981"
                                   }>
-                                    {((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85).toFixed(0)}€
+                                    ${((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85).toFixed(0)}
                                   </Text>
                                 </HStack>
                                 <HStack justify="space-between">
                                   <Text fontSize="sm" color="#6b7280">Reste disponible</Text>
                                   <Text fontSize="sm" fontWeight="600" color="#111827">
-                                    {Math.max(0, 500 - ((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85)).toFixed(0)}€
+                                    ${Math.max(0, 500 - ((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85)).toFixed(0)}
                                   </Text>
                                 </HStack>
                               </VStack>
@@ -697,7 +694,7 @@ export default function GymDetailsPage() {
                               <VStack align="start" spacing={1}>
                                 <Text fontSize="sm" color="#6b7280">Coût aujourd'hui</Text>
                                 <Text fontSize="2xl" fontWeight="700" color="#111827">
-                                  €{(jarvisMetrics?.today?.totalCostUSD ? (jarvisMetrics.today.totalCostUSD * 0.85).toFixed(2) : '0.00')}
+                                  ${(jarvisMetrics?.today?.totalCostUSD ? (jarvisMetrics.today.totalCostUSD * 0.85).toFixed(2) : '0.00')}
                                 </Text>
                                 <Text fontSize="xs" color="#9ca3af">
                                   Temps réel
@@ -846,7 +843,7 @@ export default function GymDetailsPage() {
                               <HStack justify="space-between">
                                 <Text fontSize="sm" color="#6b7280">Budget mensuel</Text>
                                 <Text fontSize="sm" fontWeight="600" color="#111827">
-                                  500€
+                                  $500
                                 </Text>
                               </HStack>
                               
@@ -1166,5 +1163,6 @@ export default function GymDetailsPage() {
         </VStack>
       </motion.div>
     </Container>
+    </UnifiedLayout>
   )
 } 

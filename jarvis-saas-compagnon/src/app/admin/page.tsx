@@ -1,699 +1,515 @@
 "use client"
-import { 
-  Box, 
-  Container, 
-  Heading, 
-  Text, 
-  SimpleGrid,
+import {
   VStack,
   HStack,
-  Icon,
-  Button,
-  Badge,
-  Flex,
+  Box,
+  Text,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  SimpleGrid,
   Spinner,
-  useToast
+  Badge,
+  Avatar
 } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Building2, 
-  Dumbbell, 
-  Users, 
-  Activity, 
-  Plus,
-  BarChart3,
-  Settings,
-  Zap,
+  AlertTriangle, 
   TrendingUp,
-  ArrowRight,
-  Clock,
-  Wifi,
-  WifiOff,
+  Building2,
+  Activity,
   DollarSign,
-  AlertTriangle,
-  Monitor,
-  Eye
+  Clock,
+  ArrowRight,
+  Plus
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createBrowserClientWithConfig } from '../../lib/supabase-admin'
+import { UnifiedLayout } from '../../components/unified/UnifiedLayout'
+import { PrimaryButton } from '../../components/unified/PrimaryButton'
+import { motion } from 'framer-motion'
+import { formatCurrency } from '../../lib/currency'
 
 const MotionBox = motion(Box)
-const MotionFlex = motion(Flex)
-const MotionVStack = motion(VStack)
 
-interface AdminStats {
-  totalFranchises: number
-  totalGyms: number
-  totalActiveKiosks: number
-  todaySessions: number
-  pendingProvisioning: number
+interface Alert {
+  id: string
+  type: 'error' | 'warning' | 'info'
+  title: string
+  description: string
+  franchise?: string
+  gym?: string
+  timestamp: Date
 }
 
-interface MonitoringStats {
-  activeSessions: number
-  onlineKiosks: number
-  offlineKiosks: number
-  todayCosts: number
-  recentErrors: number
-  avgSessionDuration: number
+interface QuickStat {
+  label: string
+  value: string | number
+  trend?: { value: number; positive: boolean }
+  icon: any
+}
+
+interface Franchise {
+  id: string
+  name: string
+  city: string
+  gyms_count: number
+  active_sessions: number
+  status: 'active' | 'warning' | 'error'
 }
 
 export default function AdminPage() {
-  const [stats, setStats] = useState<AdminStats>({
-    totalFranchises: 0,
-    totalGyms: 0,
-    totalActiveKiosks: 0,
-    todaySessions: 0,
-    pendingProvisioning: 0
-  })
-  const [monitoring, setMonitoring] = useState<MonitoringStats>({
-    activeSessions: 0,
-    onlineKiosks: 0,
-    offlineKiosks: 0,
-    todayCosts: 0,
-    recentErrors: 0,
-    avgSessionDuration: 0
-  })
-  const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const toast = useToast()
-
-  // Animations subtiles premium
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        duration: 0.8,
-        ease: [0.23, 1, 0.32, 1],
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { 
-        duration: 0.6, 
-        ease: [0.23, 1, 0.32, 1] 
-      }
-    }
-  }
+  const [loading, setLoading] = useState(true)
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [topFranchises, setTopFranchises] = useState<Franchise[]>([])
+  const [quickStats, setQuickStats] = useState<QuickStat[]>([])
 
   useEffect(() => {
-    loadStats()
-    loadMonitoring()
-    
-    // Refresh monitoring toutes les 30 secondes
-    const interval = setInterval(loadMonitoring, 30000)
-    return () => clearInterval(interval)
+    loadDashboardData()
   }, [])
 
-  const loadStats = async () => {
+  const loadDashboardData = async () => {
     try {
       const supabase = createBrowserClientWithConfig()
+      
+      // Charger les franchises
+      const { data: franchisesData, error } = await supabase
+        .from('franchises')
+        .select(`
+          id,
+          name,
+          city,
+          gyms (id, kiosk_config)
+        `)
+        .order('created_at', { ascending: false })
 
-      // Charger les statistiques en parallèle
-      const [franchisesResponse, gymsResponse] = await Promise.all([
-        supabase.from('franchises').select('id'),
-        supabase.from('gyms').select('id, kiosk_config')
+      if (error) throw error
+
+      // Charger des alertes réelles depuis jarvis_errors_log (dernières 24h)
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { data: errorsData } = await supabase
+        .from('jarvis_errors_log')
+        .select('id, error_type, error_message, context, created_at, gym_id, franchise_id')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      const alertsFromDb: Alert[] = (errorsData || []).map((e: any) => ({
+        id: e.id,
+        type: e.error_type === 'critical' ? 'error' : 'warning',
+        title: e.error_type?.toUpperCase() || 'Incident',
+        description: e.error_message || 'Voir détails',
+        timestamp: new Date(e.created_at)
+      }))
+
+      // Top 3 franchises par activité (sessions actives + kiosks provisionnés)
+      const transformedFranchises: Franchise[] = (franchisesData || []).map(f => ({
+        id: f.id,
+        name: f.name,
+        city: f.city,
+        gyms_count: f.gyms?.length || 0,
+        active_sessions: 0,
+        status: (f.gyms || []).some((g: any) => !g.kiosk_config?.is_provisioned) ? 'warning' : 'active' as any
+      })).sort((a, b) => b.active_sessions - a.active_sessions).slice(0, 3)
+
+      // Récupérer les métriques globales réelles
+      const startOfDay = new Date(); startOfDay.setHours(0,0,0,0)
+      const [{ data: sessionsToday }, { data: activeSessions } ] = await Promise.all([
+        supabase
+          .from('openai_realtime_sessions')
+          .select('id, cost_usd, session_start, session_end')
+          .gte('session_start', startOfDay.toISOString()),
+        supabase
+          .from('openai_realtime_sessions')
+          .select('id')
+          .is('session_end', null)
       ])
 
-      const totalFranchises = franchisesResponse.data?.length || 0
-      const totalGyms = gymsResponse.data?.length || 0
-      
-      // Calculer les kiosks actifs et en attente de provisioning
-      const gyms = gymsResponse.data || []
-      const totalActiveKiosks = gyms.filter(gym => 
-        gym.kiosk_config && gym.kiosk_config.is_provisioned
-      ).length
-      
-      const pendingProvisioning = gyms.filter(gym => 
-        gym.kiosk_config && !gym.kiosk_config.is_provisioned
-      ).length
+      const totalCostToday = (sessionsToday || []).reduce((sum: number, s: any) => sum + (s.cost_usd || 0), 0)
+      const completed = (sessionsToday || []).filter((s: any) => s.session_end)
+      const avgDuration = completed.length > 0 ? Math.round(
+        (completed.reduce((acc: number, s: any) => acc + (new Date(s.session_end).getTime() - new Date(s.session_start).getTime()), 0) / completed.length) / 60000 * 10
+      ) / 10 : 0
 
-      setStats({
-        totalFranchises,
-        totalGyms,
-        totalActiveKiosks,
-        todaySessions: 0, // À implémenter plus tard
-        pendingProvisioning
-      })
+      const stats: QuickStat[] = [
+        { label: 'Sessions actives', value: (activeSessions || []).length, icon: Activity, trend: { value: 0, positive: true } },
+        { label: 'Coûts IA (jour)', value: formatCurrency(Math.round(totalCostToday * 100)/100, { currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }), icon: TrendingUp, trend: { value: 0, positive: false } },
+        { label: 'Sessions (jour)', value: (sessionsToday || []).length, icon: DollarSign, trend: { value: 0, positive: true } },
+        { label: 'Durée moy. session', value: `${avgDuration} min`, icon: Clock }
+      ]
+
+      setAlerts(alertsFromDb)
+      setTopFranchises(transformedFranchises)
+      setQuickStats(stats)
     } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error)
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les statistiques",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      })
+      console.error('Erreur chargement dashboard:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const loadMonitoring = async () => {
-    try {
-      const supabase = createBrowserClientWithConfig()
-
-      // Charger les sessions actives (dernière heure)
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-      
-      const { data: sessions, error: sessionsError } = await supabase
-        .from('openai_realtime_sessions')
-        .select('id, session_start, session_end, cost_usd, gym_id')
-        .gte('session_start', oneHourAgo)
-
-      if (sessionsError) {
-        console.warn('Erreur sessions:', sessionsError)
-      }
-
-      const activeSessions = sessions?.filter(s => !s.session_end).length || 0
-      const todaySessions = sessions?.length || 0
-      const todayCosts = sessions?.reduce((sum, s) => sum + (s.cost_usd || 0), 0) || 0
-      const avgSessionDuration = sessions?.length ? 
-        sessions.reduce((sum, s) => {
-          if (s.session_end) {
-            const duration = new Date(s.session_end).getTime() - new Date(s.session_start).getTime()
-            return sum + duration / 1000 / 60 // en minutes
-          }
-          return sum
-        }, 0) / sessions.filter(s => s.session_end).length : 0
-
-      // Simuler status kiosks (à améliorer plus tard)
-      const onlineKiosks = stats.totalActiveKiosks
-      const offlineKiosks = 0
-
-      setMonitoring({
-        activeSessions,
-        onlineKiosks,
-        offlineKiosks,
-        todayCosts: Math.round(todayCosts * 100) / 100,
-        recentErrors: 0, // À implémenter
-        avgSessionDuration: Math.round(avgSessionDuration * 10) / 10
-      })
-
-      // Mettre à jour aussi todaySessions dans stats
-      setStats(prev => ({ ...prev, todaySessions }))
-
-    } catch (error) {
-      console.error('Erreur monitoring:', error)
+  const getAlertStatus = (type: string) => {
+    switch (type) {
+      case 'error': return 'error'
+      case 'warning': return 'warning'
+      default: return 'info'
     }
   }
 
-  const statsCards = [
-    {
-      label: 'Franchises',
-      value: stats.totalFranchises,
-      icon: Building2,
-      action: () => router.push('/admin/franchises')
-    },
-    {
-      label: 'Salles',
-      value: stats.totalGyms,
-      icon: Dumbbell,
-      action: () => router.push('/admin/franchises')
-    },
-    {
-      label: 'Kiosks actifs',
-      value: stats.totalActiveKiosks,
-      icon: Zap,
-      action: () => router.push('/admin/franchises')
-    },
-    {
-      label: 'En attente',
-      value: stats.pendingProvisioning,
-      icon: Clock,
-      action: () => router.push('/admin/franchises'),
-      highlight: stats.pendingProvisioning > 0
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'green'
+      case 'warning': return 'orange'
+      case 'error': return 'red'
+      default: return 'gray'
     }
-  ]
-
-  const monitoringCards = [
-    {
-      label: 'Sessions actives',
-      value: monitoring.activeSessions,
-      icon: Activity,
-      color: monitoring.activeSessions > 0 ? 'green' : 'gray',
-      action: () => router.push('/admin/monitoring')
-    },
-    {
-      label: 'Kiosks en ligne',
-      value: `${monitoring.onlineKiosks}/${monitoring.onlineKiosks + monitoring.offlineKiosks}`,
-      icon: monitoring.offlineKiosks > 0 ? WifiOff : Wifi,
-      color: monitoring.offlineKiosks > 0 ? 'red' : 'green',
-      action: () => router.push('/admin/monitoring'),
-      highlight: monitoring.offlineKiosks > 0
-    },
-    {
-      label: 'Coûts aujourd\'hui',
-      value: `$${monitoring.todayCosts}`,
-      icon: DollarSign,
-      color: 'blue',
-      action: () => router.push('/admin/monitoring')
-    },
-    {
-      label: 'Durée moy. session',
-      value: `${monitoring.avgSessionDuration}min`,
-      icon: Clock,
-      color: 'gray',
-      action: () => router.push('/admin/monitoring')
-    }
-  ]
-
-  const quickActions = [
-    {
-      label: 'Nouvelle franchise',
-      description: 'Créer une nouvelle franchise',
-      icon: Plus,
-      action: () => router.push('/admin/franchises/create')
-    },
-    {
-      label: 'Voir les franchises',
-      description: 'Gérer les franchises existantes',
-      icon: Building2,
-      action: () => router.push('/admin/franchises')
-    },
-    {
-      label: 'Gestion équipe',
-      description: 'Inviter et gérer les administrateurs',
-      icon: Users,
-      action: () => router.push('/admin/team')
-    },
-    {
-      label: 'Monitoring temps réel',
-      description: 'Supervision kiosks et sessions',
-      icon: Monitor,
-      action: () => router.push('/admin/monitoring')
-    },
-    {
-      label: 'Analytics',
-      description: 'Voir les statistiques détaillées',
-      icon: BarChart3,
-      action: () => toast({
-        title: "Bientôt disponible",
-        description: "Les analytics arrivent prochainement",
-        status: "info",
-        duration: 3000,
-      }),
-      disabled: true
-    }
-  ]
+  }
 
   if (loading) {
     return (
-      <Box 
-        minH="100vh" 
-        bg="white"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        fontFamily="system-ui, -apple-system, sans-serif"
+      <UnifiedLayout
+        title="Dashboard"
+        currentLevel="global"
       >
-        <VStack spacing={4}>
-          <Spinner size="lg" color="gray.600" />
-          <Text color="gray.600" fontSize="sm" fontWeight="400">
-            Chargement des données...
-          </Text>
+        <VStack spacing={8} align="center" py={12}>
+          <Spinner size="lg" color="black" />
+          <Text color="gray.600">Chargement du dashboard...</Text>
         </VStack>
-      </Box>
+      </UnifiedLayout>
     )
   }
 
   return (
-    <Box 
-      minH="100vh" 
-      bg="linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #eeeeee 100%)"
-      fontFamily="system-ui, -apple-system, sans-serif"
-      position="relative"
-      p={8}
-      overflow="hidden"
+    <UnifiedLayout
+      title="Dashboard"
+      currentLevel="global"
+      primaryAction={{
+        label: "Nouvelle franchise",
+        onClick: () => router.push('/admin/franchises/create')
+      }}
     >
-      {/* Formes fluides arrière-plan comme page login */}
-      <Box
-        position="absolute"
-        top="15%"
-        right="10%"
-        width="40%"
-        height="50%"
-        background="linear-gradient(225deg, rgba(107, 114, 128, 0.3) 0%, rgba(156, 163, 175, 0.2) 60%, rgba(209, 213, 219, 0.1) 100%)"
-        borderRadius="40% 50% 30% 60%"
-        filter="blur(2px)"
-        transform="rotate(-10deg)"
-        zIndex={0}
-      />
-      <Box
-        position="absolute"
-        bottom="20%"
-        left="15%"
-        width="45%"
-        height="55%"
-        background="linear-gradient(45deg, rgba(229, 231, 235, 0.4) 0%, rgba(243, 244, 246, 0.2) 100%)"
-        borderRadius="60% 40% 50% 30%"
-        filter="blur(1.5px)"
-        transform="rotate(8deg)"
-        zIndex={0}
-      />
-      
-      {/* Pattern de points subtil en arrière-plan */}
-      <Box
-        position="absolute"
-        top={0}
-        left={0}
-        right={0}
-        bottom={0}
-        opacity={0.02}
-        bgImage="radial-gradient(circle, black 1px, transparent 1px)"
-        bgSize="24px 24px"
-        pointerEvents="none"
-        zIndex={1}
-      />
-
-      <MotionVStack
-        spacing={12}
-        align="stretch"
-        maxW="1200px"
-        mx="auto"
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-      >
-        {/* Header */}
-        <MotionBox variants={itemVariants}>
-          <VStack spacing={2} align="start">
-            <Heading 
-              size="xl" 
-              color="black"
-              fontWeight="400"
-              letterSpacing="-0.5px"
-              fontFamily="system-ui"
-            >
-              Administration
-            </Heading>
-            <Text 
-              color="gray.600" 
-              fontSize="lg"
-              fontWeight="400"
-            >
-              Gestion de la plateforme JARVIS
-            </Text>
-          </VStack>
-        </MotionBox>
-
-        {/* Stats Grid */}
-        <MotionBox variants={itemVariants}>
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={6}>
-            {statsCards.map((stat, index) => (
-              <MotionBox
-                key={stat.label}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ 
-                  duration: 0.5, 
-                  delay: index * 0.1,
-                  ease: [0.23, 1, 0.32, 1]
-                }}
-                whileHover={{ 
-                  scale: 1.02,
-                  transition: { duration: 0.2 }
-                }}
-                cursor="pointer"
-                onClick={stat.action}
-              >
-                <Box
-                  bg="rgba(255, 255, 255, 0.95)"
-                  border="1px solid"
-                  borderColor="rgba(255, 255, 255, 0.2)"
-                  borderRadius="20px"
-                  p={6}
-                  backdropFilter="blur(20px)"
-                  shadow={stat.highlight ? "0 20px 40px rgba(0, 0, 0, 0.15)" : "0 8px 32px rgba(0, 0, 0, 0.12)"}
-                  position="relative"
-                  zIndex={2}
-                  _hover={{
-                    bg: "rgba(255, 255, 255, 0.98)",
-                    shadow: "0 20px 40px rgba(0, 0, 0, 0.15)",
-                    transform: "translateY(-2px)",
-                    transition: "all 0.3s ease"
-                  }}
+      <VStack spacing={8} align="stretch">
+        {/* ALERTES URGENTES */}
+        {alerts.length > 0 && (
+          <MotionBox
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <VStack spacing={4} align="stretch">
+              <HStack justify="space-between" align="center">
+                <HStack spacing={2}>
+                  <AlertTriangle size={20} color="#EF4444" />
+                  <Text fontSize="lg" fontWeight="600" color="black">
+                    Alertes urgentes
+                  </Text>
+                  <Badge colorScheme="red" variant="subtle">
+                    {alerts.length}
+                  </Badge>
+                </HStack>
+                <PrimaryButton
+                  variant="ghost"
+                  size="sm"
+                  rightIcon={<ArrowRight size={16} />}
+                  onClick={() => router.push('/admin/monitoring')}
                 >
-                  <VStack spacing={4} align="start">
-                    <HStack justify="space-between" w="full">
+                  Voir toutes
+                </PrimaryButton>
+              </HStack>
+
+              <VStack spacing={3} align="stretch">
+                {alerts.map((alert) => (
+                  <Alert
+                    key={alert.id}
+                    status={getAlertStatus(alert.type)}
+                    borderRadius="8px"
+                    cursor="pointer"
+                    _hover={{ bg: `${getAlertStatus(alert.type)}.25` }}
+                    onClick={() => router.push('/admin/monitoring')}
+                  >
+                    <AlertIcon />
+                    <Box flex="1">
+                      <AlertTitle fontSize="sm" fontWeight="600">
+                        {alert.title}
+                      </AlertTitle>
+                      <AlertDescription fontSize="sm">
+                        {alert.description}
+                      </AlertDescription>
+                      {alert.franchise && (
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          {alert.franchise} {alert.gym && `• ${alert.gym}`}
+                        </Text>
+                      )}
+                    </Box>
+                  </Alert>
+                ))}
+              </VStack>
+            </VStack>
+          </MotionBox>
+        )}
+
+        {/* STATS RAPIDES CONTEXTUELLES */}
+        <MotionBox
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="lg" fontWeight="600" color="black">
+              Vue d'ensemble
+            </Text>
+            
+            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
+              {quickStats.map((stat) => (
+                <Box
+                  key={stat.label}
+                  bg="white"
+                  p={4}
+                  borderRadius="8px"
+                  border="1px solid"
+                  borderColor="gray.100"
+                >
+                  <VStack spacing={2} align="start">
+                    <HStack spacing={2}>
                       <Box
-                        w={12}
-                        h={12}
-                        bg="linear-gradient(135deg, #1a1a1a 0%, #404040 100%)"
-                        borderRadius="16px"
+                        w={8}
+                        h={8}
+                        bg="gray.100"
+                        borderRadius="6px"
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
-                        shadow="0 4px 12px rgba(0, 0, 0, 0.15)"
                       >
-                        <Icon as={stat.icon} color="white" boxSize={6} />
+                        <stat.icon size={16} color="#374151" />
                       </Box>
-                      {stat.highlight && (
-                        <Box
-                          w={2}
-                          h={2}
-                          bg="gray.900"
-                          borderRadius="50%"
-                        />
+                      {stat.trend && (
+                        <Text
+                          fontSize="xs"
+                          color={stat.trend.positive ? "green.600" : "red.600"}
+                          fontWeight="500"
+                        >
+                          {stat.trend.positive ? "+" : ""}{stat.trend.value}%
+                        </Text>
                       )}
                     </HStack>
-                    
-                    <VStack spacing={1} align="start">
-                      <Text 
-                        fontSize="2xl" 
-                        fontWeight="600" 
-                        color="black"
-                        lineHeight="1"
-                      >
+                    <VStack spacing={0} align="start">
+                      <Text fontSize="xl" fontWeight="600" color="black">
                         {stat.value}
                       </Text>
-                      <Text 
-                        fontSize="sm" 
-                        color="gray.600"
-                        fontWeight="400"
-                      >
+                      <Text fontSize="xs" color="gray.500">
                         {stat.label}
                       </Text>
                     </VStack>
                   </VStack>
                 </Box>
-              </MotionBox>
-            ))}
-          </SimpleGrid>
+              ))}
+            </SimpleGrid>
+          </VStack>
         </MotionBox>
 
-        {/* Section Monitoring Temps Réel */}
-        <MotionBox variants={itemVariants}>
-          <VStack spacing={6} w="full" align="start">
-            <HStack justify="space-between" w="full">
-              <Heading 
-                size="lg" 
-                color="black"
-                fontWeight="400"
-                letterSpacing="-0.5px"
+        {/* TOP FRANCHISES ACTIVES */}
+        <MotionBox
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+        >
+          <VStack spacing={4} align="stretch">
+            <HStack justify="space-between" align="center">
+              <Text fontSize="lg" fontWeight="600" color="black">
+                Franchises les plus actives
+              </Text>
+              <PrimaryButton
+                variant="ghost"
+                size="sm"
+                rightIcon={<ArrowRight size={16} />}
+                onClick={() => router.push('/admin/franchises')}
               >
-                Monitoring temps réel
-              </Heading>
-              <Badge 
-                bg="green.50" 
-                color="green.600" 
-                px={3} 
-                py={1} 
-                borderRadius="full"
-                fontSize="xs"
-                fontWeight="500"
-              >
-                LIVE
-              </Badge>
+                Voir toutes
+              </PrimaryButton>
             </HStack>
-            
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={4} w="full">
-              {monitoringCards.map((card, index) => (
-                <MotionBox
-                  key={card.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ 
-                    duration: 0.4, 
-                    delay: index * 0.05,
-                    ease: "easeOut"
-                  }}
-                  whileHover={{ 
-                    scale: 1.02,
-                    transition: { duration: 0.15 }
-                  }}
+
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+              {topFranchises.map((franchise, index) => (
+                <Box
+                  key={franchise.id}
+                  bg="white"
+                  p={4}
+                  borderRadius="8px"
+                  border="1px solid"
+                  borderColor="gray.100"
                   cursor="pointer"
-                  onClick={card.action}
+                  onClick={() => router.push(`/admin/franchises/${franchise.id}/gyms`)}
+                  _hover={{
+                    shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                    borderColor: "gray.200"
+                  }}
+                  transition="all 0.2s ease"
                 >
-                  <Box
-                    bg="rgba(255, 255, 255, 0.95)"
-                    border="1px solid"
-                    borderColor={card.highlight ? "red.200" : "rgba(255, 255, 255, 0.2)"}
-                    borderRadius="16px"
-                    p={5}
-                    backdropFilter="blur(20px)"
-                    shadow={card.highlight ? "0 8px 32px rgba(239, 68, 68, 0.15)" : "0 4px 20px rgba(0, 0, 0, 0.08)"}
-                    position="relative"
-                    zIndex={2}
-                    _hover={{
-                      bg: "rgba(255, 255, 255, 0.98)",
-                      shadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
-                      transform: "translateY(-1px)",
-                      transition: "all 0.3s ease"
-                    }}
-                  >
-                    <HStack justify="space-between" align="start">
-                      <VStack spacing={2} align="start" flex="1">
-                        <Text 
-                          fontSize="sm" 
-                          color="gray.600"
-                          fontWeight="400"
-                        >
-                          {card.label}
+                  <HStack spacing={3} align="start">
+                    <Avatar
+                      size="sm"
+                      name={franchise.name}
+                      bg="black"
+                      color="white"
+                    />
+                    <VStack align="start" spacing={1} flex="1">
+                      <HStack justify="space-between" w="full">
+                        <Text fontWeight="600" fontSize="sm" noOfLines={1}>
+                          {franchise.name}
                         </Text>
-                        <Text 
-                          fontSize="xl" 
-                          fontWeight="600" 
-                          color="black"
-                          lineHeight="1"
+                        <Badge
+                          colorScheme={getStatusColor(franchise.status)}
+                          variant="subtle"
+                          fontSize="xs"
                         >
-                          {card.value}
-                        </Text>
-                      </VStack>
-                      
-                      <Box
-                        w={10}
-                        h={10}
-                        bg={`${card.color}.500`}
-                        borderRadius="12px"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        flexShrink={0}
-                      >
-                        <Icon as={card.icon} color="white" boxSize={5} />
-                      </Box>
-                    </HStack>
-                    
-                    {card.highlight && (
-                      <Box
-                        position="absolute"
-                        top={2}
-                        right={2}
-                        w={2}
-                        h={2}
-                        bg="red.400"
-                        borderRadius="50%"
-                        animation="pulse 2s infinite"
-                      />
-                    )}
-                  </Box>
-                </MotionBox>
+                          #{index + 1}
+                        </Badge>
+                      </HStack>
+                      <Text fontSize="xs" color="gray.500">
+                        {franchise.city} • {franchise.gyms_count} salle{franchise.gyms_count > 1 ? 's' : ''}
+                      </Text>
+                      <Text fontSize="sm" fontWeight="500" color="green.600">
+                        {franchise.active_sessions} sessions actives
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </Box>
               ))}
             </SimpleGrid>
           </VStack>
         </MotionBox>
 
-        {/* Quick Actions */}
-        <MotionBox variants={itemVariants}>
-          <VStack spacing={6} align="start">
-            <Heading 
-              size="lg" 
-              color="black"
-              fontWeight="400"
-              letterSpacing="-0.5px"
-            >
+        {/* ACTIONS RAPIDES */}
+        <MotionBox
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+        >
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="lg" fontWeight="600" color="black">
               Actions rapides
-            </Heading>
+            </Text>
             
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4} w="full">
-              {quickActions.map((action, index) => (
-                <MotionBox
-                  key={action.label}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ 
-                    duration: 0.4, 
-                    delay: index * 0.1,
-                    ease: "easeOut"
-                  }}
-                  whileHover={{ 
-                    scale: action.disabled ? 1 : 1.01,
-                    transition: { duration: 0.15 }
-                  }}
-                >
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
+              <Box
+                bg="white"
+                p={6}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+                cursor="pointer"
+                onClick={() => router.push('/admin/franchises/create')}
+                _hover={{
+                  shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  borderColor: "gray.200"
+                }}
+                transition="all 0.2s ease"
+                textAlign="center"
+              >
+                <VStack spacing={3}>
                   <Box
-                    bg="rgba(255, 255, 255, 0.95)"
-                    border="1px solid"
-                    borderColor="rgba(255, 255, 255, 0.2)"
-                    borderRadius="16px"
-                    p={6}
-                    backdropFilter="blur(20px)"
-                    shadow="0 8px 32px rgba(0, 0, 0, 0.12)"
-                    cursor={action.disabled ? "not-allowed" : "pointer"}
-                    opacity={action.disabled ? 0.6 : 1}
-                    onClick={action.disabled ? undefined : action.action}
-                    position="relative"
-                    zIndex={2}
-                    _hover={action.disabled ? {} : {
-                      bg: "rgba(255, 255, 255, 0.98)",
-                      shadow: "0 12px 24px rgba(0, 0, 0, 0.15)",
-                      transform: "translateY(-1px)",
-                      transition: "all 0.3s ease"
-                    }}
+                    w={12}
+                    h={12}
+                    bg="black"
+                    borderRadius="8px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
                   >
-                    <HStack spacing={4} align="start">
-                      <Box
-                        w={12}
-                        h={12}
-                        bg={action.disabled ? "gray.300" : "linear-gradient(135deg, #1a1a1a 0%, #404040 100%)"}
-                        borderRadius="14px"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        flexShrink={0}
-                        shadow={action.disabled ? "none" : "0 4px 12px rgba(0, 0, 0, 0.15)"}
-                      >
-                        <Icon as={action.icon} color="white" boxSize={6} />
-                      </Box>
-                      
-                      <VStack spacing={1} align="start" flex="1">
-                        <Text 
-                          fontSize="md" 
-                          fontWeight="500" 
-                          color="black"
-                        >
-                          {action.label}
-                        </Text>
-                        <Text 
-                          fontSize="sm" 
-                          color="gray.600"
-                          fontWeight="400"
-                        >
-                          {action.description}
-                        </Text>
-                      </VStack>
-                      
-                      {!action.disabled && (
-                        <Icon as={ArrowRight} color="gray.400" boxSize={4} />
-                      )}
-                    </HStack>
+                    <Plus size={24} color="white" />
                   </Box>
-                </MotionBox>
-              ))}
+                  <VStack spacing={1}>
+                    <Text fontWeight="600" color="black">
+                      Nouvelle franchise
+                    </Text>
+                    <Text fontSize="sm" color="gray.500">
+                      Ajouter une franchise
+                    </Text>
+                  </VStack>
+                </VStack>
+              </Box>
+
+              <Box
+                bg="white"
+                p={6}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+                cursor="pointer"
+                onClick={() => router.push('/admin/franchises')}
+                _hover={{
+                  shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  borderColor: "gray.200"
+                }}
+                transition="all 0.2s ease"
+                textAlign="center"
+              >
+                <VStack spacing={3}>
+                  <Box
+                    w={12}
+                    h={12}
+                    bg="gray.100"
+                    borderRadius="8px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Building2 size={24} color="#374151" />
+                  </Box>
+                  <VStack spacing={1}>
+                    <Text fontWeight="600" color="black">
+                      Gérer franchises
+                    </Text>
+                    <Text fontSize="sm" color="gray.500">
+                      Voir toutes les franchises
+                    </Text>
+                  </VStack>
+                </VStack>
+              </Box>
+
+              <Box
+                bg="white"
+                p={6}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+                cursor="pointer"
+                onClick={() => router.push('/admin/monitoring')}
+                _hover={{
+                  shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  borderColor: "gray.200"
+                }}
+                transition="all 0.2s ease"
+                textAlign="center"
+              >
+                <VStack spacing={3}>
+                  <Box
+                    w={12}
+                    h={12}
+                    bg="orange.100"
+                    borderRadius="8px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Activity size={24} color="#F97316" />
+                  </Box>
+                  <VStack spacing={1}>
+                    <Text fontWeight="600" color="black">
+                      Monitoring global
+                    </Text>
+                    <Text fontSize="sm" color="gray.500">
+                      Superviser les systèmes
+                    </Text>
+                  </VStack>
+                </VStack>
+              </Box>
             </SimpleGrid>
           </VStack>
         </MotionBox>
-      </MotionVStack>
-    </Box>
+      </VStack>
+    </UnifiedLayout>
   )
 }

@@ -1,708 +1,442 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+"use client"
 import {
-  Box,
-  Container,
+  SimpleGrid,
   VStack,
   HStack,
-  Button,
-  Icon,
-  Heading,
+  Box,
   Text,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  Select,
-  SimpleGrid,
-  Badge,
-  Card,
-  CardBody,
-  CardHeader,
-  Skeleton,
-  useToast,
-  Flex,
-  Spacer,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  Code
+  Spinner,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  StatArrow
 } from '@chakra-ui/react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Plus, 
-  Search, 
   Building2, 
-  Dumbbell,
-  MapPin, 
-  Clock,
-  Settings,
-  MoreVertical,
-  Eye,
-  Edit,
-  QrCode,
-  ArrowLeft
+  Plus, 
+  TrendingUp,
+  Users,
+  DollarSign,
+  Activity,
+  Zap
 } from 'lucide-react'
-import type { Gym, PaginatedResponse, Franchise } from '../../../../../types/franchise'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { createBrowserClientWithConfig } from '../../../../../lib/supabase-admin'
+import { UnifiedLayout } from '../../../../../components/unified/UnifiedLayout'
+import { GymCard } from '../../../../../components/unified/GymCard'
+import { PrimaryButton } from '../../../../../components/unified/PrimaryButton'
+import { formatCurrency } from '../../../../../lib/currency'
 
-// ===========================================
-// 🎨 Animation variants
-// ===========================================
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+interface Franchise {
+  id: string
+  name: string
+  city: string
 }
 
-const stagger = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.1
-    }
+  interface Gym {
+  id: string
+  name: string
+  address: string
+  city: string
+  postal_code: string
+  status: 'online' | 'offline' | 'warning'
+  kiosk_config: { is_provisioned?: boolean } | null
+  // Métriques simulées
+  activeUsers: number
+    dailyCostUsd: number
+  lastActivity: string
+  photo?: string
+}
+
+interface FranchiseMetrics {
+  totalSessions: number
+  totalRevenue: number
+  totalUsers: number
+  avgSessionDuration: number
+  costToday: number
+  trends: {
+    sessions: { value: number; positive: boolean }
+    revenue: { value: number; positive: boolean }
+    costs: { value: number; positive: boolean }
   }
 }
 
-// ===========================================
-// 🎯 Interface pour gym avec métadonnées
-// ===========================================
-
-interface GymWithStats extends Gym {
-  franchise_name?: string
-  provisioning_code?: string | null
-  kiosk_url?: string | null
-  manager?: {
-    id: string
-    email: string
-    full_name: string
-    is_active: boolean
-  }
-}
-
-// ===========================================
-// 🎯 Composant principal
-// ===========================================
-
-export default function GymsListPage() {
-  const [gyms, setGyms] = useState<GymWithStats[]>([])
-  const [franchise, setFranchise] = useState<Franchise | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  
+export default function FranchiseGymsPage() {
   const router = useRouter()
   const params = useParams()
-  const toast = useToast()
-
   const franchiseId = params.id as string
+  
+  const [franchise, setFranchise] = useState<Franchise | null>(null)
+  const [gyms, setGyms] = useState<Gym[]>([])
+  const [metrics, setMetrics] = useState<FranchiseMetrics | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // ===========================================
-  // 📝 Fonctions utilitaires
-  // ===========================================
+  useEffect(() => {
+    if (franchiseId) {
+      loadFranchiseData()
+    }
+  }, [franchiseId])
 
-  const loadGyms = async () => {
+  const loadFranchiseData = async () => {
     try {
-      setLoading(true)
+      const supabase = createBrowserClientWithConfig()
       
-      const params = new URLSearchParams({
-        page: '1',
-        limit: '50',
+      console.log('🔍 Recherche franchise avec ID:', franchiseId)
+      
+      // Charger franchise + ses salles
+      const { data: franchiseData, error: franchiseError } = await supabase
+        .from('franchises')
+        .select(`
+          id,
+          name,
+          city,
+          gyms (
+            id,
+            name,
+            address,
+            city,
+            postal_code,
+            status,
+            kiosk_config
+          )
+        `)
+        .eq('id', franchiseId)
+        .single()
+
+      console.log('📊 Données franchise:', franchiseData)
+      console.log('❌ Erreur franchise:', franchiseError)
+
+      if (franchiseError) {
+        console.error('Erreur lors du chargement de la franchise:', franchiseError)
+        throw franchiseError
+      }
+
+      // Préparer les IDs de salles
+      const gymIds: string[] = (franchiseData.gyms || []).map((g: any) => g.id)
+
+      // Récupérer les sessions du jour pour ces salles
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+
+      const [sessionsResp, heartbeatsResp] = await Promise.all([
+        supabase
+          .from('openai_realtime_sessions')
+          .select('id,gym_id,session_start,session_end,cost_usd')
+          .in('gym_id', gymIds)
+          .gte('session_start', startOfDay.toISOString()),
+        supabase
+          .from('kiosk_heartbeats')
+          .select('gym_id,last_heartbeat,status')
+          .in('gym_id', gymIds)
+      ])
+
+      if (sessionsResp.error) console.warn('Erreur sessions:', sessionsResp.error)
+      if (heartbeatsResp.error) console.warn('Erreur heartbeats:', heartbeatsResp.error)
+
+      const sessions = sessionsResp.data || []
+      const heartbeats = heartbeatsResp.data || []
+
+      // Indexer par gym
+      const gymIdToSessions = new Map<string, typeof sessions>()
+      sessions.forEach((s) => {
+        const list = gymIdToSessions.get(s.gym_id) || []
+        list.push(s)
+        gymIdToSessions.set(s.gym_id, list)
       })
 
-      if (searchTerm.trim()) {
-        params.append('search', searchTerm.trim())
+      const gymIdToHeartbeat = new Map<string, { last_heartbeat: string | null; status: string | null }>()
+      heartbeats.forEach((h: any) => {
+        gymIdToHeartbeat.set(h.gym_id, { last_heartbeat: h.last_heartbeat, status: h.status })
+      })
+
+      // Transformer les salles avec métriques BDD
+      const now = Date.now()
+      const ONLINE_THRESHOLD_MS = 2 * 60 * 1000 // 2 minutes
+
+      const transformedGyms: Gym[] = (franchiseData.gyms || []).map((gym: any) => {
+        const gymSessions = gymIdToSessions.get(gym.id) || []
+        const activeSessions = gymSessions.filter((s: any) => !s.session_end).length
+        const dailyCost = gymSessions.reduce((sum: number, s: any) => sum + (s.cost_usd || 0), 0)
+
+        const hb = gymIdToHeartbeat.get(gym.id)
+        const lastSessionTs = gymSessions.length > 0 ?
+          Math.max(...gymSessions.map((s: any) => new Date(s.session_end || s.session_start).getTime())) :
+          undefined
+        const lastHeartbeatTs = hb?.last_heartbeat ? new Date(hb.last_heartbeat).getTime() : undefined
+        const lastActivityTs = Math.max(lastSessionTs || 0, lastHeartbeatTs || 0)
+        const minutesAgo = lastActivityTs ? Math.max(0, Math.round((now - lastActivityTs) / 60000)) : null
+
+        const isProvisioned = !!gym.kiosk_config?.is_provisioned
+        let status: Gym['status'] = 'offline'
+        if (!isProvisioned) {
+          status = 'warning'
+        } else if (lastHeartbeatTs && now - lastHeartbeatTs < ONLINE_THRESHOLD_MS) {
+          status = 'online'
+        } else {
+          status = 'offline'
+        }
+
+        return {
+          ...gym,
+          status,
+          activeUsers: activeSessions, // renommage logique pour rester compatible avec GymCard
+          dailyCostUsd: Math.round(dailyCost * 100) / 100,
+          lastActivity: minutesAgo !== null ? `Il y a ${minutesAgo} min` : 'Jamais',
+          photo: `https://images.unsplash.com/photo-${1571019613454 + parseInt(gym.id.slice(-2), 16)}?w=400&h=200&fit=crop&auto=format&q=80`
+        }
+      })
+
+      // Calculer métriques franchise depuis BDD
+      const totalSessions = transformedGyms.reduce((sum, g) => sum + g.activeUsers, 0)
+      const costToday = transformedGyms.reduce((sum, g) => sum + g.dailyCostUsd, 0)
+
+      // Durée moyenne des sessions terminées aujourd'hui
+      const completed = sessions.filter((s: any) => s.session_end)
+      const avgSessionDuration = completed.length > 0
+        ? Math.round(
+            (completed.reduce((acc: number, s: any) => acc + (new Date(s.session_end).getTime() - new Date(s.session_start).getTime()), 0) / completed.length) / 60000 * 10
+          ) / 10
+        : 0
+
+      const franchiseMetrics: FranchiseMetrics = {
+        totalSessions,
+        totalRevenue: Math.round(costToday), // on affiche le coût en tant que "revenu" visuel
+        totalUsers: totalSessions,
+        avgSessionDuration,
+        costToday: Math.round(costToday),
+        trends: {
+          sessions: { value: 0, positive: true },
+          revenue: { value: 0, positive: true },
+          costs: { value: 0, positive: false }
+        }
       }
 
-      if (statusFilter) {
-        params.append('status', statusFilter)
-      }
-
-      const response = await fetch(`/api/admin/franchises/${franchiseId}/gyms?${params}`)
-      
-      if (!response.ok) {
-        throw new Error('Erreur lors du chargement des salles')
-      }
-
-      const result: PaginatedResponse<GymWithStats> & { franchise?: Franchise } = await response.json()
-      
-      setGyms(result.data)
-      if (result.franchise) {
-        setFranchise(result.franchise as Franchise)
-      }
-
+      setFranchise(franchiseData)
+      setGyms(transformedGyms)
+      setMetrics(franchiseMetrics)
     } catch (error) {
-      console.error('Erreur chargement salles:', error)
-      toast({
-        title: 'Erreur de chargement',
-        description: 'Impossible de charger les salles',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
+      console.error('Erreur chargement franchise:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  // ===========================================
-  // 📝 Handlers
-  // ===========================================
-
-  const handleCreateGym = () => {
-    router.push(`/admin/franchises/${franchiseId}/gyms/create`)
-  }
-
-  const handleViewGym = (gymId: string) => {
-    router.push(`/admin/franchises/${franchiseId}/gyms/${gymId}`)
-  }
-
-  const handleEditGym = (gymId: string) => {
-    router.push(`/admin/franchises/${franchiseId}/gyms/${gymId}/edit`)
-  }
-
-  const handleBackToFranchises = () => {
-    router.push('/admin/franchises')
-  }
-
-  const handleSearch = (value: string) => {
-    setSearchTerm(value)
-  }
-
-  const handleStatusFilter = (value: string) => {
-    setStatusFilter(value)
-  }
-
-  // ===========================================
-  // 🔄 Effects
-  // ===========================================
-
-  useEffect(() => {
-    if (franchiseId) {
-      loadGyms()
-    }
-  }, [franchiseId, searchTerm, statusFilter])
-
-  // ===========================================
-  // 🎨 Render Functions
-  // ===========================================
-
-  const renderGymCard = (gym: GymWithStats, index: number) => {
+  if (loading) {
     return (
-      <motion.div
-        key={gym.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
-        whileHover={{ y: -4 }}
+      <UnifiedLayout
+        title="Chargement..."
+        currentLevel="franchise"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/admin" },
+          { label: "Franchises", href: "/admin/franchises" }
+        ]}
       >
-        <Card
-          bg="white"
-          borderRadius="20px"
-          border="1px solid"
-          borderColor="gray.100"
-          overflow="hidden"
-          _hover={{
-            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-            borderColor: "green.200"
-          }}
-          transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-          h="full"
-        >
-          <CardHeader pb={3}>
-            <Flex justify="space-between" align="start">
-              <VStack align="start" spacing={2} flex="1">
-                <HStack spacing={2}>
-                  <Icon as={Dumbbell} boxSize={5} color="green.500" />
-                  <Text 
-                    fontWeight="bold" 
-                    fontSize="lg" 
-                    color="gray.800"
-                    noOfLines={1}
-                  >
-                    {gym.name}
-                  </Text>
-                </HStack>
-                
-                <Badge 
-                  colorScheme={
-                    gym.status === 'active' ? 'green' : 
-                    gym.status === 'maintenance' ? 'orange' : 
-                    'gray'
-                  }
-                  variant="subtle"
-                  borderRadius="full"
-                  fontSize="xs"
-                  px={2}
-                >
-                  {gym.status === 'active' ? 'Active' : 
-                   gym.status === 'maintenance' ? 'Maintenance' : 
-                   'Suspendue'}
-                </Badge>
-              </VStack>
-
-              <Menu>
-                <MenuButton
-                  as={IconButton}
-                  icon={<Icon as={MoreVertical} />}
-                  variant="ghost"
-                  size="sm"
-                  borderRadius="full"
-                  _hover={{ bg: "gray.100" }}
-                />
-                <MenuList borderRadius="12px" border="1px solid" borderColor="gray.200">
-                  <MenuItem 
-                    icon={<Icon as={Eye} />}
-                    onClick={() => handleViewGym(gym.id)}
-                    borderRadius="8px"
-                    fontWeight="600"
-                    color="blue.600"
-                  >
-                    Voir détails
-                  </MenuItem>
-                  <MenuItem 
-                    icon={<Icon as={Edit} />}
-                    onClick={() => handleEditGym(gym.id)}
-                    borderRadius="8px"
-                  >
-                    Modifier
-                  </MenuItem>
-                  <MenuItem 
-                    icon={<Icon as={Settings} />}
-                    borderRadius="8px"
-                  >
-                    Config JARVIS
-                  </MenuItem>
-                </MenuList>
-              </Menu>
-            </Flex>
-          </CardHeader>
-
-          <CardBody pt={0}>
-            <VStack spacing={4} align="stretch">
-              {/* Localisation */}
-              <VStack spacing={2} align="stretch">
-                <HStack spacing={2}>
-                  <Icon as={MapPin} boxSize={4} color="gray.400" />
-                  <Text fontSize="sm" color="gray.600" noOfLines={2}>
-                    {gym.address}
-                  </Text>
-                </HStack>
-                
-                <HStack spacing={2}>
-                  <Icon as={Building2} boxSize={4} color="gray.400" />
-                  <Text fontSize="sm" color="gray.600">
-                    {gym.city} • {gym.postal_code}
-                  </Text>
-                </HStack>
-              </VStack>
-
-              {/* Code de provisioning */}
-              {gym.provisioning_code && (
-                <Box 
-                  p={3} 
-                  bg="blue.50" 
-                  borderRadius="12px"
-                  border="1px solid"
-                  borderColor="blue.100"
-                >
-                  <HStack spacing={2} justify="space-between">
-                    <VStack align="start" spacing={1} flex="1">
-                      <HStack spacing={2}>
-                        <Icon as={QrCode} boxSize={4} color="blue.500" />
-                        <Text fontSize="xs" fontWeight="600" color="blue.700">
-                          Code de provisioning
-                        </Text>
-                      </HStack>
-                      <Code 
-                        colorScheme="blue" 
-                        fontSize="sm" 
-                        fontWeight="bold"
-                        bg="blue.100"
-                        px={2}
-                        py={1}
-                        borderRadius="6px"
-                      >
-                        {gym.provisioning_code}
-                      </Code>
-                    </VStack>
-                  </HStack>
-                </Box>
-              )}
-
-              {/* URL Kiosque */}
-              {gym.kiosk_url && (
-                <Box 
-                  p={3} 
-                  bg="green.50" 
-                  borderRadius="12px"
-                  border="1px solid"
-                  borderColor="green.100"
-                >
-                  <VStack align="start" spacing={1}>
-                    <Text fontSize="xs" fontWeight="600" color="green.700">
-                      🤖 Interface JARVIS
-                    </Text>
-                    <Code 
-                      colorScheme="green" 
-                      fontSize="xs"
-                      bg="green.100"
-                      px={2}
-                      py={1}
-                      borderRadius="6px"
-                      maxW="100%"
-                      overflow="hidden"
-                      textOverflow="ellipsis"
-                    >
-                      {gym.kiosk_url}
-                    </Code>
-                  </VStack>
-                </Box>
-              )}
-
-              {/* Gérant */}
-              {gym.manager ? (
-                <Box 
-                  p={3} 
-                  bg="gray.50" 
-                  borderRadius="12px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                >
-                  <HStack spacing={2}>
-                    <Icon as={Building2} boxSize={4} color="gray.500" />
-                    <VStack align="start" spacing={0} flex="1">
-                      <Text fontSize="sm" fontWeight="600" color="gray.700">
-                        {gym.manager.full_name}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">
-                        {gym.manager.email}
-                      </Text>
-                    </VStack>
-                    <Badge 
-                      colorScheme={gym.manager.is_active ? 'green' : 'gray'}
-                      size="sm"
-                      variant="subtle"
-                    >
-                      {gym.manager.is_active ? 'Actif' : 'Inactif'}
-                    </Badge>
-                  </HStack>
-                </Box>
-              ) : (
-                <Box 
-                  p={3} 
-                  bg="orange.50" 
-                  borderRadius="12px"
-                  border="1px solid"
-                  borderColor="orange.100"
-                >
-                  <Text fontSize="sm" color="orange.600">
-                    👤 Aucun gérant assigné
-                  </Text>
-                </Box>
-              )}
-
-              {/* Bouton d'accès aux détails */}
-              <Button
-                leftIcon={<Icon as={Eye} />}
-                onClick={() => handleViewGym(gym.id)}
-                variant="solid"
-                colorScheme="blue"
-                size="md"
-                borderRadius="12px"
-                _hover={{
-                  bg: "blue.600",
-                  transform: "translateY(-1px)",
-                  shadow: "md"
-                }}
-                transition="all 0.2s"
-                w="full"
-                fontWeight="600"
-                shadow="sm"
-              >
-                Voir les détails
-              </Button>
-
-              {/* Date de création */}
-              <Text fontSize="xs" color="gray.400" textAlign="center">
-                Créée le {new Date(gym.created_at).toLocaleDateString('fr-FR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </Text>
-            </VStack>
-          </CardBody>
-        </Card>
-      </motion.div>
+        <VStack spacing={8} align="center" py={12}>
+          <Spinner size="lg" color="black" />
+          <Text color="gray.600">Chargement des salles...</Text>
+        </VStack>
+      </UnifiedLayout>
     )
   }
 
-  // ===========================================
-  // 🎨 Render principal
-  // ===========================================
+  if (!franchise) {
+    return (
+      <UnifiedLayout
+        title="Franchise introuvable"
+        currentLevel="franchise"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/admin" },
+          { label: "Franchises", href: "/admin/franchises" }
+        ]}
+      >
+        <Text color="gray.600">Cette franchise n'existe pas.</Text>
+      </UnifiedLayout>
+    )
+  }
 
   return (
-    <Box minH="100vh" bg="#fafafa" py={8}>
-      <Container maxW="7xl">
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-        >
-          {/* Header */}
-          <motion.div variants={fadeInUp}>
-            <VStack spacing={6} align="start" mb={8}>
-              {/* Breadcrumb */}
-              <Breadcrumb fontSize="sm" color="gray.600">
-                <BreadcrumbItem>
-                  <BreadcrumbLink 
-                    onClick={handleBackToFranchises}
-                    cursor="pointer"
-                    _hover={{ color: "blue.500" }}
-                  >
-                    Admin
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                  <BreadcrumbLink 
-                    onClick={handleBackToFranchises}
-                    cursor="pointer"
-                    _hover={{ color: "blue.500" }}
-                  >
-                    Franchises
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem isCurrentPage>
-                  <Text color="gray.400">
-                    {franchise?.name || 'Chargement...'}
-                  </Text>
-                </BreadcrumbItem>
-              </Breadcrumb>
-
-              <HStack justify="space-between" w="full">
-                <VStack align="start" spacing={2}>
-                  <HStack spacing={4}>
-                    <Button
-                      leftIcon={<Icon as={ArrowLeft} />}
-                      variant="ghost"
-                      onClick={handleBackToFranchises}
-                      color="gray.700"
-                      bg="white"
-                      border="1px solid"
-                      borderColor="gray.200"
-                      borderRadius="12px"
-                      _hover={{ 
-                        bg: "gray.50",
-                        borderColor: "gray.300"
-                      }}
-                      boxShadow="0 2px 4px rgba(0, 0, 0, 0.05)"
-                    >
-                      Retour
-                    </Button>
-                    
-                    <VStack align="start" spacing={1}>
-                      <Heading 
-                        size="xl" 
-                        color="gray.800"
-                        fontWeight="bold"
-                        letterSpacing="-0.025em"
-                      >
-                        {loading ? 'Chargement...' : `Salles de ${franchise?.name}`}
-                      </Heading>
-                      <Text color="gray.600" fontSize="md">
-                        Gestion des salles de sport et interfaces JARVIS
-                      </Text>
-                    </VStack>
-                  </HStack>
-                </VStack>
-
-                <Button
-                  leftIcon={<Icon as={Plus} />}
-                  colorScheme="blue"
-                  onClick={handleCreateGym}
-                  borderRadius="12px"
-                  px={6}
-                  h="50px"
-                  _hover={{
-                    transform: "translateY(-1px)",
-                    boxShadow: "0 4px 12px rgba(66, 153, 225, 0.3)"
-                  }}
-                  transition="all 0.2s ease"
-                >
-                  Nouvelle Salle
-                </Button>
-              </HStack>
-
-              {/* Statistiques rapides */}
-              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full">
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="gray.800">
-                    {gyms.length}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    Total Salles
-                  </Text>
-                </Box>
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="green.500">
-                    {gyms.filter(g => g.status === 'active').length}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    Actives
-                  </Text>
-                </Box>
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                    {gyms.filter(g => g.provisioning_code).length}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    JARVIS Configuré
-                  </Text>
-                </Box>
-                <Box
-                  p={4}
-                  bg="white"
-                  borderRadius="16px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  textAlign="center"
-                >
-                  <Text fontSize="2xl" fontWeight="bold" color="orange.500">
-                    {gyms.filter(g => !g.manager).length}
-                  </Text>
-                  <Text fontSize="sm" color="gray.600">
-                    Sans Gérant
-                  </Text>
-                </Box>
-              </SimpleGrid>
-            </VStack>
-          </motion.div>
-
-          {/* Filtres et recherche */}
-          <motion.div variants={fadeInUp}>
-            <HStack spacing={4} mb={6}>
-              <InputGroup maxW="300px">
-                <InputLeftElement pointerEvents="none">
-                  <Icon as={Search} color="gray.400" />
-                </InputLeftElement>
-                <Input
-                  placeholder="Rechercher une salle..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  bg="white"
-                  border="1px solid"
-                  borderColor="gray.200"
-                  borderRadius="12px"
-                  _focus={{
-                    borderColor: "blue.500",
-                    boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.1)"
-                  }}
-                />
-              </InputGroup>
-
-              <Select
-                placeholder="Tous les statuts"
-                value={statusFilter}
-                onChange={(e) => handleStatusFilter(e.target.value)}
-                maxW="200px"
-                bg="white"
-                border="1px solid"
-                borderColor="gray.200"
-                borderRadius="12px"
-                _focus={{
-                  borderColor: "blue.500",
-                  boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.1)"
-                }}
-              >
-                <option value="active">Actives</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="suspended">Suspendues</option>
-              </Select>
-
-              <Spacer />
-
-              <Text fontSize="sm" color="gray.600">
-                {gyms.length} salle{gyms.length > 1 ? 's' : ''} trouvée{gyms.length > 1 ? 's' : ''}
-              </Text>
-            </HStack>
-          </motion.div>
-
-          {/* Liste des salles */}
-          <motion.div variants={fadeInUp}>
-            {loading ? (
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <Skeleton key={index} height="400px" borderRadius="20px" />
-                ))}
-              </SimpleGrid>
-            ) : gyms.length === 0 ? (
+    <UnifiedLayout
+      title={franchise.name}
+      currentLevel="franchise"
+      franchiseId={franchiseId}
+      franchiseName={franchise.name}
+      breadcrumbs={[
+        { label: "Dashboard", href: "/admin" },
+        { label: "Franchises", href: "/admin/franchises" },
+        { label: franchise.name, href: `/admin/franchises/${franchiseId}/gyms` }
+      ]}
+      primaryAction={{
+        label: "Ajouter une salle",
+        onClick: () => router.push(`/admin/franchises/${franchiseId}/gyms/create`)
+      }}
+    >
+      <VStack spacing={8} align="stretch">
+        {/* MÉTRIQUES FRANCHISE */}
+        {metrics && (
+          <Box>
+            <Text fontSize="lg" fontWeight="600" color="black" mb={4}>
+              Performance de la franchise
+            </Text>
+            
+            <SimpleGrid columns={{ base: 2, md: 5 }} gap={4}>
               <Box
                 bg="white"
-                borderRadius="20px"
-                p={12}
-                textAlign="center"
+                p={4}
+                borderRadius="8px"
                 border="1px solid"
                 borderColor="gray.100"
               >
-                <Icon as={Dumbbell} boxSize={12} color="gray.300" mb={4} />
-                <Text color="gray.500" fontSize="lg" mb={2}>
-                  {searchTerm || statusFilter ? 'Aucune salle trouvée' : 'Aucune salle créée'}
-                </Text>
-                <Text fontSize="sm" color="gray.400" mb={6}>
-                  {searchTerm || statusFilter 
-                    ? 'Essayez de modifier vos critères de recherche'
-                    : `Commencez par créer votre première salle pour ${franchise?.name}`}
-                </Text>
-                {!searchTerm && !statusFilter && (
-                  <Button
-                    leftIcon={<Icon as={Plus} />}
-                    colorScheme="blue"
-                    onClick={handleCreateGym}
-                    borderRadius="12px"
-                  >
-                    Créer ma première salle
-                  </Button>
-                )}
+                <Stat>
+                  <StatLabel fontSize="xs" color="gray.500">Sessions aujourd'hui</StatLabel>
+                  <StatNumber fontSize="2xl" fontWeight="700" color="black">
+                    {metrics.totalSessions}
+                  </StatNumber>
+                  <StatHelpText fontSize="xs" mb={0}>
+                    <StatArrow type={metrics.trends.sessions.positive ? 'increase' : 'decrease'} />
+                    {metrics.trends.sessions.value}% vs hier
+                  </StatHelpText>
+                </Stat>
               </Box>
-            ) : (
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                <AnimatePresence>
-                  {gyms.map((gym, index) => 
-                    renderGymCard(gym, index)
-                  )}
-                </AnimatePresence>
-              </SimpleGrid>
-            )}
-          </motion.div>
-        </motion.div>
-      </Container>
-    </Box>
+
+              <Box
+                bg="white"
+                p={4}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+              >
+                <Stat>
+                  <StatLabel fontSize="xs" color="gray.500">Revenus du jour</StatLabel>
+                   <StatNumber fontSize="2xl" fontWeight="700" color="green.600">
+                     {formatCurrency(metrics.totalRevenue, { currency: 'USD' })}
+                  </StatNumber>
+                  <StatHelpText fontSize="xs" mb={0}>
+                    <StatArrow type={metrics.trends.revenue.positive ? 'increase' : 'decrease'} />
+                    {metrics.trends.revenue.value}% vs hier
+                  </StatHelpText>
+                </Stat>
+              </Box>
+
+              <Box
+                bg="white"
+                p={4}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+              >
+                <Stat>
+                  <StatLabel fontSize="xs" color="gray.500">Coûts IA</StatLabel>
+                   <StatNumber fontSize="2xl" fontWeight="700" color="orange.600">
+                     {formatCurrency(metrics.costToday, { currency: 'USD' })}
+                  </StatNumber>
+                  <StatHelpText fontSize="xs" mb={0}>
+                    <StatArrow type={metrics.trends.costs.positive ? 'increase' : 'decrease'} />
+                    {Math.abs(metrics.trends.costs.value)}% vs hier
+                  </StatHelpText>
+                </Stat>
+              </Box>
+
+              <Box
+                bg="white"
+                p={4}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+              >
+                <Stat>
+                  <StatLabel fontSize="xs" color="gray.500">Utilisateurs actifs</StatLabel>
+                  <StatNumber fontSize="2xl" fontWeight="700" color="blue.600">
+                    {metrics.totalUsers}
+                  </StatNumber>
+                  <StatHelpText fontSize="xs" mb={0}>
+                    En temps réel
+                  </StatHelpText>
+                </Stat>
+              </Box>
+
+              <Box
+                bg="white"
+                p={4}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+              >
+                <Stat>
+                  <StatLabel fontSize="xs" color="gray.500">Durée moy. session</StatLabel>
+                  <StatNumber fontSize="2xl" fontWeight="700" color="purple.600">
+                    {metrics.avgSessionDuration}min
+                  </StatNumber>
+                  <StatHelpText fontSize="xs" mb={0}>
+                    Performance
+                  </StatHelpText>
+                </Stat>
+              </Box>
+            </SimpleGrid>
+          </Box>
+        )}
+
+        {/* SALLES */}
+        <Box>
+          <HStack justify="space-between" align="center" mb={6}>
+            <VStack align="start" spacing={1}>
+              <Text fontSize="lg" fontWeight="600" color="black">
+                Salles de sport ({gyms.length})
+              </Text>
+              <Text fontSize="sm" color="gray.500">
+                {franchise.city}
+              </Text>
+            </VStack>
+          </HStack>
+
+          {gyms.length === 0 ? (
+            <Box
+              bg="white"
+              borderRadius="12px"
+              border="1px solid"
+              borderColor="gray.100"
+              p={12}
+              textAlign="center"
+            >
+              <VStack spacing={4}>
+                <Building2 size={32} color="#9CA3AF" />
+                <VStack spacing={2}>
+                  <Text fontSize="lg" fontWeight="500" color="black">
+                    Aucune salle
+                  </Text>
+                  <Text fontSize="sm" color="gray.600">
+                    Commencez par ajouter votre première salle de sport
+                  </Text>
+                </VStack>
+                <PrimaryButton
+                  leftIcon={<Plus size={16} />}
+                  onClick={() => router.push(`/admin/franchises/${franchiseId}/gyms/create`)}
+                >
+                  Ajouter une salle
+                </PrimaryButton>
+              </VStack>
+            </Box>
+          ) : (
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
+              {gyms.map((gym) => (
+                <GymCard
+                  key={gym.id}
+                  id={gym.id}
+                  name={gym.name}
+                  address={`${gym.address}, ${gym.city}`}
+                  photo={gym.photo}
+                  activeUsers={gym.activeUsers}
+                  status={gym.status}
+                  lastActivity={gym.lastActivity}
+                  dailyCostUsd={gym.dailyCostUsd}
+                  onClick={() => router.push(`/admin/franchises/${franchiseId}/gyms/${gym.id}`)}
+                />
+              ))}
+            </SimpleGrid>
+          )}
+        </Box>
+      </VStack>
+    </UnifiedLayout>
   )
-} 
+}
