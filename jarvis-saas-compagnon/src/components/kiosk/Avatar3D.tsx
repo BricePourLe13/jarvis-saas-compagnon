@@ -7,9 +7,10 @@ interface Avatar3DProps {
   status: 'idle' | 'listening' | 'speaking' | 'thinking' | 'connecting'
   size?: number
   className?: string
+  eyeScale?: number // Permet d'ajuster la taille des yeux selon le contexte (ex: Kiosk)
 }
 
-export default function Avatar3D({ status, size = 450, className }: Avatar3DProps) {
+export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }: Avatar3DProps) {
   const [rotation, setRotation] = useState(0)
   const [isBlinking, setIsBlinking] = useState(false)
   const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 })
@@ -566,93 +567,90 @@ export default function Avatar3D({ status, size = 450, className }: Avatar3DProp
 
         {/* 👁️ YEUX ANIMÉS QUI REGARDENT AUTOUR ET CLIGNENT */}
         <div style={{ position: 'absolute', inset: 0 }}>
-          {/* Oeil gauche */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              left: '35%',
-              top: '42%',
-              width: '8px',
-              height: isBlinking ? '4px' : '42px',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
-              borderRadius: '3px',
-              boxShadow: `
-                0 0 25px rgba(255, 255, 255, 0.9),
-                0 0 50px rgba(255, 255, 255, 0.5),
-                inset 0 0 10px rgba(255, 255, 255, 0.7)
-              `,
-              transform: 'translate(-50%, -50%)',
-              filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
-            }}
-            animate={{
-              scaleY: isBlinking ? 0.1 : 1,
-              opacity: [0.95, 1, 0.95],
-              x: eyePosition.x * 0.7,
-              y: eyePosition.y * 0.5,
-              boxShadow: `
-                0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
-                0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
-                inset 0 0 10px rgba(255, 255, 255, 0.7)
-              `
-            }}
-            transition={{ 
-              scaleY: { duration: isBlinking ? 0.08 : 0.15 },
-              opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-              x: { 
-                duration: isLookingAround ? 1.2 : 2.5, 
-                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
-              },
-              y: { 
-                duration: isLookingAround ? 1.2 : 2.5, 
-                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
-              },
-              boxShadow: { duration: 0.3 }
-            }}
-          />
-          
-          {/* Oeil droit */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              left: '65%',
-              top: '42%',
-              width: '8px',
-              height: isBlinking ? '4px' : '42px',
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
-              borderRadius: '3px',
-              boxShadow: `
-                0 0 25px rgba(255, 255, 255, 0.9),
-                0 0 50px rgba(255, 255, 255, 0.5),
-                inset 0 0 10px rgba(255, 255, 255, 0.7)
-              `,
-              transform: 'translate(-50%, -50%)',
-              filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
-            }}
-            animate={{
-              scaleY: isBlinking ? 0.1 : 1,
-              opacity: [0.95, 1, 0.95],
-              x: eyePosition.x * 0.8,
-              y: eyePosition.y * 0.6,
-              boxShadow: `
-                0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
-                0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
-                inset 0 0 10px rgba(255, 255, 255, 0.7)
-              `
-            }}
-            transition={{ 
-              scaleY: { duration: isBlinking ? 0.08 : 0.15 },
-              opacity: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 },
-              x: { 
-                duration: isLookingAround ? 1.2 : 2.5, 
-                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
-              },
-              y: { 
-                duration: isLookingAround ? 1.2 : 2.5, 
-                ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" 
-              },
-              boxShadow: { duration: 0.3 }
-            }}
-          />
+          {/** Calcul dynamique de la taille des yeux en fonction du diamètre */}
+          {(() => {
+            const eyeWidthPx = Math.max(10, Math.round(size * 0.04 * eyeScale)) // ~4% du diamètre * scale
+            const eyeHeightPx = Math.max(28, Math.round(size * 0.21 * eyeScale)) // ~21% du diamètre * scale
+            const blinkHeightPx = Math.max(4, Math.round(eyeHeightPx * 0.1))
+            return (
+              <>
+                {/* Oeil gauche */}
+                <motion.div
+                  style={{
+                    position: 'absolute',
+                    left: '35%',
+                    top: '42%',
+                    width: `${eyeWidthPx}px`,
+                    height: isBlinking ? `${blinkHeightPx}px` : `${eyeHeightPx}px`,
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
+                    borderRadius: '3px',
+                    boxShadow: `
+                      0 0 25px rgba(255, 255, 255, 0.9),
+                      0 0 50px rgba(255, 255, 255, 0.5),
+                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                    `,
+                    transform: 'translate(-50%, -50%)',
+                    filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
+                  }}
+                  animate={{
+                    scaleY: isBlinking ? 0.1 : 1,
+                    opacity: [0.95, 1, 0.95],
+                    x: eyePosition.x * 0.7,
+                    y: eyePosition.y * 0.5,
+                    boxShadow: `
+                      0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
+                      0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
+                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                    `
+                  }}
+                  transition={{ 
+                    scaleY: { duration: isBlinking ? 0.08 : 0.15 },
+                    opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                    x: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
+                    y: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
+                    boxShadow: { duration: 0.3 }
+                  }}
+                />
+                {/* Oeil droit */}
+                <motion.div
+                  style={{
+                    position: 'absolute',
+                    left: '65%',
+                    top: '42%',
+                    width: `${eyeWidthPx}px`,
+                    height: isBlinking ? `${blinkHeightPx}px` : `${eyeHeightPx}px`,
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
+                    borderRadius: '3px',
+                    boxShadow: `
+                      0 0 25px rgba(255, 255, 255, 0.9),
+                      0 0 50px rgba(255, 255, 255, 0.5),
+                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                    `,
+                    transform: 'translate(-50%, -50%)',
+                    filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
+                  }}
+                  animate={{
+                    scaleY: isBlinking ? 0.1 : 1,
+                    opacity: [0.95, 1, 0.95],
+                    x: eyePosition.x * 0.8,
+                    y: eyePosition.y * 0.6,
+                    boxShadow: `
+                      0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
+                      0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
+                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                    `
+                  }}
+                  transition={{ 
+                    scaleY: { duration: isBlinking ? 0.08 : 0.15 },
+                    opacity: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 },
+                    x: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
+                    y: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
+                    boxShadow: { duration: 0.3 }
+                  }}
+                />
+              </>
+            )
+          })()}
         </div>
 
         {/* 💫 PARTICULES LUMINEUSES MYSTÉRIEUSES */}

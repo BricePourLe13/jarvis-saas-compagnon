@@ -11,6 +11,7 @@ interface JarvisAvatarProps {
   description?: string
   variant?: 'default' | 'compact' | 'minimal'
   status?: 'idle' | 'listening' | 'speaking' | 'thinking'
+  eyeScale?: number
 }
 
 const JarvisAvatar = ({ 
@@ -19,7 +20,8 @@ const JarvisAvatar = ({
   title = "Intelligence Platform",
   description = "Analyse conversationnelle et insights analytiques pour salles de sport",
   variant = 'default',
-  status = 'idle'
+  status = 'idle',
+  eyeScale = 1
 }: JarvisAvatarProps) => {
   
   // Animations selon la variante
@@ -74,6 +76,7 @@ const JarvisAvatar = ({
             <Avatar3D 
               status={status}
               size={size}
+              eyeScale={eyeScale}
             />
           </motion.div>
         </Box>

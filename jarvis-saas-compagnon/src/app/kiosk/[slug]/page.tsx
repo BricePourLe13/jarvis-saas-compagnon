@@ -5,7 +5,7 @@ import { Box, Text, VStack, HStack, Badge, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
 import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
-import Avatar3D from '@/components/kiosk/Avatar3D'
+import JarvisAvatar from '@/components/common/JarvisAvatar'
 import BrowserPermissionsFallback from '@/components/kiosk/BrowserPermissionsFallback'
 import ProvisioningInterface from '@/components/kiosk/ProvisioningInterface'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
@@ -14,6 +14,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects'
 import { useKioskHeartbeat } from '@/hooks/useKioskHeartbeat'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
+import ModernFluidShapes from '@/components/common/ModernFluidShapes'
 
 // ✅ PHASE 3: Browser Compatibility & Fallbacks
 const getBrowserInfo = () => {
@@ -742,19 +743,22 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         h="100vh"
         position="relative"
         overflow="hidden"
-        bg="linear-gradient(135deg, #000000 0%, #0a0a0f 20%, #0f0f1a 60%, #000000 100%)"
+        bg="linear-gradient(135deg, #f8f9fa 0%, #e5e7eb 50%, #d1d5db 100%)"
         fontFamily="SF Pro Display, -apple-system, system-ui"
         suppressHydrationWarning
         role="application"
         aria-label="Interface Jarvis Kiosk"
         data-permissions-context="kiosk-microphone"
       >
+        {/* Shapes fluides comme sur la page de login */}
+        <ModernFluidShapes />
         {/* 🌌 COSMOS NOIR OPTIMISÉ */}
         <Box
           position="absolute"
           inset="0"
           zIndex={1}
           opacity={0.8}
+          display="none"
         >
           {/* 🌌 COUCHE ULTRA LOINTAINE - Voie lactée dense OPTIMISÉE */}
           <Box
@@ -1213,8 +1217,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                         )}
                         <Text 
                           fontSize="2xl" 
-                          color={sessionError ? "red.300" : "rgba(255, 255, 255, 0.95)"}
-                          fontWeight="300"
+                          color={sessionError ? "#ef4444" : "#111827"}
+                          fontWeight="500"
                           letterSpacing="0.02em"
                           lineHeight="1.3"
                           textAlign="center"
@@ -1371,22 +1375,31 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             justifyContent="center"
             flexDirection="column"
           >
-            <motion.div
-              animate={{
-                y: [-6, 6, -6],
-                rotateY: [0, 1, 0],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <Avatar3D 
-                status={getJarvisStatus()}
-                size={420}
+            <Box position="relative">
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 480,
+                  height: 480,
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 45%, rgba(0,0,0,0) 70%)',
+                  filter: 'blur(6px)',
+                  pointerEvents: 'none'
+                }}
+                animate={{ opacity: [0.7, 0.9, 0.7], scale: [1, 1.02, 1] }}
+                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
               />
-            </motion.div>
+              <JarvisAvatar
+                size={420}
+                showText={false}
+                variant="default"
+                status={getJarvisStatus()}
+                eyeScale={1}
+              />
+            </Box>
 
             {/* 👋 Indication de fin de session */}
             <AnimatePresence>
@@ -1455,8 +1468,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               <VStack spacing={3} align="flex-start">
                 <Text 
                   fontSize="sm" 
-                  color="rgba(255, 255, 255, 0.5)"
-                  fontWeight="300"
+                  color="#374151"
+                  fontWeight="500"
                   letterSpacing="0.02em"
                 >
                   {kioskData.gym.name}
@@ -1471,8 +1484,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                   />
                   <Text 
                     fontSize="xs" 
-                    color="rgba(255, 255, 255, 0.4)"
-                    fontWeight="400"
+                    color="#6b7280"
+                    fontWeight="500"
                   >
                     {voiceActive ? "En écoute" : "Disponible"}
                   </Text>
@@ -1480,15 +1493,15 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                 
                 {/* Indicateur pre-warming discret */}
                 {prewarmStatus === 'warming' && (
-                  <HStack spacing={1} opacity={0.6}>
-                    <Spinner size="xs" color="blue.400" thickness="2px" />
-                    <Text fontSize="xs" color="blue.400">Optimisation...</Text>
+                  <HStack spacing={1} opacity={0.9}>
+                    <Spinner size="xs" color="#6366f1" thickness="2px" />
+                    <Text fontSize="xs" color="#4f46e5">Optimisation...</Text>
                   </HStack>
                 )}
                 {prewarmStatus === 'ready' && (
-                  <HStack spacing={1} opacity={0.6}>
-                    <Box w="2px" h="2px" borderRadius="50%" bg="green.400" />
-                    <Text fontSize="xs" color="green.400">Optimisé</Text>
+                  <HStack spacing={1} opacity={0.9}>
+                    <Box w="4px" h="4px" borderRadius="50%" bg="#10b981" />
+                    <Text fontSize="xs" color="#065f46">Optimisé</Text>
                   </HStack>
                 )}
               </VStack>
