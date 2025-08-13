@@ -34,7 +34,8 @@ export default function VoiceInterface({
     connect,
     disconnect,
     sendTextMessage,
-    forceReconnect
+    forceReconnect,
+    getCurrentSessionId
   } = useVoiceChat({
     gymSlug,
     memberId: currentMember?.id,
@@ -78,7 +79,20 @@ export default function VoiceInterface({
   // 🎯 NOUVELLE DÉTECTION "AU REVOIR" avec Web Speech API en parallèle
   const handleGoodbyeDetected = useCallback(async () => {
     console.log('👋 [GOODBYE DETECTED] Fermeture session par détection au revoir')
-    await disconnect()
+    try {
+      const sessionId = getCurrentSessionId?.()
+      if (sessionId) {
+        // Fermer côté serveur (idempotent)
+        await fetch('/api/voice/session/close', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, reason: 'user_goodbye' }),
+          keepalive: true
+        }).catch(() => {})
+      }
+    } finally {
+      await disconnect()
+    }
     onDeactivate()
   }, [disconnect, onDeactivate])
 

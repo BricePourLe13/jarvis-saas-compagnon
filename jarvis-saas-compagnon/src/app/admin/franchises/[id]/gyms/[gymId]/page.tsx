@@ -418,6 +418,8 @@ export default function GymDetailsPage() {
         : null
 
       // Sessions sur la période
+      // Cleanup minimal côté UI pour fiabiliser les compteurs
+      try { await supabase.rpc('cleanup_inactive_realtime_sessions', { p_gym_id: gymId, p_inactive_minutes: 10 }) } catch {}
       const { data: periodSessions } = await supabase
         .from('openai_realtime_sessions')
         .select('session_id')

@@ -847,6 +847,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
     connect,
     disconnect,
     sendTextMessage,
-    forceReconnect
+    forceReconnect,
+    getCurrentSessionId: () => sessionRef.current?.session_id || null
   }
 } 
