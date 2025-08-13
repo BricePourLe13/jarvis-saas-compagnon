@@ -461,6 +461,12 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       setSessionWarning(null)
       setSessionError(null)
       setKioskState(prev => ({ ...prev, status: 'idle' }))
+      // 🔄 Point d'application: recharger la config si une nouvelle version a été publiée
+      try {
+        fetch(`/api/kiosk/${slug}`).then(() => {
+          console.log('🛠️ [KIOSK CONFIG] Vérification/rafraîchissement config post-session')
+        })
+      } catch {}
     }, displayDuration)
   }, [])
 
@@ -565,9 +571,13 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
 
   // Statut pour JARVIS
-  const getJarvisStatus = (): 'idle' | 'listening' | 'speaking' | 'thinking' | 'connecting' => {
+  const getJarvisStatus = (): 'idle' | 'listening' | 'speaking' | 'thinking' => {
     if (voiceActive) {
-      return kioskState.status as any
+      // Normaliser les états inconnus vers 'listening'
+      const s = kioskState.status as any
+      if (s === 'speaking' || s === 'listening' || s === 'idle') return s
+      if (s === 'processing' || s === 'authenticated' || s === 'scanning') return 'thinking'
+      return 'listening'
     }
     if (currentMember) return 'thinking'
     return 'idle'
@@ -743,7 +753,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         h="100vh"
         position="relative"
         overflow="hidden"
-        bg="linear-gradient(135deg, #f8f9fa 0%, #e5e7eb 50%, #d1d5db 100%)"
+        bg="linear-gradient(135deg, var(--chakra-colors-gray-50) 0%, var(--chakra-colors-gray-200) 50%, var(--chakra-colors-gray-300) 100%)"
         fontFamily="SF Pro Display, -apple-system, system-ui"
         suppressHydrationWarning
         role="application"
@@ -1217,7 +1227,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                         )}
                         <Text 
                           fontSize="2xl" 
-                          color={sessionError ? "#ef4444" : "#111827"}
+        color={sessionError ? "red.500" : "text.default"}
                           fontWeight="500"
                           letterSpacing="0.02em"
                           lineHeight="1.3"
@@ -1233,7 +1243,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                           <Box w="full" h="2px" bg="rgba(255,255,255,0.1)" borderRadius="full" overflow="hidden">
                             <Box 
                               h="full" 
-                              bg="linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)"
+        bg="linear-gradient(90deg, var(--chakra-colors-blue-500), var(--chakra-colors-purple-500), var(--chakra-colors-cyan-500))"
                               borderRadius="full"
                               w={`${loadingProgress}%`}
                               transition="width 0.5s ease-in-out"
@@ -1468,7 +1478,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               <VStack spacing={3} align="flex-start">
                 <Text 
                   fontSize="sm" 
-                  color="#374151"
+        color="text.default"
                   fontWeight="500"
                   letterSpacing="0.02em"
                 >
@@ -1484,7 +1494,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                   />
                   <Text 
                     fontSize="xs" 
-                    color="#6b7280"
+        color="text.muted"
                     fontWeight="500"
                   >
                     {voiceActive ? "En écoute" : "Disponible"}
@@ -1494,14 +1504,14 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                 {/* Indicateur pre-warming discret */}
                 {prewarmStatus === 'warming' && (
                   <HStack spacing={1} opacity={0.9}>
-                    <Spinner size="xs" color="#6366f1" thickness="2px" />
-                    <Text fontSize="xs" color="#4f46e5">Optimisation...</Text>
+        <Spinner size="xs" color="purple.500" thickness="2px" />
+        <Text fontSize="xs" color="purple.600">Optimisation...</Text>
                   </HStack>
                 )}
                 {prewarmStatus === 'ready' && (
                   <HStack spacing={1} opacity={0.9}>
-                    <Box w="4px" h="4px" borderRadius="50%" bg="#10b981" />
-                    <Text fontSize="xs" color="#065f46">Optimisé</Text>
+                    <Box w="4px" h="4px" borderRadius="50%" bg="green.500" />
+        <Text fontSize="xs" color="green.800">Optimisé</Text>
                   </HStack>
                 )}
               </VStack>

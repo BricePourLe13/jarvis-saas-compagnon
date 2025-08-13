@@ -56,28 +56,28 @@ export function GymCard({
           color: 'green',
           label: 'EN LIGNE',
           icon: Wifi,
-          iconColor: '#10B981'
+          iconColor: 'var(--chakra-colors-green-500)'
         }
       case 'offline':
         return {
           color: 'red',
           label: 'HORS LIGNE',
           icon: WifiOff,
-          iconColor: '#EF4444'
+          iconColor: 'var(--chakra-colors-red-500)'
         }
       case 'warning':
         return {
           color: 'orange',
           label: 'ATTENTION',
           icon: Wifi,
-          iconColor: '#F59E0B'
+          iconColor: 'var(--chakra-colors-orange-500)'
         }
       default:
         return {
           color: 'gray',
           label: 'INCONNU',
           icon: WifiOff,
-          iconColor: '#6B7280'
+          iconColor: 'var(--chakra-colors-gray-500)'
         }
     }
   }

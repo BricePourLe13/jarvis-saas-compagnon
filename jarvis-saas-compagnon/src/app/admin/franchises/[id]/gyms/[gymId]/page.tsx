@@ -9,6 +9,7 @@ import {
   VStack,
   HStack,
   Button,
+  ButtonGroup,
   Icon,
   Heading,
   Text,
@@ -39,7 +40,11 @@ import {
   Alert,
   AlertIcon,
   AlertTitle,
-  AlertDescription
+  AlertDescription,
+  Select,
+  Switch,
+  FormControl,
+  FormLabel
 } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import OpenAIRealtimeMonitoringFixed from '@/components/admin/monitoring/OpenAIRealtimeMonitoringFixed'
@@ -47,7 +52,7 @@ import { UnifiedLayout } from '@/components/unified/UnifiedLayout'
 import { 
   ArrowLeft,
   Building2, 
-  MapPin,
+  MapPin, 
   Clock,
   Settings,
   MoreVertical,
@@ -69,7 +74,8 @@ import {
   RotateCcw,
   CheckCircle,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react'
 import type { Gym, Franchise } from '../../../../../../types/franchise'
 import { createBrowserClientWithConfig } from '../../../../../../lib/supabase-admin'
@@ -111,6 +117,32 @@ export default function GymDetailsPage() {
   
   // 💓 Statut temps réel du kiosk
   const [kioskOnlineStatus, setKioskOnlineStatus] = useState<boolean>(false)
+  
+  // 🧭 Suivi sessions simplifié
+  type Period = 'day' | 'week' | 'month'
+  const [period, setPeriod] = useState<Period>('day')
+  const [sessionSummary, setSessionSummary] = useState<{ activeCount: number; activeMemberName: string | null; totalInPeriod: number }>({ activeCount: 0, activeMemberName: null, totalInPeriod: 0 })
+  // 🔧 Détails techniques repliés par défaut
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false)
+
+  // 📝 Formulaire configuration Jarvis
+  const [jarvisSettings, setJarvisSettings] = useState<any>({
+    personality: 'friendly',
+    humor_level: 'medium',
+    response_length: 'short',
+    language_accent: 'fr_fr',
+    tone_timebased: true,
+    emotion_bias: 'neutral',
+    speaking_pace: 'normal',
+    opening_preset: 'deadpool_clean',
+    strict_end_rule: true,
+    model: 'gpt-4o-mini-realtime',
+    voice: 'verse'
+  })
+  const [configSaving, setConfigSaving] = useState<boolean>(false)
+  const [configPublishing, setConfigPublishing] = useState<boolean>(false)
+  // 🚨 Incidents récents
+  const [incidents, setIncidents] = useState<Array<{ id: string; started_at: string; ended_at: string | null; message?: string | null }>>([])
 
   // ===========================================
   // 🔄 Chargement des données
@@ -121,12 +153,16 @@ export default function GymDetailsPage() {
     loadJarvisMetrics()
     loadKioskSupervision()
     loadKioskStatus() // 💓 Charger le statut temps réel
+    loadSessionSummary('day')
+    loadIncidents()
 
     // 📡 Mise à jour temps réel des métriques toutes les 2 minutes (moins de spam)
     const interval = setInterval(() => {
       loadJarvisMetrics()
       loadKioskSupervision()
       loadKioskStatus() // 💓 Vérifier le statut régulièrement
+      loadSessionSummary(period)
+      loadIncidents()
     }, 120000) // ✅ 2 minutes au lieu de 30 secondes
 
     // ⚡ Vérifier le statut ultra-fréquemment (toutes les 10 secondes)
@@ -139,6 +175,13 @@ export default function GymDetailsPage() {
       clearInterval(statusInterval)
     }
   }, [gymId])
+
+  // Rafraîchir lors d'un changement de période
+  useEffect(() => {
+    if (gymId) {
+      loadSessionSummary(period)
+    }
+  }, [period, gymId])
 
   const loadGymDetails = async () => {
     try {
@@ -153,14 +196,18 @@ export default function GymDetailsPage() {
 
       const result = await response.json()
       setGym(result.data)
+      const cfg = result.data?.kiosk_config || {}
+      if (cfg && (cfg as any).jarvis_settings) {
+        setJarvisSettings({ ...jarvisSettings, ...(cfg as any).jarvis_settings })
+      }
       
       // Charger les détails de la franchise avec fallback gracieux
       if (result.data?.franchise_id) {
         try {
-          const franchiseResponse = await fetch(`/api/admin/franchises/${result.data.franchise_id}`)
-          if (franchiseResponse.ok) {
-            const franchiseResult = await franchiseResponse.json()
-            setFranchise(franchiseResult.data)
+        const franchiseResponse = await fetch(`/api/admin/franchises/${result.data.franchise_id}`)
+        if (franchiseResponse.ok) {
+          const franchiseResult = await franchiseResponse.json()
+          setFranchise(franchiseResult.data)
           } else {
             console.warn(`Franchise API 404 pour ID: ${result.data.franchise_id}`)
             // Fallback avec nom par défaut
@@ -261,6 +308,130 @@ export default function GymDetailsPage() {
       console.warn('💓 [ADMIN] Erreur chargement statut kiosk (fallback):', error)
       // Fallback silencieux en production
       setKioskOnlineStatus(false)
+    }
+  }
+
+  const loadIncidents = async () => {
+    try {
+      const supabase = createBrowserClientWithConfig()
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { data } = await supabase
+        .from('openai_realtime_sessions')
+        .select('session_id, session_started_at, session_ended_at, session_metadata')
+        .eq('gym_id', gymId)
+        .gte('session_started_at', sevenDaysAgo)
+        .contains('session_metadata', { has_error: true })
+        .order('session_started_at', { ascending: false })
+        .limit(10)
+      const mapped = (data || []).map((s: any) => ({
+        id: s.session_id,
+        started_at: s.session_started_at,
+        ended_at: s.session_ended_at,
+        message: s.session_metadata?.error_message || null,
+      }))
+      setIncidents(mapped)
+    } catch (e) {
+      console.warn('Erreur chargement incidents:', e)
+      setIncidents([])
+    }
+  }
+
+  const handleSaveJarvisConfig = async () => {
+    if (!gym) return
+    try {
+      setConfigSaving(true)
+      const updatedConfig = {
+        ...(gym.kiosk_config || {}),
+        jarvis_settings: { ...(gym.kiosk_config as any)?.jarvis_settings, ...jarvisSettings },
+        config_updated_at: new Date().toISOString(),
+      }
+      const res = await fetch(`/api/admin/gyms/${gym.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kiosk_config: updatedConfig })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Erreur enregistrement')
+      setGym((g) => g ? { ...g, kiosk_config: updatedConfig } as any : g)
+      toast({ title: 'Enregistré', description: 'Configuration Jarvis sauvegardée', status: 'success', duration: 3000, isClosable: true })
+    } catch (e: any) {
+      toast({ title: 'Erreur', description: e.message || 'Impossible de sauvegarder', status: 'error', duration: 4000, isClosable: true })
+    } finally {
+      setConfigSaving(false)
+    }
+  }
+
+  const handlePublishJarvisConfig = async () => {
+    if (!gym) return
+    try {
+      setConfigPublishing(true)
+      const currentVersion = Number(((gym.kiosk_config as any)?.config_version) || 0)
+      const updatedConfig = {
+        ...(gym.kiosk_config || {}),
+        jarvis_settings: { ...(gym.kiosk_config as any)?.jarvis_settings, ...jarvisSettings },
+        config_version: currentVersion + 1,
+        last_published_at: new Date().toISOString(),
+      }
+      const res = await fetch(`/api/admin/gyms/${gym.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kiosk_config: updatedConfig })
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Erreur publication')
+      setGym((g) => g ? { ...g, kiosk_config: updatedConfig } as any : g)
+      toast({ title: 'Publié', description: 'Configuration envoyée au kiosk', status: 'success', duration: 3000, isClosable: true })
+    } catch (e: any) {
+      toast({ title: 'Erreur', description: e.message || 'Impossible de publier', status: 'error', duration: 4000, isClosable: true })
+    } finally {
+      setConfigPublishing(false)
+    }
+  }
+
+  // 📊 Résumé sessions (actives + total période)
+  const loadSessionSummary = async (p: Period) => {
+    try {
+      const supabase = createBrowserClientWithConfig()
+      const now = new Date()
+      const start = new Date()
+      if (p === 'day') {
+        start.setUTCHours(0, 0, 0, 0)
+      } else if (p === 'week') {
+        start.setTime(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        start.setUTCHours(0, 0, 0, 0)
+      } else {
+        start.setTime(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        start.setUTCHours(0, 0, 0, 0)
+      }
+
+      // Sessions actives maintenant
+      const { data: active } = await supabase
+        .from('openai_realtime_sessions')
+        .select('session_id, session_started_at, session_metadata')
+        .eq('gym_id', gymId)
+        .is('session_ended_at', null)
+        .order('session_started_at', { ascending: false })
+
+      const activeCount = active?.length || 0
+      const activeMemberName = active && active.length > 0
+        ? ((active[0] as any).session_metadata?.member_name || 'Visiteur')
+        : null
+
+      // Sessions sur la période
+      const { data: periodSessions } = await supabase
+        .from('openai_realtime_sessions')
+        .select('session_id')
+        .eq('gym_id', gymId)
+        .gte('session_started_at', start.toISOString())
+
+      setSessionSummary({
+        activeCount,
+        activeMemberName,
+        totalInPeriod: periodSessions?.length || 0,
+      })
+    } catch (e) {
+      console.warn('Erreur chargement résumé sessions:', e)
+      setSessionSummary({ activeCount: 0, activeMemberName: null, totalInPeriod: 0 })
     }
   }
 
@@ -570,9 +741,9 @@ export default function GymDetailsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <Card
+                  <Card 
                       bg={isKioskOnline ? "#f0fdf4" : "#fef2f2"}
-                      border="1px solid"
+                    border="1px solid" 
                       borderColor={isKioskOnline ? "#bbf7d0" : "#fecaca"}
                       borderRadius="12px"
                       p={6}
@@ -594,17 +765,17 @@ export default function GymDetailsPage() {
                             </Text>
                           </VStack>
                         </HStack>
-                        <Badge 
+                          <Badge 
                           colorScheme={isKioskOnline ? "green" : "red"} 
-                          size="md"
-                          px={3}
-                          py={1}
+                            size="md"
+                            px={3}
+                            py={1}
                           borderRadius="6px"
-                        >
+                          >
                           {isKioskOnline ? "EN LIGNE" : "HORS LIGNE"}
-                        </Badge>
+                          </Badge>
                       </HStack>
-                    </Card>
+                  </Card>
                   </motion.div>
 
                   {/* Métriques Clés Aujourd'hui */}
@@ -614,119 +785,54 @@ export default function GymDetailsPage() {
                     transition={{ duration: 0.3, delay: 0.1 }}
                   >
                     <VStack spacing={6} align="stretch">
-                      <Heading size="md" color="#111827" fontWeight="600">
-                        Métriques du jour
+                      <HStack justify="space-between" align="center">
+                        <Heading size="md" color="#111827" fontWeight="600">
+                          Sessions
                       </Heading>
+                        <HStack spacing={2}>
+                          <Select size="sm" value={period} onChange={(e) => setPeriod(e.target.value as any)} w="120px">
+                            <option value="day">Jour</option>
+                            <option value="week">7j</option>
+                            <option value="month">30j</option>
+                          </Select>
+                        </HStack>
+                      </HStack>
                       
                       {/* Budget Mensuel - Vue principale */}
-                      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mb={6}>
-                        
-                        {/* Budget & Projection */}
+                      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
                         <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
-                          <VStack spacing={4} align="stretch">
-                            <Text fontWeight="600" color="#111827" fontSize="lg">
-                              Budget Mensuel
-                            </Text>
-                            
-                            <VStack spacing={3} align="stretch">
-                              <HStack justify="space-between">
-                                <Text fontSize="sm" color="#6b7280">Consommé</Text>
-                                <Text fontSize="lg" fontWeight="700" color="#111827">
-                                  ${((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85).toFixed(0)}
-                                </Text>
-                              </HStack>
-                              
-                              <Box>
-                                <HStack justify="space-between" mb={2}>
-                                  <Text fontSize="xs" color="#9ca3af">$0</Text>
-                                  <Text fontSize="xs" color="#9ca3af">$500</Text>
-                                </HStack>
-                                <Box bg="#f3f4f6" borderRadius="6px" h="8px" overflow="hidden">
-                                  <Box 
-                                    bg={((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85) > 400 ? "#ef4444" : 
-                                        ((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85) > 300 ? "#f59e0b" : "#10b981"}
-                                    h="100%" 
-                                    w={`${Math.min(((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85) / 5, 100)}%`}
-                                    transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-                                  />
-                                </Box>
-                              </Box>
-                              
-                              <VStack spacing={2} align="stretch">
-                                <HStack justify="space-between">
-                                  <Text fontSize="sm" color="#6b7280">Projection mois</Text>
-                                  <Text fontSize="sm" fontWeight="600" color={
-                                    ((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) > 450 ? "#ef4444" : 
-                                    ((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85) > 400 ? "#f59e0b" : "#10b981"
-                                  }>
-                                    ${((jarvisMetrics?.today?.totalCostUSD || 0) * 30 * 0.85).toFixed(0)}
-                                  </Text>
-                                </HStack>
-                                <HStack justify="space-between">
-                                  <Text fontSize="sm" color="#6b7280">Reste disponible</Text>
-                                  <Text fontSize="sm" fontWeight="600" color="#111827">
-                                    ${Math.max(0, 500 - ((jarvisMetrics?.today?.totalCostUSD || 0) * (new Date().getDate()) * 0.85)).toFixed(0)}
-                                  </Text>
-                                </HStack>
-                              </VStack>
-                            </VStack>
+                          <VStack align="start" spacing={1}>
+                            <Stat>
+                              <StatLabel fontSize="sm" color="#6b7280">Session en cours</StatLabel>
+                              <StatNumber fontSize="3xl" fontWeight="700" color={isKioskOnline ? '#10b981' : '#111827'}>
+                                {sessionSummary.activeCount > 0 ? '1' : '0'}
+                          </StatNumber>
+                              {sessionSummary.activeMemberName && (
+                                <StatHelpText fontSize="xs" color="#6b7280">{sessionSummary.activeMemberName}</StatHelpText>
+                              )}
+                        </Stat>
                           </VStack>
                         </Card>
-
-                        {/* Activité Temps Réel */}
                         <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
-                          <VStack spacing={4} align="stretch">
-                            <Text fontWeight="600" color="#111827" fontSize="lg">
-                              Activité Temps Réel
-                            </Text>
-                            
-                            <SimpleGrid columns={2} spacing={4}>
-                              <VStack align="start" spacing={1}>
-                                <Text fontSize="sm" color="#6b7280">Sessions aujourd'hui</Text>
-                                <Text fontSize="2xl" fontWeight="700" color="#111827">
-                                  {jarvisMetrics?.today?.totalSessions || 0}
-                                </Text>
-                                <Text fontSize="xs" color="#9ca3af">
-                                  {((jarvisMetrics?.today?.totalSessions || 0) - (jarvisMetrics?.yesterday?.totalSessions || 0)) >= 0 ? '+' : ''}{((jarvisMetrics?.today?.totalSessions || 0) - (jarvisMetrics?.yesterday?.totalSessions || 0))} vs hier
-                                </Text>
-                              </VStack>
-                              
-                              <VStack align="start" spacing={1}>
-                                <Text fontSize="sm" color="#6b7280">Coût aujourd'hui</Text>
-                                <Text fontSize="2xl" fontWeight="700" color="#111827">
-                                  ${(jarvisMetrics?.today?.totalCostUSD ? (jarvisMetrics.today.totalCostUSD * 0.85).toFixed(2) : '0.00')}
-                                </Text>
-                                <Text fontSize="xs" color="#9ca3af">
-                                  Temps réel
-                                </Text>
-                              </VStack>
-                              
-                              <VStack align="start" spacing={1}>
-                                <Text fontSize="sm" color="#6b7280">Durée moyenne</Text>
-                                <Text fontSize="2xl" fontWeight="700" color="#111827">
-                                  {jarvisMetrics?.today?.totalDurationMinutes ? 
-                                    `${Math.round(jarvisMetrics.today.totalDurationMinutes / (jarvisMetrics.today.totalSessions || 1))}min` : 
-                                    '0min'
-                                  }
-                                </Text>
-                                <Text fontSize="xs" color="#9ca3af">
-                                  Par session
-                                </Text>
-                              </VStack>
-                              
-                              <VStack align="start" spacing={1}>
-                                <Text fontSize="sm" color="#6b7280">Sessions actives</Text>
-                                <Text fontSize="2xl" fontWeight="700" color={kioskSupervision?.activeSessions > 0 ? "#10b981" : "#6b7280"}>
-                                  {kioskSupervision?.activeSessions || 0}
-                                </Text>
-                                <Text fontSize="xs" color="#9ca3af">
-                                  Maintenant
-                                </Text>
-                              </VStack>
-                            </SimpleGrid>
+                          <VStack align="start" spacing={1}>
+                            <Stat>
+                              <StatLabel fontSize="sm" color="#6b7280">Sessions ({period === 'day' ? 'aujourd\'hui' : period === 'week' ? '7j' : '30j'})</StatLabel>
+                              <StatNumber fontSize="3xl" fontWeight="700" color="#111827">{sessionSummary.totalInPeriod}</StatNumber>
+                              <StatHelpText fontSize="xs" color="#9ca3af">Filtre: {period === 'day' ? 'jour' : period === 'week' ? 'semaine' : 'mois'}</StatHelpText>
+                            </Stat>
                           </VStack>
                         </Card>
-
+                        <Card bg="#ffffff" border="1px solid #e5e7eb" borderRadius="12px" p={6}>
+                          <VStack align="start" spacing={1}>
+                            <Stat>
+                              <StatLabel fontSize="sm" color="#6b7280">Statut Kiosk</StatLabel>
+                              <StatNumber fontSize="3xl" fontWeight="700" color={isKioskOnline ? '#10b981' : '#ef4444'}>
+                                {isKioskOnline ? 'EN LIGNE' : 'HORS LIGNE'}
+                          </StatNumber>
+                              <StatHelpText fontSize="xs" color="#9ca3af">Temps réel</StatHelpText>
+                        </Stat>
+                          </VStack>
+                        </Card>
                       </SimpleGrid>
 
                       {/* Santé Technique */}
@@ -859,9 +965,9 @@ export default function GymDetailsPage() {
                               </HStack>
                             </VStack>
                           </VStack>
-                        </Card>
-
-                      </SimpleGrid>
+                  </Card>
+                  
+                </SimpleGrid>
                     </VStack>
                   </motion.div>
 
@@ -870,24 +976,38 @@ export default function GymDetailsPage() {
 
 
                   
-                  {/* Section Monitoring OpenAI Realtime */}
-                  <VStack spacing={6} align="stretch" pt={8}>
+                  {/* Section avancée (repliée par défaut) */}
+                  <VStack spacing={4} align="stretch" pt={8}>
                     <Divider />
-                    <VStack align="start" spacing={1}>
-                      <Heading size="md" color="#111827" fontWeight="600">
-                        Monitoring OpenAI Realtime
-                      </Heading>
-                      <Text fontSize="sm" color="#6b7280">
-                        Surveillance en temps réel des sessions, performance et coûts
-                      </Text>
-                    </VStack>
-
-                    <OpenAIRealtimeMonitoringFixed 
-                      gymId={gym.id}
-                      gymName={gym.name}
-                      kioskSlug={gym.kiosk_config?.kiosk_url_slug || null}
-                    />
-
+                    <HStack 
+                      justify="space-between"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={showAdvanced}
+                      onClick={() => setShowAdvanced(v => !v)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowAdvanced(v => !v) } }}
+                      cursor="pointer"
+                      p={2}
+                      borderRadius="8px"
+                      _hover={{ bg: '#fafafa' }}
+                    >
+                      <HStack spacing={3}>
+                        <Icon as={ChevronDown} boxSize={4} transform={showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)'} transition="transform 0.2s" />
+                        <VStack align="start" spacing={0}>
+                          <Heading size="md" color="#111827" fontWeight="600">
+                            Détails techniques
+                          </Heading>
+                          <Text fontSize="sm" color="#6b7280">Diagnostics temps réel (optionnel)</Text>
+                        </VStack>
+                      </HStack>
+                    </HStack>
+                    {showAdvanced && (
+                      <OpenAIRealtimeMonitoringFixed 
+                        gymId={gym.id}
+                        gymName={gym.name}
+                        kioskSlug={gym.kiosk_config?.kiosk_url_slug || null}
+                      />
+                    )}
                   </VStack>
 
                 </VStack>
@@ -932,28 +1052,126 @@ export default function GymDetailsPage() {
                             {isKioskProvisioned ? "Kiosk Configuré" : "Configuration Requise"}
                           </Text>
                           <Text fontSize="sm" color={isKioskProvisioned ? "#166534" : "#92400e"}>
-                            {isKioskProvisioned 
-                              ? "Le Kiosk JARVIS est opérationnel pour cette salle"
-                              : "Le Kiosk JARVIS attend d'être configuré avec le code de provisioning"
-                            }
+                        {isKioskProvisioned 
+                          ? "Le Kiosk JARVIS est opérationnel pour cette salle"
+                          : "Le Kiosk JARVIS attend d'être configuré avec le code de provisioning"
+                        }
                           </Text>
                         </VStack>
                       </HStack>
                     </Box>
                   </motion.div>
 
-                  {/* Configuration */}
+                  {/* Configuration Jarvis */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.1 }}
                   >
                     <VStack spacing={4} align="stretch">
-                      <Text fontWeight="500" color="#111827" fontSize="lg">
-                        Configuration
-                      </Text>
+                      <Text fontWeight="500" color="#111827" fontSize="lg">Configuration Jarvis</Text>
                       
                       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                        {/* Paramétrage Jarvis (sans texte libre) */}
+                        <Box bg="#ffffff" border="1px solid #e5e7eb" borderRadius="2px" p={6}>
+                          <VStack align="stretch" spacing={3}>
+                            <Text fontSize="sm" color="#6b7280" fontWeight="500" textTransform="uppercase">Paramètres</Text>
+                            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Personnalité</FormLabel>
+                                <Select size="sm" value={jarvisSettings.personality} onChange={(e)=>setJarvisSettings((s:any)=>({...s, personality:e.target.value}))}>
+                                  <option value="friendly">Amicale</option>
+                                  <option value="professional">Professionnelle</option>
+                                  <option value="energetic">Énergique</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Humour</FormLabel>
+                                <Select size="sm" value={jarvisSettings.humor_level} onChange={(e)=>setJarvisSettings((s:any)=>({...s, humor_level:e.target.value}))}>
+                                  <option value="none">Aucun</option>
+                                  <option value="low">Léger</option>
+                                  <option value="medium">Moyen</option>
+                                  <option value="high">Marqué</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Longueur réponse</FormLabel>
+                                <Select size="sm" value={jarvisSettings.response_length} onChange={(e)=>setJarvisSettings((s:any)=>({...s, response_length:e.target.value}))}>
+                                  <option value="short">Courte</option>
+                                  <option value="medium">Moyenne</option>
+                                  <option value="long">Longue</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Accent</FormLabel>
+                                <Select size="sm" value={jarvisSettings.language_accent} onChange={(e)=>setJarvisSettings((s:any)=>({...s, language_accent:e.target.value}))}>
+                                  <option value="fr_fr">Français (FR)</option>
+                                  <option value="fr_ca">Français (CA)</option>
+                                  <option value="fr_be">Français (BE)</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Biais émotionnel</FormLabel>
+                                <Select size="sm" value={jarvisSettings.emotion_bias} onChange={(e)=>setJarvisSettings((s:any)=>({...s, emotion_bias:e.target.value}))}>
+                                  <option value="neutral">Neutre</option>
+                                  <option value="happy">Joyeux</option>
+                                  <option value="calm">Calme</option>
+                                  <option value="energetic">Énergique</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Rythme</FormLabel>
+                                <Select size="sm" value={jarvisSettings.speaking_pace} onChange={(e)=>setJarvisSettings((s:any)=>({...s, speaking_pace:e.target.value}))}>
+                                  <option value="slow">Lent</option>
+                                  <option value="normal">Normal</option>
+                                  <option value="fast">Rapide</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Ouverture</FormLabel>
+                                <Select size="sm" value={jarvisSettings.opening_preset} onChange={(e)=>setJarvisSettings((s:any)=>({...s, opening_preset:e.target.value}))}>
+                                  <option value="deadpool_clean">Drôle (clean)</option>
+                                  <option value="friendly_minimal">Minimaliste</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Modèle</FormLabel>
+                                <Select size="sm" value={jarvisSettings.model} onChange={(e)=>setJarvisSettings((s:any)=>({...s, model:e.target.value}))}>
+                                  <option value="gpt-4o-mini-realtime">GPT-4o Mini Realtime</option>
+                                  <option value="gpt-4o-realtime">GPT-4o Realtime</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl>
+                                <FormLabel fontSize="xs" color="#6b7280">Voix</FormLabel>
+                                <Select size="sm" value={jarvisSettings.voice} onChange={(e)=>setJarvisSettings((s:any)=>({...s, voice:e.target.value}))}>
+                                  <option value="alloy">Alloy</option>
+                                  <option value="ash">Ash</option>
+                                  <option value="ballad">Ballad</option>
+                                  <option value="coral">Coral</option>
+                                  <option value="echo">Echo</option>
+                                  <option value="sage">Sage</option>
+                                  <option value="shimmer">Shimmer</option>
+                                  <option value="verse">Verse</option>
+                                </Select>
+                              </FormControl>
+                              <FormControl display="flex" alignItems="center">
+                                <FormLabel fontSize="xs" color="#6b7280" mb={0}>Ton par heure</FormLabel>
+                                <Switch isChecked={jarvisSettings.tone_timebased} onChange={(e)=>setJarvisSettings((s:any)=>({...s, tone_timebased:e.target.checked}))} ml={2} />
+                              </FormControl>
+                              <FormControl display="flex" alignItems="center">
+                                <FormLabel fontSize="xs" color="#6b7280" mb={0}>Fin stricte "Au revoir"</FormLabel>
+                                <Switch isChecked={jarvisSettings.strict_end_rule} onChange={(e)=>setJarvisSettings((s:any)=>({...s, strict_end_rule:e.target.checked}))} ml={2} />
+                              </FormControl>
+                            </SimpleGrid>
+                            <HStack spacing={3} pt={2}>
+                              <Button size="sm" onClick={handleSaveJarvisConfig} isLoading={configSaving} variant="outline">Enregistrer</Button>
+                              <Button size="sm" onClick={handlePublishJarvisConfig} isLoading={configPublishing} colorScheme="purple">Publier</Button>
+                            </HStack>
+                            {(gym?.kiosk_config as any)?.config_version && (
+                              <Text fontSize="xs" color="#6b7280">Version: {String((gym.kiosk_config as any).config_version)} • Dernière publication: {(gym?.kiosk_config as any)?.last_published_at ? new Date((gym.kiosk_config as any).last_published_at).toLocaleString() : '—'}</Text>
+                            )}
+                          </VStack>
+                        </Box>
                         
                         {/* Code de Provisioning */}
                         <Box
@@ -1016,10 +1234,10 @@ export default function GymDetailsPage() {
                               )}
                             </HStack>
                           </VStack>
-                        </Box>
-
+                          </Box>
+                          
                         {/* Accès Kiosk */}
-                        {kioskUrl && (
+                          {kioskUrl && (
                           <Box
                             bg="#ffffff"
                             border="1px solid #e5e7eb"
@@ -1031,30 +1249,30 @@ export default function GymDetailsPage() {
                                 Accès Kiosk
                               </Text>
                               <VStack spacing={3}>
-                                <Button
+                              <Button
                                   leftIcon={<Icon as={Monitor} boxSize={4} />}
-                                  onClick={handlePreviewKiosk}
+                                onClick={handlePreviewKiosk}
                                   bg="#7c3aed"
                                   color="white"
                                   borderRadius="2px"
                                   _hover={{ bg: "#6d28d9" }}
-                                  w="full"
+                                w="full"
                                   fontSize="sm"
                                   fontWeight="500"
                                   py={6}
-                                >
-                                  Ouvrir le Kiosk JARVIS
-                                </Button>
+                              >
+                                Ouvrir le Kiosk JARVIS
+                              </Button>
                                 <Text fontSize="xs" color="#6b7280" textAlign="center" fontFamily="mono">
                                   /kiosk/{kioskUrl}
-                                </Text>
+                              </Text>
                               </VStack>
                             </VStack>
-                          </Box>
-                        )}
+                            </Box>
+                          )}
 
                       </SimpleGrid>
-                    </VStack>
+                        </VStack>
                   </motion.div>
 
                   {/* Statut Matériel */}
@@ -1077,8 +1295,8 @@ export default function GymDetailsPage() {
                           borderRadius="2px"
                           p={4}
                           _hover={{ bg: "#fafafa" }}
-                          transition="all 0.2s"
-                        >
+                      transition="all 0.2s"
+                    >
                           <VStack spacing={2}>
                             <Icon as={Mic} boxSize={6} color="#10b981" />
                             <Text fontSize="xs" color="#6b7280" fontWeight="500" textTransform="uppercase">
@@ -1095,7 +1313,7 @@ export default function GymDetailsPage() {
                           bg="#ffffff"
                           border="1px solid #e5e7eb"
                           borderRadius="2px"
-                          p={4}
+                          p={4} 
                           _hover={{ bg: "#fafafa" }}
                           transition="all 0.2s"
                         >
@@ -1123,7 +1341,7 @@ export default function GymDetailsPage() {
                             <Icon as={QrCode} boxSize={6} color="#10b981" />
                             <Text fontSize="xs" color="#6b7280" fontWeight="500" textTransform="uppercase">
                               RFID
-                            </Text>
+                          </Text>
                             <Text fontSize="sm" fontWeight="600" color="#10b981">
                               Connecté
                             </Text>
@@ -1149,8 +1367,34 @@ export default function GymDetailsPage() {
                             </Text>
                           </VStack>
                         </Box>
+                    
+                  </SimpleGrid>
+                </VStack>
+                  </motion.div>
 
-                      </SimpleGrid>
+                  {/* Incidents récents */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.25 }}
+                  >
+                    <VStack spacing={4} align="stretch">
+                      <Text fontWeight="500" color="#111827" fontSize="lg">Incidents récents</Text>
+                      {incidents.length === 0 ? (
+                        <Text fontSize="sm" color="#6b7280">Aucun incident sur les 7 derniers jours.</Text>
+                      ) : (
+                        <VStack spacing={2} align="stretch">
+                          {incidents.map((it) => (
+                            <HStack key={it.id} justify="space-between" p={3} bg="#fff" border="1px solid #e5e7eb" borderRadius="8px">
+                              <VStack align="start" spacing={0}>
+                                <Text fontSize="sm" fontWeight="600" color="#111827">{it.id}</Text>
+                                <Text fontSize="xs" color="#6b7280">{new Date(it.started_at).toLocaleString()} • {it.message || 'Erreur'}</Text>
+                              </VStack>
+                              <Badge colorScheme={it.ended_at ? 'green' : 'red'}>{it.ended_at ? 'Résolu' : 'Ouvert'}</Badge>
+                            </HStack>
+                          ))}
+                        </VStack>
+                      )}
                     </VStack>
                   </motion.div>
 

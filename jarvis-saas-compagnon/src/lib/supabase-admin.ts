@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { createServerClient, createBrowserClient } from '@supabase/ssr'
 
 // ===========================================
@@ -33,26 +33,50 @@ export const getEnvironmentConfig = () => {
 /**
  * Client simple pour l'authentification et les requêtes de base
  */
+let simpleClientSingleton: SupabaseClient | null = null
 function createSimpleClient() {
+  if (typeof window !== 'undefined') {
+    // Navigateur: éviter plusieurs instances concurrentes
+    if (!simpleClientSingleton) {
+      const { supabaseUrl, supabaseAnonKey } = getEnvironmentConfig()
+      simpleClientSingleton = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      })
+    }
+    return simpleClientSingleton
+  }
+  // Côté serveur: stateless
   const { supabaseUrl, supabaseAnonKey } = getEnvironmentConfig()
-  return createClient(supabaseUrl, supabaseAnonKey)
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  })
 }
 
 /**
  * Client admin avec privilèges service role pour les opérations administratives
  */
+let adminClientSingleton: SupabaseClient | null = null
 function createAdminClient() {
   const { supabaseUrl, supabaseServiceKey } = getEnvironmentConfig()
-  
   if (!supabaseServiceKey) {
     throw new Error('SUPABASE_SERVICE_ROLE_KEY manquant - requis pour les opérations admin (invitations, etc.)')
   }
-  
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
+  if (typeof window !== 'undefined') {
+    if (!adminClientSingleton) {
+      adminClientSingleton = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      })
     }
+    return adminClientSingleton
+  }
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
   })
 }
 

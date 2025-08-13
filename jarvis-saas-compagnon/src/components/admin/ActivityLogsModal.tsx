@@ -226,9 +226,10 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
     <Modal isOpen={isOpen} onClose={onClose} size="6xl">
       <ModalOverlay bg="rgba(0, 0, 0, 0.4)" backdropFilter="blur(4px)" />
       <ModalContent
-        bg="#ffffff"
+        bg="bg.surface"
         borderRadius="16px"
-        border="1px solid #e5e7eb"
+        border="1px solid"
+        borderColor="border.default"
         boxShadow="0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
         mx={4}
         maxH="90vh"
@@ -237,7 +238,7 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
           <HStack spacing={4}>
             <Box
               p={3}
-              bg="#f3f4f6"
+              bg="bg.muted"
               borderRadius="12px"
             >
               <Icon as={Activity} boxSize={5} color="#374151" />
@@ -255,37 +256,37 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
         <ModalCloseButton 
           top={4}
           right={4}
-          bg="#f3f4f6"
+          bg="bg.muted"
           borderRadius="8px"
-          _hover={{ bg: "#e5e7eb" }}
+          _hover={{ bg: "bg.subtle" }}
         />
         
         <ModalBody p={6} pt={4} overflowY="auto">
           <VStack spacing={6} align="stretch">
             {/* Statistiques */}
             <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-              <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+              <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
                 <Stat>
                   <StatLabel fontSize="xs" color="#6b7280">Total logs</StatLabel>
                   <StatNumber fontSize="lg" color="#1a1a1a">{stats.total_logs}</StatNumber>
                   <StatHelpText fontSize="xs" color="#6b7280">{daysFilter} derniers jours</StatHelpText>
                 </Stat>
               </Box>
-              <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+              <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
                 <Stat>
                   <StatLabel fontSize="xs" color="#6b7280">Aujourd'hui</StatLabel>
                   <StatNumber fontSize="lg" color="#1a1a1a">{stats.today_logs}</StatNumber>
                   <StatHelpText fontSize="xs" color="#6b7280">Actions récentes</StatHelpText>
                 </Stat>
               </Box>
-              <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+              <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
                 <Stat>
                   <StatLabel fontSize="xs" color="#6b7280">Échecs</StatLabel>
                   <StatNumber fontSize="lg" color="#dc2626">{stats.failed_logs}</StatNumber>
                   <StatHelpText fontSize="xs" color="#6b7280">Actions échouées</StatHelpText>
                 </Stat>
               </Box>
-              <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+              <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
                 <Stat>
                   <StatLabel fontSize="xs" color="#6b7280">Risque élevé</StatLabel>
                   <StatNumber fontSize="lg" color="#dc2626">{stats.high_risk_logs}</StatNumber>
@@ -295,7 +296,7 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
             </SimpleGrid>
 
             {/* Filtres */}
-            <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+            <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
               <VStack spacing={4}>
                 <HStack w="full" justify="space-between">
                   <Text fontSize="sm" fontWeight="600" color="#374151">
@@ -303,13 +304,11 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
                   </Text>
                   <Button
                     size="sm"
-                    bg="#374151"
-                    color="white"
+                    variant="primary"
                     borderRadius="8px"
                     leftIcon={<Icon as={RefreshCw} boxSize={3} />}
                     onClick={handleRefresh}
                     isLoading={refreshing}
-                    _hover={{ bg: "#1f2937" }}
                   >
                     Actualiser
                   </Button>
@@ -320,28 +319,20 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
                     <InputLeftElement>
                       <Icon as={Search} boxSize={4} color="#6b7280" />
                     </InputLeftElement>
-                    <Input
+                  <Input
+                    variant="outline"
                       placeholder="Rechercher..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      bg="white"
-                      border="1px solid #d1d5db"
-                      borderRadius="8px"
                       fontSize="sm"
-                      _focus={{
-                        borderColor: "#374151",
-                        boxShadow: "0 0 0 1px #374151"
-                      }}
                     />
                   </InputGroup>
                   
                   <Select
+                    variant="outline"
                     placeholder="Type d'action"
                     value={actionTypeFilter}
                     onChange={(e) => setActionTypeFilter(e.target.value)}
-                    bg="white"
-                    border="1px solid #d1d5db"
-                    borderRadius="8px"
                     fontSize="sm"
                   >
                     <option value="login">Connexions</option>
@@ -352,12 +343,10 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
                   </Select>
                   
                   <Select
+                    variant="outline"
                     placeholder="Niveau de risque"
                     value={riskLevelFilter}
                     onChange={(e) => setRiskLevelFilter(e.target.value)}
-                    bg="white"
-                    border="1px solid #d1d5db"
-                    borderRadius="8px"
                     fontSize="sm"
                   >
                     <option value="low">Faible</option>
@@ -367,11 +356,9 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
                   </Select>
                   
                   <Select
+                    variant="outline"
                     value={daysFilter}
                     onChange={(e) => setDaysFilter(e.target.value)}
-                    bg="white"
-                    border="1px solid #d1d5db"
-                    borderRadius="8px"
                     fontSize="sm"
                   >
                     <option value="1">Aujourd'hui</option>
@@ -398,13 +385,14 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
               </Alert>
             ) : (
               <Box
-                border="1px solid #e5e7eb"
+                border="1px solid"
+                borderColor="border.default"
                 borderRadius="12px"
                 overflow="hidden"
-                bg="white"
+                bg="bg.surface"
               >
                 <Table variant="simple" size="sm">
-                  <Thead bg="#f9fafb">
+                  <Thead bg="bg.subtle">
                     <Tr>
                       <Th fontSize="xs" color="#374151" fontWeight="600">Utilisateur</Th>
                       <Th fontSize="xs" color="#374151" fontWeight="600">Action</Th>
@@ -499,17 +487,12 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
               {filteredLogs.length} log{filteredLogs.length !== 1 ? 's' : ''} affiché{filteredLogs.length !== 1 ? 's' : ''}
             </Text>
             <Button
-              bg="#f3f4f6"
-              color="#6b7280"
+              variant="secondary"
               borderRadius="12px"
               h="48px"
               px={6}
               fontWeight="600"
               onClick={onClose}
-              _hover={{
-                bg: "#e5e7eb",
-                color: "#374151"
-              }}
               transition="all 0.2s"
             >
               Fermer

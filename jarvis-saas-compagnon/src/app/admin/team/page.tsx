@@ -204,9 +204,10 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
     <Modal isOpen={isOpen} onClose={handleClose} size="lg">
       <ModalOverlay bg="rgba(0, 0, 0, 0.4)" backdropFilter="blur(4px)" />
       <ModalContent
-        bg="#ffffff"
+        bg="bg.surface"
         borderRadius="16px"
-        border="1px solid #e5e7eb"
+        border="1px solid"
+        borderColor="border.default"
         boxShadow="0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
         mx={4}
       >
@@ -214,7 +215,7 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
           <HStack spacing={4}>
             <Box
               p={3}
-              bg="#f3f4f6"
+              bg="bg.muted"
               borderRadius="12px"
             >
               <Icon as={UserPlus} boxSize={5} color="#374151" />
@@ -232,9 +233,9 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
         <ModalCloseButton 
           top={4}
           right={4}
-          bg="#f3f4f6"
+          bg="bg.muted"
           borderRadius="8px"
-          _hover={{ bg: "#e5e7eb" }}
+          _hover={{ bg: "bg.subtle" }}
         />
         
         <ModalBody p={6} pt={4}>
@@ -244,13 +245,14 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
                 Email
               </FormLabel>
               <Input
+                variant="outline"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="admin@example.com"
-                bg="#ffffff"
+                bg="bg.surface"
                 border="1px solid"
-                borderColor="#e5e7eb"
+                borderColor="border.default"
                 borderRadius="12px"
                 h="48px"
                 fontSize="15px"
@@ -274,12 +276,13 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
                 Nom complet
               </FormLabel>
               <Input
+                variant="outline"
                 value={formData.full_name}
                 onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 placeholder="Jean Dupont"
-                bg="#ffffff"
+                bg="bg.surface"
                 border="1px solid"
-                borderColor="#e5e7eb"
+                borderColor="border.default"
                 borderRadius="12px"
                 h="48px"
                 fontSize="15px"
@@ -303,11 +306,12 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
                 Rôle
               </FormLabel>
               <Select
+                variant="outline"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                bg="#ffffff"
+                bg="bg.surface"
                 border="1px solid"
-                borderColor="#e5e7eb"
+                borderColor="border.default"
                 borderRadius="12px"
                 h="48px"
                 fontSize="15px"
@@ -380,24 +384,18 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
         <ModalFooter p={6} pt={4}>
           <HStack spacing={3} w="full" justify="end">
             <Button
-              bg="#f3f4f6"
-              color="#6b7280"
+              variant="secondary"
               borderRadius="12px"
               h="48px"
               px={6}
               fontWeight="600"
               onClick={handleClose}
-              _hover={{
-                bg: "#e5e7eb",
-                color: "#374151"
-              }}
               transition="all 0.2s"
             >
               Annuler
             </Button>
             <Button
-              bg="#374151"
-              color="white"
+              variant="primary"
               borderRadius="12px"
               h="48px"
               px={6}
@@ -406,14 +404,6 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
               isLoading={loading}
               loadingText="Envoi..."
               leftIcon={<Icon as={Mail} />}
-              _hover={{
-                bg: "#1f2937",
-                transform: "translateY(-1px)",
-                boxShadow: "0 4px 12px rgba(55, 65, 81, 0.3)"
-              }}
-              _active={{
-                transform: "translateY(0px)"
-              }}
               transition="all 0.2s"
             >
               Envoyer l&apos;invitation
@@ -670,12 +660,13 @@ export default function TeamPage() {
           <Box
             px={3}
             py={1}
-            bg="#fef3c7"
-            color="#92400e"
+            bg="yellow.50"
+            color="yellow.800"
             fontSize="xs"
             fontWeight="600"
             borderRadius="8px"
-            border="1px solid #fbbf24"
+            border="1px solid"
+            borderColor="yellow.400"
           >
             En attente
           </Box>
@@ -685,12 +676,13 @@ export default function TeamPage() {
           <Box
             px={3}
             py={1}
-            bg="#fee2e2"
-            color="#991b1b"
+            bg="red.50"
+            color="red.800"
             fontSize="xs"
             fontWeight="600"
             borderRadius="8px"
-            border="1px solid #f87171"
+            border="1px solid"
+            borderColor="red.400"
           >
             Expirée
           </Box>
@@ -701,12 +693,13 @@ export default function TeamPage() {
           <Box
             px={3}
             py={1}
-            bg="#dcfce7"
-            color="#166534"
+            bg="green.50"
+            color="green.800"
             fontSize="xs"
             fontWeight="600"
             borderRadius="8px"
-            border="1px solid #4ade80"
+            border="1px solid"
+            borderColor="green.400"
           >
             Acceptée
           </Box>
@@ -718,7 +711,7 @@ export default function TeamPage() {
     <AuthGuard requiredRole="super_admin">
       <Box 
         minH="100vh" 
-        bg="linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #eeeeee 100%)"
+        bg="bg.subtle"
         position="relative"
         overflow="hidden"
       >
@@ -756,10 +749,11 @@ export default function TeamPage() {
                   <HStack spacing={4}>
                     <Box
                       p={3}
-                      bg="#ffffff"
+                      bg="bg.surface"
                       borderRadius="16px"
-                      border="1px solid #e5e7eb"
-                      boxShadow="0 1px 3px rgba(0, 0, 0, 0.1)"
+                      border="1px solid"
+                      borderColor="border.default"
+                      boxShadow="sm"
                     >
                       <Icon as={Users} boxSize={6} color="#374151" />
                     </Box>
@@ -772,99 +766,70 @@ export default function TeamPage() {
                       >
                         GESTION DE L'ÉQUIPE
                       </Text>
-                      <Text color="#6b7280" fontSize="md">
+                       <Text color="text.muted" fontSize="md">
                         Gérez les accès administrateurs de votre plateforme JARVIS
                       </Text>
                     </VStack>
                   </HStack>
                 </VStack>
                 <HStack spacing={4}>
-                  {selectedUsers.length > 0 && (
-                    <HStack spacing={3} p={3} bg="#fef3c7" borderRadius="12px" border="1px solid #f59e0b">
-                      <Text fontSize="sm" fontWeight="600" color="#92400e">
+                    {selectedUsers.length > 0 && (
+                      <HStack spacing={3} p={3} bg="yellow.50" borderRadius="12px" border="1px solid" borderColor="yellow.400">
+                        <Text fontSize="sm" fontWeight="600" color="yellow.800">
                         {selectedUsers.length} sélectionné(s)
                       </Text>
                       <Button
                         size="sm"
-                        bg="#f59e0b"
-                        color="white"
+                          variant="primary"
                         borderRadius="8px"
                         leftIcon={<Icon as={MoreHorizontal} boxSize={3} />}
                         onClick={onBulkOpen}
-                        _hover={{ bg: "#d97706" }}
                       >
                         Actions
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        color="#92400e"
+                          color="yellow.800"
                         onClick={clearSelection}
-                        _hover={{ bg: "#fde68a" }}
+                          _hover={{ bg: "yellow.100" }}
                       >
                         Annuler
                       </Button>
                     </HStack>
                   )}
                   <Button
-                    bg="#059669"
-                    color="white"
+                    variant="primary"
                     borderRadius="12px"
                     h="50px"
                     px={6}
                     fontWeight="600"
                     leftIcon={<Icon as={Monitor} />}
                     onClick={onSessionsOpen}
-                    _hover={{
-                      bg: "#047857",
-                      transform: "translateY(-1px)",
-                      boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
-                    }}
-                    _active={{
-                      transform: "translateY(0px)"
-                    }}
                     transition="all 0.2s"
                   >
                     Sessions
                   </Button>
                   <Button
-                    bg="#6366f1"
-                    color="white"
+                    variant="primary"
                     borderRadius="12px"
                     h="50px"
                     px={6}
                     fontWeight="600"
                     leftIcon={<Icon as={Activity} />}
                     onClick={onActivityOpen}
-                    _hover={{
-                      bg: "#4f46e5",
-                      transform: "translateY(-1px)",
-                      boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
-                    }}
-                    _active={{
-                      transform: "translateY(0px)"
-                    }}
                     transition="all 0.2s"
                   >
                     Analytics
                   </Button>
                   <Button
-                    bg="#374151"
-                    color="white"
+                    variant="primary"
                     borderRadius="12px"
                     h="50px"
                     px={6}
                     fontWeight="600"
                     leftIcon={<Icon as={UserPlus} />}
                     onClick={onOpen}
-                    _hover={{
-                      bg: "#1f2937",
-                      transform: "translateY(-1px)",
-                      boxShadow: "0 4px 12px rgba(55, 65, 81, 0.3)"
-                    }}
-                    _active={{
-                      transform: "translateY(0px)"
-                    }}
                     transition="all 0.2s"
                   >
                     Inviter un admin
@@ -878,11 +843,12 @@ export default function TeamPage() {
               <Box 
                 flex="1" 
                 minW="200px"
-                bg="#ffffff"
+                bg="bg.surface"
                 borderRadius="16px"
-                border="1px solid #e5e7eb"
+                border="1px solid"
+                borderColor="border.default"
                 p={6}
-                boxShadow="0 1px 3px rgba(0, 0, 0, 0.1)"
+                boxShadow="sm"
                 _hover={{
                   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                   transform: "translateY(-1px)"
@@ -891,14 +857,14 @@ export default function TeamPage() {
               >
                 <HStack justify="space-between">
                   <VStack align="start" spacing={1}>
-                    <Text fontSize="2xl" fontWeight="800" color="#1a1a1a">
+                    <Text fontSize="2xl" fontWeight="800" color="text.default">
                       {stats.total}
                     </Text>
-                    <Text fontSize="sm" color="#6b7280" fontWeight="500">Total utilisateurs</Text>
+                    <Text fontSize="sm" color="text.muted" fontWeight="500">Total utilisateurs</Text>
                   </VStack>
                   <Box
                     p={3}
-                    bg="#f3f4f6"
+                    bg="bg.muted"
                     borderRadius="12px"
                   >
                     <Icon as={Users} boxSize={5} color="#374151" />
@@ -909,11 +875,12 @@ export default function TeamPage() {
               <Box 
                 flex="1" 
                 minW="200px"
-                bg="#ffffff"
+                bg="bg.surface"
                 borderRadius="16px"
-                border="1px solid #e5e7eb"
+                border="1px solid"
+                borderColor="border.default"
                 p={6}
-                boxShadow="0 1px 3px rgba(0, 0, 0, 0.1)"
+                boxShadow="sm"
                 _hover={{
                   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                   transform: "translateY(-1px)"
@@ -922,14 +889,14 @@ export default function TeamPage() {
               >
                 <HStack justify="space-between">
                   <VStack align="start" spacing={1}>
-                    <Text fontSize="2xl" fontWeight="800" color="#1a1a1a">
+                    <Text fontSize="2xl" fontWeight="800" color="text.default">
                       {stats.active}
                     </Text>
-                    <Text fontSize="sm" color="#6b7280" fontWeight="500">Actifs</Text>
+                    <Text fontSize="sm" color="text.muted" fontWeight="500">Actifs</Text>
                   </VStack>
                   <Box
                     p={3}
-                    bg="#f0fdf4"
+                    bg="green.50"
                     borderRadius="12px"
                   >
                     <Icon as={CheckCircle} boxSize={5} color="#16a34a" />
@@ -940,11 +907,12 @@ export default function TeamPage() {
               <Box 
                 flex="1" 
                 minW="200px"
-                bg="#ffffff"
+                bg="bg.surface"
                 borderRadius="16px"
-                border="1px solid #e5e7eb"
+                border="1px solid"
+                borderColor="border.default"
                 p={6}
-                boxShadow="0 1px 3px rgba(0, 0, 0, 0.1)"
+                boxShadow="sm"
                 _hover={{
                   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                   transform: "translateY(-1px)"
@@ -953,14 +921,14 @@ export default function TeamPage() {
               >
                 <HStack justify="space-between">
                   <VStack align="start" spacing={1}>
-                    <Text fontSize="2xl" fontWeight="800" color="#1a1a1a">
+                    <Text fontSize="2xl" fontWeight="800" color="text.default">
                       {stats.pending}
                     </Text>
-                    <Text fontSize="sm" color="#6b7280" fontWeight="500">En attente</Text>
+                    <Text fontSize="sm" color="text.muted" fontWeight="500">En attente</Text>
                   </VStack>
                   <Box
                     p={3}
-                    bg="#fef3c7"
+                    bg="yellow.50"
                     borderRadius="12px"
                   >
                     <Icon as={Clock} boxSize={5} color="#d97706" />
@@ -971,11 +939,12 @@ export default function TeamPage() {
               <Box 
                 flex="1" 
                 minW="200px"
-                bg="#ffffff"
+                bg="bg.surface"
                 borderRadius="16px"
-                border="1px solid #e5e7eb"
+                border="1px solid"
+                borderColor="border.default"
                 p={6}
-                boxShadow="0 1px 3px rgba(0, 0, 0, 0.1)"
+                boxShadow="sm"
                 _hover={{
                   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
                   transform: "translateY(-1px)"
@@ -984,14 +953,14 @@ export default function TeamPage() {
               >
                 <HStack justify="space-between">
                   <VStack align="start" spacing={1}>
-                    <Text fontSize="2xl" fontWeight="800" color="#1a1a1a">
+                    <Text fontSize="2xl" fontWeight="800" color="text.default">
                       {stats.super_admins}
                     </Text>
-                    <Text fontSize="sm" color="#6b7280" fontWeight="500">Super Admins</Text>
+                    <Text fontSize="sm" color="text.muted" fontWeight="500">Super Admins</Text>
                   </VStack>
                   <Box
                     p={3}
-                    bg="#faf5ff"
+                    bg="purple.50"
                     borderRadius="12px"
                   >
                     <Icon as={Shield} boxSize={5} color="#9333ea" />
@@ -1002,13 +971,14 @@ export default function TeamPage() {
 
             {/* Table des utilisateurs moderne */}
             <Box
-              bg="#ffffff"
+              bg="bg.surface"
               borderRadius="16px"
-              border="1px solid #e5e7eb"
-              boxShadow="0 1px 3px rgba(0, 0, 0, 0.1)"
+              border="1px solid"
+              borderColor="border.default"
+              boxShadow="sm"
               overflow="hidden"
             >
-              <Box p={6} borderBottom="1px solid #e5e7eb">
+              <Box p={6} borderBottom="1px solid" borderColor="border.default">
                 <HStack justify="space-between" align="center">
                   <VStack align="start" spacing={1}>
                     <Text fontSize="lg" fontWeight="700" color="#1a1a1a">
@@ -1046,7 +1016,7 @@ export default function TeamPage() {
                   </Thead>
                   <Tbody>
                     {users.map((user) => (
-                      <Tr key={user.id} bg={isUserSelected(user.id) ? "#f0f9ff" : "white"}>
+                       <Tr key={user.id} bg={isUserSelected(user.id) ? "blue.50" : "bg.surface"}>
                         <Td>
                           <Checkbox
                             isChecked={isUserSelected(user.id)}

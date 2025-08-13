@@ -98,15 +98,16 @@ export default function NotificationPreferencesModal({ isOpen, onClose, user, on
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <ModalOverlay bg="rgba(0, 0, 0, 0.4)" backdropFilter="blur(4px)" />
       <ModalContent
-        bg="#fff"
+        bg="bg.surface"
         borderRadius="16px"
-        border="1px solid #e5e7eb"
+        border="1px solid"
+        borderColor="border.default"
         boxShadow="0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
         mx={4}
       >
         <ModalHeader p={6} pb={0}>
           <HStack spacing={4}>
-            <Box p={3} bg="#f3f4f6" borderRadius="12px">
+            <Box p={3} bg="bg.muted" borderRadius="12px">
               <Bell size={20} color="#374151" />
             </Box>
             <VStack align="start" spacing={0}>
@@ -119,11 +120,11 @@ export default function NotificationPreferencesModal({ isOpen, onClose, user, on
             </VStack>
           </HStack>
         </ModalHeader>
-        <ModalCloseButton top={4} right={4} bg="#f3f4f6" borderRadius="8px" _hover={{ bg: "#e5e7eb" }} isDisabled={saving} />
+        <ModalCloseButton top={4} right={4} bg="bg.muted" borderRadius="8px" _hover={{ bg: "bg.subtle" }} isDisabled={saving} />
         <ModalBody p={6} pt={4}>
           <VStack spacing={6} align="stretch">
             <FormControl display="flex" alignItems="center">
-              <FormLabel htmlFor="email_notifications" mb="0" fontWeight="600" color="#374151">
+              <FormLabel htmlFor="email_notifications" mb="0" fontWeight="600" color="text.default">
                 Notifications par email
               </FormLabel>
               <Switch
@@ -135,7 +136,7 @@ export default function NotificationPreferencesModal({ isOpen, onClose, user, on
               />
             </FormControl>
             <FormControl display="flex" alignItems="center">
-              <FormLabel htmlFor="push_notifications" mb="0" fontWeight="600" color="#374151">
+              <FormLabel htmlFor="push_notifications" mb="0" fontWeight="600" color="text.default">
                 Notifications push
               </FormLabel>
               <Switch
@@ -147,16 +148,14 @@ export default function NotificationPreferencesModal({ isOpen, onClose, user, on
               />
             </FormControl>
             <FormControl>
-              <FormLabel htmlFor="reports_frequency" fontWeight="600" color="#374151">
+              <FormLabel htmlFor="reports_frequency" fontWeight="600" color="text.default">
                 Fréquence des rapports
               </FormLabel>
               <Select
+                variant="outline"
                 id="reports_frequency"
                 value={settings.reports_frequency}
                 onChange={e => handleChange('reports_frequency', e.target.value)}
-                bg="white"
-                border="1px solid #d1d5db"
-                borderRadius="8px"
                 fontSize="sm"
                 isDisabled={saving}
               >
@@ -173,8 +172,7 @@ export default function NotificationPreferencesModal({ isOpen, onClose, user, on
               Vos préférences sont personnelles et modifiables à tout moment.
             </Text>
             <Button
-              bg="#059669"
-              color="white"
+              variant="primary"
               borderRadius="12px"
               h="48px"
               px={6}
@@ -182,14 +180,6 @@ export default function NotificationPreferencesModal({ isOpen, onClose, user, on
               onClick={handleSave}
               isLoading={saving}
               leftIcon={<Save size={18} />}
-              _hover={{
-                bg: "#047857",
-                transform: "translateY(-1px)",
-                boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
-              }}
-              _active={{
-                transform: "translateY(0px)"
-              }}
               transition="all 0.2s"
             >
               Sauvegarder

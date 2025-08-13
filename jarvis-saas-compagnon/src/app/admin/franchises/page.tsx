@@ -216,7 +216,7 @@ export default function FranchisesPage() {
           <Box w="300px">
             <InputGroup>
               <InputLeftElement>
-                <Search size={16} color="#9CA3AF" />
+                <Search size={16} color="var(--chakra-colors-gray-400)" />
               </InputLeftElement>
               <Input
                 placeholder="Rechercher par nom ou ville..."
@@ -246,7 +246,7 @@ export default function FranchisesPage() {
             textAlign="center"
           >
             <VStack spacing={4}>
-              <Building2 size={32} color="#9CA3AF" />
+              <Building2 size={32} color="var(--chakra-colors-gray-400)" />
               <VStack spacing={2}>
                 <Text fontSize="lg" fontWeight="500" color="black">
                   {searchTerm ? 'Aucune franchise trouvée' : 'Aucune franchise'}
@@ -312,7 +312,7 @@ export default function FranchisesPage() {
                               {franchise.name}
                             </Text>
                             <HStack spacing={1}>
-                              <MapPin size={12} color="#9CA3AF" />
+                              <MapPin size={12} color="var(--chakra-colors-gray-400)" />
                               <Text fontSize="xs" color="gray.500">
                                 {franchise.city}
                               </Text>
@@ -337,7 +337,7 @@ export default function FranchisesPage() {
                       <HStack justify="space-around" align="center" py={2}>
                         <VStack spacing={1} align="center">
                           <HStack spacing={1}>
-                            <Dumbbell size={14} color="#6B7280" />
+                              <Dumbbell size={14} color="var(--chakra-colors-gray-500)" />
                             <Text fontSize="lg" fontWeight="700" color="black">
                               {stats.totalGyms}
                             </Text>
@@ -349,7 +349,7 @@ export default function FranchisesPage() {
                         
                         <VStack spacing={1} align="center">
                           <HStack spacing={1}>
-                            <Activity size={14} color="#10B981" />
+                              <Activity size={14} color="var(--chakra-colors-green-500)" />
                             <Text fontSize="lg" fontWeight="700" color="green.600">
                               {stats.activeKiosks}
                             </Text>
@@ -362,7 +362,7 @@ export default function FranchisesPage() {
                         {stats.pendingKiosks > 0 && (
                           <VStack spacing={1} align="center">
                             <HStack spacing={1}>
-                              <Users size={14} color="#F59E0B" />
+                              <Users size={14} color="var(--chakra-colors-orange-500)" />
                               <Text fontSize="lg" fontWeight="700" color="orange.600">
                                 {stats.pendingKiosks}
                               </Text>

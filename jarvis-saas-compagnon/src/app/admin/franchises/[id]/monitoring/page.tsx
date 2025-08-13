@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { formatDurationFromMinutes } from '@/lib/format-time'
 import { createBrowserClientWithConfig } from '../../../../../lib/supabase-admin'
 import { MetricsGrid, MetricCard } from '../../../../../components/admin/monitoring/MetricsGrid'
 import { MonitoringTable, TableColumn } from '../../../../../components/admin/monitoring/MonitoringTable'
@@ -163,7 +164,7 @@ export default function FranchiseMonitoringPage() {
     { key: 'gym_name', label: 'Salle', width: '25%' },
     { key: 'session_start', label: 'Début', width: '20%' },
     { key: 'duration_minutes', label: 'Durée', width: '15%', 
-      render: (value) => value ? `${value}min` : <span style={{color: '#3182ce', fontSize: '12px', background: '#ebf8ff', padding: '2px 6px', borderRadius: '4px'}}>En cours</span>
+      render: (value) => value ? formatDurationFromMinutes(value) : <span style={{color: 'var(--chakra-colors-blue-600)', fontSize: '12px', background: 'var(--chakra-colors-blue-50)', padding: '2px 6px', borderRadius: '4px'}}>En cours</span>
     },
     { key: 'status', label: 'Statut', width: '15%' },
     { key: 'cost_usd', label: 'Coût', width: '10%' }
@@ -220,7 +221,7 @@ export default function FranchiseMonitoringPage() {
   return (
     <Box 
       minH="100vh" 
-      bg="linear-gradient(135deg, #fafafa 0%, #f5f5f5 50%, #eeeeee 100%)"
+      bg="linear-gradient(135deg, var(--chakra-colors-gray-50) 0%, var(--chakra-colors-gray-100) 50%, var(--chakra-colors-gray-200) 100%)"
       fontFamily="system-ui, -apple-system, sans-serif"
       p={8}
     >
@@ -243,7 +244,7 @@ export default function FranchiseMonitoringPage() {
                   <Box
                     w={12}
                     h={12}
-                    bg="linear-gradient(135deg, #9f7aea 0%, #805ad5 100%)"
+                    bg="linear-gradient(135deg, var(--chakra-colors-purple-400) 0%, var(--chakra-colors-purple-600) 100%)"
                     borderRadius="12px"
                     display="flex"
                     alignItems="center"

@@ -276,14 +276,9 @@ export default function BrowserPermissionsFallback({
           {permissionStatus !== 'checking' && permissionStatus !== 'granted' && (
             <Button
               onClick={requestPermissionsWithGesture}
-              bg="linear-gradient(135deg, #3b82f6, #8b5cf6)"
-              color="white"
+              variant="primary"
               size="lg"
               px={8}
-              _hover={{
-                transform: 'translateY(-2px)',
-                boxShadow: '0 10px 30px rgba(59, 130, 246, 0.4)'
-              }}
             >
               🎤 Essayer d'autoriser le microphone
             </Button>
@@ -322,13 +317,7 @@ export default function BrowserPermissionsFallback({
           <HStack spacing={4}>
             <Button
               onClick={() => window.location.reload()}
-              variant="outline"
-              borderColor="rgba(255, 255, 255, 0.3)"
-              color="white"
-              _hover={{
-                borderColor: 'rgba(255, 255, 255, 0.5)',
-                bg: 'rgba(255, 255, 255, 0.05)'
-              }}
+              variant="secondary"
             >
               🔄 Recharger la page
             </Button>
@@ -336,11 +325,6 @@ export default function BrowserPermissionsFallback({
             <Button
               onClick={onPermissionDenied}
               variant="ghost"
-              color="rgba(255, 255, 255, 0.6)"
-              _hover={{
-                color: 'white',
-                bg: 'rgba(255, 255, 255, 0.05)'
-              }}
             >
               ❌ Continuer sans micro
             </Button>

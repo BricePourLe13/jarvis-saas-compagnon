@@ -237,7 +237,7 @@ const ModernFluidShapes = () => {
             top: `${Math.random() * 80 + 10}%`,
             width: '4px',
             height: '4px',
-            backgroundColor: '#d1d5db',
+            backgroundColor: 'var(--chakra-colors-gray-300)',
             borderRadius: '50%',
             boxShadow: '0 0 8px rgba(209, 213, 219, 0.6)'
           }}
@@ -271,10 +271,10 @@ const JarvisIllustration = () => {
   return (
     <Box position="relative" w="full" h="full" overflow="hidden">
       {/* Background avec pattern */}
-      <Box
+        <Box
         position="absolute"
         inset={0}
-        bg="linear-gradient(135deg, #f8f9fa 0%, #e5e7eb 50%, #d1d5db 100%)"
+          bg="linear-gradient(135deg, var(--chakra-colors-gray-50) 0%, var(--chakra-colors-gray-200) 50%, var(--chakra-colors-gray-300) 100%)"
       />
       
       <ModernFluidShapes />
@@ -373,7 +373,7 @@ export default function LoginPage() {
   }
 
   return (
-    <Box minH="100vh" bg="#ffffff">
+    <Box minH="100vh" bg="bg.surface">
       <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} h="100vh">
         {/* Côté gauche - Avatar JARVIS avec sphère du kiosk */}
         <Box display={{ base: "none", lg: "block" }}>
@@ -381,7 +381,7 @@ export default function LoginPage() {
         </Box>
         
         {/* Côté droit - Formulaire */}
-        <Flex align="center" justify="center" p={8} bg="#fafafa">
+        <Flex align="center" justify="center" p={8} bg="bg.subtle">
           <Box w="full" maxW="400px">
             <motion.div
               initial={{ opacity: 0, x: 50 }}
@@ -398,7 +398,7 @@ export default function LoginPage() {
                   <Text
                     fontSize="2xl"
                     fontWeight="800"
-                    color="#1a1a1a"
+                    color="text.default"
                     letterSpacing="4px"
                   >
                     JARVIS
@@ -409,19 +409,19 @@ export default function LoginPage() {
                   <Heading 
                     as="h1" 
                     size="xl" 
-                    color="#374151"
+                    color="text.default"
                     fontWeight="700"
                   >
                     Bienvenue
                   </Heading>
-                  <Text color="#6b7280" fontSize="md">
+                  <Text color="text.muted" fontSize="md">
                     Connectez-vous à votre espace
                   </Text>
                 </VStack>
               </VStack>
 
               {/* Formulaire */}
-              <Box 
+                <Box
                 as="form" 
                 onSubmit={handleLogin}
                 autoComplete="off"
@@ -462,7 +462,7 @@ export default function LoginPage() {
                           p={3}
                           w="full"
                         >
-                          <Text color="#dc2626" fontSize="sm" textAlign="center">
+                          <Text color="red.600" fontSize="sm" textAlign="center">
                             {error}
                           </Text>
                         </Box>
@@ -471,29 +471,25 @@ export default function LoginPage() {
                   </AnimatePresence>
 
                   <FormControl>
-                    <FormLabel color="#374151" fontSize="sm" fontWeight="600" mb={2}>
+                    <FormLabel color="text.default" fontSize="sm" fontWeight="600" mb={2}>
                       Email
                     </FormLabel>
                     <Input
+                      variant="outline"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="nom@entreprise.com"
-                      bg="#ffffff"
+                      bg="bg.surface"
                       border="1px solid"
-                      borderColor="#e5e7eb"
+                      borderColor="border.default"
                       borderRadius="12px"
                       h="50px"
                       fontSize="15px"
-                      color="#1a1a1a"
-                      _placeholder={{ color: "#9ca3af" }}
-                      _focus={{
-                        borderColor: "#374151",
-                        boxShadow: "0 0 0 3px rgba(55, 65, 81, 0.1)"
-                      }}
-                      _hover={{
-                        borderColor: "#d1d5db"
-                      }}
+                      color="text.default"
+                      _placeholder={{ color: "gray.400" }}
+                      _focus={{}}
+                      _hover={{}}
                       autoComplete="off"
                       autoFocus={false}
                       name="email_field_unique"
@@ -502,29 +498,25 @@ export default function LoginPage() {
                   </FormControl>
 
                   <FormControl>
-                    <FormLabel color="#374151" fontSize="sm" fontWeight="600" mb={2}>
+                    <FormLabel color="text.default" fontSize="sm" fontWeight="600" mb={2}>
                       Mot de passe
                     </FormLabel>
                     <Input
+                      variant="outline"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      bg="#ffffff"
+                      bg="bg.surface"
                       border="1px solid"
-                      borderColor="#e5e7eb"
+                      borderColor="border.default"
                       borderRadius="12px"
                       h="50px"
                       fontSize="15px"
-                      color="#1a1a1a"
-                      _placeholder={{ color: "#9ca3af" }}
-                      _focus={{
-                        borderColor: "#374151",
-                        boxShadow: "0 0 0 3px rgba(55, 65, 81, 0.1)"
-                      }}
-                      _hover={{
-                        borderColor: "#d1d5db"
-                      }}
+                      color="text.default"
+                      _placeholder={{ color: "gray.400" }}
+                      _focus={{}}
+                      _hover={{}}
                       autoComplete="new-password"
                       name="password_field_unique"
                       required
@@ -562,20 +554,11 @@ export default function LoginPage() {
                     type="submit"
                     w="full"
                     h="50px"
-                    bg={loading ? (success ? "#10b981" : "#9ca3af") : "#374151"}
-                    color="white"
+                    variant={loading ? "secondary" : "primary"}
                     borderRadius="12px"
                     fontWeight="600"
                     fontSize="15px"
                     isDisabled={loading}
-                                          _hover={{
-                        bg: loading ? (success ? "#10b981" : "#9ca3af") : "#1f2937",
-                        transform: loading ? "none" : "translateY(-1px)",
-                        boxShadow: loading ? "none" : "0 4px 12px rgba(55, 65, 81, 0.3)"
-                      }}
-                    _active={{
-                      transform: loading ? "none" : "translateY(0)"
-                    }}
                     transition="all 0.2s ease"
                     position="relative"
                     overflow="hidden"
@@ -662,7 +645,7 @@ export default function LoginPage() {
               {/* Footer */}
               <Text 
                 textAlign="center" 
-                color="#9ca3af" 
+                color="gray.400" 
                 fontSize="xs" 
                 mt={8}
                 letterSpacing="1px"

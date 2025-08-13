@@ -223,9 +223,10 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
     <Modal isOpen={isOpen} onClose={onClose} size="4xl">
       <ModalOverlay bg="rgba(0, 0, 0, 0.4)" backdropFilter="blur(4px)" />
       <ModalContent
-        bg="#ffffff"
+        bg="bg.surface"
         borderRadius="16px"
-        border="1px solid #e5e7eb"
+        border="1px solid"
+        borderColor="border.default"
         boxShadow="0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
         mx={4}
         maxH="90vh"
@@ -234,7 +235,7 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
           <HStack spacing={4}>
             <Box
               p={3}
-              bg="#f3f4f6"
+              bg="bg.muted"
               borderRadius="12px"
             >
               <Icon as={Shield} boxSize={5} color="#374151" />
@@ -252,9 +253,9 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
         <ModalCloseButton 
           top={4}
           right={4}
-          bg="#f3f4f6"
+          bg="bg.muted"
           borderRadius="8px"
-          _hover={{ bg: "#e5e7eb" }}
+          _hover={{ bg: "bg.subtle" }}
         />
         
         <ModalBody p={6} pt={4} overflowY="auto">
@@ -262,12 +263,10 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
             {/* Information rôle */}
             <Alert 
               status="info" 
-              bg="#dbeafe" 
-              color="#1e40af" 
               borderRadius="12px"
-              border="1px solid #60a5fa"
+              variant="left-accent"
             >
-              <AlertIcon color="#3b82f6" />
+              <AlertIcon />
               <AlertDescription fontSize="sm">
                 {getRolePermissionHelp(user.role)}
               </AlertDescription>
@@ -281,13 +280,13 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
             ) : (
               <Tabs variant="enclosed" colorScheme="gray">
                 <TabList>
-                  <Tab _selected={{ bg: "#374151", color: "white" }}>
+                  <Tab _selected={{ bg: "gray.800", color: "white" }}>
                     <HStack spacing={2}>
                       <Icon as={Building2} boxSize={4} />
                       <Text>Franchises ({selectedFranchises.length})</Text>
                     </HStack>
                   </Tab>
-                  <Tab _selected={{ bg: "#374151", color: "white" }}>
+                  <Tab _selected={{ bg: "gray.800", color: "white" }}>
                     <HStack spacing={2}>
                       <Icon as={Dumbbell} boxSize={4} />
                       <Text>Salles ({selectedGyms.length})</Text>
@@ -332,14 +331,14 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
                           <Box
                             key={franchise.id}
                             p={4}
-                            bg={selectedFranchises.includes(franchise.id) ? "#f0fdf4" : "#f9fafb"}
+                            bg={selectedFranchises.includes(franchise.id) ? "green.50" : "bg.subtle"}
                             border="1px solid"
-                            borderColor={selectedFranchises.includes(franchise.id) ? "#22c55e" : "#e5e7eb"}
+                            borderColor={selectedFranchises.includes(franchise.id) ? "green.400" : "border.default"}
                             borderRadius="12px"
                             cursor="pointer"
                             onClick={() => handleFranchiseToggle(franchise.id)}
                             _hover={{
-                              borderColor: "#374151",
+                              borderColor: "gray.800",
                               transform: "translateY(-1px)"
                             }}
                             transition="all 0.2s"
@@ -404,14 +403,14 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
                           <Box
                             key={gym.id}
                             p={4}
-                            bg={selectedGyms.includes(gym.id) ? "#f0fdf4" : "#f9fafb"}
+                            bg={selectedGyms.includes(gym.id) ? "green.50" : "bg.subtle"}
                             border="1px solid"
-                            borderColor={selectedGyms.includes(gym.id) ? "#22c55e" : "#e5e7eb"}
+                            borderColor={selectedGyms.includes(gym.id) ? "green.400" : "border.default"}
                             borderRadius="12px"
                             cursor="pointer"
                             onClick={() => handleGymToggle(gym.id)}
                             _hover={{
-                              borderColor: "#374151",
+                              borderColor: "gray.800",
                               transform: "translateY(-1px)"
                             }}
                             transition="all 0.2s"
@@ -451,24 +450,18 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
         <ModalFooter p={6} pt={4}>
           <HStack spacing={3} w="full" justify="end">
             <Button
-              bg="#f3f4f6"
-              color="#6b7280"
+              variant="secondary"
               borderRadius="12px"
               h="48px"
               px={6}
               fontWeight="600"
               onClick={onClose}
-              _hover={{
-                bg: "#e5e7eb",
-                color: "#374151"
-              }}
               transition="all 0.2s"
             >
               Annuler
             </Button>
             <Button
-              bg="#374151"
-              color="white"
+              variant="primary"
               borderRadius="12px"
               h="48px"
               px={6}
@@ -477,14 +470,6 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
               isLoading={loading}
               loadingText="Sauvegarde..."
               leftIcon={<Icon as={Shield} />}
-              _hover={{
-                bg: "#1f2937",
-                transform: "translateY(-1px)",
-                boxShadow: "0 4px 12px rgba(55, 65, 81, 0.3)"
-              }}
-              _active={{
-                transform: "translateY(0px)"
-              }}
               transition="all 0.2s"
             >
               Sauvegarder les permissions

@@ -104,6 +104,13 @@ export interface KioskConfig {
   avatar_style: 'friendly' | 'professional' | 'energetic'
   welcome_message: string
   brand_colors?: BrandColors
+  // Jarvis runtime config (ajouts)
+  jarvis_instructions?: string
+  jarvis_model?: string
+  jarvis_voice?: string
+  config_version?: number
+  config_updated_at?: string
+  last_published_at?: string
 }
 
 export interface OpeningHours {

@@ -411,24 +411,18 @@ export default function EditUserModal({ isOpen, onClose, user, onSuccess }: Edit
         <ModalFooter p={6} pt={4}>
           <HStack spacing={3} w="full" justify="end">
             <Button
-              bg="#f3f4f6"
-              color="#6b7280"
+              variant="secondary"
               borderRadius="12px"
               h="48px"
               px={6}
               fontWeight="600"
               onClick={handleClose}
-              _hover={{
-                bg: "#e5e7eb",
-                color: "#374151"
-              }}
               transition="all 0.2s"
             >
               Annuler
             </Button>
             <Button
-              bg="#374151"
-              color="white"
+              variant="primary"
               borderRadius="12px"
               h="48px"
               px={6}
@@ -437,14 +431,6 @@ export default function EditUserModal({ isOpen, onClose, user, onSuccess }: Edit
               isLoading={loading}
               loadingText="Sauvegarde..."
               leftIcon={<Icon as={Settings} />}
-              _hover={{
-                bg: "#1f2937",
-                transform: "translateY(-1px)",
-                boxShadow: "0 4px 12px rgba(55, 65, 81, 0.3)"
-              }}
-              _active={{
-                transform: "translateY(0px)"
-              }}
               transition="all 0.2s"
             >
               Sauvegarder

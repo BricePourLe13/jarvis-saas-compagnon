@@ -493,25 +493,19 @@ export default function BulkOperationsModal({
             </Text>
             <HStack spacing={3}>
               <Button
-                bg="#f3f4f6"
-                color="#6b7280"
+                variant="secondary"
                 borderRadius="12px"
                 h="48px"
                 px={6}
                 fontWeight="600"
                 onClick={onClose}
                 isDisabled={processing}
-                _hover={{
-                  bg: "#e5e7eb",
-                  color: "#374151"
-                }}
                 transition="all 0.2s"
               >
                 Annuler
               </Button>
               <Button
-                bg="#dc2626"
-                color="white"
+                variant="primary"
                 borderRadius="12px"
                 h="48px"
                 px={6}
@@ -521,14 +515,6 @@ export default function BulkOperationsModal({
                 isLoading={processing}
                 loadingText="Traitement..."
                 leftIcon={selectedOperationData && <Icon as={selectedOperationData.icon} />}
-                _hover={{
-                  bg: "#b91c1c",
-                  transform: "translateY(-1px)",
-                  boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)"
-                }}
-                _active={{
-                  transform: "translateY(0px)"
-                }}
                 transition="all 0.2s"
               >
                 {selectedOperationData?.label || 'Exécuter'}

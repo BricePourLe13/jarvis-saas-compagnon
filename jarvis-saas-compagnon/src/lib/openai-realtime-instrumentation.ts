@@ -69,9 +69,11 @@ export interface OpenAIRealtimeWebRTCStats {
 
 class OpenAIRealtimeInstrumentation {
   private supabase: ReturnType<typeof getSupabaseSingleton>
+  private firstEventDelayAppliedForSessionIds: Set<string>
 
   constructor() {
     this.supabase = getSupabaseSingleton()
+    this.firstEventDelayAppliedForSessionIds = new Set<string>()
   }
 
   /**
@@ -185,12 +187,42 @@ class OpenAIRealtimeInstrumentation {
    */
   async recordAudioEvent(eventData: OpenAIRealtimeAudioEvent): Promise<boolean> {
     try {
-      // D'abord récupérer l'UUID de la session et le gym_id
-      const { data: sessionData } = await this.supabase
+      // Appliquer un très léger délai sur le tout premier événement d'une session pour absorber la latence PostgREST
+      if (!this.firstEventDelayAppliedForSessionIds.has(eventData.session_id)) {
+        this.firstEventDelayAppliedForSessionIds.add(eventData.session_id)
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
+
+      // Sécurité: ignorer les events arrivés après la fin de session (de-synchronisation client)
+      const { data: ended } = await this.supabase
         .from('openai_realtime_sessions')
-        .select('id, gym_id')
+        .select('session_ended_at')
         .eq('session_id', eventData.session_id)
-        .single()
+        .maybeSingle()
+      if (ended && (ended as any).session_ended_at) {
+        // Session close: on n’essaie pas d’insérer des events tardifs
+        return false
+      }
+
+      // D'abord récupérer l'UUID de la session et le gym_id
+      // Utiliser maybeSingle() + petit retry pour absorber la latence entre startSession() et le premier event
+      const fetchSession = async (): Promise<{ id: string; gym_id: string } | null> => {
+        const { data } = await this.supabase
+          .from('openai_realtime_sessions')
+          .select('id, gym_id')
+          .eq('session_id', eventData.session_id)
+          .maybeSingle()
+        return (data as any) || null
+      }
+
+      let sessionData = await fetchSession()
+      if (!sessionData) {
+        // Retry plus tolérant à la latence (jusqu'à ~5s)
+        for (let attempt = 0; attempt < 20 && !sessionData; attempt += 1) {
+          await new Promise(resolve => setTimeout(resolve, 250))
+          sessionData = await fetchSession()
+        }
+      }
 
       if (!sessionData) {
         console.warn('❌ [INSTRUMENTATION] Session non trouvée pour audio event:', eventData.session_id)

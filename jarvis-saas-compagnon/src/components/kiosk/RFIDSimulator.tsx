@@ -172,7 +172,8 @@ export default function RFIDSimulator({ onMemberScanned, isActive }: RFIDSimulat
             >
               <Box
                 bg="rgba(34, 197, 94, 0.2)"
-                border="2px solid #22c55e"
+                border="2px solid"
+                borderColor="green.500"
                 borderRadius="xl"
                 p={6}
                 textAlign="center"
@@ -184,7 +185,7 @@ export default function RFIDSimulator({ onMemberScanned, isActive }: RFIDSimulat
                 >
                   <Text fontSize="3xl" mb={2}>📡</Text>
                 </motion.div>
-                <Text color="#22c55e" fontWeight="600">
+                <Text color="green.500" fontWeight="600">
                   Lecture en cours...
                 </Text>
               </Box>
@@ -277,12 +278,13 @@ export default function RFIDSimulator({ onMemberScanned, isActive }: RFIDSimulat
             >
               <Box
                 bg="rgba(34, 197, 94, 0.1)"
-                border="1px solid rgba(34, 197, 94, 0.3)"
+                border="1px solid"
+                borderColor="green.300"
                 borderRadius="lg"
                 p={4}
                 textAlign="center"
               >
-                <Text color="#22c55e" fontSize="sm" fontWeight="500" mb={1}>
+                <Text color="green.500" fontSize="sm" fontWeight="500" mb={1}>
                   ✅ Dernier scan réussi
                 </Text>
                 <Text color="rgba(255,255,255,0.8)" fontSize="sm">

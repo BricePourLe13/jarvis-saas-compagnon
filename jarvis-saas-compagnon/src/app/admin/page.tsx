@@ -201,7 +201,7 @@ export default function AdminPage() {
             <VStack spacing={4} align="stretch">
               <HStack justify="space-between" align="center">
                 <HStack spacing={2}>
-                  <AlertTriangle size={20} color="#EF4444" />
+                  <AlertTriangle size={20} color="var(--chakra-colors-red-500)" />
                   <Text fontSize="lg" fontWeight="600" color="black">
                     Alertes urgentes
                   </Text>
@@ -282,7 +282,7 @@ export default function AdminPage() {
                         alignItems="center"
                         justifyContent="center"
                       >
-                        <stat.icon size={16} color="#374151" />
+                        <stat.icon size={16} color="var(--chakra-colors-gray-700)" />
                       </Box>
                       {stat.trend && (
                         <Text
@@ -456,7 +456,7 @@ export default function AdminPage() {
                     alignItems="center"
                     justifyContent="center"
                   >
-                    <Building2 size={24} color="#374151" />
+                    <Building2 size={24} color="var(--chakra-colors-gray-700)" />
                   </Box>
                   <VStack spacing={1}>
                     <Text fontWeight="600" color="black">
@@ -494,7 +494,7 @@ export default function AdminPage() {
                     alignItems="center"
                     justifyContent="center"
                   >
-                    <Activity size={24} color="#F97316" />
+                    <Activity size={24} color="var(--chakra-colors-orange-500)" />
                   </Box>
                   <VStack spacing={1}>
                     <Text fontWeight="600" color="black">

@@ -56,6 +56,7 @@ import type {
   OpenAIRealtimeAudioEvent,
   OpenAIRealtimeWebRTCStats 
 } from '@/lib/openai-realtime-monitoring'
+import { formatDuration } from '@/lib/format-time'
 
 interface OpenAIRealtimeMonitoringProps {
   gymId: string
@@ -159,9 +160,9 @@ export default function OpenAIRealtimeMonitoring({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        bg={hasActiveSession ? "#f0fdf4" : "#fafafa"}
+        bg={hasActiveSession ? "green.50" : "bg.subtle"}
         border="1px solid"
-        borderColor={hasActiveSession ? "#bbf7d0" : "#e5e7eb"}
+        borderColor={hasActiveSession ? "green.200" : "border.default"}
         borderRadius="12px"
         p={6}
       >
@@ -171,13 +172,13 @@ export default function OpenAIRealtimeMonitoring({
               w="12px"
               h="12px"
               borderRadius="50%"
-              bg={hasActiveSession ? "#22c55e" : "#6b7280"}
+              bg={hasActiveSession ? "green.500" : "gray.500"}
             />
             <VStack align="start" spacing={1}>
-              <Text fontWeight="600" color="#111827" fontSize="lg">
+              <Text fontWeight="600" color="text.default" fontSize="lg">
                 {hasActiveSession ? `Session JARVIS Active` : 'Kiosk en Attente'}
               </Text>
-              <Text fontSize="sm" color="#6b7280">
+              <Text fontSize="sm" color="text.muted">
                 {gymName} • {kioskSlug || 'Kiosk non configuré'}
               </Text>
             </VStack>
@@ -185,7 +186,7 @@ export default function OpenAIRealtimeMonitoring({
           <HStack spacing={3}>
             {hasActiveSession && currentSession && (
               <Badge colorScheme="green" px={3} py={1} borderRadius="6px">
-                {Math.floor(currentSession.current_duration_seconds / 60)}min {currentSession.current_duration_seconds % 60}s
+                {formatDuration(currentSession.current_duration_seconds)}
               </Badge>
             )}
             <Button
@@ -221,13 +222,14 @@ export default function OpenAIRealtimeMonitoring({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          bg="#ffffff"
-          border="1px solid #e5e7eb"
+          bg="bg.surface"
+          border="1px solid"
+          borderColor="border.default"
           borderRadius="12px"
           p={6}
         >
           <VStack spacing={6} align="stretch">
-            <Heading size="md" color="#111827" fontWeight="600">
+            <Heading size="md" color="text.default" fontWeight="600">
               Métriques OpenAI Realtime (24h)
             </Heading>
             
@@ -235,8 +237,8 @@ export default function OpenAIRealtimeMonitoring({
               
               {/* Sessions */}
               <Stat>
-                <StatLabel fontSize="sm" color="#6b7280">Sessions</StatLabel>
-                <StatNumber fontSize="2xl" color="#111827">
+                <StatLabel fontSize="sm" color="text.muted">Sessions</StatLabel>
+                <StatNumber fontSize="2xl" color="text.default">
                   {kioskStats?.sessions_24h || 0}
                 </StatNumber>
                 <StatHelpText fontSize="xs">
@@ -246,8 +248,8 @@ export default function OpenAIRealtimeMonitoring({
 
               {/* Durée moyenne */}
               <Stat>
-                <StatLabel fontSize="sm" color="#6b7280">Durée moyenne</StatLabel>
-                <StatNumber fontSize="2xl" color="#111827">
+                <StatLabel fontSize="sm" color="text.muted">Durée moyenne</StatLabel>
+                <StatNumber fontSize="2xl" color="text.default">
                   {kioskStats?.avg_session_duration_seconds ? 
                     `${Math.floor(kioskStats.avg_session_duration_seconds / 60)}m` : '--'}
                 </StatNumber>
@@ -258,8 +260,8 @@ export default function OpenAIRealtimeMonitoring({
 
               {/* Coût */}
               <Stat>
-                <StatLabel fontSize="sm" color="#6b7280">Coût</StatLabel>
-                <StatNumber fontSize="2xl" color="#111827">
+                <StatLabel fontSize="sm" color="text.muted">Coût</StatLabel>
+                <StatNumber fontSize="2xl" color="text.default">
                   {kioskStats?.total_cost_24h_usd ? 
                     `$${kioskStats.total_cost_24h_usd.toFixed(3)}` : '$0.000'}
                 </StatNumber>
@@ -270,12 +272,12 @@ export default function OpenAIRealtimeMonitoring({
 
               {/* Taux erreur */}
               <Stat>
-                <StatLabel fontSize="sm" color="#6b7280">Taux erreur</StatLabel>
+                <StatLabel fontSize="sm" color="text.muted">Taux erreur</StatLabel>
                 <StatNumber 
                   fontSize="2xl" 
                   color={
-                    (kioskStats?.error_rate_percent || 0) > 10 ? "#ef4444" :
-                    (kioskStats?.error_rate_percent || 0) > 5 ? "#f59e0b" : "#10b981"
+                    (kioskStats?.error_rate_percent || 0) > 10 ? "red.500" :
+                    (kioskStats?.error_rate_percent || 0) > 5 ? "orange.500" : "green.500"
                   }
                 >
                   {kioskStats?.error_rate_percent?.toFixed(1) || 0}%
@@ -296,14 +298,15 @@ export default function OpenAIRealtimeMonitoring({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          bg="#ffffff"
-          border="1px solid #e5e7eb"
+          bg="bg.surface"
+          border="1px solid"
+          borderColor="border.default"
           borderRadius="12px"
           p={6}
         >
           <VStack spacing={6} align="stretch">
             <HStack justify="space-between">
-              <Heading size="md" color="#111827" fontWeight="600">
+              <Heading size="md" color="text.default" fontWeight="600">
                 Session Active en Cours
               </Heading>
               <Badge colorScheme="green" px={3} py={1} borderRadius="8px">
@@ -314,25 +317,25 @@ export default function OpenAIRealtimeMonitoring({
             <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
               
               {/* Interaction */}
-              <Card bg="#f8fafc" border="1px solid #e2e8f0" borderRadius="8px" p={4}>
+              <Card bg="bg.subtle" border="1px solid" borderColor="border.default" borderRadius="8px" p={4}>
                 <VStack spacing={3} align="stretch">
                   <HStack>
-                    <Icon as={Mic} boxSize={4} color="#3b82f6" />
-                    <Text fontSize="sm" fontWeight="600" color="#1e293b">
+                    <Icon as={Mic} boxSize={4} color="blue.500" />
+                    <Text fontSize="sm" fontWeight="600" color="text.default">
                       Interaction
                     </Text>
                   </HStack>
                   <VStack spacing={2} align="stretch">
                     <HStack justify="space-between">
-                      <Text fontSize="xs" color="#64748b">Tours utilisateur:</Text>
+                      <Text fontSize="xs" color="text.muted">Tours utilisateur:</Text>
                       <Text fontSize="sm" fontWeight="600">{currentSession.total_user_turns}</Text>
                     </HStack>
                     <HStack justify="space-between">
-                      <Text fontSize="xs" color="#64748b">Tours IA:</Text>
+                      <Text fontSize="xs" color="text.muted">Tours IA:</Text>
                       <Text fontSize="sm" fontWeight="600">{currentSession.total_ai_turns}</Text>
                     </HStack>
                     <HStack justify="space-between">
-                      <Text fontSize="xs" color="#64748b">Interruptions:</Text>
+                      <Text fontSize="xs" color="text.muted">Interruptions:</Text>
                       <Text fontSize="sm" fontWeight="600">{currentSession.total_interruptions}</Text>
                     </HStack>
                   </VStack>
@@ -340,43 +343,43 @@ export default function OpenAIRealtimeMonitoring({
               </Card>
 
               {/* Coût temps réel */}
-              <Card bg="#f8fafc" border="1px solid #e2e8f0" borderRadius="8px" p={4}>
+              <Card bg="bg.subtle" border="1px solid" borderColor="border.default" borderRadius="8px" p={4}>
                 <VStack spacing={3} align="stretch">
                   <HStack>
-                    <Icon as={DollarSign} boxSize={4} color="#10b981" />
-                    <Text fontSize="sm" fontWeight="600" color="#1e293b">
+                    <Icon as={DollarSign} boxSize={4} color="green.500" />
+                    <Text fontSize="sm" fontWeight="600" color="text.default">
                       Coût Session
                     </Text>
                   </HStack>
                   <VStack spacing={2} align="stretch">
-                    <Text fontSize="lg" fontWeight="700" color="#111827">
+                    <Text fontSize="lg" fontWeight="700" color="text.default">
                       ${currentSession.total_cost_usd?.toFixed(4) || '0.0000'}
                     </Text>
-                    <Text fontSize="xs" color="#64748b">
-                      Depuis {Math.floor(currentSession.current_duration_seconds / 60)}min
+                    <Text fontSize="xs" color="text.muted">
+                      Depuis {formatDuration(currentSession.current_duration_seconds)}
                     </Text>
                   </VStack>
                 </VStack>
               </Card>
 
               {/* Configuration */}
-              <Card bg="#f8fafc" border="1px solid #e2e8f0" borderRadius="8px" p={4}>
+              <Card bg="bg.subtle" border="1px solid" borderColor="border.default" borderRadius="8px" p={4}>
                 <VStack spacing={3} align="stretch">
                   <HStack>
-                    <Icon as={Volume2} boxSize={4} color="#8b5cf6" />
-                    <Text fontSize="sm" fontWeight="600" color="#1e293b">
+                    <Icon as={Volume2} boxSize={4} color="purple.500" />
+                    <Text fontSize="sm" fontWeight="600" color="text.default">
                       Configuration
                     </Text>
                   </HStack>
                   <VStack spacing={2} align="stretch">
                     <HStack justify="space-between">
-                      <Text fontSize="xs" color="#64748b">Voix:</Text>
+                      <Text fontSize="xs" color="text.muted">Voix:</Text>
                       <Text fontSize="sm" fontWeight="600">
                         {currentSession.voice_model || 'Default'}
                       </Text>
                     </HStack>
                     <HStack justify="space-between">
-                      <Text fontSize="xs" color="#64748b">Détection:</Text>
+                      <Text fontSize="xs" color="text.muted">Détection:</Text>
                       <Text fontSize="sm" fontWeight="600">
                         {currentSession.turn_detection_type}
                       </Text>
@@ -396,8 +399,9 @@ export default function OpenAIRealtimeMonitoring({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.3 }}
-          bg="#ffffff"
-          border="1px solid #e5e7eb"
+          bg="bg.surface"
+          border="1px solid"
+          borderColor="border.default"
           borderRadius="12px"
           p={6}
         >
@@ -426,21 +430,21 @@ export default function OpenAIRealtimeMonitoring({
               {/* Performance */}
               <TabPanel>
                 <VStack spacing={4} align="stretch">
-                  <Heading size="sm" color="#111827">Métriques de Performance</Heading>
+                  <Heading size="sm" color="text.default">Métriques de Performance</Heading>
                   
                   <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                     
                     {/* Connexions */}
                     <VStack spacing={3} align="stretch">
-                      <Text fontSize="sm" fontWeight="600" color="#374151">Connexions</Text>
+                      <Text fontSize="sm" fontWeight="600" color="text.default">Connexions</Text>
                       <HStack justify="space-between">
-                        <Text fontSize="xs" color="#6b7280">WebRTC:</Text>
+                        <Text fontSize="xs" color="text.muted">WebRTC:</Text>
                         <Text fontSize="sm" fontWeight="600">
                           {kioskStats?.webrtc_sessions || 0}
                         </Text>
                       </HStack>
                       <HStack justify="space-between">
-                        <Text fontSize="xs" color="#6b7280">WebSocket:</Text>
+                        <Text fontSize="xs" color="text.muted">WebSocket:</Text>
                         <Text fontSize="sm" fontWeight="600">
                           {kioskStats?.websocket_sessions || 0}
                         </Text>
@@ -449,15 +453,15 @@ export default function OpenAIRealtimeMonitoring({
 
                     {/* Turns & Interruptions */}
                     <VStack spacing={3} align="stretch">
-                      <Text fontSize="sm" fontWeight="600" color="#374151">Interaction</Text>
+                      <Text fontSize="sm" fontWeight="600" color="text.default">Interaction</Text>
                       <HStack justify="space-between">
-                        <Text fontSize="xs" color="#6b7280">Tours utilisateur moy.:</Text>
+                        <Text fontSize="xs" color="text.muted">Tours utilisateur moy.:</Text>
                         <Text fontSize="sm" fontWeight="600">
                           {kioskStats?.avg_user_turns?.toFixed(1) || '--'}
                         </Text>
                       </HStack>
                       <HStack justify="space-between">
-                        <Text fontSize="xs" color="#6b7280">Interruptions moy.:</Text>
+                        <Text fontSize="xs" color="text.muted">Interruptions moy.:</Text>
                         <Text fontSize="sm" fontWeight="600">
                           {kioskStats?.avg_interruptions?.toFixed(1) || '--'}
                         </Text>
@@ -471,29 +475,29 @@ export default function OpenAIRealtimeMonitoring({
               {/* Audio */}
               <TabPanel>
                 <VStack spacing={4} align="stretch">
-                  <Heading size="sm" color="#111827">Événements Audio</Heading>
+                  <Heading size="sm" color="text.default">Événements Audio</Heading>
                   
                   {audioEvents.length > 0 ? (
                     <VStack spacing={2} align="stretch" maxH="200px" overflowY="auto">
                       {audioEvents.slice(0, 10).map((event) => (
-                        <Box key={event.id} p={3} bg="#f8fafc" borderRadius="8px" border="1px solid #e2e8f0">
+                        <Box key={event.id} p={3} bg="bg.subtle" borderRadius="8px" border="1px solid" borderColor="border.default">
                           <HStack justify="space-between">
                             <VStack align="start" spacing={1}>
-                              <Text fontSize="xs" fontWeight="600" color="#374151">
+                              <Text fontSize="xs" fontWeight="600" color="text.default">
                                 {event.event_type}
                               </Text>
                               {event.user_transcript && (
-                                <Text fontSize="xs" color="#6b7280" noOfLines={1}>
+                                <Text fontSize="xs" color="text.muted" noOfLines={1}>
                                   👤 {event.user_transcript}
                                 </Text>
                               )}
                               {event.ai_transcript_final && (
-                                <Text fontSize="xs" color="#6b7280" noOfLines={1}>
+                                <Text fontSize="xs" color="text.muted" noOfLines={1}>
                                   🤖 {event.ai_transcript_final}
                                 </Text>
                               )}
                             </VStack>
-                            <Text fontSize="xs" color="#9ca3af">
+                            <Text fontSize="xs" color="gray.400">
                               {new Date(event.event_timestamp).toLocaleTimeString()}
                             </Text>
                           </HStack>
@@ -511,16 +515,16 @@ export default function OpenAIRealtimeMonitoring({
               {/* WebRTC */}
               <TabPanel>
                 <VStack spacing={4} align="stretch">
-                  <Heading size="sm" color="#111827">Qualité WebRTC</Heading>
+                  <Heading size="sm" color="text.default">Qualité WebRTC</Heading>
                   
                   {webrtcStats.length > 0 ? (
                     <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                       {webrtcStats.slice(0, 1).map((stats) => (
                         <VStack key={stats.id} spacing={3} align="stretch">
-                          <Text fontSize="sm" fontWeight="600" color="#374151">Dernière mesure</Text>
+                          <Text fontSize="sm" fontWeight="600" color="text.default">Dernière mesure</Text>
                           <VStack spacing={2} align="stretch">
                             <HStack justify="space-between">
-                              <Text fontSize="xs" color="#6b7280">Connexion:</Text>
+                              <Text fontSize="xs" color="text.muted">Connexion:</Text>
                               <Badge 
                                 colorScheme={stats.connection_state === 'connected' ? 'green' : 'red'}
                                 size="sm"
@@ -530,13 +534,13 @@ export default function OpenAIRealtimeMonitoring({
                             </HStack>
                             {stats.rtt_ms && (
                               <HStack justify="space-between">
-                                <Text fontSize="xs" color="#6b7280">RTT:</Text>
+                                <Text fontSize="xs" color="text.muted">RTT:</Text>
                                 <Text fontSize="sm" fontWeight="600">{stats.rtt_ms}ms</Text>
                               </HStack>
                             )}
                             {stats.packet_loss_rate && (
                               <HStack justify="space-between">
-                                <Text fontSize="xs" color="#6b7280">Perte paquets:</Text>
+                                <Text fontSize="xs" color="text.muted">Perte paquets:</Text>
                                 <Text fontSize="sm" fontWeight="600">
                                   {(stats.packet_loss_rate * 100).toFixed(1)}%
                                 </Text>
@@ -544,7 +548,7 @@ export default function OpenAIRealtimeMonitoring({
                             )}
                             {stats.audio_level_input && (
                               <HStack justify="space-between">
-                                <Text fontSize="xs" color="#6b7280">Niveau audio:</Text>
+                                <Text fontSize="xs" color="text.muted">Niveau audio:</Text>
                                 <Text fontSize="sm" fontWeight="600">
                                   {(stats.audio_level_input * 100).toFixed(0)}%
                                 </Text>
@@ -565,34 +569,34 @@ export default function OpenAIRealtimeMonitoring({
               {/* Coûts */}
               <TabPanel>
                 <VStack spacing={4} align="stretch">
-                  <Heading size="sm" color="#111827">Détail des Coûts</Heading>
+                  <Heading size="sm" color="text.default">Détail des Coûts</Heading>
                   
                   <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                     
                     {/* Tokens */}
                     <VStack spacing={3} align="stretch">
-                      <Text fontSize="sm" fontWeight="600" color="#374151">Tokens</Text>
+                      <Text fontSize="sm" fontWeight="600" color="text.default">Tokens</Text>
                       <VStack spacing={2} align="stretch">
                         <HStack justify="space-between">
-                          <Text fontSize="xs" color="#6b7280">Input text:</Text>
+                          <Text fontSize="xs" color="text.muted">Input text:</Text>
                           <Text fontSize="sm" fontWeight="600">
                             {kioskStats?.total_input_tokens || 0}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
-                          <Text fontSize="xs" color="#6b7280">Output text:</Text>
+                          <Text fontSize="xs" color="text.muted">Output text:</Text>
                           <Text fontSize="sm" fontWeight="600">
                             {kioskStats?.total_output_tokens || 0}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
-                          <Text fontSize="xs" color="#6b7280">Audio input:</Text>
+                          <Text fontSize="xs" color="text.muted">Audio input:</Text>
                           <Text fontSize="sm" fontWeight="600">
                             {kioskStats?.total_input_audio_tokens || 0}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
-                          <Text fontSize="xs" color="#6b7280">Audio output:</Text>
+                          <Text fontSize="xs" color="text.muted">Audio output:</Text>
                           <Text fontSize="sm" fontWeight="600">
                             {kioskStats?.total_output_audio_tokens || 0}
                           </Text>
@@ -602,16 +606,16 @@ export default function OpenAIRealtimeMonitoring({
 
                     {/* Moyennes */}
                     <VStack spacing={3} align="stretch">
-                      <Text fontSize="sm" fontWeight="600" color="#374151">Moyennes</Text>
+                      <Text fontSize="sm" fontWeight="600" color="text.default">Moyennes</Text>
                       <VStack spacing={2} align="stretch">
                         <HStack justify="space-between">
-                          <Text fontSize="xs" color="#6b7280">Coût/session:</Text>
+                          <Text fontSize="xs" color="text.muted">Coût/session:</Text>
                           <Text fontSize="sm" fontWeight="600">
                             ${kioskStats?.avg_cost_per_session_usd?.toFixed(4) || '0.0000'}
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
-                          <Text fontSize="xs" color="#6b7280">Voix utilisée:</Text>
+                          <Text fontSize="xs" color="text.muted">Voix utilisée:</Text>
                           <Text fontSize="sm" fontWeight="600">
                             {kioskStats?.voice_models_used || 'N/A'}
                           </Text>

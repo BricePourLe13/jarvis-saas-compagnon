@@ -312,9 +312,10 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
       <Modal isOpen={isOpen} onClose={onClose} size="6xl">
         <ModalOverlay bg="rgba(0, 0, 0, 0.4)" backdropFilter="blur(4px)" />
         <ModalContent
-          bg="#ffffff"
+          bg="bg.surface"
           borderRadius="16px"
-          border="1px solid #e5e7eb"
+          border="1px solid"
+          borderColor="border.default"
           boxShadow="0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
           mx={4}
           maxH="90vh"
@@ -323,7 +324,7 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
             <HStack spacing={4}>
               <Box
                 p={3}
-                bg="#f3f4f6"
+                bg="bg.muted"
                 borderRadius="12px"
               >
                 <Icon as={Users} boxSize={5} color="#374151" />
@@ -341,37 +342,37 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
           <ModalCloseButton 
             top={4}
             right={4}
-            bg="#f3f4f6"
+            bg="bg.muted"
             borderRadius="8px"
-            _hover={{ bg: "#e5e7eb" }}
+            _hover={{ bg: "bg.subtle" }}
           />
           
           <ModalBody p={6} pt={4} overflowY="auto">
             <VStack spacing={6} align="stretch">
               {/* Statistiques */}
               <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-                <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+                <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
                   <Stat>
                     <StatLabel fontSize="xs" color="#6b7280">Sessions actives</StatLabel>
                     <StatNumber fontSize="lg" color="#1a1a1a">{stats.total_active_sessions}</StatNumber>
                     <StatHelpText fontSize="xs" color="#6b7280">{stats.total_users} utilisateurs</StatHelpText>
                   </Stat>
                 </Box>
-                <Box p={4} bg="#f0f9ff" borderRadius="12px" border="1px solid #0ea5e9">
+                <Box p={4} bg="blue.50" borderRadius="12px" border="1px solid" borderColor="blue.400">
                   <Stat>
                     <StatLabel fontSize="xs" color="#0369a1">En ligne</StatLabel>
                     <StatNumber fontSize="lg" color="#0369a1">{stats.online_users}</StatNumber>
                     <StatHelpText fontSize="xs" color="#0369a1">Actifs maintenant</StatHelpText>
                   </Stat>
                 </Box>
-                <Box p={4} bg="#fefce8" borderRadius="12px" border="1px solid #eab308">
+                <Box p={4} bg="yellow.50" borderRadius="12px" border="1px solid" borderColor="yellow.500">
                   <Stat>
                     <StatLabel fontSize="xs" color="#a16207">Inactifs</StatLabel>
                     <StatNumber fontSize="lg" color="#a16207">{stats.idle_users + stats.away_users}</StatNumber>
                     <StatHelpText fontSize="xs" color="#a16207">Idle + Away</StatHelpText>
                   </Stat>
                 </Box>
-                <Box p={4} bg="#fef2f2" borderRadius="12px" border="1px solid #ef4444">
+                <Box p={4} bg="red.50" borderRadius="12px" border="1px solid" borderColor="red.500">
                   <Stat>
                     <StatLabel fontSize="xs" color="#dc2626">Suspects</StatLabel>
                     <StatNumber fontSize="lg" color="#dc2626">{stats.suspicious_sessions}</StatNumber>
@@ -381,7 +382,7 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
               </SimpleGrid>
 
               {/* Filtres */}
-              <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+              <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
                 <VStack spacing={4}>
                   <HStack w="full" justify="space-between">
                     <Text fontSize="sm" fontWeight="600" color="#374151">
@@ -389,13 +390,11 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
                     </Text>
                     <Button
                       size="sm"
-                      bg="#374151"
-                      color="white"
+                      variant="primary"
                       borderRadius="8px"
                       leftIcon={<Icon as={RefreshCw} boxSize={3} />}
                       onClick={handleRefresh}
                       isLoading={refreshing}
-                      _hover={{ bg: "#1f2937" }}
                     >
                       Actualiser
                     </Button>
@@ -403,12 +402,10 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
                   
                   <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3} w="full">
                     <Select
+                      variant="outline"
                       placeholder="Statut"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      bg="white"
-                      border="1px solid #d1d5db"
-                      borderRadius="8px"
                       fontSize="sm"
                     >
                       <option value="online">En ligne</option>
@@ -418,12 +415,10 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
                     </Select>
                     
                     <Select
+                      variant="outline"
                       placeholder="Rôle"
                       value={roleFilter}
                       onChange={(e) => setRoleFilter(e.target.value)}
-                      bg="white"
-                      border="1px solid #d1d5db"
-                      borderRadius="8px"
                       fontSize="sm"
                     >
                       <option value="super_admin">Super Admin</option>
@@ -433,12 +428,10 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
                     </Select>
                     
                     <Select
+                      variant="outline"
                       placeholder="Niveau de confiance"
                       value={trustFilter}
                       onChange={(e) => setTrustFilter(e.target.value)}
-                      bg="white"
-                      border="1px solid #d1d5db"
-                      borderRadius="8px"
                       fontSize="sm"
                     >
                       <option value="trusted">Fiable</option>
@@ -464,13 +457,14 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
                 </Alert>
               ) : (
                 <Box
-                  border="1px solid #e5e7eb"
+                  border="1px solid"
+                  borderColor="border.default"
                   borderRadius="12px"
                   overflow="hidden"
-                  bg="white"
+                  bg="bg.surface"
                 >
                   <Table variant="simple" size="sm">
-                    <Thead bg="#f9fafb">
+                    <Thead bg="bg.subtle">
                       <Tr>
                         <Th fontSize="xs" color="#374151" fontWeight="600">Utilisateur</Th>
                         <Th fontSize="xs" color="#374151" fontWeight="600">Statut</Th>
@@ -598,17 +592,12 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
                 {sessions.length} session{sessions.length !== 1 ? 's' : ''} active{sessions.length !== 1 ? 's' : ''}
               </Text>
               <Button
-                bg="#f3f4f6"
-                color="#6b7280"
+                variant="secondary"
                 borderRadius="12px"
                 h="48px"
                 px={6}
                 fontWeight="600"
                 onClick={onClose}
-                _hover={{
-                  bg: "#e5e7eb",
-                  color: "#374151"
-                }}
                 transition="all 0.2s"
               >
                 Fermer

@@ -116,7 +116,7 @@ export function UnifiedLayout({
                   {breadcrumbs.length > 0 && (
                     <Breadcrumb 
                       spacing={2} 
-                      separator={<ChevronRight size={16} color="#9CA3AF" />}
+                      separator={<ChevronRight size={16} color="var(--chakra-colors-gray-400)" />}
                       fontSize="sm"
                     >
                        {breadcrumbs.map((crumb, index) => (

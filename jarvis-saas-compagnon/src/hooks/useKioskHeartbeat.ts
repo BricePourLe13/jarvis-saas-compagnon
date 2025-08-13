@@ -15,6 +15,7 @@ export function useKioskHeartbeat({
 }: UseKioskHeartbeatProps) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const isActiveRef = useRef(true)
+  const lastKnownConfigVersionRef = useRef<number>(0)
 
   const sendHeartbeat = async () => {
     try {
@@ -36,6 +37,23 @@ export function useKioskHeartbeat({
       // ⚡ Logs réduits pour éviter le spam (succès en mode silencieux)
     } catch (error) {
       console.warn('💓 [HEARTBEAT] Erreur envoi heartbeat:', error)
+    }
+  }
+
+  // Vérifier périodiquement la version de configuration et appliquer entre sessions
+  const checkConfigVersion = async () => {
+    try {
+      const res = await fetch(`/api/admin/gyms/${gymId}`)
+      if (!res.ok) return
+      const json = await res.json()
+      const version = Number((json?.data?.kiosk_config?.config_version) || 0)
+      if (version > lastKnownConfigVersionRef.current) {
+        lastKnownConfigVersionRef.current = version
+        console.log('🛠️ [KIOSK CONFIG] Nouvelle version publiée, sera appliquée entre sessions:', version)
+        // Ici on pourrait déclencher un callback global (ex: event bus) pour recharger config quand idle
+      }
+    } catch (e) {
+      // silencieux
     }
   }
 
@@ -69,6 +87,10 @@ export function useKioskHeartbeat({
     intervalRef.current = setInterval(() => {
       if (isActiveRef.current && !document.hidden) {
         sendHeartbeat()
+        // Check config toutes les 60 secondes environ
+        if (Math.random() < (interval >= 60000 ? 1 : interval / 60000)) {
+          checkConfigVersion()
+        }
       }
     }, interval)
   }

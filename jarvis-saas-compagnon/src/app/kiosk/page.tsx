@@ -67,7 +67,7 @@ export default function KioskPage() {
   }, [])
 
   return (
-    <Box minH="100vh" bg="#fafafa" py={8}>
+<Box minH="100vh" bg="bg.subtle" py={8}>
       <Container maxW="6xl">
         <motion.div
           initial="hidden"

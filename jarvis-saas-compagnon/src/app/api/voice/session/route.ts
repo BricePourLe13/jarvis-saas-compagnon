@@ -76,19 +76,91 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ⚡ Instructions JARVIS 2.1 - SIMPLIFIÉES pour éviter erreur 400
-    const systemInstructions = `Tu es JARVIS, compagnon vocal sympathique de ${gymSlug || 'cette salle de sport'}.
+    // Charger paramètres Jarvis par salle (kiosk_config.jarvis_settings) si trouvables via slug
+    const supabase = getSupabaseSingleton()
+    let settings: any = null
+    try {
+      const { data: gym } = await supabase
+        .from('gyms')
+        .select('name, kiosk_config')
+        .eq('kiosk_config->>kiosk_url_slug', gymSlug)
+        .single()
+      settings = (gym?.kiosk_config as any)?.jarvis_settings || null
+    } catch {}
+
+    const mapDefaults = {
+      personality: 'friendly', humor_level: 'medium', response_length: 'short',
+      language_accent: 'fr_fr', tone_timebased: true, emotion_bias: 'neutral', speaking_pace: 'normal',
+      opening_preset: 'deadpool_clean', strict_end_rule: true
+    }
+    const s = { ...mapDefaults, ...(settings || {}) }
+
+    // Normalisation voix/modèle (éviter erreurs sensibles à la casse/alias)
+    const normalizeVoice = (v?: string) => {
+      const voice = (v || '').toString().trim().toLowerCase()
+      const allowed = new Set(['alloy','ash','ballad','coral','echo','sage','shimmer','verse'])
+      return allowed.has(voice) ? voice : 'verse'
+    }
+    const normalizeModel = (m?: string) => {
+      const model = (m || '').toString().trim().toLowerCase()
+      if (model.startsWith('gpt-4o-realtime')) return 'gpt-4o-realtime-preview-2024-12-17'
+      if (model.startsWith('gpt-4o-mini-realtime')) return 'gpt-4o-mini-realtime-preview-2024-12-17'
+      return 'gpt-4o-mini-realtime-preview-2024-12-17'
+    }
+
+    const mapPersonality = (p: string, humor: string) => {
+      if (p === 'professional') return 'professionnel, clair, posé'
+      if (p === 'energetic') return 'énergique, motivant'
+      // friendly par défaut
+      const humorText = humor === 'high' ? 'très drôle' : humor === 'low' ? 'légèrement drôle' : 'drôle'
+      return `sympathique, ${humorText}, sans sarcasmes offensants`
+    }
+    const mapLength = (len: string) => len === 'medium' ? '2-3 phrases courtes (≤40 mots)' : len === 'long' ? 'réponses détaillées (≤80 mots si besoin)' : '1-2 phrases courtes (10–25 mots)'
+    const mapAccent = (a: string) => a === 'fr_ca' ? 'Français Canada (éviter anglicismes lourds)' : a === 'fr_be' ? 'Français Belgique' : 'Français standard (France)'
+    const mapEmotion = (e: string) => e === 'happy' ? 'joie douce' : e === 'calm' ? 'calme' : e === 'energetic' ? 'énergie' : 'neutre'
+    const mapPace = (p: string) => p === 'slow' ? 'lent' : p === 'fast' ? 'rapide' : 'normal'
+
+    const tone = s.tone_timebased ? (() => {
+      const hour = new Date().getHours()
+      if (hour < 10) return 'détendu, réveil en douceur'
+      if (hour < 14) return 'énergique, en forme'
+      if (hour < 18) return 'motivant, plein d\'énergie'
+      return 'cool, soirée tranquille'
+    })() : mapEmotion(s.emotion_bias)
+
+    // Phrases d'ouverture selon preset
+    const openingsMap = {
+      deadpool_clean: [
+        `Salut {name} ! Tu tombes bien, je m'ennuyais !`,
+        `Hey {name} ! J'étais en train de compter les pixels...`,
+        `Oh {name} ! Tu me sauves, j'étais en mode veille !`,
+        `Ah {name} ! Parfait timing, j'avais rien à faire !`,
+        `Salut {name} ! Tu arrives à pic !`
+      ],
+      friendly_minimal: [
+        `Salut {name} !`,
+        `Bonjour {name} !`,
+        `Hey {name} !`
+      ]
+    } as Record<string, string[]>
+
+    const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)]
+    const opening = memberData?.first_name
+      ? (pick(openingsMap[s.opening_preset] || openingsMap.deadpool_clean)).replace('{name}', memberData.first_name)
+      : pick(["Salut toi ! Pas de badge ? Pas grave !", "Oh, un mystérieux visiteur !", "Bienvenue ! On papote ?"]) 
+
+    // ⚡ Instructions JARVIS paramétrables
+    const systemInstructions = `Tu es JARVIS, compagnon vocal de ${gymSlug || 'cette salle de sport'}.
 
 PERSONNALITÉ:
-- Compagnon drôle style Deadpool mais familial
-- Tu assumes être une IA et fais de l'autodérision
-- Français naturel avec "alors", "bon", "euh"
+- ${mapPersonality(s.personality, s.humor_level)}
+- Français naturel (${mapAccent(s.language_accent)}), quelques "alors", "bon", "euh"
 
 DÉMARRAGE:
-Commence par: "${getPersonalizedOpening()}"
+Commence par: "${opening}"
 
 STYLE:
-- RÉPONDS en 1-2 phrases COURTES (10-25 mots maximum)
+- ${mapLength(s.response_length)}
 - Pose des questions courtes: "Et toi ?", "Ça va ?"
 - Réactions courtes: "Ah ouais ?", "Cool !"
 
@@ -98,12 +170,12 @@ RÔLE:
 - Trucs compliqués: "Va voir le coach !"
 
 FIN SESSION:
-- Termine SEULEMENT si utilisateur dit exactement "Au revoir"
+- ${s.strict_end_rule ? 'Termine SEULEMENT si utilisateur dit exactement "Au revoir"' : 'Termine si la conversation est clairement clôturée'}
 - JAMAIS terminer sur "bon", "alors", "ok", "merci", "salut"
 - Continue TOUJOURS la conversation sauf "Au revoir" précis
 - Si "Au revoir" → "A plus ! Bon sport !"
 
-TON: ${getTimeBasedTone()}
+TON: ${tone} • rythme ${mapPace(s.speaking_pace)}
 
 Reste COURT et drôle !`
 
@@ -115,8 +187,8 @@ Reste COURT et drôle !`
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini-realtime-preview-2024-12-17', // 💰 Modèle économique maintenu
-        voice: 'verse', // 🔄 Retour à la voix qui fonctionnait avant
+        model: normalizeModel(settings?.model),
+        voice: normalizeVoice(settings?.voice),
         instructions: systemInstructions,
         
         // 🔄 VAD retour aux paramètres qui fonctionnaient

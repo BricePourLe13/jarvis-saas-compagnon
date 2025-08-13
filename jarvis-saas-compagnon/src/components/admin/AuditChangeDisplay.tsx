@@ -88,15 +88,16 @@ export default function AuditChangeDisplay({
       <Box
         key={field}
         p={3}
-        bg="#f9fafb"
+        bg="bg.subtle"
         borderRadius="8px"
-        border="1px solid #e5e7eb"
-        _hover={{ bg: "#f3f4f6" }}
+        border="1px solid"
+        borderColor="border.default"
+        _hover={{ bg: "bg.muted" }}
         transition="all 0.2s"
       >
         <VStack spacing={2} align="stretch">
           <HStack justify="space-between">
-            <Text fontSize="xs" fontWeight="600" color="#374151">
+            <Text fontSize="xs" fontWeight="600" color="text.default">
               {getFieldDisplayName(field)}
             </Text>
             <Badge
@@ -114,8 +115,8 @@ export default function AuditChangeDisplay({
           <HStack spacing={2} align="center">
             <Code 
               fontSize="xs" 
-              bg="#fef2f2" 
-              color="#dc2626" 
+              bg="red.50" 
+              color="red.600" 
               px={2} 
               py={1} 
               borderRadius="4px"
@@ -124,11 +125,11 @@ export default function AuditChangeDisplay({
             >
               {formatValue(oldVal)}
             </Code>
-            <Icon as={ChevronRight} boxSize={3} color="#6b7280" />
+            <Icon as={ChevronRight} boxSize={3} color="gray.500" />
             <Code 
               fontSize="xs" 
-              bg="#f0fdf4" 
-              color="#059669" 
+              bg="green.50" 
+              color="green.600" 
               px={2} 
               py={1} 
               borderRadius="4px"

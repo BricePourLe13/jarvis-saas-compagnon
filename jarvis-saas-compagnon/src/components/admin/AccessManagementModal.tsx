@@ -542,25 +542,19 @@ export default function AccessManagementModal({
             </Text>
             <HStack spacing={3}>
               <Button
-                bg="#f3f4f6"
-                color="#6b7280"
+                variant="secondary"
                 borderRadius="12px"
                 h="48px"
                 px={6}
                 fontWeight="600"
                 onClick={onClose}
                 isDisabled={saving}
-                _hover={{
-                  bg: "#e5e7eb",
-                  color: "#374151"
-                }}
                 transition="all 0.2s"
               >
                 Annuler
               </Button>
               <Button
-                bg="#059669"
-                color="white"
+                variant="primary"
                 borderRadius="12px"
                 h="48px"
                 px={6}
@@ -569,14 +563,6 @@ export default function AccessManagementModal({
                 isLoading={saving}
                 loadingText="Sauvegarde..."
                 leftIcon={<Icon as={Save} />}
-                _hover={{
-                  bg: "#047857",
-                  transform: "translateY(-1px)",
-                  boxShadow: "0 4px 12px rgba(5, 150, 105, 0.3)"
-                }}
-                _active={{
-                  transform: "translateY(0px)"
-                }}
                 transition="all 0.2s"
               >
                 Sauvegarder

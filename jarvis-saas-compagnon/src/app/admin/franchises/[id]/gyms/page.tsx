@@ -120,16 +120,21 @@ export default function FranchiseGymsPage() {
       const startOfDay = new Date()
       startOfDay.setHours(0, 0, 0, 0)
 
-      const [sessionsResp, heartbeatsResp] = await Promise.all([
+      const [sessionsResp, heartbeatsResp, costsResp] = await Promise.all([
         supabase
           .from('openai_realtime_sessions')
-          .select('id,gym_id,session_start,session_end,cost_usd')
+          .select('session_id,gym_id,session_started_at,session_ended_at,total_cost_usd')
           .in('gym_id', gymIds)
-          .gte('session_start', startOfDay.toISOString()),
+          .gte('session_started_at', startOfDay.toISOString()),
         supabase
           .from('kiosk_heartbeats')
           .select('gym_id,last_heartbeat,status')
+          .in('gym_id', gymIds),
+        supabase
+          .from('jarvis_session_costs')
+          .select('gym_id,total_cost,timestamp')
           .in('gym_id', gymIds)
+          .gte('timestamp', startOfDay.toISOString())
       ])
 
       if (sessionsResp.error) console.warn('Erreur sessions:', sessionsResp.error)
@@ -137,13 +142,19 @@ export default function FranchiseGymsPage() {
 
       const sessions = sessionsResp.data || []
       const heartbeats = heartbeatsResp.data || []
+      const costs = costsResp.data || []
 
       // Indexer par gym
       const gymIdToSessions = new Map<string, typeof sessions>()
-      sessions.forEach((s) => {
+      sessions.forEach((s: any) => {
         const list = gymIdToSessions.get(s.gym_id) || []
         list.push(s)
         gymIdToSessions.set(s.gym_id, list)
+      })
+      // Agréger coûts live par gym
+      const gymIdToCost = new Map<string, number>()
+      costs.forEach((c: any) => {
+        gymIdToCost.set(c.gym_id, (gymIdToCost.get(c.gym_id) || 0) + (c.total_cost || 0))
       })
 
       const gymIdToHeartbeat = new Map<string, { last_heartbeat: string | null; status: string | null }>()
@@ -157,12 +168,13 @@ export default function FranchiseGymsPage() {
 
       const transformedGyms: Gym[] = (franchiseData.gyms || []).map((gym: any) => {
         const gymSessions = gymIdToSessions.get(gym.id) || []
-        const activeSessions = gymSessions.filter((s: any) => !s.session_end).length
-        const dailyCost = gymSessions.reduce((sum: number, s: any) => sum + (s.cost_usd || 0), 0)
+        const activeSessions = gymSessions.filter((s: any) => !s.session_ended_at).length
+        // Coût du jour = coûts live agrégés
+        const dailyCost = Math.round(((gymIdToCost.get(gym.id) || 0)) * 100) / 100
 
         const hb = gymIdToHeartbeat.get(gym.id)
         const lastSessionTs = gymSessions.length > 0 ?
-          Math.max(...gymSessions.map((s: any) => new Date(s.session_end || s.session_start).getTime())) :
+          Math.max(...gymSessions.map((s: any) => new Date(s.session_ended_at || s.session_started_at).getTime())) :
           undefined
         const lastHeartbeatTs = hb?.last_heartbeat ? new Date(hb.last_heartbeat).getTime() : undefined
         const lastActivityTs = Math.max(lastSessionTs || 0, lastHeartbeatTs || 0)
@@ -193,16 +205,16 @@ export default function FranchiseGymsPage() {
       const costToday = transformedGyms.reduce((sum, g) => sum + g.dailyCostUsd, 0)
 
       // Durée moyenne des sessions terminées aujourd'hui
-      const completed = sessions.filter((s: any) => s.session_end)
+      const completed = sessions.filter((s: any) => s.session_ended_at)
       const avgSessionDuration = completed.length > 0
         ? Math.round(
-            (completed.reduce((acc: number, s: any) => acc + (new Date(s.session_end).getTime() - new Date(s.session_start).getTime()), 0) / completed.length) / 60000 * 10
+            (completed.reduce((acc: number, s: any) => acc + (new Date(s.session_ended_at).getTime() - new Date(s.session_started_at).getTime()), 0) / completed.length) / 60000 * 10
           ) / 10
         : 0
 
       const franchiseMetrics: FranchiseMetrics = {
         totalSessions,
-        totalRevenue: Math.round(costToday), // on affiche le coût en tant que "revenu" visuel
+        totalRevenue: Math.round(costToday),
         totalUsers: totalSessions,
         avgSessionDuration,
         costToday: Math.round(costToday),

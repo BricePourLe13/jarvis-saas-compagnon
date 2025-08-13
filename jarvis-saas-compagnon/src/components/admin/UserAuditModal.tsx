@@ -363,9 +363,10 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
     <Modal isOpen={isOpen} onClose={onClose} size="5xl">
       <ModalOverlay bg="rgba(0, 0, 0, 0.4)" backdropFilter="blur(4px)" />
       <ModalContent
-        bg="#ffffff"
+        bg="bg.surface"
         borderRadius="16px"
-        border="1px solid #e5e7eb"
+        border="1px solid"
+        borderColor="border.default"
         boxShadow="0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
         mx={4}
         maxH="90vh"
@@ -374,7 +375,7 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
           <HStack spacing={4}>
             <Box
               p={3}
-              bg="#f3f4f6"
+              bg="bg.muted"
               borderRadius="12px"
             >
               <Icon as={History} boxSize={5} color="#374151" />
@@ -400,37 +401,37 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
         <ModalCloseButton 
           top={4}
           right={4}
-          bg="#f3f4f6"
+          bg="bg.muted"
           borderRadius="8px"
-          _hover={{ bg: "#e5e7eb" }}
+          _hover={{ bg: "bg.subtle" }}
         />
         
         <ModalBody p={6} pt={4} overflowY="auto">
           <VStack spacing={6} align="stretch">
             {/* Statistiques d'audit */}
             <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-              <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+              <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
                 <Stat>
                   <StatLabel fontSize="xs" color="#6b7280">Total modifications</StatLabel>
                   <StatNumber fontSize="lg" color="#1a1a1a">{stats.total_modifications}</StatNumber>
                   <StatHelpText fontSize="xs" color="#6b7280">{daysFilter} derniers jours</StatHelpText>
                 </Stat>
               </Box>
-              <Box p={4} bg="#f0f9ff" borderRadius="12px" border="1px solid #0ea5e9">
+              <Box p={4} bg="blue.50" borderRadius="12px" border="1px solid" borderColor="blue.400">
                 <Stat>
                   <StatLabel fontSize="xs" color="#0369a1">Profil</StatLabel>
                   <StatNumber fontSize="lg" color="#0369a1">{stats.profile_changes}</StatNumber>
                   <StatHelpText fontSize="xs" color="#0369a1">Modifications profil</StatHelpText>
                 </Stat>
               </Box>
-              <Box p={4} bg="#fef2f2" borderRadius="12px" border="1px solid #ef4444">
+              <Box p={4} bg="red.50" borderRadius="12px" border="1px solid" borderColor="red.500">
                 <Stat>
                   <StatLabel fontSize="xs" color="#dc2626">Permissions</StatLabel>
                   <StatNumber fontSize="lg" color="#dc2626">{stats.permission_changes}</StatNumber>
                   <StatHelpText fontSize="xs" color="#dc2626">Changements permissions</StatHelpText>
                 </Stat>
               </Box>
-              <Box p={4} bg="#f0fdf4" borderRadius="12px" border="1px solid #22c55e">
+              <Box p={4} bg="green.50" borderRadius="12px" border="1px solid" borderColor="green.400">
                 <Stat>
                   <StatLabel fontSize="xs" color="#059669">Score risque</StatLabel>
                   <StatNumber fontSize="lg" color="#059669">{stats.risk_score}/10</StatNumber>
@@ -440,7 +441,7 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
             </SimpleGrid>
 
             {/* Filtres */}
-            <Box p={4} bg="#f9fafb" borderRadius="12px" border="1px solid #e5e7eb">
+            <Box p={4} bg="bg.subtle" borderRadius="12px" border="1px solid" borderColor="border.default">
               <VStack spacing={4}>
                 <HStack w="full" justify="space-between">
                   <Text fontSize="sm" fontWeight="600" color="#374151">
@@ -448,13 +449,11 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
                   </Text>
                   <Button
                     size="sm"
-                    bg="#374151"
-                    color="white"
+                    variant="primary"
                     borderRadius="8px"
                     leftIcon={<Icon as={RefreshCw} boxSize={3} />}
                     onClick={handleRefresh}
                     isLoading={refreshing}
-                    _hover={{ bg: "#1f2937" }}
                   >
                     Actualiser
                   </Button>
@@ -465,28 +464,20 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
                     <InputLeftElement>
                       <Icon as={Search} boxSize={4} color="#6b7280" />
                     </InputLeftElement>
-                    <Input
+                  <Input
+                    variant="outline"
                       placeholder="Rechercher..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      bg="white"
-                      border="1px solid #d1d5db"
-                      borderRadius="8px"
                       fontSize="sm"
-                      _focus={{
-                        borderColor: "#374151",
-                        boxShadow: "0 0 0 1px #374151"
-                      }}
                     />
                   </InputGroup>
                   
                   <Select
+                    variant="outline"
                     placeholder="Type d'action"
                     value={actionFilter}
                     onChange={(e) => setActionFilter(e.target.value)}
-                    bg="white"
-                    border="1px solid #d1d5db"
-                    borderRadius="8px"
                     fontSize="sm"
                   >
                     <option value="user_updated">Profil modifié</option>
@@ -496,12 +487,10 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
                   </Select>
                   
                   <Select
+                    variant="outline"
                     placeholder="Sévérité"
                     value={severityFilter}
                     onChange={(e) => setSeverityFilter(e.target.value)}
-                    bg="white"
-                    border="1px solid #d1d5db"
-                    borderRadius="8px"
                     fontSize="sm"
                   >
                     <option value="info">Info</option>
@@ -511,11 +500,9 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
                   </Select>
                   
                   <Select
+                    variant="outline"
                     value={daysFilter}
                     onChange={(e) => setDaysFilter(e.target.value)}
-                    bg="white"
-                    border="1px solid #d1d5db"
-                    borderRadius="8px"
                     fontSize="sm"
                   >
                     <option value="7">7 derniers jours</option>
@@ -542,7 +529,7 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
               </Alert>
             ) : (
               <VStack spacing={4} align="stretch">
-                <Text fontSize="sm" fontWeight="600" color="#374151">
+                <Text fontSize="sm" fontWeight="600" color="text.default">
                   Timeline des modifications ({filteredLogs.length})
                 </Text>
                 
@@ -574,18 +561,20 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
-                        border="3px solid white"
-                        boxShadow="0 0 0 1px #e5e7eb"
+                        border="3px solid"
+                        borderColor="bg.surface"
+                        boxShadow="0 0 0 1px var(--chakra-colors-border-default)"
                       >
                         <Icon as={getActionIcon(log.action_type)} boxSize={3} color="white" />
                       </Box>
                       
                       <Box
                         p={4}
-                        bg="white"
-                        border="1px solid #e5e7eb"
+                        bg="bg.surface"
+                        border="1px solid"
+                        borderColor="border.default"
                         borderRadius="12px"
-                        _hover={{ bg: "#f9fafb" }}
+                        _hover={{ bg: "bg.subtle" }}
                         transition="all 0.2s"
                       >
                         <HStack justify="space-between" mb={2}>
@@ -669,17 +658,12 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
               {filteredLogs.length} modification{filteredLogs.length !== 1 ? 's' : ''} affichée{filteredLogs.length !== 1 ? 's' : ''}
             </Text>
             <Button
-              bg="#f3f4f6"
-              color="#6b7280"
+              variant="secondary"
               borderRadius="12px"
               h="48px"
               px={6}
               fontWeight="600"
               onClick={onClose}
-              _hover={{
-                bg: "#e5e7eb",
-                color: "#374151"
-              }}
               transition="all 0.2s"
             >
               Fermer

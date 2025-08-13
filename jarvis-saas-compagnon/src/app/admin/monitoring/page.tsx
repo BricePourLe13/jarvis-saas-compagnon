@@ -40,6 +40,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatDurationFromMinutes } from '@/lib/format-time'
 import { createBrowserClientWithConfig } from '../../../lib/supabase-admin'
 import { MetricsGrid, MetricCard } from '../../../components/admin/monitoring/MetricsGrid'
 import { MonitoringTable, TableColumn } from '../../../components/admin/monitoring/MonitoringTable'
@@ -156,7 +157,7 @@ export default function MonitoringPage() {
     { key: 'gym_name', label: 'Salle', width: '25%' },
     { key: 'session_start', label: 'Début', width: '20%' },
     { key: 'duration_minutes', label: 'Durée', width: '15%', 
-      render: (value) => value ? `${value}min` : <Badge colorScheme="blue" variant="subtle">En cours</Badge>
+      render: (value) => value ? formatDurationFromMinutes(value) : <Badge colorScheme="blue" variant="subtle">En cours</Badge>
     },
     { key: 'status', label: 'Statut', width: '15%' },
     { key: 'cost_usd', label: 'Coût', width: '10%' }

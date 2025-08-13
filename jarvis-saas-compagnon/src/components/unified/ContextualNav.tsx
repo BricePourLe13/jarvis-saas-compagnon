@@ -167,7 +167,7 @@ export function ContextualNav({
   return (
     <VStack spacing={1} align="stretch" w="full">
       {navItems.map((item, index) => (
-          <Box key={`${item.level}:${item.href}` }>
+          <Box key={`${item.level}:${item.href}:${item.label}`}>
           <MotionBox
             whileHover={{ x: 2 }}
             transition={{ duration: 0.2 }}
