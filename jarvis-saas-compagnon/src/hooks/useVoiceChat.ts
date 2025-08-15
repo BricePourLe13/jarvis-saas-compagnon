@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
 import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
 import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
+import { jarvisLogger } from '@/lib/jarvis-conversation-logger'
 
 interface VoiceChatConfig {
   gymSlug: string
