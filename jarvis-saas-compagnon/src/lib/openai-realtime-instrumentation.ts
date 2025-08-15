@@ -83,6 +83,12 @@ class OpenAIRealtimeInstrumentation {
     try {
       console.log('🎯 [INSTRUMENTATION] Démarrage session:', sessionData.session_id)
       
+      // Ignorer explicitement les sessions de pre-warm (ne pas polluer la DB/monitoring)
+      if (sessionData.member_badge_id && sessionData.member_badge_id.startsWith('prewarm')) {
+        console.log('⏭️ [INSTRUMENTATION] Session prewarm ignorée')
+        return true
+      }
+
       // Vérifier si la session existe déjà pour éviter les doublons
       const { data: existing } = await this.supabase
         .from('openai_realtime_sessions')
@@ -107,6 +113,8 @@ class OpenAIRealtimeInstrumentation {
           turn_detection_type: sessionData.turn_detection_type,
           member_badge_id: sessionData.member_badge_id,
           session_started_at: new Date().toISOString(),
+          state: 'active',
+          last_activity_at: new Date().toISOString(),
           // Initialisation avec des valeurs par défaut
           total_user_turns: 0,
           total_ai_turns: 0,
@@ -143,6 +151,7 @@ class OpenAIRealtimeInstrumentation {
         .from('openai_realtime_sessions')
         .update({
           session_ended_at: new Date().toISOString(),
+          state: 'closed',
           total_tokens: endData.total_tokens,
           input_tokens: endData.input_tokens,
           output_tokens: endData.output_tokens,
@@ -187,6 +196,11 @@ class OpenAIRealtimeInstrumentation {
    */
   async recordAudioEvent(eventData: OpenAIRealtimeAudioEvent): Promise<boolean> {
     try {
+      // Ignorer les événements pour sessions prewarm (sécurité supplémentaire)
+      if (eventData.session_id.startsWith('prewarm')) {
+        return false
+      }
+
       // Appliquer un très léger délai sur le tout premier événement d'une session pour absorber la latence PostgREST
       if (!this.firstEventDelayAppliedForSessionIds.has(eventData.session_id)) {
         this.firstEventDelayAppliedForSessionIds.add(eventData.session_id)
@@ -246,11 +260,19 @@ class OpenAIRealtimeInstrumentation {
         return false
       }
 
-      // Mise à jour des compteurs de tours si applicable
+      // Mise à jour des compteurs & activité si applicable
       if (eventData.event_type === 'transcription_completed' && eventData.user_transcript) {
         await this.incrementUserTurn(eventData.session_id)
+        await this.supabase
+          .from('openai_realtime_sessions')
+          .update({ last_activity_at: new Date().toISOString() })
+          .eq('session_id', eventData.session_id)
       } else if (eventData.event_type === 'response_completed' && eventData.ai_transcript_final) {
         await this.incrementAITurn(eventData.session_id)
+        await this.supabase
+          .from('openai_realtime_sessions')
+          .update({ last_activity_at: new Date().toISOString() })
+          .eq('session_id', eventData.session_id)
       }
 
       return true

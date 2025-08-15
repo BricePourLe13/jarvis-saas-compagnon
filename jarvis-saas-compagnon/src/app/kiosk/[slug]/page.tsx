@@ -157,34 +157,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         // ⚠️ Microphone sera initialisé dans VoiceInterface uniquement
         console.log(`🎤 Microphone: sera initialisé après scan badge`)
         
-        // 3. Pré-créer une session générique (à recycler)
-        const sessionStart = Date.now()
-        try {
-          const response = await fetch('/api/voice/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              gymSlug: slug,
-              memberId: 'prewarm',
-              memberData: {
-                first_name: 'Visiteur',
-                membership_type: 'basic'
-              }
-            })
-          })
-          
-          if (response.ok) {
-            const sessionData = await response.json()
-            setPrewarmCache({
-              generic_session: sessionData,
-              created_at: Date.now()
-            })
-            const sessionTime = Date.now() - sessionStart
-            console.log(`🚀 Session générique pré-créée en ${sessionTime}ms`)
-          }
-        } catch (error) {
-          console.warn('⚠️ Pre-warming session échoué:', error)
-        }
+        // 3. (DÉSACTIVÉ) Pré-création de session générique côté DB pour éviter les sessions fantômes
+        // On garde uniquement le precompile HEAD pour réduire la latence sans polluer les métriques.
         
         setPrewarmStatus('ready')
         console.log('✅ Pre-warming terminé avec succès')
@@ -200,51 +174,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     return () => clearTimeout(prewarmTimer)
   }, [kioskData?.gym, slug])
 
-  // Renouvellement automatique des sessions pre-warmed
+  // Renouvellement automatique des sessions pre-warmed désactivé (pas de session DB créée)
   useEffect(() => {
-    if (prewarmStatus !== 'ready' || !prewarmCache.generic_session) return
-
-    const renewSessions = async () => {
-      const sessionAge = Date.now() - prewarmCache.created_at
-      const maxAge = 15 * 60 * 1000 // 15 minutes
-      
-      if (sessionAge > maxAge) {
-        console.log('🔄 Renouvellement session pre-warmed (ancienne)')
-        setPrewarmStatus('warming')
-        
-        try {
-          const response = await fetch('/api/voice/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              gymSlug: slug,
-              memberId: 'prewarm-renewed',
-              memberData: {
-                first_name: 'Visiteur',
-                membership_type: 'basic'
-              }
-            })
-          })
-          
-          if (response.ok) {
-            const sessionData = await response.json()
-            setPrewarmCache({
-              generic_session: sessionData,
-              created_at: Date.now()
-            })
-            setPrewarmStatus('ready')
-            console.log('✅ Session pre-warmed renouvelée')
-          }
-        } catch (error) {
-          console.warn('⚠️ Échec renouvellement:', error)
-          setPrewarmStatus('error')
-        }
-      }
-    }
-
-    // Vérifier toutes les 5 minutes
-    const renewalInterval = setInterval(renewSessions, 5 * 60 * 1000)
-    return () => clearInterval(renewalInterval)
+    return
   }, [prewarmStatus, prewarmCache, slug])
 
   // Fonction pour calculer timeout adaptatif selon le membre
@@ -352,25 +284,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         setLoadingStep('Préparation de JARVIS...')
         await new Promise(resolve => setTimeout(resolve, 1000))
 
-        // Étape 3: Création session OpenAI
+        // Étape 3: Connexion à JARVIS (déplacée dans VoiceInterface → useVoiceChat.connect())
         setLoadingProgress(45)
         setLoadingStep('Connexion à JARVIS...')
-        
-        const sessionResponse = await fetch('/api/voice/session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            gymSlug: slug,
-            memberId: member.badge_id,
-            memberData: member
-          })
-        })
-
-        if (!sessionResponse.ok) {
-          throw new Error(`Erreur session: ${sessionResponse.status}`)
-        }
 
         // Étape 4: Initialisation audio
         setLoadingProgress(75)

@@ -45,6 +45,12 @@ export async function POST(request: NextRequest) {
       end_reason: (reason || 'user_goodbye') as EndReason,
     })
 
+    // Marquer l'état explicitement si besoin (déjà géré par endSession)
+    await supabase
+      .from('openai_realtime_sessions')
+      .update({ state: 'closed', end_reason: (reason || 'user_goodbye') as string })
+      .eq('session_id', sessionId)
+
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json({ error: 'Erreur serveur', details: err instanceof Error ? err.message : String(err) }, { status: 500 })

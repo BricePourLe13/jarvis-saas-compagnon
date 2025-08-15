@@ -652,6 +652,16 @@ export default function GymDetailsPage() {
               >
                 Prévisualiser Kiosk
               </Button>
+              <Button
+                as="a"
+                href={`/dashboard?gymId=${encodeURIComponent(gymId)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="primary"
+                borderRadius="12px"
+              >
+                Ouvrir Dashboard Gérant
+              </Button>
               
               <Button
                 leftIcon={<Icon as={Edit} />}

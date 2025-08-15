@@ -361,9 +361,8 @@ export default function LoginPage() {
         
         // Redirection basée sur le rôle
         setTimeout(() => {
-          // Unifie la redirection: admin et non-admin
           const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'franchise_owner' || userProfile?.role === 'franchise_admin'
-          router.push(isAdmin ? '/admin' : '/admin')
+          router.push(isAdmin ? '/admin' : '/dashboard')
         }, 800)
       }
     } catch {

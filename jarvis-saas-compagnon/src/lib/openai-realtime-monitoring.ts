@@ -200,17 +200,46 @@ export class OpenAIRealtimeMonitoringService {
    */
   async getActiveSessions(): Promise<ActiveRealtimeSession[]> {
     try {
-      const { data, error } = await this.supabase
-        .from('v_openai_realtime_active_sessions')
+      const useV2 = (process.env.USE_V2_ACTIVE_VIEW === 'true') || (process.env.NEXT_PUBLIC_USE_V2_ACTIVE_VIEW === 'true')
+      const primaryView = useV2 ? 'v_openai_realtime_active_sessions_v2' : 'v_openai_realtime_active_sessions'
+      const fallbackView = useV2 ? 'v_openai_realtime_active_sessions' : 'v_openai_realtime_active_sessions_v2'
+
+      // 1) Tentative sur la vue primaire selon le flag
+      let { data, error } = await this.supabase
+        .from(primaryView)
         .select('*')
         .order('session_started_at', { ascending: false })
-      
+
+      // 2) Si la vue n'existe pas/erreur, essayer l'autre vue
       if (error) {
-        console.error('❌ [OPENAI REALTIME] Erreur sessions actives:', error)
-        return []
+        console.warn(`⚠️ [OPENAI REALTIME] Vue ${primaryView} indisponible, essai fallback ${fallbackView}:`, error.message)
+        const fallback = await this.supabase
+          .from(fallbackView)
+          .select('*')
+          .order('session_started_at', { ascending: false })
+        if (!fallback.error) {
+          return fallback.data || []
+        }
+
+        // 3) Repli final: requête directe sur la table, filtrage minimal et compatible
+        console.warn('⚠️ [OPENAI REALTIME] Fallback vue échoué, tentative table directe openai_realtime_sessions')
+        const tenMinAgoIso = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+        const direct = await this.supabase
+          .from('openai_realtime_sessions')
+          .select('*')
+          .is('session_ended_at', null)
+          .gt('last_activity_at', tenMinAgoIso)
+          .not('member_badge_id', 'ilike', 'prewarm%')
+          .order('session_started_at', { ascending: false })
+          .limit(200)
+        if (direct.error) {
+          console.error('❌ [OPENAI REALTIME] Erreur sessions actives (table directe):', direct.error)
+          return []
+        }
+        return (direct.data as unknown as ActiveRealtimeSession[]) || []
       }
       
-      return data || []
+      return (data as unknown as ActiveRealtimeSession[]) || []
     } catch (error) {
       console.error('❌ [OPENAI REALTIME] Erreur sessions actives:', error)
       return []
