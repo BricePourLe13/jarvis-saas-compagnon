@@ -38,6 +38,7 @@ interface VoiceChatSession {
 }
 
 export function useVoiceChat(config: VoiceChatConfig) {
+  console.log('🎯 [DEBUG] useVoiceChat hook initialisé - VERSION DEBUG 2025-08-16')
   const [audioState, setAudioState] = useState<AudioState>({
     isRecording: false,
     isPlaying: false,
@@ -336,7 +337,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
       
       await initializeWebRTC(session)
       
-      console.log('🚀 Connexion voice chat établie avec succès')
+      console.log('🚀 Connexion voice chat établie avec succès - VERSION DEBUG ACTIVE')
       
       // 🧪 TEST IMMEDIAT DU LOGGING
       console.log('🧪 [DEBUG] Test immediat logging...')
