@@ -3,6 +3,7 @@ import { AudioState } from '@/types/kiosk'
 import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
 import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
 import { jarvisLogger } from '@/lib/jarvis-conversation-logger'
+import { transcriptLogger } from '@/lib/transcript-logger'
 
 interface VoiceChatConfig {
   gymSlug: string

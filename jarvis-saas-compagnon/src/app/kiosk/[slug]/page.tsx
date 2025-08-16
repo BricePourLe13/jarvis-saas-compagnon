@@ -312,6 +312,16 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       
       console.log('✅ Session JARVIS créée avec succès')
 
+      // 🎯 PLAN B: Configurer l'intercepteur de transcripts
+      import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
+        consoleTranscriptInterceptor.configure({
+          sessionId: 'temp_session_' + Date.now(), // Temporaire, sera remplacé
+          memberId: member.id,
+          gymId: provisioningData?.gym_id || 'unknown'
+        })
+        console.log('🎯 [PLAN B] Intercepteur configuré pour:', member.first_name)
+      }).catch(console.error)
+
     } catch (error) {
       console.error('❌ Erreur création session JARVIS:', error)
       setSessionError(error instanceof Error ? error.message : 'Erreur inconnue')
@@ -541,6 +551,13 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   
   // État pour le provisioning
   const [needsProvisioning, setNeedsProvisioning] = useState(false)
+
+  // 🎯 PLAN B: Intercepteur de transcripts console
+  useEffect(() => {
+    import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
+      console.log('🎯 [PLAN B] Console transcript interceptor activé!')
+    }).catch(console.error)
+  }, [])
 
   // ✅ Handle permission failures with fallback
   const handlePermissionFailure = useCallback((error: string) => {

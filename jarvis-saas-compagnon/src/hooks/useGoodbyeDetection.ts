@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 
+
 interface UseGoodbyeDetectionProps {
   isActive: boolean
   isJarvisSpeaking?: boolean // Nouveau: bloquer quand JARVIS parle
@@ -57,6 +58,8 @@ export const useGoodbyeDetection = ({
           console.log('🔇 [GOODBYE] Ignoré - JARVIS parle:', transcript)
           return
         }
+
+        // 🎯 PLAN B: Les messages utilisateur seront interceptés par console-transcript-interceptor
 
         // Détection stricte "au revoir" uniquement
         const isGoodbye = (
