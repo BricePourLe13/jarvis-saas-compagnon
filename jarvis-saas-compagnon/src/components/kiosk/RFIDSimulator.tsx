@@ -12,8 +12,8 @@ interface RFIDSimulatorProps {
 // Membres de test pour la simulation
 const DEMO_MEMBERS: GymMember[] = [
   {
-    id: 'member_001',
-    gym_id: 'gym_001',
+    id: '3663c1b6-cc68-47e3-8cfe-698422cd9331', // Vrai UUID de Pierre
+    gym_id: '42f6adf0-f222-4018-bb19-4f60e2a351f4',
     badge_id: 'BADGE_001',
     first_name: 'Pierre',
     last_name: 'Martin',
@@ -38,8 +38,8 @@ const DEMO_MEMBERS: GymMember[] = [
     updated_at: '2024-01-20T09:30:00Z'
   },
   {
-    id: 'member_002',
-    gym_id: 'gym_001', 
+    id: '02cdb76c-a920-4d26-a58b-ffa177fb0093', // Vrai UUID de Sophie
+    gym_id: '42f6adf0-f222-4018-bb19-4f60e2a351f4', 
     badge_id: 'BADGE_002',
     first_name: 'Sophie',
     last_name: 'Dubois',
@@ -64,8 +64,8 @@ const DEMO_MEMBERS: GymMember[] = [
     updated_at: '2024-01-19T18:45:00Z'
   },
   {
-    id: 'member_003',
-    gym_id: 'gym_001',
+    id: '8b28c7c3-45be-4c2d-baf4-d642ee9d4996', // Vrai UUID d'Alex
+    gym_id: '42f6adf0-f222-4018-bb19-4f60e2a351f4',
     badge_id: 'BADGE_003',
     first_name: 'Alex',
     last_name: 'Chen',
