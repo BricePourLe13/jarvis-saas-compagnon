@@ -72,7 +72,17 @@ export function useVoiceChat(config: VoiceChatConfig) {
    * 📝 Logger une interaction utilisateur ou JARVIS
    */
   const logInteraction = useCallback(async (speaker: 'user' | 'jarvis', message: string) => {
-    if (!sessionRef.current || !message.trim()) return
+    // 🚨 FORCE LOGGING TEST
+    console.log('🔥 [LOG INTERACTION] APPELÉ !', { speaker, message, sessionExists: !!sessionRef.current })
+    
+    if (!sessionRef.current || !message.trim()) {
+      console.log('❌ [LOG INTERACTION] ABANDONNÉ - Session ou message manquant:', {
+        hasSession: !!sessionRef.current,
+        messageLength: message?.length || 0,
+        sessionId: sessionRef.current?.session_id || 'AUCUN'
+      })
+      return
+    }
 
     // 🎯 CONSOLE DEBUG DÉTAILLÉ
     console.log('')
@@ -299,6 +309,10 @@ export function useVoiceChat(config: VoiceChatConfig) {
         break
 
       default:
+        // 🔍 DEBUG : Montrer TOUS les événements transcription
+        if (event.type.includes('transcript') || event.type.includes('audio')) {
+          console.log('🎯 [TRANSCRIPT EVENT]:', event.type, event)
+        }
         console.log('📨 [OpenAI] Événement non géré:', event.type)
     }
   }, [config, updateStatus, logInteraction])
@@ -323,6 +337,11 @@ export function useVoiceChat(config: VoiceChatConfig) {
       await initializeWebRTC(session)
       
       console.log('🚀 Connexion voice chat établie avec succès')
+      
+      // 🧪 TEST IMMEDIAT DU LOGGING
+      console.log('🧪 [DEBUG] Test immediat logging...')
+      await logInteraction('user', 'Test de connexion - message utilisateur')
+      await logInteraction('jarvis', 'Test de connexion - réponse JARVIS')
       
     } catch (error) {
       console.error('❌ Erreur connexion voice chat:', error)
