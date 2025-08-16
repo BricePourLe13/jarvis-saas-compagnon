@@ -340,8 +340,16 @@ export function useVoiceChat(config: VoiceChatConfig) {
       
       // 🧪 TEST IMMEDIAT DU LOGGING
       console.log('🧪 [DEBUG] Test immediat logging...')
-      await logInteraction('user', 'Test de connexion - message utilisateur')
-      await logInteraction('jarvis', 'Test de connexion - réponse JARVIS')
+      console.log('🧪 [DEBUG] sessionRef.current:', sessionRef.current)
+      console.log('🧪 [DEBUG] config.memberId:', config.memberId)
+      try {
+        await logInteraction('user', 'Test de connexion - message utilisateur')
+        await logInteraction('jarvis', 'Test de connexion - réponse JARVIS')
+        console.log('✅ [DEBUG] Tests logging terminés avec succès!')
+      } catch (error) {
+        console.error('❌ [DEBUG] ERREUR dans test logging:', error)
+        console.error('❌ [DEBUG] Stack trace:', error.stack)
+      }
       
     } catch (error) {
       console.error('❌ Erreur connexion voice chat:', error)
