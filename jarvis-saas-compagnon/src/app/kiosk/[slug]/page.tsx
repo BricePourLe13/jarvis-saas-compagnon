@@ -317,7 +317,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         consoleTranscriptInterceptor.configure({
           sessionId: 'temp_session_' + Date.now(), // Temporaire, sera remplacé
           memberId: member.id,
-          gymId: provisioningData?.gym_id || 'unknown'
+          gymId: kioskState?.gym_id || '42f6adf0-f222-4018-bb19-4f60e2a351f4' // Fallback gym ID
         })
         console.log('🎯 [PLAN B] Intercepteur configuré pour:', member.first_name)
       }).catch(console.error)

@@ -35,7 +35,9 @@ class ConsoleTranscriptInterceptor {
   configure(config: SessionConfig) {
     this.config = config
     this.turnCounter = 0
-    console.log('🎯 [CONSOLE INTERCEPTOR] Configuré pour session:', config.sessionId)
+    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Configuré pour session:', config.sessionId)
+    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Member ID:', config.memberId)
+    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Gym ID:', config.gymId)
   }
 
   /**
@@ -50,27 +52,39 @@ class ConsoleTranscriptInterceptor {
    * 🎯 Intercepter les console.log pour capturer les transcripts
    */
   private setupInterceptor() {
+    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Intercepteur activé!')
+    
     console.log = (...args: any[]) => {
       // Appeler le log original
       this.originalConsoleLog(...args)
 
       // Analyser pour les transcripts
-      if (this.config && args.length > 0) {
+      if (args.length > 0) {
         const message = args.join(' ')
 
-        // Messages utilisateur depuis Speech Recognition
-        if (message.includes('🎯 [GOODBYE] Speech Recognition:')) {
-          const transcript = message.replace('🎯 [GOODBYE] Speech Recognition:', '').trim()
-          if (transcript && transcript !== 'au revoir') {
-            this.logUserMessage(transcript)
-          }
+        // Debug: afficher tous les messages qui matchent nos patterns
+        if (message.includes('🎯 [GOODBYE] Speech Recognition:') || message.includes('📝 Transcript final:')) {
+          this.originalConsoleLog('🔍 [INTERCEPTOR DEBUG] Message capturé:', message.substring(0, 100))
+          this.originalConsoleLog('🔍 [INTERCEPTOR DEBUG] Config disponible:', !!this.config)
         }
 
-        // Réponses JARVIS depuis Transcript final
-        if (message.includes('📝 Transcript final:')) {
-          const transcript = message.replace('📝 Transcript final:', '').trim()
-          if (transcript) {
-            this.logJarvisMessage(transcript)
+        if (this.config) {
+          // Messages utilisateur depuis Speech Recognition
+          if (message.includes('🎯 [GOODBYE] Speech Recognition:')) {
+            const transcript = message.replace('🎯 [GOODBYE] Speech Recognition:', '').trim()
+            if (transcript && transcript !== 'au revoir') {
+              this.originalConsoleLog('🎯 [INTERCEPTOR] Capturing USER message:', transcript)
+              this.logUserMessage(transcript)
+            }
+          }
+
+          // Réponses JARVIS depuis Transcript final
+          if (message.includes('📝 Transcript final:')) {
+            const transcript = message.replace('📝 Transcript final:', '').trim()
+            if (transcript) {
+              this.originalConsoleLog('🎯 [INTERCEPTOR] Capturing JARVIS message:', transcript)
+              this.logJarvisMessage(transcript)
+            }
           }
         }
       }
