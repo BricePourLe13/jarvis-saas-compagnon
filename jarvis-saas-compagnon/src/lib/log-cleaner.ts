@@ -75,6 +75,6 @@ export function deactivateLogCleaner() {
 
 // 🚀 Auto-activation en production et démo
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'development') {
-  // Attendre 1 seconde pour laisser les logs initiaux passer
-  setTimeout(activateLogCleaner, 1000)
+  // Attendre 3 secondes pour laisser l'intercepteur s'installer AVANT
+  setTimeout(activateLogCleaner, 3000)
 }

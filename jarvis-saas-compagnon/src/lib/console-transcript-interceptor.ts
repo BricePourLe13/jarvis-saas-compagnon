@@ -54,9 +54,12 @@ class ConsoleTranscriptInterceptor {
   private setupInterceptor() {
     this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Intercepteur activé!')
     
+    // Sauvegarder la méthode console.log actuelle (qui peut déjà être overridée)
+    const currentConsoleLog = console.log
+    
     console.log = (...args: any[]) => {
-      // Appeler le log original
-      this.originalConsoleLog(...args)
+      // Appeler d'abord le log existant (pour que les logs continuent à apparaître)
+      currentConsoleLog(...args)
 
       // Analyser pour les transcripts
       if (args.length > 0) {
