@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react'
+import { realtimeTracker } from '@/lib/realtime-interaction-tracker'
 
 
 interface UseGoodbyeDetectionProps {
@@ -59,7 +60,14 @@ export const useGoodbyeDetection = ({
           return
         }
 
-        // 🎯 PLAN B: Les messages utilisateur seront interceptés par console-transcript-interceptor
+        // 🎯 [REALTIME TRACKER] Enregistrer message utilisateur
+        if (transcript && transcript.length > 0) {
+          realtimeTracker.trackUserSpeech(transcript, {
+            confidence_score: lastResult[0].confidence || 0.95,
+            duration_ms: Date.now() - (recognitionRef.current?.startTime || Date.now())
+          })
+          console.log('👤 [TRACKER] User Speech captured:', transcript)
+        }
 
         // Détection stricte "au revoir" uniquement
         const isGoodbye = (

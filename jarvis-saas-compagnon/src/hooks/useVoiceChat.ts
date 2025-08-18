@@ -2,8 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
 import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
 import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
-import { jarvisLogger } from '@/lib/jarvis-conversation-logger'
-import { transcriptLogger } from '@/lib/transcript-logger'
+import { realtimeTracker } from '@/lib/realtime-interaction-tracker'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -621,6 +620,15 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sessionTrackingRef.current.transcriptHistory.push(finalTranscript)
           // Estimer les tokens de sortie (approximation: 1 token ≈ 4 caractères)
           sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
+        }
+
+        // 🎯 [REALTIME TRACKER] Enregistrer réponse IA
+        if (finalTranscript) {
+          realtimeTracker.trackAIResponse(finalTranscript, {
+            latency_ms: Date.now() - (lastActivityRef.current || Date.now()),
+            audio_quality: 'good'
+          })
+          console.log('🤖 [TRACKER] IA Response captured:', finalTranscript.substring(0, 50) + '...')
         }
         
         // 🎯 [INSTRUMENTATION] Enregistrer la transcription IA finale

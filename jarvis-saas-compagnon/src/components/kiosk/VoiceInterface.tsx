@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
 import { useGoodbyeDetection } from '@/hooks/useGoodbyeDetection'
 import AudioVisualizer from './AudioVisualizer'
+import { realtimeTracker } from '@/lib/realtime-interaction-tracker'
 
 interface VoiceInterfaceProps {
   gymSlug: string
@@ -81,6 +82,10 @@ export default function VoiceInterface({
     if (status === 'connected' && currentMember && getCurrentSessionId) {
       const sessionId = getCurrentSessionId()
       if (sessionId) {
+        // 🎯 [REALTIME TRACKER] Initialiser session
+        realtimeTracker.initSession(sessionId, currentMember.id, currentMember.gym_id)
+        
+        // 🎯 [PLAN B] Console interceptor (à supprimer plus tard)
         import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
           consoleTranscriptInterceptor.configure({
             sessionId: sessionId, // Vrai session ID OpenAI
@@ -99,6 +104,9 @@ export default function VoiceInterface({
     try {
       const sessionId = getCurrentSessionId?.()
       if (sessionId) {
+        // 🎯 [REALTIME TRACKER] Finaliser session
+        realtimeTracker.endSession('user_goodbye')
+        
         // Fermer côté serveur (idempotent)
         await fetch('/api/voice/session/close', {
           method: 'POST',
