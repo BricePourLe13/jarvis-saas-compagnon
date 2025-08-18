@@ -156,3 +156,4 @@ JOIN gym_members gm ON jcl.member_id = gm.id
 WHERE gm.badge_id = 'BADGE0002' -- ⚠️ CHANGE LE BADGE SELON TON TEST
 ORDER BY section DESC, jcl.timestamp DESC
 LIMIT 10;
+

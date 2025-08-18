@@ -305,3 +305,4 @@ WHERE id IN (
   '5222c469-6b50-441a-b905-8598043eb24d'
 )
 ORDER BY jarvis_personalization_score DESC;
+

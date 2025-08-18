@@ -205,3 +205,4 @@ export default function OnboardingBanner({ gymId, onComplete, onDismiss }: Onboa
     </Box>
   )
 }
+

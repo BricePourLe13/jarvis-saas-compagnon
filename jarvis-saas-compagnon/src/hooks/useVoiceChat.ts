@@ -24,6 +24,7 @@ interface VoiceChatConfig {
   onStatusChange?: (status: 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error' | 'reconnecting') => void
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void
   onError?: (error: string) => void
+  onSessionCreated?: (sessionId: string, memberId?: string, gymId?: string) => void
 }
 
 interface VoiceChatSession {

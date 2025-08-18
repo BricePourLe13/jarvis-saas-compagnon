@@ -204,3 +204,4 @@ class JarvisSimpleLogger {
 
 export const simpleLogger = JarvisSimpleLogger.getInstance()
 export default simpleLogger
+

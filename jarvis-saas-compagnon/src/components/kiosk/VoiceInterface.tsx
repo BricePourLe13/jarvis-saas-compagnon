@@ -53,7 +53,22 @@ export default function VoiceInterface({
     } : undefined,
     onStatusChange: useCallback((newStatus) => {
       console.log('[VOICE UI] Status:', newStatus)
-    }, []),
+      
+      // 🎯 Configurer l'intercepteur quand la connexion est établie
+      if (newStatus === 'connected' && currentMember) {
+        const sessionId = getCurrentSessionId?.()
+        if (sessionId) {
+          import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
+            consoleTranscriptInterceptor.configure({
+              sessionId: sessionId, // Vrai session ID OpenAI
+              memberId: currentMember.id,
+              gymId: currentMember.gym_id
+            })
+            console.log('🎯 [VOICE INTERFACE] Intercepteur mis à jour avec session OpenAI:', sessionId)
+          }).catch(console.error)
+        }
+      }
+    }, [getCurrentSessionId, currentMember]),
     onTranscriptUpdate: useCallback((text, isFinal) => {
       onTranscriptUpdate?.(text, isFinal)
     }, [onTranscriptUpdate]),
