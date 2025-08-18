@@ -312,15 +312,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       
       console.log('✅ Session JARVIS créée avec succès')
 
-      // 🎯 PLAN B: Configurer l'intercepteur de transcripts
-      import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
-        consoleTranscriptInterceptor.configure({
-          sessionId: 'temp_session_' + Date.now(), // Temporaire, sera remplacé
-          memberId: member.id, // Le vrai UUID du membre
-          gymId: kioskState?.gym_id || '42f6adf0-f222-4018-bb19-4f60e2a351f4' // Fallback gym ID
-        })
-        console.log('🎯 [PLAN B] Intercepteur configuré pour:', member.first_name, 'ID:', member.id)
-      }).catch(console.error)
+      // 🎯 PLAN B: L'intercepteur sera configuré automatiquement par VoiceInterface
+      // quand la session OpenAI sera créée (plus de configuration temporaire)
+      console.log('🎯 [PLAN B] Intercepteur sera configuré automatiquement avec session OpenAI pour:', member.first_name, 'ID:', member.id)
 
     } catch (error) {
       console.error('❌ Erreur création session JARVIS:', error)
