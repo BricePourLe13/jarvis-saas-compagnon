@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
 import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
 import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
-import { realtimeTracker } from '@/lib/realtime-interaction-tracker'
+import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -622,14 +622,14 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
         }
 
-        // 🎯 [REALTIME TRACKER] Enregistrer réponse IA
-        if (finalTranscript) {
-          realtimeTracker.trackAIResponse(finalTranscript, {
-            latency_ms: Date.now() - (lastActivityRef.current || Date.now()),
-            audio_quality: 'good'
-          })
-          console.log('🤖 [TRACKER] IA Response captured:', finalTranscript.substring(0, 50) + '...')
-        }
+                      // 🎙️ [WHISPER TRACKER] Enregistrer réponse IA
+              if (finalTranscript) {
+                whisperParallelTracker.trackAIResponse(finalTranscript, {
+                  latency_ms: Date.now() - (lastActivityRef.current || Date.now()),
+                  audio_quality: 'good'
+                })
+                console.log('🤖 [WHISPER TRACKER] IA Response captured:', finalTranscript.substring(0, 50) + '...')
+              }
         
         // 🎯 [INSTRUMENTATION] Enregistrer la transcription IA finale
         try {

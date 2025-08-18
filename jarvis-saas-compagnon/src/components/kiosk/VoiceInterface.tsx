@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
 import { useGoodbyeDetection } from '@/hooks/useGoodbyeDetection'
 import AudioVisualizer from './AudioVisualizer'
-import { realtimeTracker } from '@/lib/realtime-interaction-tracker'
+import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
 
 interface VoiceInterfaceProps {
   gymSlug: string
@@ -82,13 +82,8 @@ export default function VoiceInterface({
     if (status === 'connected' && currentMember && getCurrentSessionId) {
       const sessionId = getCurrentSessionId()
       if (sessionId) {
-        // 🎯 [REALTIME TRACKER] Initialiser session
-        realtimeTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch(async (error) => {
-          console.warn('⚠️ [VOICE INTERFACE] Realtime tracker failed, using client fallback:', error)
-          // Fallback sur client-side tracker
-          const { clientSideTracker } = await import('@/lib/client-side-tracker')
-          await clientSideTracker.initSession(sessionId, currentMember.id, currentMember.gym_id)
-        })
+        // 🎙️ [WHISPER TRACKER] Initialiser session
+        whisperParallelTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch(console.error)
         
         // 🎯 [PLAN B] Console interceptor (à supprimer plus tard)
         import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
@@ -108,9 +103,9 @@ export default function VoiceInterface({
     console.log('👋 [GOODBYE DETECTED] Fermeture session par détection au revoir')
     try {
       const sessionId = getCurrentSessionId?.()
-      if (sessionId) {
-        // 🎯 [REALTIME TRACKER] Finaliser session
-        realtimeTracker.endSession('user_goodbye')
+              if (sessionId) {
+          // 🎙️ [WHISPER TRACKER] Finaliser session
+          whisperParallelTracker.endSession('user_goodbye')
         
         // Fermer côté serveur (idempotent)
         await fetch('/api/voice/session/close', {

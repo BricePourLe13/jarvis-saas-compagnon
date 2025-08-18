@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { realtimeTracker } from '@/lib/realtime-interaction-tracker'
+import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
 
 
 interface UseGoodbyeDetectionProps {
@@ -60,13 +60,10 @@ export const useGoodbyeDetection = ({
           return
         }
 
-        // 🎯 [REALTIME TRACKER] Enregistrer message utilisateur
+        // 🎙️ [WHISPER TRACKER] Démarrer enregistrement utilisateur
         if (transcript && transcript.length > 0) {
-          realtimeTracker.trackUserSpeech(transcript, {
-            confidence_score: lastResult[0].confidence || 0.95,
-            duration_ms: Date.now() - (recognitionRef.current?.startTime || Date.now())
-          })
-          console.log('👤 [TRACKER] User Speech captured:', transcript)
+          whisperParallelTracker.startUserRecording()
+          console.log('👤 [WHISPER TRACKER] User Speech detected, recording started:', transcript)
         }
 
         // Détection stricte "au revoir" uniquement
@@ -115,6 +112,9 @@ export const useGoodbyeDetection = ({
     // Redémarrer quand ça s'arrête
     recognition.onend = () => {
       console.log('🔄 [GOODBYE] Recognition terminée')
+      
+      // 🎙️ [WHISPER TRACKER] Arrêter enregistrement si actif
+      whisperParallelTracker.stopUserRecording()
       
       if (isActive) {
         // Redémarrer automatiquement
