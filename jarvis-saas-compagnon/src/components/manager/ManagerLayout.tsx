@@ -20,7 +20,7 @@ import {
   LayoutDashboard, 
   Users, 
   Target, 
-  MessageCircle, 
+  MessageSquare, 
   Settings, 
   ChevronLeft,
   Bell,
@@ -67,21 +67,23 @@ export default function ManagerLayout({
       label: 'Fiches Membres',
       icon: Users,
       badge: '12',
-      disabled: true
+      active: currentPage === 'Fiches Membres'
     },
     {
       label: 'Actions du Jour',
       icon: Target,
-      badge: 3
+      badge: 3,
+      disabled: true
     },
     {
       label: 'Missions JARVIS',
-      icon: MessageCircle,
+      icon: MessageSquare,
       disabled: true
     },
     {
       label: 'Paramètres',
-      icon: Settings
+      icon: Settings,
+      disabled: true
     }
   ]
 
