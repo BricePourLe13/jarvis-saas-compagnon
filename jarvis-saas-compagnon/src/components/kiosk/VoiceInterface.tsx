@@ -83,7 +83,12 @@ export default function VoiceInterface({
       const sessionId = getCurrentSessionId()
       if (sessionId) {
         // 🎯 [REALTIME TRACKER] Initialiser session
-        realtimeTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch(console.error)
+        realtimeTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch(async (error) => {
+          console.warn('⚠️ [VOICE INTERFACE] Realtime tracker failed, using client fallback:', error)
+          // Fallback sur client-side tracker
+          const { clientSideTracker } = await import('@/lib/client-side-tracker')
+          await clientSideTracker.initSession(sessionId, currentMember.id, currentMember.gym_id)
+        })
         
         // 🎯 [PLAN B] Console interceptor (à supprimer plus tard)
         import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
