@@ -6,6 +6,7 @@ import { useVoiceChat } from '@/hooks/useVoiceChat'
 import { useGoodbyeDetection } from '@/hooks/useGoodbyeDetection'
 import AudioVisualizer from './AudioVisualizer'
 import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
+import { kioskLogger } from '@/lib/kiosk-logger'
 
 interface VoiceInterfaceProps {
   gymSlug: string
@@ -82,8 +83,14 @@ export default function VoiceInterface({
     if (status === 'connected' && currentMember && getCurrentSessionId) {
       const sessionId = getCurrentSessionId()
       if (sessionId) {
+        // Configuration du logger avec session
+        kioskLogger.setSession(sessionId, currentMember.first_name || 'Membre')
+        kioskLogger.session('Connexion WebRTC établie', 'success')
+        
         // 🎙️ [WHISPER TRACKER] Initialiser session
-        whisperParallelTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch(console.error)
+        whisperParallelTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch((error) => {
+          kioskLogger.error('Échec init Whisper Tracker', error, 'TRACKING')
+        })
         
         // 🎯 [PLAN B] Console interceptor (à supprimer plus tard)
         import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
@@ -100,7 +107,7 @@ export default function VoiceInterface({
 
   // 🎯 NOUVELLE DÉTECTION "AU REVOIR" avec Web Speech API en parallèle
   const handleGoodbyeDetected = useCallback(async () => {
-    console.log('👋 [GOODBYE DETECTED] Fermeture session par détection au revoir')
+    kioskLogger.session('Au revoir détecté - Fermeture session', 'info')
     try {
       const sessionId = getCurrentSessionId?.()
               if (sessionId) {

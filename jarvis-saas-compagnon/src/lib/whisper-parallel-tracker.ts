@@ -8,6 +8,8 @@
  * - Session lifecycle complet
  */
 
+import { kioskLogger } from './kiosk-logger'
+
 interface WhisperTrackingSession {
   session_id: string
   member_id: string
@@ -35,7 +37,7 @@ class WhisperParallelTracker {
       is_recording: false
     }
 
-    console.log('🎙️ [WHISPER TRACKER] Session initialisée:', sessionId)
+    kioskLogger.tracking('Session Whisper initialisée', 'success', { sessionId: sessionId.slice(-6) })
     
     try {
       // Obtenir accès microphone (si pas déjà fait)
@@ -46,9 +48,9 @@ class WhisperParallelTracker {
           sampleRate: 16000 // Optimal pour Whisper
         } 
       })
-      console.log('🎤 [WHISPER TRACKER] Microphone access obtained')
+      kioskLogger.audio('Microphone Whisper configuré', 'success')
     } catch (error) {
-      console.error('❌ [WHISPER TRACKER] Microphone access failed:', error)
+      kioskLogger.error('Échec accès microphone Whisper', error, 'AUDIO')
     }
   }
 
@@ -77,9 +79,9 @@ class WhisperParallelTracker {
       }
 
       this.mediaRecorder.start()
-      console.log('🔴 [WHISPER TRACKER] Recording started')
+      kioskLogger.audio('Enregistrement utilisateur démarré', 'info')
     } catch (error) {
-      console.error('❌ [WHISPER TRACKER] Recording start failed:', error)
+      kioskLogger.error('Échec démarrage enregistrement', error, 'AUDIO')
     }
   }
 
@@ -91,7 +93,7 @@ class WhisperParallelTracker {
 
     this.currentSession.is_recording = false
     this.mediaRecorder.stop()
-    console.log('⏹️ [WHISPER TRACKER] Recording stopped')
+    kioskLogger.audio('Enregistrement utilisateur arrêté', 'info')
   }
 
   /**
@@ -108,14 +110,11 @@ class WhisperParallelTracker {
 
       // Vérifier taille minimale (éviter silence)
       if (audioBlob.size < 1024) {
-        console.log('⚠️ [WHISPER TRACKER] Audio too small, skipping')
+        kioskLogger.audio('Audio trop court, ignoré', 'warn')
         return
       }
 
-      console.log('📤 [WHISPER TRACKER] Sending audio to Whisper API...', {
-        size: audioBlob.size,
-        duration: 'unknown'
-      })
+      kioskLogger.api('Envoi audio vers Whisper', 'info', { taille: `${Math.round(audioBlob.size/1024)}KB` })
 
       // Envoyer à Whisper API
       const formData = new FormData()
@@ -131,13 +130,18 @@ class WhisperParallelTracker {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ [WHISPER TRACKER] User speech transcribed:', result.transcript?.substring(0, 50) + '...')
+        if (result.transcript) {
+          kioskLogger.tracking('Utilisateur transcrit', 'success', { 
+            texte: result.transcript.substring(0, 40) + '...',
+            confiance: result.metadata?.confidence
+          })
+        }
       } else {
-        console.error('❌ [WHISPER TRACKER] Whisper API failed:', response.status)
+        kioskLogger.api('Whisper API échec', 'error', { status: response.status })
       }
 
     } catch (error) {
-      console.error('❌ [WHISPER TRACKER] Audio processing failed:', error)
+      kioskLogger.error('Traitement audio échoué', error, 'API')
     }
   }
 
@@ -165,10 +169,13 @@ class WhisperParallelTracker {
       })
 
       if (response.ok) {
-        console.log(`🤖 [WHISPER TRACKER] AI response logged (turn ${this.currentSession.turn_counter}):`, transcript.substring(0, 50) + '...')
+        kioskLogger.tracking('IA réponse enregistrée', 'success', { 
+          tour: this.currentSession.turn_counter,
+          texte: transcript.substring(0, 40) + '...'
+        })
       }
     } catch (error) {
-      console.error('❌ [WHISPER TRACKER] AI response logging failed:', error)
+      kioskLogger.error('Échec enregistrement IA', error, 'TRACKING')
     }
   }
 
@@ -178,7 +185,10 @@ class WhisperParallelTracker {
   endSession(reason: string = 'user_goodbye') {
     if (!this.currentSession) return
 
-    console.log(`🏁 [WHISPER TRACKER] Session ended: ${this.currentSession.session_id} (Reason: ${reason})`)
+    kioskLogger.tracking('Session Whisper terminée', 'info', { 
+      raison: reason,
+      tours: this.currentSession.turn_counter
+    })
 
     // Arrêter enregistrement si actif
     if (this.currentSession.is_recording) {

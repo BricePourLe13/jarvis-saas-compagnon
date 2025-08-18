@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
+import { kioskLogger } from '@/lib/kiosk-logger'
 
 
 interface UseGoodbyeDetectionProps {
@@ -63,7 +64,6 @@ export const useGoodbyeDetection = ({
         // 🎙️ [WHISPER TRACKER] Démarrer enregistrement utilisateur
         if (transcript && transcript.length > 0) {
           whisperParallelTracker.startUserRecording()
-          console.log('👤 [WHISPER TRACKER] User Speech detected, recording started:', transcript)
         }
 
         // Détection stricte "au revoir" uniquement
