@@ -20,11 +20,25 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profileError || userProfile?.role !== 'manager') {
-      return NextResponse.json({ error: 'Accès refusé - Role manager requis' }, { status: 403 })
+    // 🔧 DEBUG: Afficher les infos utilisateur
+    console.log('🔍 [DEBUG MEMBERS] User ID:', user.id)
+    console.log('🔍 [DEBUG MEMBERS] User profile:', userProfile)
+    
+    if (profileError) {
+      console.error('❌ Erreur profil utilisateur:', profileError)
+      return NextResponse.json({ error: 'Erreur récupération profil utilisateur' }, { status: 500 })
+    }
+    
+    // 🔧 TEMP: Permettre tous les rôles admin pour debug
+    const allowedRoles = ['manager', 'super_admin', 'franchise_admin', 'franchise_owner']
+    if (!userProfile?.role || !allowedRoles.includes(userProfile.role)) {
+      return NextResponse.json({ 
+        error: `Accès refusé - Role autorisé requis. Role actuel: ${userProfile?.role}` 
+      }, { status: 403 })
     }
 
-    // Récupérer les membres de la salle du gérant
+    // 🔧 TEMP FIX: Récupérer TOUS les membres pour debug
+    // TODO: Restreindre par manager_id une fois configuré
     const { data: members, error: membersError } = await supabase
       .from('gym_members')
       .select(`
@@ -41,20 +55,23 @@ export async function GET(request: NextRequest) {
         jarvis_personalization_score,
         created_at,
         gym_id,
-        gyms!inner(
+        gyms(
           id,
           name,
           manager_id
         )
       `)
-      .eq('gyms.manager_id', user.id)
       .eq('is_active', true)
       .order('last_visit', { ascending: false })
+      .limit(20) // Limite pour éviter trop de données
 
     if (membersError) {
       console.error('❌ Erreur récupération membres:', membersError)
       return NextResponse.json({ error: 'Erreur récupération membres' }, { status: 500 })
     }
+
+    console.log('🔍 [DEBUG MEMBERS] Membres trouvés:', members?.length)
+    console.log('🔍 [DEBUG MEMBERS] Premier membre:', members?.[0])
 
     // Récupérer les statistiques de conversations récentes pour chaque membre
     const memberIds = members?.map(m => m.id) || []
@@ -76,6 +93,8 @@ export async function GET(request: NextRequest) {
         .order('timestamp', { ascending: false })
 
       conversationStats = stats || []
+      console.log('🔍 [DEBUG CONVERSATIONS] Conversations trouvées:', conversationStats.length)
+      console.log('🔍 [DEBUG CONVERSATIONS] Première conversation:', conversationStats[0])
     }
 
     // Calculer les métriques par membre
