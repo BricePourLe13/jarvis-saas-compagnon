@@ -3,7 +3,7 @@
  * Version simplifiée pour MVP - focus sur l'essentiel
  */
 
-import { getSupabaseSingleton } from './supabase-singleton'
+import { getSupabaseService } from './supabase-service'
 
 export interface SimpleLogEntry {
   session_id: string
@@ -17,7 +17,7 @@ export interface SimpleLogEntry {
 
 class JarvisSimpleLogger {
   private static instance: JarvisSimpleLogger
-  private supabase = getSupabaseSingleton()
+  private supabase = getSupabaseService()
   private turnCounters = new Map<string, number>() // sessionId -> turnNumber
   
   static getInstance(): JarvisSimpleLogger {
@@ -64,10 +64,15 @@ class JarvisSimpleLogger {
       console.log('📅 Session ID:', entry.session_id)
       console.log('==================================================')
 
+      // 🔧 TEMP FIX: Convertir session OpenAI en UUID temporaire
+      const sessionUuid = entry.session_id?.startsWith('sess_') 
+        ? crypto.randomUUID() 
+        : entry.session_id
+
       const { error } = await this.supabase
         .from('jarvis_conversation_logs')
         .insert({
-          session_id: entry.session_id,
+          session_id: sessionUuid,
           member_id: entry.member_id,
           gym_id: entry.gym_id,
           speaker: entry.speaker,
