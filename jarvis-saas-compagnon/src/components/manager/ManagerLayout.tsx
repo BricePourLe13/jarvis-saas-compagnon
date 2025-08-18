@@ -166,6 +166,16 @@ export default function ManagerLayout({
                   transition="all 0.2s ease"
                   isDisabled={item.disabled}
                   opacity={item.disabled ? 0.5 : 1}
+                  onClick={() => {
+                    if (!item.disabled) {
+                      if (item.label === "Fiches Membres") {
+                        window.location.href = '/dashboard/members'
+                      } else if (item.label === "Vue d'ensemble") {
+                        window.location.href = '/dashboard'
+                      }
+                      // Autres routes à ajouter plus tard
+                    }
+                  }}
                 >
                   {!sidebarCollapsed && (
                     <HStack justify="space-between" w="100%">
