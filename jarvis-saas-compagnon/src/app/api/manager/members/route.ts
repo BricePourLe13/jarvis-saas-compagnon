@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseSingleton } from '@/lib/supabase-singleton'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseSingleton()
+    // 🔧 FIX: Utiliser le client serveur avec cookies pour l'auth
+    const supabase = createRouteHandlerClient({ cookies })
     
     // Récupérer l'utilisateur actuel
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    console.log('🔍 [DEBUG AUTH] User:', user?.id)
+    console.log('🔍 [DEBUG AUTH] AuthError:', authError)
+    
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+      return NextResponse.json({ 
+        error: 'Non autorisé', 
+        details: authError?.message || 'Utilisateur non connecté' 
+      }, { status: 401 })
     }
 
     // Récupérer la salle du gérant

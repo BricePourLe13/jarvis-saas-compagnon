@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseSingleton } from '@/lib/supabase-singleton'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +9,7 @@ export async function GET(
   { params }: { params: { memberId: string } }
 ) {
   try {
-    const supabase = getSupabaseSingleton()
+    const supabase = createRouteHandlerClient({ cookies })
     const { memberId } = params
     
     // Récupérer l'utilisateur actuel
