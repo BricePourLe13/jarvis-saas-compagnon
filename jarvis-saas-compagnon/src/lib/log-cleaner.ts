@@ -18,8 +18,8 @@ const VERBOSE_PATTERNS = [
   '📅 Session ID:',
   '=============',
   '[JARVIS LOGGER]',
-  '[CONSOLE INTERCEPTOR]',
-  '🔍 [INTERCEPTOR DEBUG]',
+  // '[CONSOLE INTERCEPTOR]', // Autoriser pour debug
+  // '🔍 [INTERCEPTOR DEBUG]', // Autoriser pour debug
   '[DEBUG SESSION ASSIGN]',
   '[CONNECT DEBUG]',
   'sessionRef.current assigné',

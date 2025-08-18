@@ -16,11 +16,11 @@ let serviceInstance: SupabaseClient | null = null
  */
 export function getSupabaseService(): SupabaseClient {
   if (!serviceInstance) {
-    // 🔧 TEMP: Utiliser anon en attendant fix RLS
-    console.log('🔒 [SUPABASE SERVICE] Utilisation client anon (RLS sera fixé côté Supabase)')
+    // 🔒 Utiliser service_role pour bypasser RLS
+    console.log('🔒 [SUPABASE SERVICE] Utilisation service_role pour bypass RLS')
     serviceInstance = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
         auth: {
           autoRefreshToken: false,

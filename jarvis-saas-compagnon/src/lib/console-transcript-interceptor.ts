@@ -96,29 +96,34 @@ class ConsoleTranscriptInterceptor {
    */
   private async logUserMessage(transcript: string) {
     if (!this.config) return
+    this.turnCounter++
 
-    console.log('')
-    console.log('🎤 [CONSOLE INTERCEPTOR] ===== USER MESSAGE =====')
-    console.log('👤 UTILISATEUR:', `"${transcript}"`)
-    console.log('🔄 Tour:', ++this.turnCounter)
-    console.log('=============================================')
+    // Log plus simple pour éviter le filtrage
+    this.originalConsoleLog(`🎤 USER T${this.turnCounter}: "${transcript}"`)
 
     try {
-      const success = await simpleLogger.logMessage({
-        session_id: this.config.sessionId,
-        member_id: this.config.memberId,
-        gym_id: this.config.gymId,
-        speaker: 'user',
-        message_text: transcript.trim(),
-        turn_number: this.turnCounter,
-        timestamp: new Date()
+      // Utiliser l'API kiosk pour la sauvegarde (plus fiable)
+      const response = await fetch('/api/kiosk/gym-yatblc8h/log-interaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: this.config.sessionId,
+          member_id: this.config.memberId,
+          gym_id: this.config.gymId,
+          speaker: 'user',
+          message_text: transcript.trim(),
+          conversation_turn_number: this.turnCounter,
+          timestamp: new Date().toISOString()
+        })
       })
 
-      if (success) {
-        console.log('✅ [CONSOLE INTERCEPTOR] Message utilisateur sauvé!')
+      if (response.ok) {
+        this.originalConsoleLog('✅ USER MESSAGE SAVED TO DB!')
+      } else {
+        this.originalConsoleLog('❌ Failed to save USER message to DB!')
       }
     } catch (error) {
-      console.error('❌ [CONSOLE INTERCEPTOR] Erreur user:', error)
+      this.originalConsoleLog('❌ USER save error:', error)
     }
   }
 
@@ -127,29 +132,34 @@ class ConsoleTranscriptInterceptor {
    */
   private async logJarvisMessage(transcript: string) {
     if (!this.config) return
+    this.turnCounter++
 
-    console.log('')
-    console.log('🎤 [CONSOLE INTERCEPTOR] ===== JARVIS RESPONSE =====')
-    console.log('🤖 JARVIS:', `"${transcript}"`)
-    console.log('🔄 Tour:', ++this.turnCounter)
-    console.log('================================================')
+    // Log plus simple pour éviter le filtrage
+    this.originalConsoleLog(`🤖 JARVIS T${this.turnCounter}: "${transcript}"`)
 
     try {
-      const success = await simpleLogger.logMessage({
-        session_id: this.config.sessionId,
-        member_id: this.config.memberId,
-        gym_id: this.config.gymId,
-        speaker: 'jarvis',
-        message_text: transcript.trim(),
-        turn_number: this.turnCounter,
-        timestamp: new Date()
+      // Utiliser l'API kiosk pour la sauvegarde (plus fiable)
+      const response = await fetch('/api/kiosk/gym-yatblc8h/log-interaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: this.config.sessionId,
+          member_id: this.config.memberId,
+          gym_id: this.config.gymId,
+          speaker: 'jarvis',
+          message_text: transcript.trim(),
+          conversation_turn_number: this.turnCounter,
+          timestamp: new Date().toISOString()
+        })
       })
 
-      if (success) {
-        console.log('✅ [CONSOLE INTERCEPTOR] Réponse JARVIS sauvée!')
+      if (response.ok) {
+        this.originalConsoleLog('✅ JARVIS MESSAGE SAVED TO DB!')
+      } else {
+        this.originalConsoleLog('❌ Failed to save JARVIS message to DB!')
       }
     } catch (error) {
-      console.error('❌ [CONSOLE INTERCEPTOR] Erreur jarvis:', error)
+      this.originalConsoleLog('❌ JARVIS save error:', error)
     }
   }
 }
