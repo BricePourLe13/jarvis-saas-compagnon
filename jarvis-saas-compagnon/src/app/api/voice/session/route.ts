@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initializeConversationMemory, generateContextualPrompt } from '@/lib/conversation-memory'
 import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
-import { getSupabaseSingleton } from '@/lib/supabase-singleton'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // 🎯 Utilitaire pour générer un ID de session unique
 function generateSessionId(): string {
@@ -77,7 +78,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Charger paramètres Jarvis par salle (kiosk_config.jarvis_settings) si trouvables via slug
-    const supabase = getSupabaseSingleton()
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+        },
+      }
+    )
     let settings: any = null
     try {
       const { data: gym } = await supabase
@@ -269,8 +281,8 @@ Reste COURT et drôle !`
     
     // 🎯 INSTRUMENTATION: Enregistrer la session OpenAI Realtime dans notre base
     try {
-      // Récupérer gym_id depuis le slug
-      const supabase = getSupabaseSingleton()
+      // Récupérer gym_id depuis le slug (réutiliser le client créé plus haut)
+      // Note: supabase client déjà initialisé plus haut
       const { data: gym } = await supabase
         .from('gyms')
         .select('id, name')

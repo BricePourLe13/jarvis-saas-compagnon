@@ -28,7 +28,16 @@ const VERBOSE_PATTERNS = [
   '🔄 [GOODBYE] Recognition terminée',
   '⚠️ [GOODBYE] Reconnaissance déjà active',
   '🎯 [CONSOLE INTERCEPTOR] Configuré pour session',
-  '🎯 [VOICE INTERFACE] Intercepteur mis à jour'
+  '🎯 [VOICE INTERFACE] Intercepteur mis à jour',
+  '🎯 [PLAN B] Intercepteur sera configuré',
+  '📊 [OPENAI REALTIME] Session',
+  '[KIOSK] 🔍 Recherche slug:',
+  '[KIOSK] 🎯 Salle trouvée:',
+  '[KIOSK] ❌ Erreur recherche:',
+  '🎤 [VOICE SESSION] Création session',
+  '✅ Session JARVIS optimisée créée',
+  '🎯 INSTRUMENTATION: Enregistrer',
+  '[VOICE] Paramètres reçus:'
 ]
 
 // 🧹 Override console.log
