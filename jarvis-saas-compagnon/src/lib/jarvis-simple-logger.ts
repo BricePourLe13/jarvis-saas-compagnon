@@ -41,28 +41,21 @@ class JarvisSimpleLogger {
       const analysis = this.simpleAnalysis(entry.message_text, entry.speaker)
 
       // 🎯 CONSOLE DEBUG COMPLET POUR TESTS
-      console.log('🎤 [JARVIS LOGGER] ===== NOUVELLE INTERACTION =====')
-      console.log('👤 Qui parle:', entry.speaker === 'user' ? '🗣️ UTILISATEUR' : '🤖 JARVIS')
-      console.log('💬 Message:', `"${entry.message_text}"`)
-      console.log('🔄 Tour:', nextTurn)
-      console.log('🎯 Intent détecté:', analysis.detected_intent || 'non_défini')
-      console.log('😊 Sentiment:', analysis.sentiment_score || 'neutre')
-      console.log('📂 Catégorie:', analysis.topic_category || 'général')
-      console.log('⚡ Engagement:', analysis.user_engagement_level || 'normal')
-      if (analysis.mentioned_equipment?.length > 0) {
-        console.log('🏋️ Équipements mentionnés:', analysis.mentioned_equipment)
-      }
-      if (analysis.mentioned_activities?.length > 0) {
-        console.log('🏃 Activités mentionnées:', analysis.mentioned_activities)
-      }
+      // 🧹 CLEAN LOGS: Version épurée
+      const speaker = entry.speaker === 'user' ? '👤 USER' : '🤖 JARVIS'
+      const shortMessage = entry.message_text.length > 50 
+        ? entry.message_text.substring(0, 50) + '...' 
+        : entry.message_text
+      
+      console.log(`✅ [CONVERSATION] ${speaker} T${nextTurn}: "${shortMessage}"`)
+      
+      // Alertes importantes seulement
       if (analysis.contains_complaint) {
-        console.log('⚠️ ALERTE: Plainte détectée!')
+        console.log('⚠️ [ALERT] Plainte détectée!')
       }
-      if (analysis.contains_feedback) {
-        console.log('💭 Feedback détecté')
+      if (analysis.sentiment_score && analysis.sentiment_score < -0.3) {
+        console.log(`😞 [ALERT] Sentiment négatif: ${analysis.sentiment_score}`)
       }
-      console.log('📅 Session ID:', entry.session_id)
-      console.log('==================================================')
 
       // 🔧 TEMP FIX: Convertir session OpenAI en UUID temporaire
       const sessionUuid = entry.session_id?.startsWith('sess_') 

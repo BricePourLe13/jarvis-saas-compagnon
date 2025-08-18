@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, use } from 'react'
+import { activateLogCleaner } from '@/lib/log-cleaner'
 import { Box, Text, VStack, HStack, Badge, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
@@ -133,6 +134,11 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   //   const timer = setTimeout(prewarmMicrophone, 1000)
   //   return () => clearTimeout(timer)
   // }, [])
+
+  // 🧹 Activer le nettoyage des logs
+  useEffect(() => {
+    setTimeout(() => activateLogCleaner(), 2000) // Après 2s pour laisser les logs initiaux
+  }, [])
 
   // Système de pre-warming au démarrage de l'app
   useEffect(() => {
