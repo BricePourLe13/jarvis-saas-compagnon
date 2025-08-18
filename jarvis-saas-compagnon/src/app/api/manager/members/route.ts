@@ -29,9 +29,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    // 🔧 DEBUG: Afficher les infos utilisateur
-    console.log('🔍 [DEBUG MEMBERS] User ID:', user.id)
-    console.log('🔍 [DEBUG MEMBERS] User profile:', userProfile)
+    // Vérifier le profil utilisateur
     
     if (profileError) {
       console.error('❌ Erreur profil utilisateur:', profileError)
@@ -46,8 +44,7 @@ export async function GET(request: NextRequest) {
       }, { status: 403 })
     }
 
-    // 🔧 TEMP FIX: Récupérer TOUS les membres pour debug
-    // TODO: Restreindre par manager_id une fois configuré
+    // 🔧 FIX: Récupérer les membres SANS join (relation cassée)
     const { data: members, error: membersError } = await supabase
       .from('gym_members')
       .select(`
@@ -63,24 +60,29 @@ export async function GET(request: NextRequest) {
         engagement_level,
         jarvis_personalization_score,
         created_at,
-        gym_id,
-        gyms(
-          id,
-          name,
-          manager_id
-        )
+        gym_id
       `)
       .eq('is_active', true)
       .order('last_visit', { ascending: false })
-      .limit(20) // Limite pour éviter trop de données
+      .limit(20)
 
     if (membersError) {
       console.error('❌ Erreur récupération membres:', membersError)
       return NextResponse.json({ error: 'Erreur récupération membres' }, { status: 500 })
     }
 
-    console.log('🔍 [DEBUG MEMBERS] Membres trouvés:', members?.length)
-    console.log('🔍 [DEBUG MEMBERS] Premier membre:', members?.[0])
+    // Récupérer les infos gyms séparément (workaround relation cassée)
+    const gymIds = [...new Set(members?.map(m => m.gym_id) || [])]
+    const { data: gyms } = await supabase
+      .from('gyms')
+      .select('id, name, manager_id')
+      .in('id', gymIds)
+    
+    // Mapper les gyms aux membres
+    const gymsMap = (gyms || []).reduce((acc, gym) => {
+      acc[gym.id] = gym
+      return acc
+    }, {})
 
     // Récupérer les statistiques de conversations récentes pour chaque membre
     const memberIds = members?.map(m => m.id) || []
@@ -102,8 +104,6 @@ export async function GET(request: NextRequest) {
         .order('timestamp', { ascending: false })
 
       conversationStats = stats || []
-      console.log('🔍 [DEBUG CONVERSATIONS] Conversations trouvées:', conversationStats.length)
-      console.log('🔍 [DEBUG CONVERSATIONS] Première conversation:', conversationStats[0])
     }
 
     // Calculer les métriques par membre
@@ -122,6 +122,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...member,
+        gym: gymsMap[member.gym_id] || null, // Ajouter les infos gym
         conversation_stats: {
           total_sessions_7d: sessions.length,
           total_messages_7d: memberConversations.length,
