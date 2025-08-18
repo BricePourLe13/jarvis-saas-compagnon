@@ -4,8 +4,6 @@
  * Intégration directe dans les événements WebRTC/OpenAI
  */
 
-import { getSupabaseService } from './supabase-service'
-
 interface InteractionEvent {
   session_id: string
   member_id: string
@@ -22,7 +20,7 @@ interface InteractionEvent {
 }
 
 class RealtimeInteractionTracker {
-  private supabase = getSupabaseService()
+  private supabase: any = null
   private currentSession: {
     id: string
     member_id: string
@@ -33,9 +31,32 @@ class RealtimeInteractionTracker {
   private batchTimer: NodeJS.Timeout | null = null
 
   /**
+   * 🔧 Initialiser Supabase si pas encore fait
+   */
+  private async initSupabase() {
+    if (!this.supabase) {
+      try {
+        const { getSupabaseService } = await import('./supabase-service')
+        this.supabase = getSupabaseService()
+        console.log('✅ [REALTIME TRACKER] Supabase initialisé')
+      } catch (error) {
+        console.error('❌ [REALTIME TRACKER] Erreur init Supabase:', error)
+        return false
+      }
+    }
+    return true
+  }
+
+  /**
    * 🎯 Initialiser une session de tracking
    */
-  initSession(sessionId: string, memberId: string, gymId: string) {
+  async initSession(sessionId: string, memberId: string, gymId: string) {
+    const supabaseReady = await this.initSupabase()
+    if (!supabaseReady) {
+      console.warn('⚠️ [REALTIME TRACKER] Supabase non disponible - tracking désactivé')
+      return
+    }
+
     this.currentSession = {
       id: sessionId,
       member_id: memberId,
@@ -60,7 +81,7 @@ class RealtimeInteractionTracker {
    * 👤 Tracker un message utilisateur
    */
   trackUserSpeech(transcript: string, metadata?: { confidence_score?: number, duration_ms?: number }) {
-    if (!this.currentSession) return
+    if (!this.currentSession || !this.supabase) return
 
     this.currentSession.turn_counter++
     
@@ -79,7 +100,7 @@ class RealtimeInteractionTracker {
    * 🤖 Tracker une réponse IA
    */
   trackAIResponse(transcript: string, metadata?: { latency_ms?: number, audio_quality?: string }) {
-    if (!this.currentSession) return
+    if (!this.currentSession || !this.supabase) return
 
     this.currentSession.turn_counter++
     
@@ -98,7 +119,7 @@ class RealtimeInteractionTracker {
    * 🔚 Finaliser une session
    */
   endSession(reason: string = 'user_goodbye') {
-    if (!this.currentSession) return
+    if (!this.currentSession || !this.supabase) return
 
     this.trackEvent({
       session_id: this.currentSession.id,
@@ -134,7 +155,7 @@ class RealtimeInteractionTracker {
    * 🚀 Envoyer les événements en attente à la DB
    */
   private async flushPendingEvents() {
-    if (this.pendingEvents.length === 0) return
+    if (this.pendingEvents.length === 0 || !this.supabase) return
 
     const events = [...this.pendingEvents]
     this.pendingEvents = []

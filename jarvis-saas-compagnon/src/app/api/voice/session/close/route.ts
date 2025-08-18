@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { getSupabaseService } from '@/lib/supabase-service'
 import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
 
 type EndReason = 'user_goodbye' | 'timeout' | 'error' | 'manual'
@@ -12,18 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'sessionId requis' }, { status: 400 })
     }
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
+    const supabase = getSupabaseService()
 
     // Récupérer l’état actuel de la session
     const { data: session, error } = await supabase

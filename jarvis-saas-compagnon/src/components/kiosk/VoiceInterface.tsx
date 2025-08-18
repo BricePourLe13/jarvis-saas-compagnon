@@ -83,7 +83,7 @@ export default function VoiceInterface({
       const sessionId = getCurrentSessionId()
       if (sessionId) {
         // 🎯 [REALTIME TRACKER] Initialiser session
-        realtimeTracker.initSession(sessionId, currentMember.id, currentMember.gym_id)
+        realtimeTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch(console.error)
         
         // 🎯 [PLAN B] Console interceptor (à supprimer plus tard)
         import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
