@@ -2,8 +2,9 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { getSupabaseSingleton } from '@/lib/supabase-singleton'
 import { 
   Box, 
   Heading, 
@@ -34,7 +35,10 @@ import {
   AccordionItem,
   AccordionButton,
   AccordionPanel,
-  AccordionIcon
+  AccordionIcon,
+  Alert,
+  AlertIcon,
+  CloseButton
 } from '@chakra-ui/react'
 import { 
   ArrowLeft, 
@@ -101,11 +105,94 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
   const [conversationsBySession, setConversationsBySession] = useState<Record<string, ConversationLog[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [realtimeConnected, setRealtimeConnected] = useState(false)
+  const [newMessageAlert, setNewMessageAlert] = useState<string | null>(null)
   const router = useRouter()
+  const supabase = getSupabaseSingleton()
+  const lastUpdateRef = useRef<number>(Date.now())
 
   useEffect(() => {
     fetchMemberDetail()
+    setupRealtimeSubscription()
+    
+    // Cleanup à la destruction du composant
+    return () => {
+      supabase.removeAllChannels()
+    }
   }, [memberId])
+
+  // 🔄 REALTIME: Écouter les nouvelles conversations
+  const setupRealtimeSubscription = () => {
+    console.log('🔄 [REALTIME] Configuration subscription pour membre:', memberId)
+    
+    const channel = supabase
+      .channel('member_conversations')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'jarvis_conversation_logs',
+          filter: `member_id=eq.${memberId}`
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Nouvelle conversation reçue:', payload.new)
+          handleNewConversation(payload.new as ConversationLog)
+        }
+      )
+      .subscribe((status) => {
+        console.log('🔄 [REALTIME] Statut subscription:', status)
+        setRealtimeConnected(status === 'SUBSCRIBED')
+      })
+  }
+
+  // 📨 REALTIME: Traiter nouvelles conversations
+  const handleNewConversation = (newConversation: ConversationLog) => {
+    const now = Date.now()
+    
+    // Éviter les doublons (throttling simple)
+    if (now - lastUpdateRef.current < 1000) {
+      console.log('🔄 [REALTIME] Throttling update...')
+      return
+    }
+    lastUpdateRef.current = now
+    
+    console.log('📨 [REALTIME] Ajout conversation temps réel:', {
+      speaker: newConversation.speaker,
+      sessionId: newConversation.session_id,
+      message: newConversation.message_text.substring(0, 50) + '...'
+    })
+    
+    // Ajouter à la liste globale
+    setConversations(prev => [newConversation, ...prev])
+    
+    // Ajouter au groupement par session
+    setConversationsBySession(prev => {
+      const updated = { ...prev }
+      const sessionId = newConversation.session_id
+      
+      if (!updated[sessionId]) {
+        updated[sessionId] = []
+      }
+      
+      // Ajouter en tête (plus récent en premier)
+      updated[sessionId] = [newConversation, ...updated[sessionId]]
+      
+      return updated
+    })
+    
+    // Notification visuelle + vibration
+    const speakerLabel = newConversation.speaker === 'user' ? member?.first_name || 'Membre' : 'JARVIS'
+    setNewMessageAlert(`💬 ${speakerLabel}: ${newConversation.message_text.substring(0, 40)}...`)
+    
+    // Auto-clear notification après 5s
+    setTimeout(() => setNewMessageAlert(null), 5000)
+    
+    // Vibration mobile
+    if ('vibrate' in navigator) {
+      navigator.vibrate([50, 100, 50])
+    }
+  }
 
   const fetchMemberDetail = async () => {
     try {
@@ -223,6 +310,22 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
     <ManagerLayout currentPage="Fiches Membres" gymName="AREA" onlineStatus={true}>
       <Box p={6}>
         <VStack spacing={6} align="stretch">
+          {/* Alerte nouveau message temps réel */}
+          {newMessageAlert && (
+            <Alert status="info" borderRadius="md">
+              <AlertIcon />
+              <Box flex="1">
+                <Text fontSize="sm">{newMessageAlert}</Text>
+              </Box>
+              <CloseButton
+                alignSelf="flex-start"
+                position="relative"
+                right={-1}
+                top={-1}
+                onClick={() => setNewMessageAlert(null)}
+              />
+            </Alert>
+          )}
           {/* En-tête avec bouton retour */}
           <HStack spacing={4}>
             <Button
@@ -424,12 +527,28 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
           {/* Historique des conversations */}
           <Card>
             <CardHeader>
-              <HStack spacing={3}>
-                <Icon as={MessageSquare} w={5} h={5} color="blue.500" />
-                <Heading size="md">Historique des Conversations (30 derniers jours)</Heading>
-                <Badge colorScheme="blue" variant="outline">
-                  {sessions.length} sessions
-                </Badge>
+              <HStack spacing={3} justify="space-between">
+                <HStack spacing={3}>
+                  <Icon as={MessageSquare} w={5} h={5} color="blue.500" />
+                  <Heading size="md">Historique des Conversations (30 derniers jours)</Heading>
+                  <Badge colorScheme="blue" variant="outline">
+                    {sessions.length} sessions
+                  </Badge>
+                </HStack>
+                
+                {/* Indicateur temps réel */}
+                <HStack spacing={2}>
+                  <Box
+                    w="8px"
+                    h="8px"
+                    borderRadius="50%"
+                    bg={realtimeConnected ? "green.400" : "gray.400"}
+                    boxShadow={realtimeConnected ? "0 0 8px rgba(34, 197, 94, 0.6)" : "none"}
+                  />
+                  <Text fontSize="xs" color={realtimeConnected ? "green.600" : "gray.500"}>
+                    {realtimeConnected ? "Temps réel" : "Hors ligne"}
+                  </Text>
+                </HStack>
               </HStack>
             </CardHeader>
             <CardBody>
