@@ -158,17 +158,16 @@ export default function VoiceInterface({
               <Text color="white" fontSize="sm">
                 Status: {getJarvisStatus()}
               </Text>
-              {goodbyeSupported && (
-                <Text 
-                  color={goodbyeListening ? "green.300" : "orange.300"} 
-                  fontSize="xs" 
-                  display="flex" 
-                  alignItems="center" 
-                  gap={1}
-                >
-                  {goodbyeListening ? "🎯 Détection \"au revoir\" active" : "⏸️ Détection pausée (JARVIS parle)"}
-                </Text>
-              )}
+              {/* 🎯 [OPENAI REALTIME] Détection "au revoir" intégrée */}
+              <Text 
+                color="green.300" 
+                fontSize="xs" 
+                display="flex" 
+                alignItems="center" 
+                gap={1}
+              >
+                🎯 Détection "au revoir" via OpenAI Realtime
+              </Text>
             </VStack>
           </HStack>
         )}
