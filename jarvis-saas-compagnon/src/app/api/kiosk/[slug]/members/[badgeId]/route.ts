@@ -30,7 +30,9 @@ export async function GET(
       }
     )
 
-    console.log(`🔍 Recherche membre avec badge ${badgeId} pour salle ${slug}`)
+    console.log(`🔍 [MEMBER API] Recherche membre avec badge ${badgeId} pour salle ${slug}`)
+    console.log(`🔍 [MEMBER API] URL Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`)
+    console.log(`🔍 [MEMBER API] Has ANON_KEY: ${!!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`)
 
     // 2. Trouver la salle par slug
     const { data: gym, error: gymError } = await supabase
@@ -62,8 +64,7 @@ export async function GET(
         member_preferences,
         total_visits,
         last_visit,
-        is_active,
-        can_use_jarvis
+        is_active
       `)
       .eq('badge_id', badgeId)
       .eq('gym_id', gym.id)
@@ -118,12 +119,12 @@ export async function GET(
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
-      context: {
+              context: {
         source: 'database',
         gym_name: gym.name,
         last_visit_days_ago: lastVisitDaysAgo,
         visit_count_today: 1, // TODO: Calculer le vrai nombre
-        can_use_jarvis: member.can_use_jarvis
+        can_use_jarvis: true // Par défaut true pour MVP
       }
     })
 

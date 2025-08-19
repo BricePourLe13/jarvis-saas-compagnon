@@ -25,6 +25,8 @@ export default function VoiceInterface({
   onDeactivate,
   onTranscriptUpdate 
 }: VoiceInterfaceProps) {
+  // 🚨 Empêcher reconnexion après "au revoir"
+  const [hasDetectedGoodbye, setHasDetectedGoodbye] = useState(false)
 
   const {
     audioState,
@@ -63,6 +65,7 @@ export default function VoiceInterface({
       if (errorMessage === 'GOODBYE_DETECTED') {
         // 🎯 Au revoir détecté via OpenAI transcript
         kioskLogger.session('Au revoir détecté via OpenAI transcript', 'info')
+        setHasDetectedGoodbye(true) // 🚨 Empêcher reconnexion
         onDeactivate() // Désactiver le membre
       } else {
         console.error('Voice error:', errorMessage)
@@ -70,19 +73,27 @@ export default function VoiceInterface({
     }, [onDeactivate])
   })
 
-  // ✅ NOUVEAU: Activation directe du microphone
+  // ✅ NOUVEAU: Activation directe du microphone (sauf si "au revoir" détecté)
   useEffect(() => {
-    if (isActive && !isConnected && status !== 'connecting' && currentMember) {
+    if (isActive && !isConnected && status !== 'connecting' && currentMember && !hasDetectedGoodbye) {
       console.log('🎤 Activation directe du microphone pour:', currentMember.first_name)
       connect()
     }
-  }, [isActive, isConnected, status, connect, currentMember])
+  }, [isActive, isConnected, status, connect, currentMember, hasDetectedGoodbye])
 
   useEffect(() => {
     if (!isActive && isConnected) {
       disconnect().catch(console.error)
     }
   }, [isActive, isConnected, disconnect])
+
+  // 🔄 Réinitialiser "au revoir" quand nouveau membre
+  useEffect(() => {
+    if (currentMember && hasDetectedGoodbye) {
+      setHasDetectedGoodbye(false)
+      kioskLogger.session('Nouveau membre - Réinitialisation au revoir', 'info')
+    }
+  }, [currentMember, hasDetectedGoodbye])
 
   // 🎯 Configurer l'intercepteur quand la connexion est établie
   useEffect(() => {
