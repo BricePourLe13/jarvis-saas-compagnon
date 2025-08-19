@@ -66,3 +66,5 @@ SCRIPT-SQL-CORRIGE.md
 SETUP-SUPABASE-IMMEDIATE.md
 ETAT-DES-LIEUX-FINAL.md
 .vercel
+
+/generated/prisma

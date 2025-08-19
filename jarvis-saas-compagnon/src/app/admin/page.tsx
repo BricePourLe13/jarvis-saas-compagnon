@@ -1,515 +1,268 @@
-"use client"
-import {
-  VStack,
-  HStack,
-  Box,
-  Text,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  SimpleGrid,
-  Spinner,
-  Badge,
-  Avatar
-} from '@chakra-ui/react'
-import { 
-  AlertTriangle, 
-  TrendingUp,
-  Building2,
-  Activity,
-  DollarSign,
-  Clock,
-  ArrowRight,
-  Plus
-} from 'lucide-react'
-import { useState, useEffect } from 'react'
+/**
+ * 🔥 SUPER ADMIN DASHBOARD V2
+ * Architecture propre - Vue franchises
+ */
+
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Box, Grid, Card, CardBody, Heading, Text, Badge, Button, Flex, Stat, StatLabel, StatNumber, StatHelpText, Icon, HStack, VStack } from '@chakra-ui/react'
+import { FiBuilding, FiMapPin, FiUsers, FiActivity, FiDollarSign, FiTrendingUp } from 'react-icons/fi'
 import { useRouter } from 'next/navigation'
-import { createBrowserClientWithConfig } from '../../lib/supabase-admin'
-import { UnifiedLayout } from '../../components/unified/UnifiedLayout'
-import { PrimaryButton } from '../../components/unified/PrimaryButton'
-import { motion } from 'framer-motion'
-import { formatCurrency } from '../../lib/currency'
+import { Franchise } from '../../../generated/prisma'
 
-const MotionBox = motion(Box)
-
-interface Alert {
-  id: string
-  type: 'error' | 'warning' | 'info'
-  title: string
-  description: string
-  franchise?: string
-  gym?: string
-  timestamp: Date
+interface FranchiseWithStats extends Franchise {
+  gyms: Array<{
+    id: string
+    name: string
+    city: string
+    is_active: boolean
+    _count: { memberships: number }
+  }>
+  owner: {
+    id: string
+    name: string | null
+    email: string
+  }
+  _count: { gyms: number }
+  stats?: {
+    total_members: number
+    active_gyms: number
+    monthly_revenue: number
+  }
 }
 
-interface QuickStat {
-  label: string
-  value: string | number
-  trend?: { value: number; positive: boolean }
-  icon: any
-}
-
-interface Franchise {
-  id: string
-  name: string
-  city: string
-  gyms_count: number
-  active_sessions: number
-  status: 'active' | 'warning' | 'error'
-}
-
-export default function AdminPage() {
-  const router = useRouter()
+export default function SuperAdminDashboard() {
+  const [franchises, setFranchises] = useState<FranchiseWithStats[]>([])
   const [loading, setLoading] = useState(true)
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [topFranchises, setTopFranchises] = useState<Franchise[]>([])
-  const [quickStats, setQuickStats] = useState<QuickStat[]>([])
+  const [globalStats, setGlobalStats] = useState({
+    total_franchises: 0,
+    total_gyms: 0,
+    total_members: 0,
+    active_sessions: 0
+  })
+  const router = useRouter()
 
   useEffect(() => {
-    loadDashboardData()
+    loadFranchises()
   }, [])
 
-  const loadDashboardData = async () => {
+  const loadFranchises = async () => {
     try {
-      const supabase = createBrowserClientWithConfig()
-      
-      // Charger les franchises
-      const { data: franchisesData, error } = await supabase
-        .from('franchises')
-        .select(`
-          id,
-          name,
-          city,
-          gyms (id, kiosk_config)
-        `)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      // Charger des alertes réelles depuis jarvis_errors_log (dernières 24h)
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      const { data: errorsData } = await supabase
-        .from('jarvis_errors_log')
-        .select('id, error_type, error_message, context, created_at, gym_id, franchise_id')
-        .gte('created_at', since)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      const alertsFromDb: Alert[] = (errorsData || []).map((e: any) => ({
-        id: e.id,
-        type: e.error_type === 'critical' ? 'error' : 'warning',
-        title: e.error_type?.toUpperCase() || 'Incident',
-        description: e.error_message || 'Voir détails',
-        timestamp: new Date(e.created_at)
-      }))
-
-      // Top 3 franchises par activité (sessions actives + kiosks provisionnés)
-      const transformedFranchises: Franchise[] = (franchisesData || []).map(f => ({
-        id: f.id,
-        name: f.name,
-        city: f.city,
-        gyms_count: f.gyms?.length || 0,
-        active_sessions: 0,
-        status: (f.gyms || []).some((g: any) => !g.kiosk_config?.is_provisioned) ? 'warning' : 'active' as any
-      })).sort((a, b) => b.active_sessions - a.active_sessions).slice(0, 3)
-
-      // Récupérer les métriques globales réelles
-      const startOfDay = new Date(); startOfDay.setHours(0,0,0,0)
-      const [{ data: sessionsToday }, { data: activeSessions } ] = await Promise.all([
-        supabase
-          .from('openai_realtime_sessions')
-          .select('id, cost_usd, session_start, session_end')
-          .gte('session_start', startOfDay.toISOString()),
-        supabase
-          .from('openai_realtime_sessions')
-          .select('id')
-          .is('session_end', null)
-      ])
-
-      const totalCostToday = (sessionsToday || []).reduce((sum: number, s: any) => sum + (s.cost_usd || 0), 0)
-      const completed = (sessionsToday || []).filter((s: any) => s.session_end)
-      const avgDuration = completed.length > 0 ? Math.round(
-        (completed.reduce((acc: number, s: any) => acc + (new Date(s.session_end).getTime() - new Date(s.session_start).getTime()), 0) / completed.length) / 60000 * 10
-      ) / 10 : 0
-
-      const stats: QuickStat[] = [
-        { label: 'Sessions actives', value: (activeSessions || []).length, icon: Activity, trend: { value: 0, positive: true } },
-        { label: 'Coûts IA (jour)', value: formatCurrency(Math.round(totalCostToday * 100)/100, { currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }), icon: TrendingUp, trend: { value: 0, positive: false } },
-        { label: 'Sessions (jour)', value: (sessionsToday || []).length, icon: DollarSign, trend: { value: 0, positive: true } },
-        { label: 'Durée moy. session', value: `${avgDuration} min`, icon: Clock }
-      ]
-
-      setAlerts(alertsFromDb)
-      setTopFranchises(transformedFranchises)
-      setQuickStats(stats)
+      const response = await fetch('/api/admin/franchises')
+      if (response.ok) {
+        const data = await response.json()
+        setFranchises(data.franchises)
+        
+        // Calculer stats globales
+        const totalGyms = data.franchises.reduce((sum: number, f: FranchiseWithStats) => sum + f._count.gyms, 0)
+        const totalMembers = data.franchises.reduce((sum: number, f: FranchiseWithStats) => 
+          sum + f.gyms.reduce((gymSum, gym) => gymSum + gym._count.memberships, 0), 0
+        )
+        
+        setGlobalStats({
+          total_franchises: data.franchises.length,
+          total_gyms: totalGyms,
+          total_members: totalMembers,
+          active_sessions: 0 // TODO: Implémenter avec Prisma
+        })
+      }
     } catch (error) {
-      console.error('Erreur chargement dashboard:', error)
+      console.error('❌ Erreur chargement franchises:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const getAlertStatus = (type: string) => {
-    switch (type) {
-      case 'error': return 'error'
-      case 'warning': return 'warning'
-      default: return 'info'
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'green'
-      case 'warning': return 'orange'
-      case 'error': return 'red'
-      default: return 'gray'
-    }
-  }
-
   if (loading) {
     return (
-      <UnifiedLayout
-        title="Dashboard"
-        currentLevel="global"
-      >
-        <VStack spacing={8} align="center" py={12}>
-          <Spinner size="lg" color="black" />
-          <Text color="gray.600">Chargement du dashboard...</Text>
-        </VStack>
-      </UnifiedLayout>
+      <Box p={8}>
+        <Heading color="white" mb={6}>🔥 JARVIS Super Admin</Heading>
+        <Text color="gray.400">Chargement des franchises...</Text>
+      </Box>
     )
   }
 
   return (
-    <UnifiedLayout
-      title="Dashboard"
-      currentLevel="global"
-      primaryAction={{
-        label: "Nouvelle franchise",
-        onClick: () => router.push('/admin/franchises/create')
-      }}
-    >
-      <VStack spacing={8} align="stretch">
-        {/* ALERTES URGENTES */}
-        {alerts.length > 0 && (
-          <MotionBox
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <VStack spacing={4} align="stretch">
-              <HStack justify="space-between" align="center">
-                <HStack spacing={2}>
-                  <AlertTriangle size={20} color="var(--chakra-colors-red-500)" />
-                  <Text fontSize="lg" fontWeight="600" color="black">
-                    Alertes urgentes
-                  </Text>
-                  <Badge colorScheme="red" variant="subtle">
-                    {alerts.length}
-                  </Badge>
+    <Box p={8} bg="black" minH="100vh">
+      {/* Header */}
+      <Flex justify="space-between" align="center" mb={8}>
+        <VStack align="start" spacing={1}>
+          <Heading color="white" size="xl">🔥 JARVIS Super Admin</Heading>
+          <Text color="gray.400">Gestion complète de l'écosystème SaaS</Text>
+        </VStack>
+        
+        <Button 
+          colorScheme="blue" 
+          onClick={() => router.push('/admin/franchises/create')}
+          leftIcon={<Icon as={FiBuilding} />}
+        >
+          Nouvelle Franchise
+        </Button>
+      </Flex>
+
+      {/* Stats Globales */}
+      <Grid templateColumns="repeat(auto-fit, minmax(250px, 1fr))" gap={6} mb={8}>
+        <Card bg="gray.900" borderColor="gray.700">
+          <CardBody>
+            <Stat>
+              <StatLabel color="gray.400">
+                <HStack>
+                  <Icon as={FiBuilding} />
+                  <Text>Franchises</Text>
                 </HStack>
-                <PrimaryButton
-                  variant="ghost"
-                  size="sm"
-                  rightIcon={<ArrowRight size={16} />}
-                  onClick={() => router.push('/admin/monitoring')}
-                >
-                  Voir toutes
-                </PrimaryButton>
-              </HStack>
+              </StatLabel>
+              <StatNumber color="white" fontSize="3xl">{globalStats.total_franchises}</StatNumber>
+              <StatHelpText color="green.400">
+                <Icon as={FiTrendingUp} mr={1} />
+                Écosystème actif
+              </StatHelpText>
+            </Stat>
+          </CardBody>
+        </Card>
 
-              <VStack spacing={3} align="stretch">
-                {alerts.map((alert) => (
-                  <Alert
-                    key={alert.id}
-                    status={getAlertStatus(alert.type)}
-                    borderRadius="8px"
-                    cursor="pointer"
-                    _hover={{ bg: `${getAlertStatus(alert.type)}.25` }}
-                    onClick={() => router.push('/admin/monitoring')}
-                  >
-                    <AlertIcon />
-                    <Box flex="1">
-                      <AlertTitle fontSize="sm" fontWeight="600">
-                        {alert.title}
-                      </AlertTitle>
-                      <AlertDescription fontSize="sm">
-                        {alert.description}
-                      </AlertDescription>
-                      {alert.franchise && (
-                        <Text fontSize="xs" color="gray.500" mt={1}>
-                          {alert.franchise} {alert.gym && `• ${alert.gym}`}
-                        </Text>
-                      )}
-                    </Box>
-                  </Alert>
-                ))}
-              </VStack>
-            </VStack>
-          </MotionBox>
-        )}
+        <Card bg="gray.900" borderColor="gray.700">
+          <CardBody>
+            <Stat>
+              <StatLabel color="gray.400">
+                <HStack>
+                  <Icon as={FiMapPin} />
+                  <Text>Salles Total</Text>
+                </HStack>
+              </StatLabel>
+              <StatNumber color="white" fontSize="3xl">{globalStats.total_gyms}</StatNumber>
+              <StatHelpText color="blue.400">Réseau national</StatHelpText>
+            </Stat>
+          </CardBody>
+        </Card>
 
-        {/* STATS RAPIDES CONTEXTUELLES */}
-        <MotionBox
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <VStack spacing={4} align="stretch">
-            <Text fontSize="lg" fontWeight="600" color="black">
-              Vue d'ensemble
-            </Text>
+        <Card bg="gray.900" borderColor="gray.700">
+          <CardBody>
+            <Stat>
+              <StatLabel color="gray.400">
+                <HStack>
+                  <Icon as={FiUsers} />
+                  <Text>Membres Total</Text>
+                </HStack>
+              </StatLabel>
+              <StatNumber color="white" fontSize="3xl">{globalStats.total_members.toLocaleString()}</StatNumber>
+              <StatHelpText color="purple.400">Utilisateurs actifs</StatHelpText>
+            </Stat>
+          </CardBody>
+        </Card>
+
+        <Card bg="gray.900" borderColor="gray.700">
+          <CardBody>
+            <Stat>
+              <StatLabel color="gray.400">
+                <HStack>
+                  <Icon as={FiActivity} />
+                  <Text>Sessions Live</Text>
+                </HStack>
+              </StatLabel>
+              <StatNumber color="white" fontSize="3xl">{globalStats.active_sessions}</StatNumber>
+              <StatHelpText color="green.400">JARVIS en temps réel</StatHelpText>
+            </Stat>
+          </CardBody>
+        </Card>
+      </Grid>
+
+      {/* Franchises Grid */}
+      <Heading color="white" size="lg" mb={6}>🏢 Franchises Réseau</Heading>
+      
+      {franchises.length === 0 ? (
+        <Card bg="gray.900" borderColor="gray.700">
+          <CardBody textAlign="center" py={12}>
+            <Text color="gray.400" fontSize="lg" mb={4}>Aucune franchise configurée</Text>
+            <Button 
+              colorScheme="blue" 
+              onClick={() => router.push('/admin/franchises/create')}
+            >
+              Créer la première franchise
+            </Button>
+          </CardBody>
+        </Card>
+      ) : (
+        <Grid templateColumns="repeat(auto-fit, minmax(400px, 1fr))" gap={6}>
+          {franchises.map((franchise) => {
+            const totalMembers = franchise.gyms.reduce((sum, gym) => sum + gym._count.memberships, 0)
+            const activeGyms = franchise.gyms.filter(gym => gym.is_active).length
             
-            <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-              {quickStats.map((stat) => (
-                <Box
-                  key={stat.label}
-                  bg="white"
-                  p={4}
-                  borderRadius="8px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                >
-                  <VStack spacing={2} align="start">
-                    <HStack spacing={2}>
-                      <Box
-                        w={8}
-                        h={8}
-                        bg="gray.100"
-                        borderRadius="6px"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                      >
-                        <stat.icon size={16} color="var(--chakra-colors-gray-700)" />
+            return (
+              <Card 
+                key={franchise.id} 
+                bg="gray.900" 
+                borderColor="gray.700" 
+                _hover={{ borderColor: "blue.500", transform: "translateY(-2px)" }}
+                transition="all 0.2s"
+                cursor="pointer"
+                onClick={() => router.push(`/admin/franchises/${franchise.id}`)}
+              >
+                <CardBody>
+                  <Flex justify="space-between" align="start" mb={4}>
+                    <VStack align="start" spacing={1}>
+                      <Heading color="white" size="md">{franchise.name}</Heading>
+                      <Text color="gray.400" fontSize="sm">{franchise.city || 'Localisation non définie'}</Text>
+                    </VStack>
+                    <Badge colorScheme={activeGyms > 0 ? "green" : "gray"}>
+                      {activeGyms} active{activeGyms > 1 ? 's' : ''}
+                    </Badge>
+                  </Flex>
+
+                  <VStack spacing={3} align="stretch">
+                    {/* Owner */}
+                    <Flex justify="space-between">
+                      <Text color="gray.400" fontSize="sm">Propriétaire:</Text>
+                      <Text color="white" fontSize="sm">{franchise.owner.name || franchise.owner.email}</Text>
+                    </Flex>
+
+                    {/* Stats */}
+                    <Grid templateColumns="repeat(3, 1fr)" gap={4}>
+                      <Box textAlign="center">
+                        <Text color="blue.400" fontSize="2xl" fontWeight="bold">{franchise._count.gyms}</Text>
+                        <Text color="gray.400" fontSize="xs">Salles</Text>
                       </Box>
-                      {stat.trend && (
-                        <Text
-                          fontSize="xs"
-                          color={stat.trend.positive ? "green.600" : "red.600"}
-                          fontWeight="500"
-                        >
-                          {stat.trend.positive ? "+" : ""}{stat.trend.value}%
-                        </Text>
-                      )}
-                    </HStack>
-                    <VStack spacing={0} align="start">
-                      <Text fontSize="xl" fontWeight="600" color="black">
-                        {stat.value}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">
-                        {stat.label}
-                      </Text>
-                    </VStack>
+                      <Box textAlign="center">
+                        <Text color="purple.400" fontSize="2xl" fontWeight="bold">{totalMembers}</Text>
+                        <Text color="gray.400" fontSize="xs">Membres</Text>
+                      </Box>
+                      <Box textAlign="center">
+                        <Text color="green.400" fontSize="2xl" fontWeight="bold">{activeGyms}</Text>
+                        <Text color="gray.400" fontSize="xs">Actives</Text>
+                      </Box>
+                    </Grid>
+
+                    {/* Salles Preview */}
+                    {franchise.gyms.length > 0 && (
+                      <Box>
+                        <Text color="gray.400" fontSize="sm" mb={2}>Salles principales:</Text>
+                        <VStack spacing={1} align="stretch">
+                          {franchise.gyms.slice(0, 3).map((gym) => (
+                            <Flex key={gym.id} justify="space-between" align="center">
+                              <Text color="white" fontSize="sm">{gym.name}</Text>
+                              <HStack spacing={2}>
+                                <Text color="gray.400" fontSize="xs">{gym.city}</Text>
+                                <Badge size="sm" colorScheme={gym.is_active ? "green" : "gray"}>
+                                  {gym._count.memberships} membres
+                                </Badge>
+                              </HStack>
+                            </Flex>
+                          ))}
+                          {franchise.gyms.length > 3 && (
+                            <Text color="gray.500" fontSize="xs" textAlign="center">
+                              +{franchise.gyms.length - 3} autres salles...
+                            </Text>
+                          )}
+                        </VStack>
+                      </Box>
+                    )}
                   </VStack>
-                </Box>
-              ))}
-            </SimpleGrid>
-          </VStack>
-        </MotionBox>
-
-        {/* TOP FRANCHISES ACTIVES */}
-        <MotionBox
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <VStack spacing={4} align="stretch">
-            <HStack justify="space-between" align="center">
-              <Text fontSize="lg" fontWeight="600" color="black">
-                Franchises les plus actives
-              </Text>
-              <PrimaryButton
-                variant="ghost"
-                size="sm"
-                rightIcon={<ArrowRight size={16} />}
-                onClick={() => router.push('/admin/franchises')}
-              >
-                Voir toutes
-              </PrimaryButton>
-            </HStack>
-
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-              {topFranchises.map((franchise, index) => (
-                <Box
-                  key={franchise.id}
-                  bg="white"
-                  p={4}
-                  borderRadius="8px"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  cursor="pointer"
-                  onClick={() => router.push(`/admin/franchises/${franchise.id}/gyms`)}
-                  _hover={{
-                    shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                    borderColor: "gray.200"
-                  }}
-                  transition="all 0.2s ease"
-                >
-                  <HStack spacing={3} align="start">
-                    <Avatar
-                      size="sm"
-                      name={franchise.name}
-                      bg="black"
-                      color="white"
-                    />
-                    <VStack align="start" spacing={1} flex="1">
-                      <HStack justify="space-between" w="full">
-                        <Text fontWeight="600" fontSize="sm" noOfLines={1}>
-                          {franchise.name}
-                        </Text>
-                        <Badge
-                          colorScheme={getStatusColor(franchise.status)}
-                          variant="subtle"
-                          fontSize="xs"
-                        >
-                          #{index + 1}
-                        </Badge>
-                      </HStack>
-                      <Text fontSize="xs" color="gray.500">
-                        {franchise.city} • {franchise.gyms_count} salle{franchise.gyms_count > 1 ? 's' : ''}
-                      </Text>
-                      <Text fontSize="sm" fontWeight="500" color="green.600">
-                        {franchise.active_sessions} sessions actives
-                      </Text>
-                    </VStack>
-                  </HStack>
-                </Box>
-              ))}
-            </SimpleGrid>
-          </VStack>
-        </MotionBox>
-
-        {/* ACTIONS RAPIDES */}
-        <MotionBox
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <VStack spacing={4} align="stretch">
-            <Text fontSize="lg" fontWeight="600" color="black">
-              Actions rapides
-            </Text>
-            
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-              <Box
-                bg="white"
-                p={6}
-                borderRadius="8px"
-                border="1px solid"
-                borderColor="gray.100"
-                cursor="pointer"
-                onClick={() => router.push('/admin/franchises/create')}
-                _hover={{
-                  shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                  borderColor: "gray.200"
-                }}
-                transition="all 0.2s ease"
-                textAlign="center"
-              >
-                <VStack spacing={3}>
-                  <Box
-                    w={12}
-                    h={12}
-                    bg="black"
-                    borderRadius="8px"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Plus size={24} color="white" />
-                  </Box>
-                  <VStack spacing={1}>
-                    <Text fontWeight="600" color="black">
-                      Nouvelle franchise
-                    </Text>
-                    <Text fontSize="sm" color="gray.500">
-                      Ajouter une franchise
-                    </Text>
-                  </VStack>
-                </VStack>
-              </Box>
-
-              <Box
-                bg="white"
-                p={6}
-                borderRadius="8px"
-                border="1px solid"
-                borderColor="gray.100"
-                cursor="pointer"
-                onClick={() => router.push('/admin/franchises')}
-                _hover={{
-                  shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                  borderColor: "gray.200"
-                }}
-                transition="all 0.2s ease"
-                textAlign="center"
-              >
-                <VStack spacing={3}>
-                  <Box
-                    w={12}
-                    h={12}
-                    bg="gray.100"
-                    borderRadius="8px"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Building2 size={24} color="var(--chakra-colors-gray-700)" />
-                  </Box>
-                  <VStack spacing={1}>
-                    <Text fontWeight="600" color="black">
-                      Gérer franchises
-                    </Text>
-                    <Text fontSize="sm" color="gray.500">
-                      Voir toutes les franchises
-                    </Text>
-                  </VStack>
-                </VStack>
-              </Box>
-
-              <Box
-                bg="white"
-                p={6}
-                borderRadius="8px"
-                border="1px solid"
-                borderColor="gray.100"
-                cursor="pointer"
-                onClick={() => router.push('/admin/monitoring')}
-                _hover={{
-                  shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-                  borderColor: "gray.200"
-                }}
-                transition="all 0.2s ease"
-                textAlign="center"
-              >
-                <VStack spacing={3}>
-                  <Box
-                    w={12}
-                    h={12}
-                    bg="orange.100"
-                    borderRadius="8px"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Activity size={24} color="var(--chakra-colors-orange-500)" />
-                  </Box>
-                  <VStack spacing={1}>
-                    <Text fontWeight="600" color="black">
-                      Monitoring global
-                    </Text>
-                    <Text fontSize="sm" color="gray.500">
-                      Superviser les systèmes
-                    </Text>
-                  </VStack>
-                </VStack>
-              </Box>
-            </SimpleGrid>
-          </VStack>
-        </MotionBox>
-      </VStack>
-    </UnifiedLayout>
+                </CardBody>
+              </Card>
+            )
+          })}
+        </Grid>
+      )}
+    </Box>
   )
 }

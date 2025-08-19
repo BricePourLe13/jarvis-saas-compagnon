@@ -1,0 +1,336 @@
+// 🔥 JARVIS SaaS - SCHEMA PRISMA PROPRE V2
+// Architecture hiérarchique: Super Admin → Franchise → Gym → Members
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================
+// 🔐 AUTHENTIFICATION & ROLES
+// ===========================
+
+enum UserRole {
+  SUPER_ADMIN     // Voit TOUT (toi)
+  FRANCHISE_OWNER // Voit sa franchise + toutes ses salles
+  GYM_MANAGER     // Voit uniquement sa salle
+  MEMBER          // Membre gym classique
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  avatar_url    String?
+  role          UserRole @default(MEMBER)
+  
+  // Relations hiérarchiques
+  owned_franchises  Franchise[] @relation("FranchiseOwner")
+  managed_gyms     Gym[]       @relation("GymManager")
+  memberships      Membership[]
+  
+  // Audit
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  last_login    DateTime?
+  
+  @@map("users")
+}
+
+// ===========================
+// 🏢 FRANCHISES
+// ===========================
+
+model Franchise {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  description     String?
+  logo_url        String?
+  
+  // Contact & Adresse
+  email           String?
+  phone           String?
+  address         String?
+  city            String?
+  postal_code     String?
+  country         String?   @default("France")
+  
+  // Owner
+  owner_id        String
+  owner           User      @relation("FranchiseOwner", fields: [owner_id], references: [id])
+  
+  // Relations
+  gyms            Gym[]
+  
+  // Paramètres franchise
+  settings        Json?     // Paramètres spécifiques franchise
+  
+  // Audit
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  
+  @@map("franchises")
+}
+
+// ===========================
+// 🏋️ SALLES DE SPORT
+// ===========================
+
+model Gym {
+  id              String    @id @default(cuid())
+  name            String
+  slug            String    @unique
+  description     String?
+  logo_url        String?
+  
+  // Franchise parente
+  franchise_id    String
+  franchise       Franchise @relation(fields: [franchise_id], references: [id])
+  
+  // Gérant
+  manager_id      String?
+  manager         User?     @relation("GymManager", fields: [manager_id], references: [id])
+  
+  // Contact & Adresse
+  email           String?
+  phone           String?
+  address         String
+  city            String
+  postal_code     String
+  country         String    @default("France")
+  
+  // Horaires
+  opening_hours   Json?     // { "monday": "08:00-22:00", ... }
+  
+  // Relations
+  memberships     Membership[]
+  kiosk_config    KioskConfig?
+  jarvis_sessions JarvisSession[]
+  daily_metrics   DailyMetrics[]
+  
+  // Audit
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  is_active       Boolean   @default(true)
+  
+  @@map("gyms")
+}
+
+// ===========================
+// 👤 ADHÉRENTS
+// ===========================
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  EXPIRED
+  CANCELED
+}
+
+enum MembershipType {
+  BASIC
+  PREMIUM
+  VIP
+}
+
+model Membership {
+  id              String           @id @default(cuid())
+  
+  // Relations
+  user_id         String
+  user            User             @relation(fields: [user_id], references: [id])
+  gym_id          String
+  gym             Gym              @relation(fields: [gym_id], references: [id])
+  
+  // Badge RFID
+  badge_id        String           @unique
+  
+  // Adhésion
+  membership_type MembershipType   @default(BASIC)
+  status          MembershipStatus @default(ACTIVE)
+  
+  // Dates
+  start_date      DateTime         @default(now())
+  end_date        DateTime?
+  
+  // Relations vers sessions
+  jarvis_sessions JarvisSession[]
+  
+  // Audit
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+  
+  @@unique([user_id, gym_id])
+  @@map("memberships")
+}
+
+// ===========================
+// 🖥️ CONFIGURATION KIOSK
+// ===========================
+
+model KioskConfig {
+  id                String   @id @default(cuid())
+  
+  // Relation salle
+  gym_id            String   @unique
+  gym               Gym      @relation(fields: [gym_id], references: [id])
+  
+  // Config JARVIS
+  jarvis_name       String   @default("JARVIS")
+  jarvis_avatar_url String?
+  jarvis_voice      String   @default("alloy")
+  
+  // Personnalisation
+  primary_color     String   @default("#000000")
+  secondary_color   String   @default("#ffffff")
+  logo_url          String?
+  background_url    String?
+  
+  // Instructions JARVIS
+  system_prompt     String?
+  welcome_message   String?
+  
+  // Paramètres techniques
+  session_timeout   Int      @default(300) // secondes
+  auto_restart      Boolean  @default(true)
+  volume_level      Float    @default(0.8)
+  
+  // Version
+  config_version    Int      @default(1)
+  
+  // Audit
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  
+  @@map("kiosk_configs")
+}
+
+// ===========================
+// 🎤 SESSIONS JARVIS
+// ===========================
+
+enum JarvisSessionStatus {
+  ACTIVE
+  COMPLETED
+  TIMEOUT
+  ERROR
+}
+
+model JarvisSession {
+  id                  String              @id @default(cuid())
+  
+  // Identifiants session
+  openai_session_id   String?             @unique
+  tracking_id         String              @unique
+  
+  // Relations
+  gym_id              String
+  gym                 Gym                 @relation(fields: [gym_id], references: [id])
+  membership_id       String?
+  membership          Membership?         @relation(fields: [membership_id], references: [id])
+  
+  // Session
+  status              JarvisSessionStatus @default(ACTIVE)
+  start_time          DateTime            @default(now())
+  end_time            DateTime?
+  duration_seconds    Int?
+  
+  // Métriques OpenAI
+  audio_input_tokens  Int                 @default(0)
+  audio_output_tokens Int                 @default(0)
+  text_input_tokens   Int                 @default(0)
+  text_output_tokens  Int                 @default(0)
+  total_cost_usd      Float               @default(0.0)
+  
+  // Relations conversations
+  conversations       Conversation[]
+  
+  // Audit
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  
+  @@map("jarvis_sessions")
+}
+
+// ===========================
+// 💬 CONVERSATIONS
+// ===========================
+
+enum Speaker {
+  USER
+  JARVIS
+}
+
+model Conversation {
+  id                    String        @id @default(cuid())
+  
+  // Relations
+  session_id            String
+  session               JarvisSession @relation(fields: [session_id], references: [id])
+  
+  // Message
+  speaker               Speaker
+  message_text          String
+  turn_number           Int
+  
+  // Analyse automatique
+  detected_intent       String?
+  sentiment_score       Float?
+  topic_category        String?
+  mentioned_equipment   String[]      @default([])
+  mentioned_activities  String[]      @default([])
+  
+  // Flags
+  contains_complaint    Boolean       @default(false)
+  contains_feedback     Boolean       @default(false)
+  needs_human_review    Boolean       @default(false)
+  user_engagement_level String?       // high, medium, low
+  
+  // Audit
+  timestamp             DateTime      @default(now())
+  
+  @@index([session_id, turn_number])
+  @@map("conversations")
+}
+
+// ===========================
+// 📊 ANALYTICS & MÉTRIQUES
+// ===========================
+
+model DailyMetrics {
+  id                    String   @id @default(cuid())
+  
+  // Relations
+  gym_id                String
+  gym                   Gym      @relation(fields: [gym_id], references: [id])
+  
+  // Date
+  date                  DateTime @db.Date
+  
+  // Métriques usage
+  total_sessions        Int      @default(0)
+  unique_members        Int      @default(0)
+  avg_session_duration  Float    @default(0.0)
+  total_interactions    Int      @default(0)
+  
+  // Métriques qualité
+  satisfaction_score    Float?
+  complaints_count      Int      @default(0)
+  positive_feedback     Int      @default(0)
+  
+  // Coûts OpenAI
+  daily_cost_usd        Float    @default(0.0)
+  
+  // Audit
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  @@unique([gym_id, date])
+  @@map("daily_metrics")
+}
