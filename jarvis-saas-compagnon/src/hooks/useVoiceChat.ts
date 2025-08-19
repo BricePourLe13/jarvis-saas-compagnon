@@ -603,16 +603,55 @@ export function useVoiceChat(config: VoiceChatConfig) {
         }
         break
 
-            case 'conversation.item.input_audio_transcription.completed':
-        // 🎙️ NOUVEAU: Transcription utilisateur depuis OpenAI Realtime
+      case 'conversation.item.input_audio_transcription.delta':
+        // 🎙️ NOUVEAU: Transcription utilisateur temps réel (deltas)
+        const deltaTranscript = event.delta?.transcript as string
+        if (deltaTranscript) {
+          console.log('🔊 [OPENAI USER] Speech delta:', deltaTranscript.substring(0, 30) + '...')
+          
+          // 📊 [TRACKING] Ajouter au buffer pour assemblage final
+          if (sessionTrackingRef.current.sessionId) {
+            // Buffer les deltas pour éviter duplication avec completed
+            if (!sessionTrackingRef.current.currentUserSpeech) {
+              sessionTrackingRef.current.currentUserSpeech = ''
+            }
+            sessionTrackingRef.current.currentUserSpeech += deltaTranscript
+          }
+        }
+        break
+
+      case 'conversation.item.input_audio_transcription.completed':
+        // 🎙️ TRANSCRIPTION UTILISATEUR FINALE
         const userTranscript = event.transcript as string
         if (userTranscript) {
-          console.log('👤 [OPENAI USER] Speech captured:', userTranscript.substring(0, 50) + '...')
+          console.log('👤 [OPENAI USER] Speech captured FINAL:', userTranscript.substring(0, 50) + '...')
           
-          // 📊 [TRACKING] Ajouter transcript utilisateur
+          // 📊 [TRACKING] Utiliser transcript final (plus fiable que deltas)
           if (sessionTrackingRef.current.sessionId) {
             sessionTrackingRef.current.transcriptHistory.push(`USER: ${userTranscript}`)
             sessionTrackingRef.current.textInputTokens += Math.ceil(userTranscript.length / 4)
+            
+            // Reset buffer deltas
+            delete sessionTrackingRef.current.currentUserSpeech
+          }
+          
+          // 💾 [LOGGING] Sauver immédiatement en base
+          try {
+            if (sessionRef.current?.session_id && config.gymSlug) {
+              fetch(`/api/kiosk/${config.gymSlug}/log-interaction`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  session_id: sessionRef.current.session_id,
+                  speaker: 'user',
+                  message_text: userTranscript,
+                  conversation_turn_number: sessionTrackingRef.current.transcriptHistory.filter(t => t.startsWith('USER:')).length
+                }),
+                keepalive: true
+              }).catch(error => console.warn('⚠️ Log interaction failed:', error))
+            }
+          } catch (logError) {
+            console.warn('⚠️ Erreur logging transcript user:', logError)
           }
           
           // 🎯 Détection "au revoir" directement depuis OpenAI
