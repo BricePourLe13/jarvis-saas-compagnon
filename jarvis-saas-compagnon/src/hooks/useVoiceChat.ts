@@ -758,13 +758,19 @@ export function useVoiceChat(config: VoiceChatConfig) {
         break
 
       default:
-        console.log('📨 Événement serveur non géré:', event.type)
+        // 🔇 Logs événements non critiques silencieux en production
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📨 Événement serveur non géré:', event.type)
+        }
     }
   }, [updateStatus])
 
   // Fonction principale de connexion
   const connect = useCallback(async () => {
-    console.log('🔥 [CONNECT DEBUG] connect() appelée, isConnectingRef.current:', isConnectingRef.current, 'isConnected:', isConnected)
+    // 🔇 Debug logs silencieux en production
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔥 [CONNECT DEBUG] connect() appelée, isConnectingRef.current:', isConnectingRef.current, 'isConnected:', isConnected)
+    }
     
     if (isConnectingRef.current || isConnected) {
       console.log('⚠️ Connexion déjà en cours ou établie')

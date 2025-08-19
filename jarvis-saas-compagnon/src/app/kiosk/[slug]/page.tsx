@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, use } from 'react'
-// import { activateMinimalLogCleaner } from '@/lib/minimal-log-cleaner' // 🗑️ Plus besoin avec logs simplifiés
+// 🔇 Nettoyage logs production automatique
+import '@/lib/production-log-cleaner'
 import { Box, Text, VStack, HStack, Badge, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
