@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { logUserUpdate, logUserDeletion } from '@/lib/activity-logger'
+// Activity logger supprimé - remplacé par Prisma
 
 // ===========================================
 // 🔐 TYPES & INTERFACES
@@ -178,14 +178,8 @@ export async function PUT(
       changedFields.map(field => [field, updateData[field]])
     )
 
-    // Log asynchrone (ne pas bloquer la réponse)
-    logUserUpdate(
-      userId,
-      updatedUser.full_name,
-      oldValues,
-      newValues,
-      changedFields
-    ).catch(err => console.warn('⚠️ Erreur logging:', err))
+    // TODO: Log avec Prisma
+    // logUserUpdate(userId, ...).catch(err => console.warn('⚠️ Erreur logging:', err))
 
     console.log('✅ Utilisateur mis à jour:', updatedUser.email)
 

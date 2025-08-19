@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
-import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
-import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
+// 🗑️ SUPPRIMÉ - Remplacé par Prisma tracking
 // import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker' // 🗑️ SUPPRIMÉ - OpenAI fait tout
 
 interface VoiceChatConfig {
@@ -30,6 +29,8 @@ interface VoiceChatSession {
   client_secret: { value: string }
   session_id: string
   expires_at: string
+  member_id?: string
+  gym_id?: string
 }
 
 // Configuration de reconnexion
@@ -68,6 +69,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
     textOutputTokens: number
     audioInputSeconds: number
     audioOutputSeconds: number
+    currentUserSpeech?: string
     errorOccurred: boolean
     transcriptHistory: string[]
     speechStartTime?: number
@@ -237,23 +239,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
             audioOutputSeconds: tracking.audioOutputSeconds
           })
 
-          await openaiRealtimeInstrumentation.endSession(sessionRef.current.session_id, {
-            session_id: sessionRef.current.session_id,
-            total_tokens: tracking.textInputTokens + tracking.textOutputTokens + costBreakdown.audioInputTokens + costBreakdown.audioOutputTokens,
-            input_tokens: tracking.textInputTokens + costBreakdown.audioInputTokens,
-            output_tokens: tracking.textOutputTokens + costBreakdown.audioOutputTokens,
-            total_cost_usd: costBreakdown.totalCost,
-            input_text_tokens_cost_usd: costBreakdown.textInputCost,
-            input_audio_tokens_cost_usd: costBreakdown.audioInputCost,
-            output_text_tokens_cost_usd: costBreakdown.textOutputCost,
-            output_audio_tokens_cost_usd: costBreakdown.audioOutputCost,
-            session_duration_seconds: durationSeconds,
-            total_user_turns: Math.max(1, Math.floor(tracking.transcriptHistory.length / 2)), // Estimation
-            total_ai_turns: Math.max(1, Math.ceil(tracking.transcriptHistory.length / 2)), // Estimation
-            total_interruptions: 0, // TODO: Compter les vraies interruptions
-            // final_transcript retiré - colonne inexistante en DB
-            end_reason: tracking.errorOccurred ? 'error' : 'user_goodbye'
-          })
+          // TODO: Prisma endSession avec costBreakdown et durationSeconds
 
           console.log('🎯 [INSTRUMENTATION] Session OpenAI finalisée avec succès')
         }
@@ -547,11 +533,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
         // 🎯 [INSTRUMENTATION] Enregistrer événement audio
         try {
           if (sessionRef.current?.session_id) {
-            openaiRealtimeInstrumentation.recordAudioEvent({
-              session_id: sessionRef.current.session_id,
-              event_type: 'speech_started',
-              event_timestamp: new Date()
-            })
+            // TODO: Prisma recordAudioEvent speech_started
           }
         } catch (error) {
           console.error('❌ [INSTRUMENTATION] Erreur speech_started:', error)
@@ -575,11 +557,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
         // 🎯 [INSTRUMENTATION] Enregistrer événement audio
         try {
           if (sessionRef.current?.session_id) {
-            openaiRealtimeInstrumentation.recordAudioEvent({
-              session_id: sessionRef.current.session_id,
-              event_type: 'speech_stopped',
-              event_timestamp: new Date()
-            })
+            // TODO: Prisma recordAudioEvent('speech_stopped')
           }
         } catch (error) {
           console.error('❌ [INSTRUMENTATION] Erreur speech_stopped:', error)
@@ -605,7 +583,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       case 'conversation.item.input_audio_transcription.delta':
         // 🎙️ NOUVEAU: Transcription utilisateur temps réel (deltas)
-        const deltaTranscript = event.delta?.transcript as string
+        const deltaTranscript = (event as any).delta?.transcript as string
         if (deltaTranscript) {
           console.log('🔊 [OPENAI USER] Speech delta:', deltaTranscript.substring(0, 30) + '...')
           
@@ -622,7 +600,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       case 'conversation.item.input_audio_transcription.completed':
         // 🎙️ TRANSCRIPTION UTILISATEUR FINALE
-        const userTranscript = event.transcript as string
+        const userTranscript = (event as any).transcript as string
         if (userTranscript) {
           console.log('👤 [OPENAI USER] Speech captured FINAL:', userTranscript.substring(0, 50) + '...')
           
@@ -690,8 +668,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
         break
 
       case 'response.audio_transcript.done':
-        console.log('📝 Transcript final:', event.transcript)
-        const finalTranscript = (event.transcript as string) || transcriptBufferRef.current
+        console.log('📝 Transcript final:', (event as any).transcript)
+        const finalTranscript = ((event as any).transcript as string) || transcriptBufferRef.current
         
         // 🔧 ACTIVITÉ: Fin de réponse JARVIS = activité
         lastActivityRef.current = Date.now()
@@ -714,12 +692,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
         // 🎯 [INSTRUMENTATION] Enregistrer la transcription IA finale
         try {
           if (sessionRef.current?.session_id && finalTranscript) {
-            openaiRealtimeInstrumentation.recordAudioEvent({
-              session_id: sessionRef.current.session_id,
-              event_type: 'response_completed',
-              ai_transcript_final: finalTranscript,
-              event_timestamp: new Date()
-            })
+            // TODO: Prisma recordAudioEvent('response_completed', finalTranscript)
           }
         } catch (error) {
           console.error('❌ [INSTRUMENTATION] Erreur response_completed:', error)

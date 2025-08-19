@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
-import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
+// Instrumentation supprimée - remplacée par Prisma
 
 type EndReason = 'user_goodbye' | 'timeout' | 'error' | 'manual'
 
@@ -35,15 +35,8 @@ export async function POST(request: NextRequest) {
     const startedAt = new Date((session as any).session_started_at)
     const durationSeconds = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 1000))
 
-    // Finaliser via instrumentation (idempotent côté update)
-    await openaiRealtimeInstrumentation.endSession(sessionId, {
-      session_id: sessionId,
-      session_duration_seconds: durationSeconds,
-      total_user_turns: (session as any).total_user_turns || 0,
-      total_ai_turns: (session as any).total_ai_turns || 0,
-      total_interruptions: 0,
-      end_reason: (reason || 'user_goodbye') as EndReason,
-    })
+    // TODO: Finaliser via Prisma
+    // await instrumentation.endSession(sessionId, { ... })
 
     // Marquer l'état explicitement si besoin (déjà géré par endSession)
     await supabase

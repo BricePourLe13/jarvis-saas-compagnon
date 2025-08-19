@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, use } from 'react'
-// 🔇 Nettoyage logs production automatique
-import '@/lib/production-log-cleaner'
+// 🔇 Log cleaner supprimé - plus besoin
 import { Box, Text, VStack, HStack, Badge, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { initializeConversationMemory, generateContextualPrompt } from '@/lib/conversation-memory'
-import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
+// Instrumentation supprimée - remplacée par Prisma
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -295,24 +295,10 @@ Reste COURT et drôle !`
         .single()
 
       if (gym) {
-        await openaiRealtimeInstrumentation.startSession({
-          session_id: sessionData.id || sessionId,
-          gym_id: gym.id,
-          kiosk_slug: gymSlug,
-          ai_model: 'gpt-4o-mini-realtime-preview-2024-12-17',
-          voice_model: 'verse',
-          connection_type: 'webrtc', // Par défaut, sera mis à jour par le frontend
-          turn_detection_type: 'server_vad',
-          member_badge_id: memberId,
-          member_name: memberData?.first_name
-        })
+        // TODO: Prisma startSession avec toutes les données
 
         // Notification temps réel
-        await openaiRealtimeInstrumentation.notifySessionStart(
-          sessionData.id || sessionId,
-          memberData?.first_name,
-          gym.name
-        )
+        // TODO: Prisma notifySessionStart
 
         console.log('🎯 [INSTRUMENTATION] Session enregistrée:', sessionData.id || sessionId)
       } else {
