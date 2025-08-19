@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
 import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
 import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
-import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
+// import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker' // 🗑️ SUPPRIMÉ - OpenAI fait tout
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -619,7 +619,31 @@ export function useVoiceChat(config: VoiceChatConfig) {
           const isGoodbye = userTranscript.toLowerCase().trim().includes('au revoir')
           if (isGoodbye) {
             console.log('👋 [OPENAI USER] AU REVOIR DÉTECTÉ dans transcript OpenAI:', userTranscript)
-            // Note: La fermeture sera gérée par VoiceInterface
+            
+            // 🚀 FERMETURE AUTOMATIQUE DE SESSION
+            setTimeout(async () => {
+              try {
+                // Fermer côté serveur
+                if (sessionRef.current?.session_id) {
+                  await fetch('/api/voice/session/close', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'user_goodbye' }),
+                    keepalive: true
+                  }).catch(() => {})
+                }
+                
+                // Déclencher déconnexion
+                await disconnect()
+                
+                // Notifier le parent (VoiceInterface) pour désactiver
+                if (configRef.current.onError) {
+                  configRef.current.onError('GOODBYE_DETECTED')
+                }
+              } catch (error) {
+                console.error('❌ [OPENAI USER] Erreur fermeture au revoir:', error)
+              }
+            }, 1000) // Délai pour laisser JARVIS répondre "au revoir"
           }
         }
         break
@@ -643,14 +667,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
         }
 
-              // 🎙️ [WHISPER TRACKER] Enregistrer réponse IA
-              if (finalTranscript) {
-                whisperParallelTracker.trackAIResponse(finalTranscript, {
-                  latency_ms: Date.now() - (lastActivityRef.current || Date.now()),
-                  audio_quality: 'good'
-                })
-                console.log('🤖 [WHISPER TRACKER] IA Response captured:', finalTranscript.substring(0, 50) + '...')
-              }
+              // 🎙️ [OPENAI REALTIME] Logging IA intégré dans le tracking principal
+              console.log('🤖 [OPENAI REALTIME] IA Response logged:', finalTranscript.substring(0, 50) + '...')
         
         // 🎯 [INSTRUMENTATION] Enregistrer la transcription IA finale
         try {

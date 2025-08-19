@@ -3,9 +3,9 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Box, Button, Text, VStack, HStack, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
-import { useGoodbyeDetection } from '@/hooks/useGoodbyeDetection'
+// import { useGoodbyeDetection } from '@/hooks/useGoodbyeDetection' // 🗑️ SUPPRIMÉ
 import AudioVisualizer from './AudioVisualizer'
-import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
+// import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker' // 🗑️ SUPPRIMÉ
 import { kioskLogger } from '@/lib/kiosk-logger'
 
 interface VoiceInterfaceProps {
@@ -60,8 +60,14 @@ export default function VoiceInterface({
       onTranscriptUpdate?.(text, isFinal)
     }, [onTranscriptUpdate]),
     onError: useCallback((errorMessage) => {
-      console.error('Voice error:', errorMessage)
-    }, [])
+      if (errorMessage === 'GOODBYE_DETECTED') {
+        // 🎯 Au revoir détecté via OpenAI transcript
+        kioskLogger.session('Au revoir détecté via OpenAI transcript', 'info')
+        onDeactivate() // Désactiver le membre
+      } else {
+        console.error('Voice error:', errorMessage)
+      }
+    }, [onDeactivate])
   })
 
   // ✅ NOUVEAU: Activation directe du microphone
@@ -87,33 +93,18 @@ export default function VoiceInterface({
         kioskLogger.setSession(sessionId, currentMember.first_name || 'Membre')
         kioskLogger.session('Connexion WebRTC établie', 'success')
         
-        // 🎙️ [WHISPER TRACKER] Initialiser session
-        whisperParallelTracker.initSession(sessionId, currentMember.id, currentMember.gym_id).catch((error) => {
-          kioskLogger.error('Échec init Whisper Tracker', error, 'TRACKING')
-        })
-        
-        // 🎯 [PLAN B] Console interceptor (à supprimer plus tard)
-        import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
-          consoleTranscriptInterceptor.configure({
-            sessionId: sessionId, // Vrai session ID OpenAI
-            memberId: currentMember.id,
-            gymId: currentMember.gym_id
-          })
-          console.log('🎯 [VOICE INTERFACE] Intercepteur mis à jour avec session OpenAI:', sessionId)
-        }).catch(console.error)
+        // 🎙️ [OPENAI REALTIME] Tout est intégré dans OpenAI maintenant !
+        kioskLogger.tracking('Session OpenAI configurée avec transcripts USER + IA', 'success', { sessionId: sessionId.slice(-6) })
       }
     }
   }, [status, currentMember, getCurrentSessionId])
 
-  // 🎯 NOUVELLE DÉTECTION "AU REVOIR" avec Web Speech API en parallèle
+  // 🎯 DÉTECTION "AU REVOIR" VIA OPENAI TRANSCRIPTS (plus de Speech Recognition)
   const handleGoodbyeDetected = useCallback(async () => {
     kioskLogger.session('Au revoir détecté - Fermeture session', 'info')
     try {
       const sessionId = getCurrentSessionId?.()
       if (sessionId) {
-        // 🎙️ [WHISPER TRACKER] Finaliser session
-        whisperParallelTracker.endSession('user_goodbye')
-        
         // Fermer côté serveur (idempotent)
         await fetch('/api/voice/session/close', {
           method: 'POST',
@@ -130,18 +121,9 @@ export default function VoiceInterface({
     onDeactivate()
   }, [disconnect, onDeactivate, getCurrentSessionId])
 
-  const { isListening: goodbyeListening, isSupported: goodbyeSupported } = useGoodbyeDetection({
-    isActive: isActive && isConnected,
-    isJarvisSpeaking: status === 'speaking',
-    onGoodbyeDetected: handleGoodbyeDetected
-  })
+  // 🗑️ SPEECH RECOGNITION SUPPRIMÉ - Detection via OpenAI transcripts maintenant
   
-  // Status pour debug
-  useEffect(() => {
-    if (goodbyeSupported && goodbyeListening) {
-      console.log('🎯 [GOODBYE] Détection "au revoir" active en parallèle')
-    }
-  }, [goodbyeSupported, goodbyeListening])
+  // 🎯 [OPENAI REALTIME] Détection "au revoir" via transcripts OpenAI intégrée dans useVoiceChat
 
   const getJarvisStatus = () => {
     switch (status) {

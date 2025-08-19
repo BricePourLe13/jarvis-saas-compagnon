@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker'
+// import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker' // 🗑️ SUPPRIMÉ
 import { kioskLogger } from '@/lib/kiosk-logger'
 
 
@@ -61,10 +61,7 @@ export const useGoodbyeDetection = ({
           return
         }
 
-        // 🎙️ [WHISPER TRACKER] Démarrer enregistrement utilisateur
-        if (transcript && transcript.length > 0) {
-          whisperParallelTracker.startUserRecording()
-        }
+        // 🗑️ [WHISPER TRACKER] SUPPRIMÉ - OpenAI gère tout maintenant
 
         // Détection stricte "au revoir" uniquement
         const isGoodbye = (
@@ -113,8 +110,7 @@ export const useGoodbyeDetection = ({
     recognition.onend = () => {
       console.log('🔄 [GOODBYE] Recognition terminée')
       
-      // 🎙️ [WHISPER TRACKER] Arrêter enregistrement si actif
-      whisperParallelTracker.stopUserRecording()
+      // 🗑️ [WHISPER TRACKER] SUPPRIMÉ - OpenAI gère tout maintenant
       
       if (isActive) {
         // Redémarrer automatiquement
