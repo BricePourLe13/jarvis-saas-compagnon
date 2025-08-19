@@ -603,6 +603,27 @@ export function useVoiceChat(config: VoiceChatConfig) {
         }
         break
 
+            case 'conversation.item.input_audio_transcription.completed':
+        // 🎙️ NOUVEAU: Transcription utilisateur depuis OpenAI Realtime
+        const userTranscript = event.transcript as string
+        if (userTranscript) {
+          console.log('👤 [OPENAI USER] Speech captured:', userTranscript.substring(0, 50) + '...')
+          
+          // 📊 [TRACKING] Ajouter transcript utilisateur
+          if (sessionTrackingRef.current.sessionId) {
+            sessionTrackingRef.current.transcriptHistory.push(`USER: ${userTranscript}`)
+            sessionTrackingRef.current.textInputTokens += Math.ceil(userTranscript.length / 4)
+          }
+          
+          // 🎯 Détection "au revoir" directement depuis OpenAI
+          const isGoodbye = userTranscript.toLowerCase().trim().includes('au revoir')
+          if (isGoodbye) {
+            console.log('👋 [OPENAI USER] AU REVOIR DÉTECTÉ dans transcript OpenAI:', userTranscript)
+            // Note: La fermeture sera gérée par VoiceInterface
+          }
+        }
+        break
+
       case 'response.audio_transcript.done':
         console.log('📝 Transcript final:', event.transcript)
         const finalTranscript = (event.transcript as string) || transcriptBufferRef.current
@@ -617,12 +638,12 @@ export function useVoiceChat(config: VoiceChatConfig) {
         
         // 📊 [TRACKING] Enregistrer la transcription
         if (finalTranscript && sessionTrackingRef.current.sessionId) {
-          sessionTrackingRef.current.transcriptHistory.push(finalTranscript)
+          sessionTrackingRef.current.transcriptHistory.push(`AI: ${finalTranscript}`)
           // Estimer les tokens de sortie (approximation: 1 token ≈ 4 caractères)
           sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
         }
 
-                      // 🎙️ [WHISPER TRACKER] Enregistrer réponse IA
+              // 🎙️ [WHISPER TRACKER] Enregistrer réponse IA
               if (finalTranscript) {
                 whisperParallelTracker.trackAIResponse(finalTranscript, {
                   latency_ms: Date.now() - (lastActivityRef.current || Date.now()),

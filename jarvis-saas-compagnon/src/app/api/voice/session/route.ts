@@ -217,7 +217,12 @@ Reste COURT et drôle !`
         
         // ⚡ Paramètres optimisés pour conversations naturelles
         temperature: 0.9, // Plus de créativité et spontanéité
-        modalities: ['text', 'audio']
+        modalities: ['text', 'audio'],
+        
+        // 🎙️ ACTIVER TRANSCRIPTION UTILISATEUR
+        input_audio_transcription: {
+          model: 'whisper-1'
+        }
         
         // Suppression des tools émotionnels pour simplicité et rapidité
       }),
