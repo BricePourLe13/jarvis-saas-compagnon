@@ -1535,7 +1535,11 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                 
                 <Box>
                   <Text color="gray.300" fontSize="sm" mb={2} fontWeight="500">Simulateur:</Text> {/* 🔧 Titre simplifié */}
-                  <RFIDSimulator onMemberScanned={handleMemberScanned} isActive={false} />
+                  <RFIDSimulator 
+                    onMemberScanned={handleMemberScanned} 
+                    isActive={false}
+                    gymSlug={params.slug}
+                  />
                 </Box>
 
                 {/* 🔧 Infos système minimales */}

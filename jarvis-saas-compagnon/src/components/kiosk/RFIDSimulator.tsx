@@ -7,6 +7,7 @@ import { GymMember } from '@/types/kiosk'
 interface RFIDSimulatorProps {
   onMemberScanned: (member: GymMember) => void
   isActive: boolean
+  gymSlug?: string // Slug de la salle pour API
 }
 
 // Membres de test pour la simulation
@@ -91,7 +92,7 @@ const DEMO_MEMBERS: GymMember[] = [
   }
 ]
 
-export default function RFIDSimulator({ onMemberScanned, isActive }: RFIDSimulatorProps) {
+export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RFIDSimulatorProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [lastScannedMember, setLastScannedMember] = useState<GymMember | null>(null)
 
@@ -104,21 +105,32 @@ export default function RFIDSimulator({ onMemberScanned, isActive }: RFIDSimulat
       // Simulation de la lecture RFID (délai réaliste)
       await new Promise(resolve => setTimeout(resolve, 800))
       
-      // 🔥 FUTURE: Appel API Supabase (TODO: Implémenter le gymSlug)
-      // const response = await fetch(`/api/kiosk/{gymSlug}/members/${member.badge_id}`)
-      // const result = await response.json()
+      // 🔥 APPEL API SUPABASE RÉELLE
+      const apiSlug = gymSlug || 'gym-yatblc8h' // Fallback sur slug par défaut
+      const response = await fetch(`/api/kiosk/${apiSlug}/members/${member.badge_id}`)
+      const result = await response.json()
       
-      // Pour l'instant, utiliser les données simulées passées en paramètre
-      setLastScannedMember(member)
-      
-      // Déclencher la session vocale avec les données membre
-      onMemberScanned(member)
-      
-      console.log(`🏷️ Badge RFID scanné: ${member.first_name} ${member.last_name} (${member.badge_id})`)
-      console.log(`📋 Mode: Simulation (TODO: Intégrer API Supabase)`)
+      if (result.found && result.member) {
+        // ✅ Membre trouvé dans Supabase
+        console.log(`🏷️ Badge RFID scanné: ${result.member.first_name} ${result.member.last_name} (${member.badge_id})`)
+        console.log(`✅ Mode: Production - Membre récupéré depuis Supabase`)
+        
+        setLastScannedMember(result.member)
+        onMemberScanned(result.member)
+      } else {
+        // ❌ Badge non trouvé - utiliser simulation comme fallback
+        console.log(`⚠️ Badge ${member.badge_id} non trouvé en base - utilisation simulation`)
+        console.log(`📋 Mode: Simulation (Fallback)`)
+        
+        setLastScannedMember(member)
+        onMemberScanned(member)
+      }
       
     } catch (error) {
-      console.error('Erreur simulation badge:', error)
+      console.error('❌ Erreur API membre, fallback simulation:', error)
+      // Fallback sur les données simulées
+      setLastScannedMember(member)
+      onMemberScanned(member)
     }
     
     setIsScanning(false)
