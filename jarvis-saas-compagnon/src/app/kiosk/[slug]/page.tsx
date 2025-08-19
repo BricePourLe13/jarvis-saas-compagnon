@@ -1535,7 +1535,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                   <RFIDSimulator 
                     onMemberScanned={handleMemberScanned} 
                     isActive={false}
-                    gymSlug={params.slug}
+                    gymSlug={slug}
                   />
                 </Box>
 
