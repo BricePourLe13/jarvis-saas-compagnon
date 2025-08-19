@@ -24,7 +24,24 @@ const FILTER_PATTERNS = [
   '💓 [HEARTBEAT]',
   'WebRTC stats',
   'WebSocket',
-  'Canvas 2D Context'
+  'Canvas 2D Context',
+  // Logs verbeux existants à supprimer
+  '🔥 [CONNECT DEBUG]',
+  '🔍 [DEBUG SESSION]',
+  '📊 [TRACKING] Récupération infos gym',
+  '📊 [TRACKING] Réponse gym API',
+  '📊 [TRACKING] Données gym complètes',
+  '📊 [TRACKING] Infos gym extraites',
+  '📊 [TRACKING] Session initialisée:',
+  '📊 [TRACKING] ===== DÉBUT FINALISATION',
+  '📊 [TRACKING] ===== FIN FINALISATION',
+  '🔍 [INTERCEPTOR DEBUG]',
+  '🎯 [CONSOLE INTERCEPTOR]',
+  '🎯 [VOICE INTERFACE] Intercepteur',
+  '🎯 [GOODBYE] Speech Recognition:',
+  '➡️ [GOODBYE] Pas un au revoir:',
+  '🔄 [GOODBYE] Recognition terminée',
+  'Multiple GoTrueClient instances'
 ]
 
 export function activateMinimalLogCleaner() {

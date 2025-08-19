@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Vérifier OPENAI_API_KEY
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('❌ [WHISPER API] OPENAI_API_KEY manquante')
+      return NextResponse.json({ 
+        error: 'OPENAI_API_KEY configuration missing' 
+      }, { status: 500 })
+    }
+
     console.log('🎙️ [WHISPER API] Processing user audio:', {
       size: audioFile.size,
       type: audioFile.type,
@@ -27,7 +35,13 @@ export async function POST(request: NextRequest) {
 
     // Préparer FormData pour OpenAI Whisper
     const whisperFormData = new FormData()
-    whisperFormData.append('file', audioFile)
+    
+    // Renommer le fichier avec extension supportée
+    const renamedFile = new File([audioFile], 'user-speech.webm', { 
+      type: 'audio/webm' 
+    })
+    
+    whisperFormData.append('file', renamedFile)
     whisperFormData.append('model', 'whisper-1')
     whisperFormData.append('language', 'fr') // Français
     whisperFormData.append('response_format', 'verbose_json') // Avec métadonnées

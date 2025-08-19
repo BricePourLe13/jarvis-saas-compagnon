@@ -110,9 +110,9 @@ export default function VoiceInterface({
     kioskLogger.session('Au revoir détecté - Fermeture session', 'info')
     try {
       const sessionId = getCurrentSessionId?.()
-              if (sessionId) {
-          // 🎙️ [WHISPER TRACKER] Finaliser session
-          whisperParallelTracker.endSession('user_goodbye')
+      if (sessionId) {
+        // 🎙️ [WHISPER TRACKER] Finaliser session
+        whisperParallelTracker.endSession('user_goodbye')
         
         // Fermer côté serveur (idempotent)
         await fetch('/api/voice/session/close', {
@@ -123,10 +123,12 @@ export default function VoiceInterface({
         }).catch(() => {})
       }
     } finally {
+      // Déconnecter et empêcher reconnexion automatique
       await disconnect()
     }
+    // IMPORTANT: Désactiver le membre pour empêcher reconnexion
     onDeactivate()
-  }, [disconnect, onDeactivate])
+  }, [disconnect, onDeactivate, getCurrentSessionId])
 
   const { isListening: goodbyeListening, isSupported: goodbyeSupported } = useGoodbyeDetection({
     isActive: isActive && isConnected,

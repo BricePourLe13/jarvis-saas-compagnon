@@ -28,6 +28,12 @@ class WhisperParallelTracker {
    * 🎯 Initialiser session de tracking Whisper
    */
   async initSession(sessionId: string, memberId: string, gymId: string) {
+    // Éviter double initialisation
+    if (this.currentSession?.session_id === sessionId) {
+      kioskLogger.tracking('Session Whisper déjà initialisée', 'warn', { sessionId: sessionId.slice(-6) })
+      return
+    }
+
     this.currentSession = {
       session_id: sessionId,
       member_id: memberId,
