@@ -87,11 +87,23 @@ export default function VoiceInterface({
     }
   }, [isActive, isConnected, disconnect])
 
-  // 🔄 Réinitialiser "au revoir" quand nouveau membre
+  // 🔄 Réinitialiser "au revoir" seulement quand VRAIMENT nouveau membre
   useEffect(() => {
     if (currentMember && hasDetectedGoodbye) {
-      setHasDetectedGoodbye(false)
-      kioskLogger.session('Nouveau membre - Réinitialisation au revoir', 'info')
+      // Petite temporisation pour éviter race condition
+      const timer = setTimeout(() => {
+        setHasDetectedGoodbye(false)
+        kioskLogger.session('Nouveau membre - Réinitialisation au revoir', 'info')
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [currentMember, hasDetectedGoodbye])
+  
+  // 🚨 NOUVEAU: Reset automatique si plus de membre
+  useEffect(() => {
+    if (!currentMember && hasDetectedGoodbye) {
+      // Garder hasDetectedGoodbye=true tant qu'aucun nouveau membre
+      kioskLogger.session('Aucun membre actif - Garde au revoir actif', 'info')
     }
   }, [currentMember, hasDetectedGoodbye])
 

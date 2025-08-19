@@ -35,9 +35,8 @@ class ConsoleTranscriptInterceptor {
   configure(config: SessionConfig) {
     this.config = config
     this.turnCounter = 0
-    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Configuré pour session:', config.sessionId)
-    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Member ID:', config.memberId)
-    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Gym ID:', config.gymId)
+    // 🗑️ Debug logs supprimés - Interceptor en mode silencieux
+    // this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Configuré pour session:', config.sessionId)
   }
 
   /**
@@ -52,7 +51,7 @@ class ConsoleTranscriptInterceptor {
    * 🎯 Intercepter les console.log pour capturer les transcripts
    */
   private setupInterceptor() {
-    this.originalConsoleLog('🎯 [CONSOLE INTERCEPTOR] Intercepteur activé!')
+    // 🗑️ Debug logs supprimés - Mode silencieux
     
     // Sauvegarder la méthode console.log actuelle (qui peut déjà être overridée)
     const currentConsoleLog = console.log

@@ -38,7 +38,7 @@ export async function GET(
     const { data: gym, error: gymError } = await supabase
       .from('gyms')
       .select('id, name')
-      .eq('kiosk_config->kiosk_url_slug', slug)
+      .eq('kiosk_config->>kiosk_url_slug', slug)
       .single()
 
     if (gymError || !gym) {

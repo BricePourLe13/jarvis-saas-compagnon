@@ -315,9 +315,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       
       console.log('✅ Session JARVIS créée avec succès')
 
-      // 🎯 PLAN B: L'intercepteur sera configuré automatiquement par VoiceInterface
-      // quand la session OpenAI sera créée (plus de configuration temporaire)
-      console.log('🎯 [PLAN B] Intercepteur sera configuré automatiquement avec session OpenAI pour:', member.first_name, 'ID:', member.id)
+      // ✅ Logging automatique via OpenAI Realtime - Plus de "Plan B" nécessaire
 
     } catch (error) {
       console.error('❌ Erreur création session JARVIS:', error)
@@ -549,12 +547,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   // État pour le provisioning
   const [needsProvisioning, setNeedsProvisioning] = useState(false)
 
-  // 🎯 PLAN B: Intercepteur de transcripts console
-  useEffect(() => {
-    import('@/lib/console-transcript-interceptor').then(({ consoleTranscriptInterceptor }) => {
-      console.log('🎯 [PLAN B] Console transcript interceptor activé!')
-    }).catch(console.error)
-  }, [])
+  // ✅ Console interceptor automatiquement activé (logging via OpenAI Realtime)
 
   // ✅ Handle permission failures with fallback
   const handlePermissionFailure = useCallback((error: string) => {
