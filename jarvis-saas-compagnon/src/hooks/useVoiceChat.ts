@@ -643,6 +643,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   session_id: sessionRef.current.session_id,
+                  member_id: sessionRef.current.member_id,
+                  gym_id: sessionRef.current.gym_id,
                   speaker: 'user',
                   message_text: userTranscript,
                   conversation_turn_number: sessionTrackingRef.current.transcriptHistory.filter(t => t.startsWith('USER:')).length

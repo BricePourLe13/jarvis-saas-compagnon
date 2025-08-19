@@ -27,6 +27,7 @@ export default function VoiceInterface({
 }: VoiceInterfaceProps) {
   // 🚨 Empêcher reconnexion après "au revoir"
   const [hasDetectedGoodbye, setHasDetectedGoodbye] = useState(false)
+  const prevBadgeRef = useRef<string | null>(null)
 
   const {
     audioState,
@@ -87,17 +88,22 @@ export default function VoiceInterface({
     }
   }, [isActive, isConnected, disconnect])
 
-  // 🔄 Réinitialiser "au revoir" seulement quand VRAIMENT nouveau membre
+  // 🔄 Réinitialiser "au revoir" seulement avec NOUVEAU membre (badge différent)
   useEffect(() => {
-    if (currentMember && hasDetectedGoodbye) {
-      // Petite temporisation pour éviter race condition
+    const currentBadge = currentMember?.badge_id
+    
+    if (currentBadge && currentBadge !== prevBadgeRef.current && hasDetectedGoodbye) {
+      // NOUVEAU membre différent détecté
       const timer = setTimeout(() => {
         setHasDetectedGoodbye(false)
-        kioskLogger.session('Nouveau membre - Réinitialisation au revoir', 'info')
+        kioskLogger.session(`Nouveau membre détecté (${currentBadge}) - Réinitialisation au revoir`, 'info')
+        prevBadgeRef.current = currentBadge
       }, 100)
       return () => clearTimeout(timer)
+    } else if (currentBadge) {
+      prevBadgeRef.current = currentBadge
     }
-  }, [currentMember, hasDetectedGoodbye])
+  }, [currentMember?.badge_id, hasDetectedGoodbye])
   
   // 🚨 NOUVEAU: Reset automatique si plus de membre
   useEffect(() => {
