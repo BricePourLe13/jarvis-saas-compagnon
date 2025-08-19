@@ -22,7 +22,10 @@ export function getSupabaseSingleton(): SupabaseClient {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     
-    console.log('🔒 [SUPABASE] Instance singleton créée')
+    // Supprimer le log en production pour éviter le spam
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔒 [SUPABASE] Instance singleton créée')
+    }
   }
   
   return supabaseInstance

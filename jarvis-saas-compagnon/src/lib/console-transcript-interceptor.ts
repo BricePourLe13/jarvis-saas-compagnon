@@ -65,11 +65,8 @@ class ConsoleTranscriptInterceptor {
       if (args.length > 0) {
         const message = args.join(' ')
 
-        // Debug: afficher tous les messages qui matchent nos patterns
-        if (message.includes('🎯 [GOODBYE] Speech Recognition:') || message.includes('📝 Transcript final:')) {
-          this.originalConsoleLog('🔍 [INTERCEPTOR DEBUG] Message capturé:', message.substring(0, 100))
-          this.originalConsoleLog('🔍 [INTERCEPTOR DEBUG] Config disponible:', !!this.config)
-        }
+        // Debug: afficher tous les messages qui matchent nos patterns (DEPRECATED - OpenAI Realtime gère tout)
+        // Supprimer logs verbose pour interface plus propre
 
         if (this.config) {
           // Messages utilisateur depuis Speech Recognition

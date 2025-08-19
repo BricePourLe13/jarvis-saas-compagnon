@@ -239,7 +239,7 @@ class OpenAIRealtimeInstrumentation {
       }
 
       if (!sessionData) {
-        console.warn('❌ [INSTRUMENTATION] Session non trouvée pour audio event:', eventData.session_id)
+        // Session fermée ou pas encore créée - comportement normal, pas d'erreur
         return false
       }
 
