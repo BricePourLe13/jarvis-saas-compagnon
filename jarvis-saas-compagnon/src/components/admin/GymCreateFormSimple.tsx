@@ -167,7 +167,7 @@ export default function GymCreateFormSimple({
       }
 
     } catch (error) {
-      console.error('Erreur création salle:', error)
+      // Log supprimé pour production
       
       const errorMessage = error instanceof Error ? error.message : 'Erreur inattendue'
       setErrors([errorMessage])

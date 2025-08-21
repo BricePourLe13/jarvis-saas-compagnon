@@ -1,12 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { initializeConversationMemory, generateContextualPrompt } from '@/lib/conversation-memory'
-import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // 🎯 Utilitaire pour générer un ID de session unique
 function generateSessionId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+}
+
+// 🧠 Récupérer le profil membre complet depuis la base de données
+async function getFullMemberProfile(supabase: any, memberId: string, gymSlug: string): Promise<MemberProfile | null> {
+  try {
+    // Récupérer les données membre avec les infos de la salle
+    const { data: memberData, error: memberError } = await supabase
+      .from('gym_members')
+      .select(`
+        *,
+        gym:gyms!inner(
+          id,
+          name,
+          city,
+          opening_hours,
+          features
+        )
+      `)
+      .eq('id', memberId)
+      .single()
+
+    if (memberError || !memberData) {
+      // Log supprimé pour production
+      return null
+    }
+
+    // Transformer les données en format MemberProfile
+    const profile: MemberProfile = {
+      first_name: memberData.first_name,
+      last_name: memberData.last_name,
+      badge_id: memberData.badge_id,
+      membership_type: memberData.membership_type || 'standard',
+      member_since: memberData.member_since,
+      last_visit: memberData.last_visit,
+      total_visits: memberData.total_visits || 0,
+
+      fitness_level: memberData.fitness_level || 'beginner',
+      fitness_goals: memberData.fitness_goals || [],
+      current_goals: memberData.current_goals || [],
+      completed_goals: memberData.completed_goals || [],
+      target_weight_kg: memberData.target_weight_kg,
+      current_weight_kg: memberData.current_weight_kg,
+      height_cm: memberData.height_cm,
+      body_fat_percentage: memberData.body_fat_percentage,
+
+      preferred_workout_times: memberData.preferred_workout_times || [],
+      workout_frequency_per_week: memberData.workout_frequency_per_week || 3,
+      preferred_workout_duration: memberData.preferred_workout_duration || 60,
+      favorite_equipment: memberData.favorite_equipment || [],
+      avoided_equipment: memberData.avoided_equipment || [],
+      workout_style: memberData.workout_style || 'moderate',
+
+      dietary_restrictions: memberData.dietary_restrictions || [],
+      allergies: memberData.allergies || [],
+      medical_conditions: memberData.medical_conditions || [],
+
+      communication_style: memberData.communication_style || 'friendly',
+      motivation_type: memberData.motivation_type || 'health',
+      social_preference: memberData.social_preference || 'mixed',
+      music_preferences: memberData.music_preferences || [],
+      conversation_topics_of_interest: memberData.conversation_topics_of_interest || [],
+      preferred_feedback_style: memberData.preferred_feedback_style || 'encouraging',
+
+      engagement_level: memberData.engagement_level || 'new',
+      consistency_score: memberData.consistency_score || 0,
+      avg_session_duration_minutes: memberData.avg_session_duration_minutes || 0,
+      favorite_visit_days: memberData.favorite_visit_days || [],
+      peak_visit_hours: memberData.peak_visit_hours || [],
+      jarvis_interaction_frequency: memberData.jarvis_interaction_frequency || 'normal',
+
+      gym: {
+        name: memberData.gym.name,
+        opening_hours: memberData.gym.opening_hours || {},
+        features: memberData.gym.features || [],
+        city: memberData.gym.city
+      }
+    }
+
+    return profile
+  } catch (error) {
+    // Log supprimé pour production
+    return null
+  }
+}
+
+// 🌍 Construire le contexte de la salle
+function buildGymContext(): GymContext {
+  const now = new Date()
+  return {
+    current_time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    current_day: now.toLocaleDateString('en-US', { weekday: 'long' }),
+    // TODO: Ajouter weather, busy_level, available_equipment, upcoming_classes
+  }
 }
 
 // ✅ PHASE 1: Support méthode HEAD pour requêtes preflight navigateur
@@ -161,8 +252,8 @@ export async function POST(request: NextRequest) {
       ? (pick(openingsMap[s.opening_preset] || openingsMap.deadpool_clean)).replace('{name}', memberData.first_name)
       : pick(["Salut toi ! Pas de badge ? Pas grave !", "Oh, un mystérieux visiteur !", "Bienvenue ! On papote ?"]) 
 
-    // ⚡ Instructions JARVIS paramétrables
-    const systemInstructions = `Tu es JARVIS, compagnon vocal de ${gymSlug || 'cette salle de sport'}.
+    // 🧠 NOUVEAU SYSTÈME DE PERSONNALISATION ULTRA-POUSSÉ
+    let systemInstructions = `Tu es JARVIS, compagnon vocal de ${gymSlug || 'cette salle de sport'}.
 
 PERSONNALITÉ:
 - ${mapPersonality(s.personality, s.humor_level)}
@@ -190,6 +281,32 @@ FIN SESSION:
 TON: ${tone} • rythme ${mapPace(s.speaking_pace)}
 
 Reste COURT et drôle !`
+
+    // 🚀 PERSONNALISATION ULTRA-POUSSÉE si profil membre disponible
+    if (memberData?.badge_id) {
+      try {
+        // Récupérer l'ID du membre à partir du badge_id
+        const { data: memberLookup } = await supabase
+          .from('gym_members')
+          .select('id')
+          .eq('badge_id', memberData.badge_id)
+          .single()
+
+        if (memberLookup?.id) {
+          const memberProfile = await getFullMemberProfile(supabase, memberLookup.id, gymSlug)
+          if (memberProfile) {
+            const gymContext = buildGymContext()
+            systemInstructions = jarvisPersonalizationEngine.generatePersonalizedInstructions(
+              memberProfile, 
+              gymContext
+            )
+            // Log supprimé pour production
+          }
+        }
+      } catch (error) {
+        // Log supprimé pour production
+      }
+    }
 
     // 🎙️ CONFIGURATION AUDIO OPTIMISÉE POUR HUMANISATION - PHASE 2
     const sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
@@ -232,7 +349,7 @@ Reste COURT et drôle !`
       const errorText = await sessionResponse.text()
       
       // 🚨 LOGGING RENFORCÉ POUR DEBUG ERREUR 400
-      console.error('🔥 [VOICE SESSION] ERREUR OPENAI:', {
+      // Log supprimé pour production
         status: sessionResponse.status,
         statusText: sessionResponse.statusText,
         error: errorText,
@@ -261,9 +378,9 @@ Reste COURT et drôle !`
             memberId,
             timestamp: new Date().toISOString()
           })
-        }).catch(trackError => console.warn('Tracking error failed:', trackError))
+        }).catch(trackError => // Log supprimé pour production
       } catch (trackError) {
-        console.warn('Failed to track voice session error:', trackError)
+        // Log supprimé pour production
       }
       
       return NextResponse.json(
@@ -282,7 +399,7 @@ Reste COURT et drôle !`
 
     const sessionData = await sessionResponse.json()
     
-    console.log(`✅ Session JARVIS optimisée créée pour ${memberData?.first_name || 'visiteur'} - ${gymSlug}`)
+    // Log supprimé pour production
     
     // 🎯 INSTRUMENTATION: Enregistrer la session OpenAI Realtime dans notre base
     try {
@@ -314,12 +431,12 @@ Reste COURT et drôle !`
           gym.name
         )
 
-        console.log('🎯 [INSTRUMENTATION] Session enregistrée:', sessionData.id || sessionId)
+        // Log supprimé pour production
       } else {
-        console.warn('⚠️ [INSTRUMENTATION] Gym non trouvé pour slug:', gymSlug)
+        // Log supprimé pour production
       }
     } catch (instrumentationError) {
-      console.error('❌ [INSTRUMENTATION] Erreur enregistrement session:', instrumentationError)
+      // Log supprimé pour production
       // Ne pas faire échouer la création de session pour un problème d'instrumentation
     }
     
@@ -352,7 +469,7 @@ Reste COURT et drôle !`
     })
 
   } catch (error) {
-    console.error('Erreur création session voice:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

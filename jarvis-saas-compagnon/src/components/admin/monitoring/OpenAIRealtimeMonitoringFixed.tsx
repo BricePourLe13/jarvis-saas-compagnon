@@ -78,7 +78,7 @@ export default function OpenAIRealtimeMonitoringFixed({
   const loadData = async () => {
     try {
       setLoading(true)
-      console.log('🔄 [MONITORING FIXED] Chargement données pour gym:', gymId)
+      // Log supprimé pour production
 
       // Chargement parallèle des données
       const [
@@ -98,7 +98,7 @@ export default function OpenAIRealtimeMonitoringFixed({
       setAudioEvents(audioEventsData)
       setDiagnostic(diagnosticData)
 
-      console.log('✅ [MONITORING FIXED] Données chargées:', {
+      // Log supprimé pour production
         stats: !!statsData,
         activeSessions: activeSessionsData.length,
         audioEvents: audioEventsData.length,
@@ -106,7 +106,7 @@ export default function OpenAIRealtimeMonitoringFixed({
       })
 
     } catch (error) {
-      console.error('❌ [MONITORING FIXED] Erreur chargement:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur de chargement',
         description: 'Impossible de charger les métriques de monitoring',
@@ -120,10 +120,10 @@ export default function OpenAIRealtimeMonitoringFixed({
   }
 
   const testSQLFunction = async () => {
-    console.log('🧪 [MONITORING FIXED] Test fonction SQL...')
+    // Log supprimé pour production
     const result = await openaiRealtimeMonitoringServiceFixed.testSQLFunction(gymId)
     setTestResult(result)
-    console.log('🧪 [MONITORING FIXED] Résultat test:', result)
+    // Log supprimé pour production
   }
 
   if (loading) {

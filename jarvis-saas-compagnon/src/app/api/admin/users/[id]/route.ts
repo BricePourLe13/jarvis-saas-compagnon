@@ -146,7 +146,7 @@ export async function PUT(
       .single()
 
     if (updateError) {
-      console.error('❌ Erreur mise à jour utilisateur:', updateError)
+      // Log supprimé pour production
       return NextResponse.json(
         { success: false, error: updateError.message, message: 'Erreur lors de la mise à jour' },
         { status: 500 }
@@ -162,10 +162,10 @@ export async function PUT(
         )
         
         if (authUpdateError) {
-          console.warn('⚠️ Email mis à jour en base mais pas dans Auth:', authUpdateError)
+          // Log supprimé pour production
         }
       } catch (authError) {
-        console.warn('⚠️ Erreur mise à jour Auth (non bloquante):', authError)
+        // Log supprimé pour production
       }
     }
 
@@ -185,9 +185,9 @@ export async function PUT(
       oldValues,
       newValues,
       changedFields
-    ).catch(err => console.warn('⚠️ Erreur logging:', err))
+    ).catch(err => // Log supprimé pour production
 
-    console.log('✅ Utilisateur mis à jour:', updatedUser.email)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -196,7 +196,7 @@ export async function PUT(
     })
 
   } catch (error) {
-    console.error('❌ Erreur API update user:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }
@@ -281,7 +281,7 @@ export async function DELETE(
       .eq('id', userId)
 
     if (deleteError) {
-      console.error('❌ Erreur suppression utilisateur:', deleteError)
+      // Log supprimé pour production
       return NextResponse.json(
         { success: false, error: deleteError.message, message: 'Erreur lors de la suppression' },
         { status: 500 }
@@ -292,13 +292,13 @@ export async function DELETE(
     try {
       const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId)
       if (authDeleteError) {
-        console.warn('⚠️ Utilisateur supprimé de la base mais pas de Auth:', authDeleteError)
+        // Log supprimé pour production
       }
     } catch (authError) {
-      console.warn('⚠️ Erreur suppression Auth (non bloquante):', authError)
+      // Log supprimé pour production
     }
 
-    console.log('✅ Utilisateur supprimé:', existingUser.email)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -306,7 +306,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('❌ Erreur API delete user:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }

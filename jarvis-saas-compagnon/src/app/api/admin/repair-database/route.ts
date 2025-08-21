@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
       return createErrorResponse('PERMISSION_DENIED', 'Seuls les super admins peuvent réparer la BDD')
     }
 
-    console.log('🔧 [DATABASE REPAIR] Début des réparations par:', user.email)
+    // Log supprimé pour production
 
     const repairs = []
 
     // 🏗️ RÉPARATION 1: Assigner manager à AREA
     try {
-      console.log('👨‍💼 Recherche et assignment manager AREA...')
+      // Log supprimé pour production
       
       // Trouver Brice
       const { data: brice } = await supabase
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     // 🏗️ RÉPARATION 2: Vérifier relations FK
     try {
-      console.log('🔗 Vérification foreign keys...')
+      // Log supprimé pour production
       
       // Compter les gym_members avec gym_id invalide
       const { data: invalidMembers, error: fkError } = await supabase
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
 
     // 🏗️ RÉPARATION 3: Ajouter colonne slug si manquante
     try {
-      console.log('📂 Vérification colonne slug...')
+      // Log supprimé pour production
       
       const { data: gyms } = await supabase
         .from('gyms')
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
 
     // 🏗️ RÉPARATION 4: Nettoyer sessions fantômes
     try {
-      console.log('👻 Nettoyage sessions fantômes...')
+      // Log supprimé pour production
       
       const { data: cleanupResult, error: cleanupError } = await supabase
         .rpc('cleanup_inactive_realtime_sessions', {
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('✅ [DATABASE REPAIR] Réparations terminées')
+    // Log supprimé pour production
 
     return createSuccessResponse({
       repairs,
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
     }, 'Réparations base de données terminées')
 
   } catch (error: any) {
-    console.error('🚨 [DATABASE REPAIR] Erreur critique:', error)
+    // Log supprimé pour production
     return createErrorResponse(
       'INTERNAL_ERROR',
       'Erreur lors des réparations',

@@ -47,7 +47,7 @@ export async function POST(
       .single()
 
     if (gymError || !gym) {
-      console.error('[PROVISION] Kiosk non trouvé:', gymError)
+      // Log supprimé pour production
       return NextResponse.json(
         { error: 'Kiosk non trouvé' },
         { status: 404 }
@@ -66,7 +66,7 @@ export async function POST(
 
     // Valider le code de provisioning
     if (kioskConfig?.provisioning_code !== provisioning_code) {
-      console.error('[PROVISION] Code invalide:', { 
+      // Log supprimé pour production
         provided: provisioning_code,
         expected: kioskConfig?.provisioning_code 
       })
@@ -122,14 +122,14 @@ export async function POST(
         .eq('id', gym.id)
 
       if (updateError) {
-        console.error('[PROVISION] Erreur mise à jour:', updateError)
+        // Log supprimé pour production
         return NextResponse.json(
           { error: 'Erreur lors de l\'activation' },
           { status: 500 }
         )
       }
 
-      console.log(`✅ [PROVISION] Kiosk ${slug} activé avec succès`)
+      // Log supprimé pour production
 
       return NextResponse.json({ 
         success: true,
@@ -145,7 +145,7 @@ export async function POST(
     )
 
   } catch (error) {
-    console.error('[PROVISION] Erreur:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { error: 'Erreur serveur lors du provisioning' },
       { status: 500 }

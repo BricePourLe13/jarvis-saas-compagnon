@@ -112,22 +112,22 @@ export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RF
       
       if (result.found && result.member) {
         // ✅ Membre trouvé dans Supabase
-        console.log(`🏷️ Badge RFID scanné: ${result.member.first_name} ${result.member.last_name} (${member.badge_id})`)
-        console.log(`✅ Mode: Production - Membre récupéré depuis Supabase`)
+        // Log supprimé pour production
+        // Log supprimé pour production
         
         setLastScannedMember(result.member)
         onMemberScanned(result.member)
       } else {
         // ❌ Badge non trouvé - utiliser simulation comme fallback
-        console.log(`⚠️ Badge ${member.badge_id} non trouvé en base - utilisation simulation`)
-        console.log(`📋 Mode: Simulation (Fallback)`)
+        // Log supprimé pour production
+        // Log supprimé pour production
         
         setLastScannedMember(member)
         onMemberScanned(member)
       }
       
     } catch (error) {
-      console.error('❌ Erreur API membre, fallback simulation:', error)
+      // Log supprimé pour production
       // Fallback sur les données simulées
       setLastScannedMember(member)
       onMemberScanned(member)

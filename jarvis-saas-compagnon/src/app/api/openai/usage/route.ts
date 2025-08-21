@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // ✅ CORRECTION: Utiliser le paramètre 'date' requis par l'API OpenAI
     const targetDate = startDate || endDate || new Date().toISOString().split('T')[0]
     // ✅ LOG RÉDUIT: Seulement pour debug si nécessaire
-    // console.log('💰 [USAGE] Récupération usage OpenAI pour la date:', targetDate)
+    // // Log supprimé pour production
 
     // Construire l'URL de l'API OpenAI Usage avec le bon paramètre
     const usageUrl = new URL('https://api.openai.com/v1/usage')
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     if (!usageResponse.ok) {
       const errorData = await usageResponse.text()
-      console.error('💰 [USAGE] Erreur API OpenAI:', usageResponse.status, errorData)
+      // Log supprimé pour production
       
       return NextResponse.json({
         success: false,
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       return sum + textTokensCost + audioTokensCost
     }, 0)
     
-    console.log('💰 [USAGE] Coût calculé:', { 
+    // Log supprimé pour production
       realTimeItems: realTimeData.length,
       totalCost: totalCostFromRealtime 
     })
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('💰 [USAGE] Erreur récupération usage:', error)
+    // Log supprimé pour production
     return NextResponse.json({
       success: false,
       error: 'Erreur lors de la récupération de l\'usage OpenAI',
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'sync_sessions') {
       // Synchroniser les coûts réels pour des sessions spécifiques
-      console.log('💰 [USAGE] Synchronisation sessions:', sessionIds)
+      // Log supprimé pour production
       
       // TODO: Implémenter la logique de synchronisation
       // 1. Récupérer l'usage global depuis OpenAI
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     }, { status: 400 })
 
   } catch (error) {
-    console.error('💰 [USAGE] Erreur POST:', error)
+    // Log supprimé pour production
     return NextResponse.json({
       success: false,
       error: 'Erreur lors du traitement',

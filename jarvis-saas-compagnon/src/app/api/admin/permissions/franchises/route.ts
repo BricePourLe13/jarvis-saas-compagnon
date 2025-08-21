@@ -80,14 +80,14 @@ export async function GET(): Promise<NextResponse<ApiResponse<Franchise[]>>> {
       .order('name')
 
     if (error) {
-      console.error('❌ Erreur récupération franchises:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { success: false, error: error.message, message: 'Erreur lors de la récupération des franchises' },
         { status: 500 }
       )
     }
 
-    console.log('✅ Franchises récupérées:', franchises?.length || 0)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -96,7 +96,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<Franchise[]>>> {
     })
 
   } catch (error) {
-    console.error('❌ Erreur API get franchises:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }

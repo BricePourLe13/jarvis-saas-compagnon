@@ -1,8 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
-import { trackSessionCost, calculateSessionCost, SessionCostBreakdown } from '@/lib/openai-cost-tracker'
-import { openaiRealtimeInstrumentation } from '@/lib/openai-realtime-instrumentation'
-// import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker' // 🗑️ SUPPRIMÉ - OpenAI fait tout
+import { conversationLogger } from '@/lib/simple-conversation-logger'
+import { sessionManager } from '@/lib/simple-session-manager'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -48,6 +47,10 @@ export function useVoiceChat(config: VoiceChatConfig) {
     micPermission: 'prompt',
     audioLevel: 0
   })
+
+  // 🕐 Timeout d'inactivité automatique
+  const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const INACTIVITY_TIMEOUT_MS = 30000 // 30 secondes d'inactivité
   
   const [isConnected, setIsConnected] = useState(false)
   const [currentTranscript, setCurrentTranscript] = useState('')
@@ -112,6 +115,48 @@ export function useVoiceChat(config: VoiceChatConfig) {
     // 🔧 STABILITÉ: Marquer l'activité pour éviter les timeouts
     lastActivityRef.current = Date.now()
   }, [])
+
+  // 🕐 Gestion du timeout d'inactivité
+  const resetInactivityTimeout = useCallback(() => {
+    // Annuler le timeout précédent s'il existe
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current)
+      inactivityTimeoutRef.current = null
+    }
+
+    // Démarrer un nouveau timeout seulement si connecté
+    if (isConnected) {
+      console.log('🕐 [INACTIVITY] Timeout reset - 30s avant fermeture auto')
+      inactivityTimeoutRef.current = setTimeout(async () => {
+        console.log('⏰ [INACTIVITY] Timeout atteint - Fermeture automatique de la session')
+        
+        try {
+          // Fermer la session proprement
+          if (sessionRef.current?.session_id) {
+            await sessionManager.endSession(sessionRef.current.session_id, 'inactivity_timeout')
+          }
+          
+          // Déclencher déconnexion
+          await disconnect()
+          
+          // Notifier le parent
+          if (configRef.current.onError) {
+            configRef.current.onError('INACTIVITY_TIMEOUT')
+          }
+        } catch (error) {
+          console.error('❌ [INACTIVITY] Erreur fermeture timeout:', error)
+        }
+      }, INACTIVITY_TIMEOUT_MS)
+    }
+  }, [isConnected, disconnect])
+
+  const clearInactivityTimeout = useCallback(() => {
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current)
+      inactivityTimeoutRef.current = null
+      console.log('🕐 [INACTIVITY] Timeout annulé')
+    }
+  }, [])
   
   // 🔧 STABILITÉ SESSION - Fonction de maintien en vie
   const maintainSessionStability = useCallback(() => {
@@ -171,108 +216,27 @@ export function useVoiceChat(config: VoiceChatConfig) {
     console.log('📊 [TRACKING] Session initialisée:', sessionId)
   }, [generateSessionId])
 
-     const finalizeSessionTracking = useCallback(async () => {
-     const tracking = sessionTrackingRef.current
-     
-     // ✅ CORRECTION: Ne pas traiter si aucune session n'a jamais été initialisée
-     if (!tracking.sessionId) {
-       console.log('📊 [TRACKING] Aucune session à finaliser (pas de sessionId)')
-       return
-     }
-     
-     console.log('📊 [TRACKING] ===== DÉBUT FINALISATION SESSION =====')
-     console.log('📊 [TRACKING] Données de tracking actuelles:', tracking)
-     
-     if (!tracking.startTime || !tracking.gymId) {
-       console.error('📊 [TRACKING] ❌ DONNÉES INCOMPLÈTES:')
-       console.error('- sessionId:', tracking.sessionId)
-       console.error('- startTime:', tracking.startTime)
-       console.error('- gymId:', tracking.gymId)
-       console.error('- franchiseId:', tracking.franchiseId)
-       return
-     }
-
+  const finalizeSessionTracking = useCallback(async () => {
+    const tracking = sessionTrackingRef.current
+    
+    // Vérifier si on a une session à finaliser
+    if (!tracking.sessionId) {
+      console.log('📊 [SESSION] Aucune session à finaliser')
+      return
+    }
+    
+    console.log('📊 [SESSION] Finalisation session:', tracking.sessionId)
+    
     try {
-      const durationSeconds = Math.floor((Date.now() - tracking.startTime.getTime()) / 1000)
-      
-      // Calculer approximativement les tokens audio basés sur la durée
-      const audioInputTokens = Math.round(tracking.audioInputSeconds * 1667 / 60) // ~1667 tokens/minute
-      const audioOutputTokens = Math.round(tracking.audioOutputSeconds * 1667 / 60)
-
-      console.log('📊 [TRACKING] Finalisation session:', {
-        sessionId: tracking.sessionId,
-        durationSeconds,
-        audioInputTokens,
-        audioOutputTokens
-      })
-
-      await trackSessionCost({
-        sessionId: tracking.sessionId,
-        gymId: tracking.gymId,
-        franchiseId: tracking.franchiseId,
-        timestamp: tracking.startTime,
-        durationSeconds,
-        textInputTokens: tracking.textInputTokens,
-        textOutputTokens: tracking.textOutputTokens,
-        audioInputTokens,
-        audioOutputTokens,
-        userSatisfaction: undefined, // TODO: Collecter si nécessaire
-        errorOccurred: tracking.errorOccurred,
-        endReason: tracking.errorOccurred ? 'error' : 'user_ended',
-        audioInputSeconds: tracking.audioInputSeconds,
-        audioOutputSeconds: tracking.audioOutputSeconds
-      })
-
-      // 🎯 [INSTRUMENTATION] Finaliser la session OpenAI Realtime
-      try {
-        console.log('🔍 [DEBUG SESSION FINALIZE] sessionRef.current:', sessionRef.current)
-        console.log('🔍 [DEBUG SESSION FINALIZE] sessionRef.current?.session_id:', sessionRef.current?.session_id)
-        
-        if (sessionRef.current?.session_id) {
-          const costBreakdown = calculateSessionCost({
-            durationSeconds,
-            textInputTokens: tracking.textInputTokens,
-            textOutputTokens: tracking.textOutputTokens,
-            audioInputSeconds: tracking.audioInputSeconds,
-            audioOutputSeconds: tracking.audioOutputSeconds
-          })
-
-          await openaiRealtimeInstrumentation.endSession(sessionRef.current.session_id, {
-            session_id: sessionRef.current.session_id,
-            total_tokens: tracking.textInputTokens + tracking.textOutputTokens + costBreakdown.audioInputTokens + costBreakdown.audioOutputTokens,
-            input_tokens: tracking.textInputTokens + costBreakdown.audioInputTokens,
-            output_tokens: tracking.textOutputTokens + costBreakdown.audioOutputTokens,
-            total_cost_usd: costBreakdown.totalCost,
-            input_text_tokens_cost_usd: costBreakdown.textInputCost,
-            input_audio_tokens_cost_usd: costBreakdown.audioInputCost,
-            output_text_tokens_cost_usd: costBreakdown.textOutputCost,
-            output_audio_tokens_cost_usd: costBreakdown.audioOutputCost,
-            session_duration_seconds: durationSeconds,
-            total_user_turns: Math.max(1, Math.floor(tracking.transcriptHistory.length / 2)), // Estimation
-            total_ai_turns: Math.max(1, Math.ceil(tracking.transcriptHistory.length / 2)), // Estimation
-            total_interruptions: 0, // TODO: Compter les vraies interruptions
-            // final_transcript retiré - colonne inexistante en DB
-            end_reason: tracking.errorOccurred ? 'error' : 'user_goodbye'
-          })
-
-          console.log('🎯 [INSTRUMENTATION] Session OpenAI finalisée avec succès')
-        }
-      } catch (instrumentationError) {
-        console.error('❌ [INSTRUMENTATION] Erreur finalisation session:', instrumentationError)
-        // Ne pas faire échouer le tracking normal
+      // Fermer la session avec le gestionnaire simple
+      if (sessionRef.current?.session_id) {
+        await sessionManager.endSession(sessionRef.current.session_id, 'normal_end')
       }
-
-      console.log('📊 [TRACKING] ✅ SESSION SAUVEGARDÉE AVEC SUCCÈS!')
-      console.log('📊 [TRACKING] Session ID final:', tracking.sessionId)
-      console.log('📊 [TRACKING] ===== FIN FINALISATION SESSION =====')
-     } catch (error) {
-       console.error('📊 [TRACKING] ❌ ERREUR CRITIQUE SAUVEGARDE:', error)
-       console.error('📊 [TRACKING] Détails erreur:', {
-         name: error instanceof Error ? error.name : 'Unknown',
-         message: error instanceof Error ? error.message : error,
-         stack: error instanceof Error ? error.stack : undefined
-       })
-     }
+      
+      console.log('✅ [SESSION] Session finalisée avec succès')
+    } catch (error) {
+      console.error('❌ [SESSION] Erreur finalisation:', error)
+    }
   }, [])
 
   // 🔧 BUGFIX: Utiliser les données membre passées directement au lieu du hardcodé
@@ -458,6 +422,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
         setIsConnected(true)
         updateStatus('connected')
         reconnectAttempts.current = 0
+        
+        // 🕐 Démarrer le timeout d'inactivité
+        resetInactivityTimeout()
       }
 
       dc.onmessage = (event) => {
@@ -525,6 +492,21 @@ export function useVoiceChat(config: VoiceChatConfig) {
     switch (event.type) {
       case 'session.created':
         console.log('🎯 Session OpenAI créée')
+        
+        // 🚀 [SESSION SIMPLE] Démarrer le tracking de session
+        if (sessionRef.current?.session_id && sessionRef.current?.gym_id) {
+          const memberName = configRef.current.memberData ? 
+            `${configRef.current.memberData.first_name} ${configRef.current.memberData.last_name}` : 
+            undefined
+          
+          sessionManager.startSession({
+            session_id: sessionRef.current.session_id,
+            gym_id: sessionRef.current.gym_id,
+            member_id: sessionRef.current.member_id,
+            member_name: memberName,
+            started_at: new Date()
+          }).catch(error => console.warn('⚠️ Erreur démarrage session:', error))
+        }
         break
         
       case 'session.updated':
@@ -537,6 +519,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
         setAudioState(prev => ({ ...prev, isRecording: true }))
         
         // 🔧 STABILITÉ: Activité détectée
+        // 🕐 Réinitialiser le timeout d'inactivité (utilisateur parle)
+        resetInactivityTimeout()
         lastActivityRef.current = Date.now()
         
         // 📊 [TRACKING] Marquer le début d'input audio
@@ -635,25 +619,19 @@ export function useVoiceChat(config: VoiceChatConfig) {
             delete sessionTrackingRef.current.currentUserSpeech
           }
           
-          // 💾 [LOGGING] Sauver immédiatement en base
+          // 💾 [LOGGING SIMPLE] Sauver message utilisateur
           try {
-            if (sessionRef.current?.session_id && config.gymSlug) {
-              fetch(`/api/kiosk/${config.gymSlug}/log-interaction`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  session_id: sessionRef.current.session_id,
-                  member_id: sessionRef.current.member_id,
-                  gym_id: sessionRef.current.gym_id,
-                  speaker: 'user',
-                  message_text: userTranscript,
-                  conversation_turn_number: sessionTrackingRef.current.transcriptHistory.filter(t => t.startsWith('USER:')).length
-                }),
-                keepalive: true
-              }).catch(error => console.warn('⚠️ Log interaction failed:', error))
+            if (sessionRef.current?.session_id) {
+              conversationLogger.logMessage({
+                session_id: sessionRef.current.session_id,
+                speaker: 'user',
+                message: userTranscript,
+                member_id: sessionRef.current.member_id,
+                gym_id: sessionRef.current.gym_id
+              }).catch(error => console.warn('⚠️ Erreur logging user:', error))
             }
           } catch (logError) {
-            console.warn('⚠️ Erreur logging transcript user:', logError)
+            console.warn('⚠️ Exception logging user:', logError)
           }
           
           // 🎯 Détection "au revoir" directement depuis OpenAI
@@ -661,17 +639,12 @@ export function useVoiceChat(config: VoiceChatConfig) {
           if (isGoodbye) {
             console.log('👋 [OPENAI USER] AU REVOIR DÉTECTÉ dans transcript OpenAI:', userTranscript)
             
-            // 🚀 FERMETURE AUTOMATIQUE DE SESSION
+            // 🚀 FERMETURE SIMPLE DE SESSION
             setTimeout(async () => {
               try {
-                // Fermer côté serveur
+                // Fermer la session proprement
                 if (sessionRef.current?.session_id) {
-                  await fetch('/api/voice/session/close', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'user_goodbye' }),
-                    keepalive: true
-                  }).catch(() => {})
+                  await sessionManager.endSession(sessionRef.current.session_id, 'user_goodbye')
                 }
                 
                 // Déclencher déconnexion
@@ -682,7 +655,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
                   configRef.current.onError('GOODBYE_DETECTED')
                 }
               } catch (error) {
-                console.error('❌ [OPENAI USER] Erreur fermeture au revoir:', error)
+                console.error('❌ Erreur fermeture au revoir:', error)
               }
             }, 1000) // Délai pour laisser JARVIS répondre "au revoir"
           }
@@ -708,8 +681,23 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
         }
 
-              // 🎙️ [OPENAI REALTIME] Logging IA intégré dans le tracking principal
-              console.log('🤖 [OPENAI REALTIME] IA Response logged:', finalTranscript.substring(0, 50) + '...')
+        // 💾 [LOGGING SIMPLE] Sauver réponse JARVIS
+        try {
+          if (sessionRef.current?.session_id && finalTranscript) {
+            conversationLogger.logMessage({
+              session_id: sessionRef.current.session_id,
+              speaker: 'jarvis',
+              message: finalTranscript,
+              member_id: sessionRef.current.member_id,
+              gym_id: sessionRef.current.gym_id
+            }).catch(error => console.warn('⚠️ Erreur logging JARVIS:', error))
+          }
+        } catch (logError) {
+          console.warn('⚠️ Exception logging JARVIS:', logError)
+        }
+
+        // 🎙️ [OPENAI REALTIME] Logging IA intégré dans le tracking principal
+        console.log('🤖 [OPENAI REALTIME] IA Response logged:', finalTranscript.substring(0, 50) + '...')
         
         // 🎯 [INSTRUMENTATION] Enregistrer la transcription IA finale
         try {
@@ -741,6 +729,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
       case 'response.done':
         console.log('✅ Réponse complète')
         updateStatus('connected')
+        
+        // 🕐 JARVIS a fini de parler - Démarrer le timeout d'inactivité
+        resetInactivityTimeout()
         break
 
       case 'error':
@@ -849,6 +840,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
     }
+    
+    // 🕐 Nettoyer le timeout d'inactivité
+    clearInactivityTimeout()
 
     // Fermer la peer connection
     if (peerConnectionRef.current) {
@@ -866,6 +860,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
     if (audioElementRef.current) {
       audioElementRef.current.srcObject = null
     }
+
+    // 🕐 Annuler le timeout d'inactivité
+    clearInactivityTimeout()
 
     // 📊 [TRACKING] Finaliser le tracking de session AVANT de reset sessionRef
     await finalizeSessionTracking()

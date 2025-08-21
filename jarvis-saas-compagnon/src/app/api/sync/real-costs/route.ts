@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const { daysBack = 1, force = false } = await request.json()
 
-    console.log('💰 [SYNC API] Démarrage synchronisation coûts réels')
+    // Log supprimé pour production
 
     // Vérifier si une synchronisation est nécessaire (sauf si forcée)
     if (!force) {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: statusCode })
 
   } catch (error) {
-    console.error('💰 [SYNC API] Erreur:', error)
+    // Log supprimé pour production
     return NextResponse.json({
       success: false,
       message: 'Erreur lors de la synchronisation',
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     }, { status: 400 })
 
   } catch (error) {
-    console.error('💰 [SYNC API] Erreur GET:', error)
+    // Log supprimé pour production
     return NextResponse.json({
       success: false,
       error: 'Erreur lors de la vérification',

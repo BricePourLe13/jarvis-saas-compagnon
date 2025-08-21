@@ -209,7 +209,7 @@ export default function GymDetailsPage() {
           const franchiseResult = await franchiseResponse.json()
           setFranchise(franchiseResult.data)
           } else {
-            console.warn(`Franchise API 404 pour ID: ${result.data.franchise_id}`)
+            // Log supprimé pour production
             // Fallback avec nom par défaut
             setFranchise({ 
               id: result.data.franchise_id, 
@@ -217,7 +217,7 @@ export default function GymDetailsPage() {
             } as Franchise)
           }
         } catch (franchiseError) {
-          console.warn('Erreur chargement franchise (fallback):', franchiseError)
+          // Log supprimé pour production
           // Fallback gracieux
           setFranchise({ 
             id: result.data.franchise_id, 
@@ -227,7 +227,7 @@ export default function GymDetailsPage() {
       }
 
     } catch (error) {
-      console.error('Erreur chargement salle:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur de chargement',
         description: 'Impossible de charger les détails de la salle',
@@ -248,7 +248,7 @@ export default function GymDetailsPage() {
       const metrics = await RealOpenAICostsService.getRealTimeMetricsByGym(gymId)
       setJarvisMetrics(metrics)
     } catch (error) {
-      console.warn('Erreur chargement métriques JARVIS (fallback):', error)
+      // Log supprimé pour production
       // Fallback avec données par défaut pour éviter crash
       setJarvisMetrics({
         today: { 
@@ -275,7 +275,7 @@ export default function GymDetailsPage() {
       const supervision = await getKioskSupervisionMetrics(gymId)
       setKioskSupervision(supervision)
     } catch (error) {
-      console.warn('Erreur chargement supervision kiosk (fallback):', error)
+      // Log supprimé pour production
       // Fallback avec données par défaut pour éviter crash
       setKioskSupervision({
         activeSessions: 0,
@@ -302,10 +302,10 @@ export default function GymDetailsPage() {
       
       // ⚡ Log seulement les changements de statut (éviter le spam)
       if (wasOnline !== status.isOnline) {
-        console.log(`💓 [ADMIN] Statut kiosk ${gymId} changé:`, status.isOnline ? 'EN LIGNE' : 'HORS LIGNE')
+        // Log supprimé pour production
       }
     } catch (error) {
-      console.warn('💓 [ADMIN] Erreur chargement statut kiosk (fallback):', error)
+      // Log supprimé pour production
       // Fallback silencieux en production
       setKioskOnlineStatus(false)
     }
@@ -331,7 +331,7 @@ export default function GymDetailsPage() {
       }))
       setIncidents(mapped)
     } catch (e) {
-      console.warn('Erreur chargement incidents:', e)
+      // Log supprimé pour production
       setIncidents([])
     }
   }
@@ -432,7 +432,7 @@ export default function GymDetailsPage() {
         totalInPeriod: periodSessions?.length || 0,
       })
     } catch (e) {
-      console.warn('Erreur chargement résumé sessions:', e)
+      // Log supprimé pour production
       setSessionSummary({ activeCount: 0, activeMemberName: null, totalInPeriod: 0 })
     }
   }
@@ -517,7 +517,7 @@ export default function GymDetailsPage() {
         throw new Error(result.error || 'Erreur lors de la régénération')
       }
     } catch (error) {
-      console.error('Erreur régénération code:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur',
         description: 'Impossible de régénérer le code de provisioning',

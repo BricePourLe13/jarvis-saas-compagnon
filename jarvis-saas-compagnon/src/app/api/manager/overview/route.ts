@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Manager overview error:', error)
+    // Log supprimé pour production
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 })
   }
 }

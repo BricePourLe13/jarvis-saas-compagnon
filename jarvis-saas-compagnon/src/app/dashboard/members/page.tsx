@@ -76,10 +76,10 @@ export default function MembersPage() {
       if (data.success) {
         setMembers(data.members)
       } else {
-        console.error('Erreur récupération membres:', data.error)
+        // Log supprimé pour production
       }
     } catch (error) {
-      console.error('Erreur API membres:', error)
+      // Log supprimé pour production
     } finally {
       setLoading(false)
     }

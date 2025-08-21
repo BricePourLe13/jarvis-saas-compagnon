@@ -169,7 +169,7 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
         })
       }
     } catch (error) {
-      console.error('Erreur chargement sessions:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur système',
         description: 'Une erreur inattendue s\'est produite',
@@ -232,7 +232,7 @@ export default function UserSessionsModal({ isOpen, onClose }: UserSessionsModal
         })
       }
     } catch (error) {
-      console.error('Erreur terminaison session:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur système',
         description: 'Une erreur inattendue s\'est produite',

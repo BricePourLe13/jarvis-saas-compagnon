@@ -335,9 +335,9 @@ export default function LoginPage() {
       })
       
       if (error) { 
-        console.error('❌ Erreur Supabase Auth:', error)
-        console.error('❌ Code d\'erreur:', error.status)
-        console.error('❌ Message détaillé:', error.message)
+        // Log supprimé pour production
+        // Log supprimé pour production
+        // Log supprimé pour production
         setError(error.message)
         setLoading(false)
         // Reset hCaptcha en cas d'erreur
@@ -528,19 +528,19 @@ export default function LoginPage() {
                       ref={captchaRef}
                       sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "59b4e250-bc3c-4940-bf1c-38b0883a1a14"}
                       onVerify={(token) => {
-                        console.log('✅ hCaptcha vérifié:', token)
+                        // Log supprimé pour production
                         setCaptchaToken(token)
                       }}
                       onError={(err) => {
-                        console.error('❌ hCaptcha erreur:', err)
+                        // Log supprimé pour production
                         setCaptchaToken(null)
                       }}
                       onExpire={() => {
-                        console.log('⏰ hCaptcha expiré')
+                        // Log supprimé pour production
                         setCaptchaToken(null)
                       }}
                       onLoad={() => {
-                        console.log('📦 hCaptcha chargé')
+                        // Log supprimé pour production
                       }}
                       theme="light"
                       size="normal"

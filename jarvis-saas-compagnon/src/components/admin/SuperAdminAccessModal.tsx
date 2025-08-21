@@ -86,7 +86,7 @@ export default function SuperAdminAccessModal({
       if (error) throw error
       setFranchises(franchiseData || [])
     } catch (error) {
-      console.error('Erreur chargement franchises:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur',
         description: 'Impossible de charger les franchises',
@@ -115,7 +115,7 @@ export default function SuperAdminAccessModal({
       setSelectedFranchises(userData?.franchise_access || [])
       setSelectedGyms(userData?.gym_access || [])
     } catch (error) {
-      console.error('Erreur chargement accès:', error)
+      // Log supprimé pour production
     }
   }
 
@@ -173,7 +173,7 @@ export default function SuperAdminAccessModal({
       onSuccess?.()
       onClose()
     } catch (error) {
-      console.error('Erreur sauvegarde accès:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur',
         description: 'Impossible de sauvegarder les accès',

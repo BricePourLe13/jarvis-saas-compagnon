@@ -47,7 +47,7 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error('Erreur Supabase:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -70,7 +70,7 @@ export async function GET(
 
     // Vérifier si le code de provisioning manque et le générer si nécessaire
     if (!gym.kiosk_config?.provisioning_code) {
-      console.log(`Génération automatique du code de provisioning pour la salle ${gym.name}`)
+      // Log supprimé pour production
       
       const newProvisioningCode = generateProvisioningCode()
       const updatedKioskConfig = {
@@ -88,9 +88,9 @@ export async function GET(
 
       if (!updateError) {
         gym.kiosk_config = updatedKioskConfig
-        console.log(`✅ Code de provisioning généré: ${newProvisioningCode}`)
+        // Log supprimé pour production
       } else {
-        console.error('Erreur lors de la mise à jour du code:', updateError)
+        // Log supprimé pour production
       }
     }
 
@@ -100,7 +100,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Erreur serveur:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 
@@ -181,7 +181,7 @@ export async function POST(
       .eq('id', id)
 
     if (updateError) {
-      console.error('Erreur lors de la mise à jour:', updateError)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -191,7 +191,7 @@ export async function POST(
       )
     }
 
-    console.log(`✅ Nouveau code de provisioning généré pour ${gym.name}: ${newProvisioningCode}`)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -203,7 +203,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('Erreur serveur:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 
@@ -248,7 +248,7 @@ export async function PUT(
       .single()
 
     if (error) {
-      console.error('Erreur Supabase:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -266,7 +266,7 @@ export async function PUT(
     })
 
   } catch (error) {
-    console.error('Erreur serveur:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 
@@ -307,7 +307,7 @@ export async function DELETE(
       .eq('id', id)
 
     if (error) {
-      console.error('Erreur Supabase:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -324,7 +324,7 @@ export async function DELETE(
     })
 
   } catch (error) {
-    console.error('Erreur serveur:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 

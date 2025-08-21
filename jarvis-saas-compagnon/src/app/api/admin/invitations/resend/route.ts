@@ -115,9 +115,9 @@ export async function POST(request: NextRequest) {
     // 6. Supprimer l'utilisateur de Supabase Auth (si existe)
     try {
       await adminSupabase.auth.admin.deleteUser(existingUser.id)
-      console.log(`🗑️ Ancien utilisateur Auth supprimé: ${existingUser.id}`)
+      // Log supprimé pour production
     } catch (deleteError) {
-      console.log(`ℹ️ Utilisateur Auth non trouvé (normal): ${existingUser.id}`)
+      // Log supprimé pour production
     }
 
     // 7. Supprimer de la table users
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       .eq('id', existingUser.id)
 
     if (deleteUserError) {
-      console.error('❌ Erreur suppression user:', deleteUserError)
+      // Log supprimé pour production
     }
 
     // 8. 🔥 RENVOYER L'INVITATION
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     )
 
     if (inviteError) {
-      console.error('❌ Erreur réenvoi invitation:', inviteError)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
       })
 
     if (profileError) {
-      console.error('❌ Erreur recréation profil:', profileError)
+      // Log supprimé pour production
     }
 
     // 10. Log de l'action
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 201 })
 
   } catch (error: any) {
-    console.error('💥 Erreur système réenvoi invitation:', error)
+    // Log supprimé pour production
     
     return NextResponse.json(
       { 

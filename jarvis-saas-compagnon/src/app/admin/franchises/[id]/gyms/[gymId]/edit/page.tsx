@@ -116,7 +116,7 @@ export default function GymEditPage() {
       })
 
     } catch (error) {
-      console.error('Erreur chargement salle:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur de chargement',
         description: 'Impossible de charger les détails de la salle',
@@ -212,7 +212,7 @@ export default function GymEditPage() {
       router.push(`/admin/franchises/${franchiseId}/gyms/${gymId}`)
 
     } catch (error) {
-      console.error('Erreur sauvegarde:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur de sauvegarde',
         description: 'Impossible de sauvegarder les modifications',

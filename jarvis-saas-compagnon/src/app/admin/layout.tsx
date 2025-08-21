@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       setUser(profile)
     } catch (error) {
-      console.error('Erreur auth:', error)
+      // Log supprimé pour production
       router.push('/auth/setup')
     } finally {
       setLoading(false)

@@ -23,8 +23,7 @@ export async function GET(request: NextRequest) {
     // Récupérer l'utilisateur actuel
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    console.log('🔍 [DEBUG AUTH] User:', user?.id)
-    console.log('🔍 [DEBUG AUTH] AuthError:', authError)
+    // Vérification de l'authentification
     
     if (authError || !user) {
       return NextResponse.json({ 
@@ -43,19 +42,50 @@ export async function GET(request: NextRequest) {
     // Vérifier le profil utilisateur
     
     if (profileError) {
-      console.error('❌ Erreur profil utilisateur:', profileError)
+      // Erreur lors de la récupération du profil utilisateur
       return NextResponse.json({ error: 'Erreur récupération profil utilisateur' }, { status: 500 })
     }
     
     // 🔧 TEMP: Permettre tous les rôles admin pour debug
-    const allowedRoles = ['manager', 'super_admin', 'franchise_admin', 'franchise_owner']
+    const allowedRoles = ['manager', 'super_admin', 'franchise_admin', 'franchise_owner', 'gym_manager', 'gym_staff']
     if (!userProfile?.role || !allowedRoles.includes(userProfile.role)) {
       return NextResponse.json({ 
         error: `Accès refusé - Role autorisé requis. Role actuel: ${userProfile?.role}` 
       }, { status: 403 })
     }
 
-    // 🔧 FIX: Récupérer les membres SANS join (relation cassée)
+    // 🔒 ISOLATION CRITIQUE: Déterminer gym_id selon le rôle
+    const { searchParams } = new URL(request.url)
+    const gymIdParam = searchParams.get('gymId')
+    
+    let gymId = gymIdParam || ''
+    const isAdmin = ['super_admin', 'franchise_owner', 'franchise_admin'].includes(userProfile.role)
+    
+    if (!isAdmin) {
+      // Manager/Staff ne peut voir QUE sa gym
+      const { data: myGym } = await supabase
+        .from('gyms')
+        .select('id')
+        .eq('manager_id', user.id)
+        .maybeSingle()
+      
+      if (!myGym) {
+        return NextResponse.json({ 
+          error: 'Aucune salle assignée à ce manager' 
+        }, { status: 403 })
+      }
+      gymId = myGym.id
+    }
+    
+    if (!gymId) {
+      return NextResponse.json({ 
+        error: 'gymId requis pour ce rôle' 
+      }, { status: 400 })
+    }
+
+    // Accès aux membres avec isolation par gym
+
+    // 🔒 FIX CRITIQUE: Filtrer par gym_id pour isolation stricte
     const { data: members, error: membersError } = await supabase
       .from('gym_members')
       .select(`
@@ -74,11 +104,12 @@ export async function GET(request: NextRequest) {
         gym_id
       `)
       .eq('is_active', true)
+      .eq('gym_id', gymId)
       .order('last_visit', { ascending: false })
       .limit(20)
 
     if (membersError) {
-      console.error('❌ Erreur récupération membres:', membersError)
+      // Erreur lors de la récupération des membres
       return NextResponse.json({ error: 'Erreur récupération membres' }, { status: 500 })
     }
 
@@ -151,7 +182,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ Erreur API membres:', error)
+    // Log supprimé pour production
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }
 }

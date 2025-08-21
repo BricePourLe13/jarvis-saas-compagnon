@@ -102,18 +102,18 @@ function SetupContent() {
       
       if (hasInvitationParams) {
         // Il y a des paramètres d'invitation dans l'URL
-        console.log('🔍 [DEBUG] Paramètres d\'invitation détectés dans l\'URL')
+        // Log supprimé pour production
         
         // Cas spécial : si on a un access_token dans le fragment, établir la session
         if (fragmentParams.has('access_token')) {
-          console.log('✅ [DEBUG] Access token trouvé dans fragment, établissement session...')
+          // Log supprimé pour production
           
           // Forcer l'établissement de session avec les tokens du fragment
           const accessToken = fragmentParams.get('access_token')
           const refreshToken = fragmentParams.get('refresh_token')
           
           if (accessToken && refreshToken) {
-            console.log('🔄 [DEBUG] Établissement session avec tokens fragment...')
+            // Log supprimé pour production
             
             // Établir la session avec les tokens
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
@@ -122,9 +122,9 @@ function SetupContent() {
             })
             
             if (sessionError) {
-              console.error('❌ [DEBUG] Erreur établissement session:', sessionError)
+              // Log supprimé pour production
             } else if (sessionData.user) {
-              console.log('✅ [DEBUG] Session établie, utilisateur:', sessionData.user.email)
+              // Log supprimé pour production
             
             // Récupérer le profil
             const { data: userProfile, error: profileError } = await supabase
@@ -134,7 +134,7 @@ function SetupContent() {
               .single()
 
             if (!profileError && userProfile) {
-              console.log('✅ [DEBUG] Profil trouvé, invitation valide!')
+              // Log supprimé pour production
               setUserInfo({
                 email: userProfile.email,
                 full_name: userProfile.full_name,
@@ -145,23 +145,23 @@ function SetupContent() {
             }
             }
           } else {
-            console.log('❌ [DEBUG] Tokens manquants dans fragment')
+            // Log supprimé pour production
           }
         }
         
         // Sinon, traitement classique des tokens dans query params
         // Attendre un peu que Supabase traite l'invitation
-        console.log('⏳ [DEBUG] Attente traitement Supabase (1s)...')
+        // Log supprimé pour production
         await new Promise(resolve => setTimeout(resolve, 1000))
         
         // Re-vérifier si l'utilisateur est maintenant connecté
-        console.log('🔄 [DEBUG] Re-vérification après délai...')
+        // Log supprimé pour production
         const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser()
         
-        console.log('🔍 [DEBUG] Retry getUser:', { user: retryUser?.id, email: retryUser?.email, error: retryError })
+        // Log supprimé pour production
         
         if (retryUser && !retryError) {
-          console.log('✅ [DEBUG] Utilisateur connecté après retry, récupération profil...')
+          // Log supprimé pour production
           // L'invitation a été traitée, récupérer le profil
           const { data: userProfile, error: profileError } = await supabase
             .from('users')
@@ -169,10 +169,10 @@ function SetupContent() {
             .eq('id', retryUser.id)
             .single()
 
-          console.log('🔍 [DEBUG] Profil après retry:', { userProfile, profileError })
+          // Log supprimé pour production
 
           if (!profileError && userProfile) {
-            console.log('✅ [DEBUG] Profil trouvé après retry, invitation valide!')
+            // Log supprimé pour production
             setUserInfo({
               email: userProfile.email,
               full_name: userProfile.full_name,
@@ -184,24 +184,24 @@ function SetupContent() {
         }
         
         // Essayer une deuxième fois avec un délai plus long
-        console.log('⏳ [DEBUG] Tentative 2 avec délai plus long (3s)...')
+        // Log supprimé pour production
         await new Promise(resolve => setTimeout(resolve, 3000))
         
         const { data: { user: retry2User }, error: retry2Error } = await supabase.auth.getUser()
-        console.log('🔍 [DEBUG] Retry2 getUser:', { user: retry2User?.id, email: retry2User?.email, error: retry2Error })
+        // Log supprimé pour production
         
         if (retry2User && !retry2Error) {
-          console.log('✅ [DEBUG] Utilisateur connecté après retry2, récupération profil...')
+          // Log supprimé pour production
           const { data: userProfile, error: profileError } = await supabase
             .from('users')
             .select('*')
             .eq('id', retry2User.id)
             .single()
 
-          console.log('🔍 [DEBUG] Profil après retry2:', { userProfile, profileError })
+          // Log supprimé pour production
 
           if (!profileError && userProfile) {
-            console.log('✅ [DEBUG] Profil trouvé après retry2, invitation valide!')
+            // Log supprimé pour production
             setUserInfo({
               email: userProfile.email,
               full_name: userProfile.full_name,
@@ -214,11 +214,11 @@ function SetupContent() {
       }
 
       // 3. Si toujours pas de succès, marquer comme invalide
-      console.log('❌ [DEBUG] Invitation invalide ou expirée')
+      // Log supprimé pour production
       setTokenValid(false)
 
     } catch (error) {
-      console.error('❌ [DEBUG] Erreur vérification invitation:', error)
+      // Log supprimé pour production
       setTokenValid(false)
     } finally {
       setVerifying(false)
@@ -281,11 +281,11 @@ function SetupContent() {
         .eq('id', user.id)
 
       if (activateError) {
-        console.error('❌ Erreur activation:', activateError)
+        // Log supprimé pour production
         throw new Error('Impossible d\'activer le compte: ' + activateError.message)
       }
 
-      console.log('✅ Compte activé avec succès pour:', user.email)
+      // Log supprimé pour production
 
       // Message personnalisé selon le rôle
       const getWelcomeMessage = (role: string) => {

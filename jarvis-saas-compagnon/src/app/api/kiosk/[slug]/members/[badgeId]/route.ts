@@ -30,9 +30,9 @@ export async function GET(
       }
     )
 
-    console.log(`🔍 [MEMBER API] Recherche membre avec badge ${badgeId} pour salle ${slug}`)
-    console.log(`🔍 [MEMBER API] URL Supabase: ${process.env.NEXT_PUBLIC_SUPABASE_URL}`)
-    console.log(`🔍 [MEMBER API] Has ANON_KEY: ${!!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`)
+    // Log supprimé pour production
+    // Log supprimé pour production
+    // Log supprimé pour production
 
     // 2. Trouver la salle par slug
     const { data: gym, error: gymError } = await supabase
@@ -42,7 +42,7 @@ export async function GET(
       .single()
 
     if (gymError || !gym) {
-      console.error('Salle introuvable:', gymError)
+      // Log supprimé pour production
       return NextResponse.json({
         found: false,
         error: 'Salle introuvable'
@@ -72,7 +72,7 @@ export async function GET(
       .single()
 
     if (memberError || !member) {
-      console.warn(`Badge ${badgeId} non trouvé:`, memberError)
+      // Log supprimé pour production
       return NextResponse.json({
         found: false,
         error: 'Badge non reconnu'
@@ -88,9 +88,9 @@ export async function GET(
           p_gym_slug: slug
         })
 
-      console.log(`✅ Visite enregistrée pour ${member.first_name} ${member.last_name}`)
+      // Log supprimé pour production
     } catch (visitError) {
-      console.warn('Erreur enregistrement visite:', visitError)
+      // Log supprimé pour production
       // Ne pas faire échouer la requête pour cette erreur
     }
 
@@ -129,7 +129,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('Erreur lookup membre:', error)
+    // Log supprimé pour production
     return NextResponse.json({
       found: false,
       error: 'Erreur serveur lors de la recherche membre'
@@ -198,7 +198,7 @@ export async function POST(
       .single()
 
     if (createError) {
-      console.error('[KIOSK] Erreur création membre:', createError)
+      // Log supprimé pour production
       return NextResponse.json(
         { error: 'Erreur lors de la création du membre' },
         { status: 500 }
@@ -211,7 +211,7 @@ export async function POST(
     })
 
   } catch (error) {
-    console.error('[KIOSK] Erreur POST membre:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }

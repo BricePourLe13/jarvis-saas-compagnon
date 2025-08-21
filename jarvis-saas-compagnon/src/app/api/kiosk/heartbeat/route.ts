@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       })
 
     if (error) {
-      console.error('❌ [HEARTBEAT] Erreur sauvegarde:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { error: 'Erreur serveur' },
         { status: 500 }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [HEARTBEAT] Erreur:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [HEARTBEAT] Erreur GET:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }

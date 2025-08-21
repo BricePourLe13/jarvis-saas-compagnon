@@ -124,7 +124,7 @@ export async function GET(
     const { data: gyms, error: gymsError, count } = await query
 
     if (gymsError) {
-      console.error('Erreur récupération salles:', gymsError)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -177,7 +177,7 @@ export async function GET(
     return NextResponse.json(response, { status: 200 })
 
   } catch (error) {
-    console.error('Erreur inattendue:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 

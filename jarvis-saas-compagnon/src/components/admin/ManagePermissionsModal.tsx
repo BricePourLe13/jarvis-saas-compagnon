@@ -111,7 +111,7 @@ export default function ManagePermissionsModal({ isOpen, onClose, user, onSucces
         setGyms(gymsData.data)
       }
     } catch (error) {
-      console.error('Erreur chargement données:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur',
         description: 'Impossible de charger les franchises et salles',

@@ -122,7 +122,7 @@ function InviteModal({ isOpen, onClose, onSuccess }: {
         setFranchises(data.data)
       }
     } catch (error) {
-      console.error('Erreur chargement franchises:', error)
+      // Log supprimé pour production
     }
   }
 
@@ -523,10 +523,10 @@ export default function TeamPage() {
         
         setStats(newStats)
       } else {
-        console.error('❌ Réponse API invalide:', data)
+        // Log supprimé pour production
       }
     } catch (error) {
-      console.error('❌ Erreur chargement utilisateurs:', error)
+      // Log supprimé pour production
     } finally {
       setLoading(false)
     }

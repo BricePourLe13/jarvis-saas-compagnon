@@ -104,7 +104,7 @@ export default function FranchisePage() {
         loadFranchise(profile.franchise_id)
       }
     } catch (error) {
-      console.error('Erreur authentification:', error)
+      // Log supprimé pour production
       router.push('/auth/login')
     } finally {
       setLoading(false)
@@ -122,7 +122,7 @@ export default function FranchisePage() {
       if (error) throw error
       setFranchise(data)
     } catch (error) {
-      console.error('Erreur chargement franchise:', error)
+      // Log supprimé pour production
     }
   }
 

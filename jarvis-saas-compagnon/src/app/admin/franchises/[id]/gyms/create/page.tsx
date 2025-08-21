@@ -70,7 +70,7 @@ export default function CreateGymPage() {
 
         setFranchise(foundFranchise)
       } catch (error) {
-        console.error('Erreur chargement franchise:', error)
+        // Log supprimé pour production
         toast({
           title: 'Erreur',
           description: 'Impossible de charger les informations de la franchise',

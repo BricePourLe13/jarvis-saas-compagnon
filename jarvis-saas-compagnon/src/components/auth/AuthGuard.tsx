@@ -24,7 +24,7 @@ export default function AuthGuard({ children, requiredRole = 'super_admin' }: Au
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         
         if (authError || !user) {
-          console.log('Pas d\'utilisateur authentifié, redirection vers login')
+          // Log supprimé pour production
           router.push('/')
           return
         }
@@ -39,27 +39,27 @@ export default function AuthGuard({ children, requiredRole = 'super_admin' }: Au
           .single()
 
         if (profileError) {
-          console.error('Erreur récupération profil:', profileError)
+          // Log supprimé pour production
           router.push('/')
           return
         }
 
         if (!profile) {
-          console.log('Profil utilisateur non trouvé')
+          // Log supprimé pour production
           router.push('/')
           return
         }
 
         // Vérifier le rôle requis
         if (requiredRole && profile.role !== requiredRole && profile.role !== 'super_admin') {
-          console.log(`Accès refusé. Rôle requis: ${requiredRole}, rôle actuel: ${profile.role}`)
+          // Log supprimé pour production
           router.push('/unauthorized')
           return
         }
 
         setUserProfile(profile)
       } catch (error) {
-        console.error('Erreur authentification:', error)
+        // Log supprimé pour production
         router.push('/')
       } finally {
         setLoading(false)

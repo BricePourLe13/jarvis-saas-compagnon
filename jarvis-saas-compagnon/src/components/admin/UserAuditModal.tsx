@@ -174,7 +174,7 @@ export default function UserAuditModal({ isOpen, onClose, user }: UserAuditModal
         })
       }
     } catch (error) {
-      console.error('Erreur chargement audit:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur système',
         description: 'Une erreur inattendue s\'est produite',

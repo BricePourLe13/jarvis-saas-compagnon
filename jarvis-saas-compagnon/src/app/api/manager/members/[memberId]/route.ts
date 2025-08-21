@@ -85,7 +85,7 @@ export async function GET(
       .limit(500) // Limiter pour éviter les gros volumes
 
     if (conversationsError) {
-      console.error('❌ Erreur récupération conversations:', conversationsError)
+      // Log supprimé pour production
       return NextResponse.json({ error: 'Erreur récupération conversations' }, { status: 500 })
     }
 
@@ -152,7 +152,7 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('❌ Erreur API détail membre:', error)
+    // Log supprimé pour production
     return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }
 }

@@ -153,7 +153,7 @@ export default function FranchiseCreateFormSimple({ onSuccess, onCancel }: Franc
       }
 
     } catch (error) {
-      console.error('Erreur création franchise:', error)
+      // Log supprimé pour production
       
       const errorMessage = error instanceof Error ? error.message : 'Erreur inattendue'
       setErrors([errorMessage])

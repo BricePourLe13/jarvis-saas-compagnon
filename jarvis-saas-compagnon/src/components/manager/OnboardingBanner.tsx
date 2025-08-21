@@ -56,7 +56,7 @@ export default function OnboardingBanner({ gymId, onComplete, onDismiss }: Onboa
           }
         }
       } catch (error) {
-        console.error('Error fetching onboarding:', error)
+        // Log supprimé pour production
       } finally {
         setLoading(false)
       }
@@ -93,7 +93,7 @@ export default function OnboardingBanner({ gymId, onComplete, onDismiss }: Onboa
         }
       }
     } catch (error) {
-      console.error('Error updating mission:', error)
+      // Log supprimé pour production
     }
   }
 

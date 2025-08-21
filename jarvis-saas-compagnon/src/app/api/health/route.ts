@@ -1,6 +1,7 @@
 // 🏥 Health Check API - Monitoring infrastructure
 import { NextRequest, NextResponse } from 'next/server'
 import { withRateLimit, apiLimiter } from '../../../lib/rate-limiter'
+import { captureError, monitorSupabaseQuery } from '../../../lib/sentry-utils'
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy'
@@ -150,7 +151,10 @@ async function healthCheckHandler(request: NextRequest): Promise<NextResponse> {
     })
 
   } catch (error) {
-    console.error('❌ [HEALTH] Erreur critique lors du health check:', error)
+    // 🔍 Sentry: Capturer les erreurs critiques de health check
+    captureError(error as Error, {
+      endpoint: '/api/health',
+    });
     
     const errorStatus: HealthStatus = {
       status: 'unhealthy',

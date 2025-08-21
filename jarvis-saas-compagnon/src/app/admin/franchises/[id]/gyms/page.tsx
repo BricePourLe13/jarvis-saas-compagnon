@@ -83,7 +83,7 @@ export default function FranchiseGymsPage() {
     try {
       const supabase = createBrowserClientWithConfig()
       
-      console.log('🔍 Recherche franchise avec ID:', franchiseId)
+      // Log supprimé pour production
       
       // Charger franchise + ses salles
       const { data: franchiseData, error: franchiseError } = await supabase
@@ -105,11 +105,11 @@ export default function FranchiseGymsPage() {
         .eq('id', franchiseId)
         .single()
 
-      console.log('📊 Données franchise:', franchiseData)
-      console.log('❌ Erreur franchise:', franchiseError)
+      // Log supprimé pour production
+      // Log supprimé pour production
 
       if (franchiseError) {
-        console.error('Erreur lors du chargement de la franchise:', franchiseError)
+        // Log supprimé pour production
         throw franchiseError
       }
 
@@ -137,8 +137,8 @@ export default function FranchiseGymsPage() {
           .gte('timestamp', startOfDay.toISOString())
       ])
 
-      if (sessionsResp.error) console.warn('Erreur sessions:', sessionsResp.error)
-      if (heartbeatsResp.error) console.warn('Erreur heartbeats:', heartbeatsResp.error)
+      if (sessionsResp.error) // Log supprimé pour production
+      if (heartbeatsResp.error) // Log supprimé pour production
 
       const sessions = sessionsResp.data || []
       const heartbeats = heartbeatsResp.data || []
@@ -229,7 +229,7 @@ export default function FranchiseGymsPage() {
       setGyms(transformedGyms)
       setMetrics(franchiseMetrics)
     } catch (error) {
-      console.error('Erreur chargement franchise:', error)
+      // Log supprimé pour production
     } finally {
       setLoading(false)
     }

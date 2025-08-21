@@ -272,7 +272,7 @@ export default function BulkOperationsModal({
       }, 1500)
 
     } catch (error) {
-      console.error('Erreur opération en masse:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur système',
         description: 'Une erreur inattendue s\'est produite',

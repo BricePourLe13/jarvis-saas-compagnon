@@ -32,7 +32,7 @@ export const useGoodbyeDetection = ({
   // Créer et configurer SpeechRecognition
   const createRecognition = useCallback(() => {
     if (!isSpeechRecognitionSupported()) {
-      console.warn('❌ [GOODBYE] Speech Recognition non supporté')
+      // Warning supprimé pour production
       return null
     }
 
@@ -53,11 +53,11 @@ export const useGoodbyeDetection = ({
       
       if (lastResult.isFinal) {
         const transcript = lastResult[0].transcript.toLowerCase().trim()
-        console.log('🎯 [GOODBYE] Speech Recognition:', transcript)
+        // Log supprimé pour production
 
         // ❌ IGNORER SI JARVIS PARLE
         if (isJarvisSpeaking) {
-          console.log('🔇 [GOODBYE] Ignoré - JARVIS parle:', transcript)
+          // Log supprimé pour production
           return
         }
 
@@ -75,31 +75,31 @@ export const useGoodbyeDetection = ({
           // Éviter les détections multiples rapides
           const now = Date.now()
           if (now - lastDetectionRef.current < 5000) {
-            console.log('🔄 [GOODBYE] Détection trop rapide, ignorée')
+            // Log supprimé pour production
             return
           }
           
           lastDetectionRef.current = now
-          console.log('👋 [GOODBYE] AU REVOIR DÉTECTÉ !', transcript)
+          // Log supprimé pour production
           
           // Arrêter la reconnaissance et déclencher la fermeture
           recognition.stop()
           onGoodbyeDetected()
         } else {
-          console.log('➡️ [GOODBYE] Pas un au revoir:', transcript)
+          // Log supprimé pour production
         }
       }
     }
 
     // Gestion des erreurs
     recognition.onerror = (event) => {
-      console.warn('⚠️ [GOODBYE] Erreur Speech Recognition:', event.error)
+      // Warning supprimé pour production
       
       // Redémarrer automatiquement sauf si arrêt volontaire
       if (isActive && event.error !== 'aborted') {
         restartTimeoutRef.current = setTimeout(() => {
           if (isActive) {
-            console.log('🔄 [GOODBYE] Redémarrage automatique...')
+            // Log supprimé pour production
             startListening()
           }
         }, 1000)
@@ -108,7 +108,7 @@ export const useGoodbyeDetection = ({
 
     // Redémarrer quand ça s'arrête
     recognition.onend = () => {
-      console.log('🔄 [GOODBYE] Recognition terminée')
+      // Log supprimé pour production
       
       // 🗑️ [WHISPER TRACKER] SUPPRIMÉ - OpenAI gère tout maintenant
       
@@ -119,7 +119,7 @@ export const useGoodbyeDetection = ({
             try {
               recognitionRef.current.start()
             } catch (error) {
-              console.warn('⚠️ [GOODBYE] Impossible de redémarrer:', error)
+              // Warning supprimé pour production
             }
           }
         }, 500)
@@ -132,12 +132,12 @@ export const useGoodbyeDetection = ({
   // Démarrer l'écoute
   const startListening = useCallback(() => {
     if (!isSpeechRecognitionSupported()) {
-      console.warn('❌ [GOODBYE] Speech Recognition non disponible')
+      // Warning supprimé pour production
       return
     }
 
     try {
-      console.log('🎤 [GOODBYE] Démarrage détection au revoir...')
+      // Log supprimé pour production
 
       // Créer nouvelle instance si nécessaire
       if (!recognitionRef.current) {
@@ -149,10 +149,10 @@ export const useGoodbyeDetection = ({
         try {
           recognitionRef.current.start()
           setIsListening(true)
-          console.log('✅ [GOODBYE] Détection démarrée')
+          // Log supprimé pour production
         } catch (startError) {
           if (startError instanceof Error && startError.message.includes('already started')) {
-            console.log('⚠️ [GOODBYE] Reconnaissance déjà active, pas de redémarrage')
+            // Log supprimé pour production
           } else {
             throw startError
           }
@@ -160,13 +160,13 @@ export const useGoodbyeDetection = ({
       }
 
     } catch (error) {
-      console.error('❌ [GOODBYE] Erreur démarrage:', error)
+      // Erreur supprimée pour production
     }
   }, [createRecognition, isSpeechRecognitionSupported])
 
   // Arrêter l'écoute
   const stopListening = useCallback(() => {
-    console.log('🛑 [GOODBYE] Arrêt détection au revoir...')
+    // Log supprimé pour production
 
     if (restartTimeoutRef.current) {
       clearTimeout(restartTimeoutRef.current)
@@ -193,10 +193,10 @@ export const useGoodbyeDetection = ({
   // Pauser/reprendre quand JARVIS parle
   useEffect(() => {
     if (isJarvisSpeaking && isListening && recognitionRef.current) {
-      console.log('⏸️ [GOODBYE] Pause - JARVIS parle')
+      // Log supprimé pour production
       recognitionRef.current.stop()
     } else if (!isJarvisSpeaking && isActive && !isListening) {
-      console.log('▶️ [GOODBYE] Reprise - JARVIS arrêté')
+      // Log supprimé pour production
       startListening()
     }
   }, [isJarvisSpeaking, isActive, isListening, startListening])

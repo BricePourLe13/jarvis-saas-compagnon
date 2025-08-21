@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     const { data: users, error: usersError } = await query
 
     if (usersError) {
-      console.error('❌ Erreur récupération utilisateurs:', usersError)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('💥 Erreur système récupération users:', error)
+    // Log supprimé pour production
     
     return NextResponse.json(
       { 

@@ -42,7 +42,7 @@ export function useSoundEffects({ enabled = true, volume = 0.3 }: SoundEffectsOp
       oscillator.stop(audioContext.currentTime + duration)
 
     } catch (error) {
-      console.warn('[SOUND] ⚠️ Erreur génération son:', error)
+      // Warning supprimé pour production
     }
   }, [enabled, volume, initAudioContext])
 

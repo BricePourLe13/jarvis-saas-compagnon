@@ -130,7 +130,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     const { data: logs, error: logsError } = await query
 
     if (logsError) {
-      console.error('❌ Erreur récupération logs:', logsError)
+      // Log supprimé pour production
       return NextResponse.json(
         { success: false, error: logsError.message, message: 'Erreur lors de la récupération des logs' },
         { status: 500 }
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       top_users: []
     }
 
-    console.log('✅ Logs d\'activité récupérés:', logs?.length || 0)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     })
 
   } catch (error) {
-    console.error('❌ Erreur API get activity logs:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }
@@ -225,14 +225,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     })
 
     if (error) {
-      console.error('❌ Erreur création log activité:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { success: false, error: error.message, message: 'Erreur lors de la création du log' },
         { status: 500 }
       )
     }
 
-    console.log('✅ Log d\'activité créé:', logId)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
     })
 
   } catch (error) {
-    console.error('❌ Erreur API create activity log:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }

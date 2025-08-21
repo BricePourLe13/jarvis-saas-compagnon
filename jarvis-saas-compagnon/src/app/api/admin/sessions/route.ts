@@ -136,7 +136,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     const { data: sessions, error: sessionsError } = await query
 
     if (sessionsError) {
-      console.error('❌ Erreur récupération sessions:', sessionsError)
+      // Log supprimé pour production
       return NextResponse.json(
         { success: false, error: sessionsError.message, message: 'Erreur lors de la récupération des sessions' },
         { status: 500 }
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
         .map(([location, count]) => ({ location, count }))
     }
 
-    console.log('✅ Sessions actives récupérées:', sessions?.length || 0)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     })
 
   } catch (error) {
-    console.error('❌ Erreur API get sessions:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }
@@ -256,7 +256,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<ApiResp
       })
 
       if (error) {
-        console.error('❌ Erreur terminaison sessions:', error)
+        // Log supprimé pour production
         return NextResponse.json(
           { success: false, error: error.message, message: 'Erreur lors de la terminaison des sessions' },
           { status: 500 }
@@ -273,7 +273,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<ApiResp
       })
 
       if (error) {
-        console.error('❌ Erreur terminaison session:', error)
+        // Log supprimé pour production
         return NextResponse.json(
           { success: false, error: error.message, message: 'Erreur lors de la terminaison de la session' },
           { status: 500 }
@@ -291,7 +291,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<ApiResp
     // Log de l'activité
     // TODO: Intégrer logBulkOperation ici
 
-    console.log(`✅ ${terminatedCount} session(s) terminée(s)`)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -300,7 +300,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<ApiResp
     })
 
   } catch (error) {
-    console.error('❌ Erreur API terminate sessions:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }

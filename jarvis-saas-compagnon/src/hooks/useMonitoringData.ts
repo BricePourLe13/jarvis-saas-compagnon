@@ -140,10 +140,10 @@ export function useMonitoringData({
       ])
 
       if (sessionsResponse.error) {
-        console.warn('Erreur sessions:', sessionsResponse.error)
+        // Warning supprimé pour production
       }
       if (gymsResponse.error) {
-        console.error('Erreur gyms:', gymsResponse.error)
+        // Erreur supprimée pour production
         throw gymsResponse.error
       }
 
@@ -254,7 +254,7 @@ export function useMonitoringData({
       setKiosks(transformedKiosks)
 
     } catch (err) {
-      console.error('Erreur loadData:', err)
+      // Erreur supprimée pour production
       setError(err instanceof Error ? err.message : 'Erreur de chargement')
     } finally {
       setLoading(false)

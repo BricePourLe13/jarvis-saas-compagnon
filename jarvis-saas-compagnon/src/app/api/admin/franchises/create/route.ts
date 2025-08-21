@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     // La gestion des utilisateurs propriétaires sera ajoutée plus tard
     let ownerId: string | null = null
     
-    console.log('Création franchise:', {
+    // Log supprimé pour production
       name: body.name,
       contact_email: body.contact_email,
       create_owner: body.owner_email ? 'Yes' : 'No'
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (franchiseError) {
-      console.error('Erreur création franchise:', franchiseError)
+      // Log supprimé pour production
       
       // Gestion spécifique des erreurs de contrainte unique
       let errorMessage = 'Erreur lors de la création de la franchise'
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 201 })
 
   } catch (error) {
-    console.error('Erreur inattendue:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 

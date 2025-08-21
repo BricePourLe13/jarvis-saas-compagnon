@@ -32,11 +32,11 @@ export function useKioskHeartbeat({
       })
 
       if (!response.ok) {
-        console.warn('💓 [HEARTBEAT] Échec envoi heartbeat:', response.status)
+        // Warning supprimé pour production
       }
       // ⚡ Logs réduits pour éviter le spam (succès en mode silencieux)
     } catch (error) {
-      console.warn('💓 [HEARTBEAT] Erreur envoi heartbeat:', error)
+      // Warning supprimé pour production
     }
   }
 
@@ -49,7 +49,7 @@ export function useKioskHeartbeat({
       const version = Number((json?.data?.kiosk_config?.config_version) || 0)
       if (version > lastKnownConfigVersionRef.current) {
         lastKnownConfigVersionRef.current = version
-        console.log('🛠️ [KIOSK CONFIG] Nouvelle version publiée, sera appliquée entre sessions:', version)
+        // Log supprimé pour production
         // Ici on pourrait déclencher un callback global (ex: event bus) pour recharger config quand idle
       }
     } catch (e) {
@@ -62,13 +62,13 @@ export function useKioskHeartbeat({
     isActiveRef.current = !document.hidden
     
     if (document.hidden) {
-      console.log('💓 [HEARTBEAT] Page masquée - pause heartbeat')
+      // Log supprimé pour production
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
         intervalRef.current = null
       }
     } else {
-      console.log('💓 [HEARTBEAT] Page visible - reprise heartbeat')
+      // Log supprimé pour production
       startHeartbeat()
     }
   }

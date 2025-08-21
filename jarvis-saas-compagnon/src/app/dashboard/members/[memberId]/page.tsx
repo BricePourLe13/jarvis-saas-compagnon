@@ -123,7 +123,7 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
 
   // 🔄 REALTIME: Écouter les nouvelles conversations
   const setupRealtimeSubscription = () => {
-    console.log('🔄 [REALTIME] Configuration subscription pour membre:', memberId)
+    // Log supprimé pour production
     
     const channel = supabase
       .channel('member_conversations')
@@ -136,12 +136,12 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
           filter: `member_id=eq.${memberId}`
         },
         (payload) => {
-          console.log('🔄 [REALTIME] Nouvelle conversation reçue:', payload.new)
+          // Log supprimé pour production
           handleNewConversation(payload.new as ConversationLog)
         }
       )
       .subscribe((status) => {
-        console.log('🔄 [REALTIME] Statut subscription:', status)
+        // Log supprimé pour production
         setRealtimeConnected(status === 'SUBSCRIBED')
       })
   }
@@ -152,12 +152,12 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
     
     // Éviter les doublons (throttling simple)
     if (now - lastUpdateRef.current < 1000) {
-      console.log('🔄 [REALTIME] Throttling update...')
+      // Log supprimé pour production
       return
     }
     lastUpdateRef.current = now
     
-    console.log('📨 [REALTIME] Ajout conversation temps réel:', {
+    // Log supprimé pour production
       speaker: newConversation.speaker,
       sessionId: newConversation.session_id,
       message: newConversation.message_text.substring(0, 50) + '...'
@@ -207,7 +207,7 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
         setError(data.error || 'Erreur de chargement')
       }
     } catch (error) {
-      console.error('Erreur API membre:', error)
+      // Log supprimé pour production
       setError('Erreur de connexion')
     } finally {
       setLoading(false)

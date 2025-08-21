@@ -71,7 +71,7 @@ export default function ProvisioningInterface({
   }, [])
 
   const handleCodeComplete = async (value: string) => {
-    console.log('🔑 Code saisi:', value)
+    // Log supprimé pour production
     setCurrentCode(value)
     setCode(value)
     if (value.length === 6) {
@@ -80,8 +80,8 @@ export default function ProvisioningInterface({
   }
 
   const validateProvisioningCode = async (codeValue: string) => {
-    console.log('🔍 Validation du code:', codeValue)
-    console.log('🔍 currentCode avant validation:', currentCode)
+    // Log supprimé pour production
+    // Log supprimé pour production
     setIsValidating(true)
     setError(null)
     setStep('validating')
@@ -102,7 +102,7 @@ export default function ProvisioningInterface({
         throw new Error(result.error || 'Code invalide')
       }
 
-      console.log('✅ Code validé avec succès, currentCode:', codeValue)
+      // Log supprimé pour production
       // S'assurer que le code est bien conservé après validation
       setCurrentCode(codeValue)
       
@@ -110,7 +110,7 @@ export default function ProvisioningInterface({
       await startHardwareTests(codeValue) // Passer le code en paramètre pour plus de sécurité
 
     } catch (err: any) {
-      console.error('❌ Erreur validation:', err.message)
+      // Log supprimé pour production
       setError(err.message)
       setStep('input')
       setCode('')
@@ -122,7 +122,7 @@ export default function ProvisioningInterface({
 
   const startHardwareTests = async (validatedCode?: string) => {
     const codeToUse = validatedCode || currentCode
-    console.log('🔧 Début des tests matériel avec le code:', codeToUse)
+    // Log supprimé pour production
     
     setStep('testing')
     setTestProgress(0)
@@ -165,18 +165,18 @@ export default function ProvisioningInterface({
     setHardwareStatus(prev => ({ ...prev, rfid: 'connected' }))
     setTestProgress(100)
 
-    console.log('🔧 Tests terminés, code avant finalisation:', codeToUse)
+    // Log supprimé pour production
     // Finaliser le provisioning avec le code validé
     await completeProvisioning(codeToUse)
   }
 
   const completeProvisioning = async (validatedCode?: string) => {
     const codeToUse = validatedCode || currentCode
-    console.log('✅ Finalisation avec le code:', codeToUse)
-    console.log('✅ currentCode state:', currentCode)
+    // Log supprimé pour production
+    // Log supprimé pour production
     
     if (!codeToUse || codeToUse.length !== 6) {
-      console.error('❌ Code invalide pour la finalisation:', codeToUse)
+      // Log supprimé pour production
       setError('Erreur interne: code de provisioning perdu')
       setStep('input')
       return
@@ -201,7 +201,7 @@ export default function ProvisioningInterface({
       })
 
       const result = await response.json()
-      console.log('📊 Réponse API finalisation:', result)
+      // Log supprimé pour production
 
       if (!response.ok) {
         throw new Error(result.error || 'Erreur lors de la finalisation')
@@ -221,7 +221,7 @@ export default function ProvisioningInterface({
       }, 2000)
 
     } catch (err: any) {
-      console.error('❌ Erreur finalisation:', err.message)
+      // Log supprimé pour production
       setError(err.message)
       setStep('input')
       // Ne pas vider currentCode ici pour permettre un retry

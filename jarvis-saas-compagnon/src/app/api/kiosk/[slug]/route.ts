@@ -9,7 +9,7 @@ export async function GET(
     const { slug } = await params
     const supabase = createSimpleClient()
 
-    console.log('[KIOSK] 🔍 Recherche slug:', slug)
+    // Log supprimé pour production
 
     // Chercher la salle par kiosk_url_slug SANS JOIN franchises
     const { data: gym, error: gymError } = await supabase
@@ -25,11 +25,11 @@ export async function GET(
       .eq('status', 'active')
       .single()
 
-    console.log('[KIOSK] 🎯 Salle trouvée:', gym)
-    console.log('[KIOSK] ❌ Erreur recherche:', gymError)
+    // Log supprimé pour production
+    // Log supprimé pour production
 
     if (gymError || !gym) {
-      console.error('[KIOSK] Salle non trouvée:', gymError)
+      // Log supprimé pour production
       
       // Debug supplémentaire
       const { data: allKioskGyms } = await supabase
@@ -38,7 +38,7 @@ export async function GET(
         .not('kiosk_config->>kiosk_url_slug', 'is', null)
         .limit(5)
       
-      console.log('[KIOSK] 🔍 Toutes les salles avec kiosk:', allKioskGyms)
+      // Log supprimé pour production
 
       return NextResponse.json(
         { 
@@ -55,7 +55,7 @@ export async function GET(
 
     // Récupérer la configuration du kiosk
     const kioskConfig = gym.kiosk_config as any
-    console.log('[KIOSK] ⚙️ Config kiosk:', kioskConfig)
+    // Log supprimé pour production
     
     // ✅ CORRECTION : Permettre l'accès aux kiosks non provisionnés pour le provisioning
     // Au lieu de rejeter, on retourne les infos pour que le frontend affiche l'interface de provisioning
@@ -75,7 +75,7 @@ export async function GET(
         franchiseConfig = franchise.jarvis_config || {}
       }
     } catch (e) {
-      console.log('[KIOSK] ⚠️ Impossible de récupérer la franchise (RLS), utilisation nom par défaut')
+      // Log supprimé pour production
     }
 
     // Construire la réponse avec les données nécessaires
@@ -113,11 +113,11 @@ export async function GET(
       }
     }
 
-    console.log('[KIOSK] ✅ Réponse kiosk:', response)
+    // Log supprimé pour production
     return NextResponse.json(response)
 
   } catch (error) {
-    console.error('[KIOSK] ❌ Erreur serveur:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         valid: false, 

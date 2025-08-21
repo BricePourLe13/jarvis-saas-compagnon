@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (gymError) {
-      console.error('Erreur création salle:', gymError)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 201 })
 
   } catch (error) {
-    console.error('Erreur inattendue:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 

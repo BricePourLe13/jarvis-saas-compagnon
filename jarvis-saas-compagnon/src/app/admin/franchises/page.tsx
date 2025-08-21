@@ -75,7 +75,7 @@ export default function FranchisesPage() {
 
   const loadFranchises = async () => {
     try {
-      console.log('🔍 [FRANCHISES] Début chargement...')
+      // Loading franchises data...
       const supabase = createBrowserClientWithConfig()
       
       const { data, error } = await supabase
@@ -91,8 +91,8 @@ export default function FranchisesPage() {
         `)
         .order('created_at', { ascending: false })
 
-      console.log('📊 [FRANCHISES] Données reçues:', data)
-      console.log('❌ [FRANCHISES] Erreur:', error)
+      // Data received successfully
+      // Handle potential errors
 
       if (error) throw error
 
@@ -115,12 +115,12 @@ export default function FranchisesPage() {
           })
           setHeartbeatByGymId(map)
         } else if (hbError) {
-          console.warn('[FRANCHISES] Erreur récupération heartbeats:', hbError)
+          // Warning: Could not fetch heartbeats
         }
       }
-      console.log('✅ [FRANCHISES] Chargement terminé:', data?.length || 0, 'franchises')
+      // Loading completed successfully
     } catch (error) {
-      console.error('Erreur chargement franchises:', error)
+      // Error loading franchises
     } finally {
       setLoading(false)
     }

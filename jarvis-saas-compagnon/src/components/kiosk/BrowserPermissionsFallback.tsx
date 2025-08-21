@@ -85,7 +85,7 @@ export default function BrowserPermissionsFallback({
       // Method 1: Try navigator.permissions API
       if ('permissions' in navigator) {
         const result = await navigator.permissions.query({ name: 'microphone' as PermissionName })
-        console.log('🎤 Permission status via Permissions API:', result.state)
+        // Log supprimé pour production
         
         if (result.state === 'granted') {
           setPermissionStatus('granted')
@@ -101,13 +101,13 @@ export default function BrowserPermissionsFallback({
       if ('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-          console.log('🎤 Permission granted via getUserMedia')
+          // Log supprimé pour production
           stream.getTracks().forEach(track => track.stop()) // Cleanup
           setPermissionStatus('granted')
           onPermissionGranted()
           return
         } catch (error: any) {
-          console.log('🎤 Permission denied via getUserMedia:', error.name)
+          // Log supprimé pour production
           if (error.name === 'NotAllowedError') {
             setPermissionStatus('blocked')
             return
@@ -119,7 +119,7 @@ export default function BrowserPermissionsFallback({
       setPermissionStatus('blocked')
       
     } catch (error) {
-      console.error('🎤 Error checking permissions:', error)
+      // Log supprimé pour production
       setPermissionStatus('blocked')
     }
   }
@@ -127,9 +127,9 @@ export default function BrowserPermissionsFallback({
   // ✅ Manual permission request with user gesture
   const requestPermissionsWithGesture = async () => {
     try {
-      console.log('🎤 Requesting permissions with user gesture...')
+      // Log supprimé pour production
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      console.log('🎤 Permission granted!')
+      // Log supprimé pour production
       
       // Cleanup stream
       stream.getTracks().forEach(track => track.stop())
@@ -137,7 +137,7 @@ export default function BrowserPermissionsFallback({
       setPermissionStatus('granted')
       onPermissionGranted()
     } catch (error: any) {
-      console.error('🎤 Permission request failed:', error)
+      // Log supprimé pour production
       setPermissionStatus('blocked')
       setTroubleshootingStep(1)
     }

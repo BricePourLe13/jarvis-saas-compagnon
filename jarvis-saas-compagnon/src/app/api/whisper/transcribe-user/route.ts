@@ -21,13 +21,13 @@ export async function POST(request: NextRequest) {
 
     // Vérifier OPENAI_API_KEY
     if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ [WHISPER API] OPENAI_API_KEY manquante')
+      // Log supprimé pour production
       return NextResponse.json({ 
         error: 'OPENAI_API_KEY configuration missing' 
       }, { status: 500 })
     }
 
-    console.log('🎙️ [WHISPER API] Processing user audio:', {
+    // Log supprimé pour production
       size: audioFile.size,
       type: audioFile.type,
       sessionId
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (!whisperResponse.ok) {
       const error = await whisperResponse.text()
-      console.error('❌ [WHISPER API] OpenAI API failed:', error)
+      // Log supprimé pour production
       return NextResponse.json({ 
         error: 'Whisper transcription failed',
         details: error
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const transcript = whisperResult.text?.trim()
 
     if (!transcript || transcript.length < 2) {
-      console.log('⚠️ [WHISPER API] Empty or too short transcript, skipping')
+      // Log supprimé pour production
       return NextResponse.json({ 
         success: true,
         transcript: '',
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('📝 [WHISPER API] Transcript received:', transcript.substring(0, 50) + '...')
+    // Log supprimé pour production
 
     // Logger l'interaction via API interne
     const logResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/debug/log-interaction`, {
@@ -99,9 +99,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (!logResponse.ok) {
-      console.error('❌ [WHISPER API] Logging failed:', await logResponse.text())
+      // Log supprimé pour production
     } else {
-      console.log('✅ [WHISPER API] User speech logged successfully')
+      // Log supprimé pour production
     }
 
     return NextResponse.json({
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ [WHISPER API] Error:', error)
+    // Log supprimé pour production
     return NextResponse.json({ 
       error: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 })

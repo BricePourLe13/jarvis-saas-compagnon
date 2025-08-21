@@ -78,7 +78,7 @@ export default function FranchiseMonitoringPage() {
       if (error) throw error
       setFranchise(data)
     } catch (error) {
-      console.error('Erreur franchise:', error)
+      // Log supprimé pour production
       toast({
         title: "Erreur",
         description: "Impossible de charger les informations de la franchise",

@@ -125,7 +125,7 @@ export default function AccessManagementModal({
       }
 
     } catch (error) {
-      console.error('Erreur chargement données:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur',
         description: 'Impossible de charger les données',
@@ -232,7 +232,7 @@ export default function AccessManagementModal({
         })
       }
     } catch (error) {
-      console.error('Erreur sauvegarde permissions:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur système',
         description: 'Une erreur inattendue s\'est produite',

@@ -91,7 +91,7 @@ export default function OnboardingMissions({ gymId, onComplete }: OnboardingMiss
           setProgress((completedCount / missionData.length) * 100)
         }
       } catch (error) {
-        console.error('Error fetching onboarding:', error)
+        // Log supprimé pour production
       } finally {
         setLoading(false)
       }
@@ -128,7 +128,7 @@ export default function OnboardingMissions({ gymId, onComplete }: OnboardingMiss
         }
       }
     } catch (error) {
-      console.error('Error updating mission:', error)
+      // Log supprimé pour production
     }
   }
 

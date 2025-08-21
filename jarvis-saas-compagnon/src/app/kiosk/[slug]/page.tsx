@@ -59,7 +59,7 @@ const checkMicrophonePermissions = async () => {
       fallback: permission.state === 'denied' ? 'user_denied' : null
     }
   } catch (error) {
-    console.warn('⚠️ Vérification permissions microphone échouée:', error)
+    // Log supprimé pour production
     return { state: 'unknown', fallback: 'check_failed' }
   }
 }
@@ -127,9 +127,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   //   const prewarmMicrophone = async () => {
   //     try {
   //       await navigator.mediaDevices.getUserMedia({ audio: true })
-  //       console.log('🎤 Microphone pré-initialisé avec succès')
+  //       // Log supprimé pour production
   //     } catch (error) {
-  //       console.warn('⚠️ Pré-initialisation microphone échouée:', error)
+  //       // Log supprimé pour production
   //     }
   //   }
   //   const timer = setTimeout(prewarmMicrophone, 1000)
@@ -145,7 +145,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     const prewarmSessions = async () => {
       try {
         setPrewarmStatus('warming')
-        console.log('🔥 Démarrage pre-warming des sessions JARVIS...')
+        // Log supprimé pour production
         
         // 1. Pre-compiler l'endpoint
         const precompileStart = Date.now()
@@ -155,20 +155,20 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         }).catch(() => {}) // Ignore les erreurs, c'est juste pour précompiler
         
         const precompileTime = Date.now() - precompileStart
-        console.log(`📦 Endpoint précompilé en ${precompileTime}ms`)
+        // Log supprimé pour production
         
         // 2. Pre-warming microphone SUPPRIMÉ (conflit WebRTC)
         // ⚠️ Microphone sera initialisé dans VoiceInterface uniquement
-        console.log(`🎤 Microphone: sera initialisé après scan badge`)
+        // Log supprimé pour production
         
         // 3. (DÉSACTIVÉ) Pré-création de session générique côté DB pour éviter les sessions fantômes
         // On garde uniquement le precompile HEAD pour réduire la latence sans polluer les métriques.
         
         setPrewarmStatus('ready')
-        console.log('✅ Pre-warming terminé avec succès')
+        // Log supprimé pour production
         
       } catch (error) {
-        console.error('❌ Erreur pre-warming:', error)
+        // Log supprimé pour production
         setPrewarmStatus('error')
       }
     }
@@ -209,7 +209,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     }
     
     const finalTimeout = baseTimeout * multiplier
-    console.log(`⏱️ Timeout adaptatif pour ${member.first_name} (${member.membership_type}): ${finalTimeout/1000}s`)
+    // Log supprimé pour production
     
     return finalTimeout
   }, [])
@@ -239,7 +239,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   // Gestionnaire de scan RFID (réel ou simulé) - VERSION OPTIMISÉE AVEC PRE-WARMING
   const handleMemberScanned = useCallback(async (member: GymMember) => {
-    console.log(`🏷️ Membre scanné: ${member.first_name} ${member.last_name}`)
+    // Log supprimé pour production
     
     hapticFeedback('medium')
     setSessionError(null)
@@ -259,7 +259,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     try {
       // Mode optimisé si pre-warming disponible
       if (prewarmStatus === 'ready' && prewarmCache.generic_session) {
-        console.log('🚀 Mode optimisé avec pre-warming')
+        // Log supprimé pour production
         
         setLoadingProgress(30)
         setLoadingStep('Utilisation session pré-chauffée...')
@@ -273,10 +273,10 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         setLoadingStep('JARVIS est prêt !')
         await new Promise(resolve => setTimeout(resolve, 300))
         
-        console.log('⚡ Session optimisée en ~1.6 secondes (vs 13s)')
+        // Log supprimé pour production
       } else {
         // Mode classique (fallback)
-        console.log('🐌 Mode classique (pre-warming non disponible)')
+        // Log supprimé pour production
         
         // Étape 1: Validation membre
         setLoadingProgress(15)
@@ -314,12 +314,12 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       setTimeoutDuration(adaptiveTimeout)
       scheduleSessionWarnings(adaptiveTimeout)
       
-      console.log('✅ Session JARVIS créée avec succès')
+      // Log supprimé pour production
 
       // ✅ Logging automatique via OpenAI Realtime - Plus de "Plan B" nécessaire
 
     } catch (error) {
-      console.error('❌ Erreur création session JARVIS:', error)
+      // Log supprimé pour production
       setSessionError(error instanceof Error ? error.message : 'Erreur inconnue')
       setSessionLoading(false)
       setCurrentMember(null)
@@ -342,15 +342,15 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         
         // Vérifier si le kiosk nécessite un provisioning
         if (!data.kiosk?.is_provisioned) {
-          console.log('⚠️ Kiosk non provisionné, affichage de l\'interface d\'activation')
+          // Log supprimé pour production
           setNeedsProvisioning(true)
           return
         }
         
-        console.log('✅ Kiosk validé et provisionné:', data)
+        // Log supprimé pour production
         
       } catch (err) {
-        console.error('❌ Erreur validation kiosk:', err)
+        // Log supprimé pour production
         setError(err instanceof Error ? err.message : 'Erreur inconnue')
       }
     }
@@ -360,7 +360,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   // Fonction pour terminer gracieusement la session (déclarée en premier)
   const gracefulSessionEnd = useCallback(async (reason: 'natural' | 'timeout' | 'error' = 'natural') => {
-    console.log(`🏁 Fin de session: ${reason}`)
+    // Log supprimé pour production
     
     // Message d'au revoir selon le contexte
     const goodbyeMessages = {
@@ -386,7 +386,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
       // 🔄 Point d'application: recharger la config si une nouvelle version a été publiée
       try {
         fetch(`/api/kiosk/${slug}`).then(() => {
-          console.log('🛠️ [KIOSK CONFIG] Vérification/rafraîchissement config post-session')
+          // Log supprimé pour production
         })
       } catch {}
     }, displayDuration)
@@ -404,13 +404,13 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     } else if (currentMember && !voiceActive && !sessionLoading) {
       // Reset adaptatif basé sur le membre
       const effectiveTimeout = timeoutDuration
-      console.log(`⏱️ Timeout configuré: ${effectiveTimeout/1000}s pour ${currentMember.first_name}`)
+      // Log supprimé pour production
       
       timeout = setTimeout(() => {
-        console.log('⏰ Timeout atteint - vérification si JARVIS parle...')
+        // Log supprimé pour production
         const currentStatus = getJarvisStatus()
         if (currentStatus === 'speaking') {
-          console.log('🗣️ JARVIS parle encore - report de fin de session')
+          // Log supprimé pour production
           setPendingSessionEnd('timeout')
         } else {
           gracefulSessionEnd('timeout')
@@ -431,7 +431,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     
     // Si JARVIS n'est plus en train de parler, on peut terminer la session
     if (jarvisStatus !== 'speaking') {
-      console.log(`🏁 JARVIS a fini de parler, fin de session: ${pendingSessionEnd}`)
+      // Log supprimé pour production
       gracefulSessionEnd(pendingSessionEnd)
       setPendingSessionEnd(null)
       return
@@ -440,7 +440,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     // Timeout de sécurité : maximum 8 secondes d'attente
     const maxWaitTime = 8000
     const fallbackTimer = setTimeout(() => {
-      console.log('⏰ Timeout atteint - fin de session forcée après 8s')
+      // Log supprimé pour production
       gracefulSessionEnd(pendingSessionEnd)
       setPendingSessionEnd(null)
     }, maxWaitTime)
@@ -452,7 +452,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   const retrySessionCreation = useCallback(async () => {
     if (!currentMember) return
     
-    console.log('🔄 Tentative de reconnexion...')
+    // Log supprimé pour production
     setSessionError(null)
     
     // Relancer le processus complet
@@ -463,19 +463,19 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   // Maintenant gérée par useGoodbyeDetection avec Web Speech API
   const detectExitIntent = useCallback((transcript: string) => {
     // Toujours retourner false - détection gérée par useGoodbyeDetection
-    console.log('🔇 [OLD EXIT DETECTION] Désactivé, utilise useGoodbyeDetection:', transcript)
+    // Log supprimé pour production
     return false
   }, [])
 
   // Callback pour analyser les transcriptions
   const handleTranscriptUpdate = useCallback((transcript: string, isFinal: boolean) => {
-    console.log('📝 [TRANSCRIPT]', { transcript, isFinal, voiceActive })
+    // Log supprimé pour production
     
     if (isFinal && transcript.trim().length > 3) {
       // Détecter intention de départ sur transcription finale
       if (detectExitIntent(transcript)) {
-        console.log('👋 [TRANSCRIPT] Intention de sortie détectée:', transcript)
-        console.log('👋 Intention de départ détectée - attente fin de réponse JARVIS...')
+        // Log supprimé pour production
+        // Log supprimé pour production
         setPendingSessionEnd('natural')
         
         // Terminer la session après un délai pour laisser JARVIS répondre
@@ -552,7 +552,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   // ✅ Handle permission failures with fallback
   const handlePermissionFailure = useCallback((error: string) => {
-    console.error('🚨 Permission failure detected:', error)
+    // Log supprimé pour production
     setPermissionError(error)
     
     // Show fallback after a short delay to let other attempts finish
@@ -563,7 +563,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   // ✅ Handle successful permissions from fallback
   const handlePermissionSuccess = useCallback(() => {
-    console.log('✅ Permissions granted via fallback')
+    // Log supprimé pour production
     setShowPermissionsFallback(false)
     setPermissionError(null)
     setSessionError(null)
@@ -576,7 +576,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   // ✅ Handle permission denial from fallback
   const handlePermissionDenial = useCallback(() => {
-    console.log('❌ User denied permissions via fallback')
+    // Log supprimé pour production
     setShowPermissionsFallback(false)
     setSessionError('Permissions microphone refusées')
   }, [])

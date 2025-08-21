@@ -104,7 +104,7 @@ export async function DELETE(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('❌ Erreur nettoyage utilisateur:', error)
+    // Log supprimé pour production
     
     return NextResponse.json(
       { 

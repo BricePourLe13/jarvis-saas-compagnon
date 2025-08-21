@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
     const { data: franchises, error, count } = await query
 
     if (error) {
-      console.error('Erreur récupération franchises:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response, { status: 200 })
 
   } catch (error) {
-    console.error('Erreur inattendue:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 

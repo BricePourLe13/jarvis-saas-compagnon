@@ -142,7 +142,7 @@ export default function ActivityLogsModal({ isOpen, onClose }: ActivityLogsModal
         })
       }
     } catch (error) {
-      console.error('Erreur chargement logs:', error)
+      // Log supprimé pour production
       toast({
         title: 'Erreur système',
         description: 'Une erreur inattendue s\'est produite',

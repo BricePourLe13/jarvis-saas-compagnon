@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     )
 
     if (inviteError) {
-      console.error('❌ Erreur invitation Supabase:', inviteError)
+      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
       })
 
     if (profileError) {
-      console.error('❌ Erreur création profil:', profileError)
+      // Log supprimé pour production
       // L'invitation a été envoyée mais le profil n'a pas pu être créé
       // On continue quand même, le profil sera créé au callback
     }
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 201 })
 
   } catch (error: any) {
-    console.error('💥 Erreur système invitation:', error)
+    // Log supprimé pour production
     
     return NextResponse.json(
       { 

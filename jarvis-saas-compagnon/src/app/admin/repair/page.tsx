@@ -91,7 +91,7 @@ export default function DatabaseRepairPage() {
         setError(result.error?.message || 'Erreur inconnue')
       }
     } catch (err: any) {
-      console.error('Erreur réparations:', err)
+      // Log supprimé pour production
       setError(err.message || 'Erreur lors des réparations')
     } finally {
       setIsRepairing(false)

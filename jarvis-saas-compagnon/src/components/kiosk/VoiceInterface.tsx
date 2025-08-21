@@ -57,7 +57,7 @@ export default function VoiceInterface({
       total_visits: currentMember.total_visits
     } : undefined,
     onStatusChange: useCallback((newStatus) => {
-      console.log('[VOICE UI] Status:', newStatus)
+      // Log supprimé pour production
     }, []),
     onTranscriptUpdate: useCallback((text, isFinal) => {
       onTranscriptUpdate?.(text, isFinal)
@@ -68,8 +68,13 @@ export default function VoiceInterface({
         kioskLogger.session('Au revoir détecté via OpenAI transcript', 'info')
         setHasDetectedGoodbye(true) // 🚨 Empêcher reconnexion
         onDeactivate() // Désactiver le membre
+      } else if (errorMessage === 'INACTIVITY_TIMEOUT') {
+        // ⏰ Timeout d'inactivité atteint
+        kioskLogger.session('Session fermée par timeout d\'inactivité (30s)', 'info')
+        setHasDetectedGoodbye(true) // 🚨 Empêcher reconnexion
+        onDeactivate() // Désactiver le membre
       } else {
-        console.error('Voice error:', errorMessage)
+        // Log supprimé pour production
       }
     }, [onDeactivate])
   })
@@ -77,14 +82,14 @@ export default function VoiceInterface({
   // ✅ NOUVEAU: Activation directe du microphone (sauf si "au revoir" détecté)
   useEffect(() => {
     if (isActive && !isConnected && status !== 'connecting' && currentMember && !hasDetectedGoodbye) {
-      console.log('🎤 Activation directe du microphone pour:', currentMember.first_name)
+      // Log supprimé pour production
       connect()
     }
   }, [isActive, isConnected, status, connect, currentMember, hasDetectedGoodbye])
 
   useEffect(() => {
     if (!isActive && isConnected) {
-      disconnect().catch(console.error)
+      disconnect().catch(// Log supprimé pour production
     }
   }, [isActive, isConnected, disconnect])
 

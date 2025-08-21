@@ -144,7 +144,7 @@ export default function AdminPage() {
       setTopFranchises(transformedFranchises)
       setQuickStats(stats)
     } catch (error) {
-      console.error('Erreur chargement dashboard:', error)
+      // Log supprimé pour production
     } finally {
       setLoading(false)
     }

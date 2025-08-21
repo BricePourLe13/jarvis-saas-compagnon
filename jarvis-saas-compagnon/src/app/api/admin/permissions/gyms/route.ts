@@ -92,7 +92,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<Gym[]>>> {
       .order('name')
 
     if (error) {
-      console.error('❌ Erreur récupération salles:', error)
+      // Log supprimé pour production
       return NextResponse.json(
         { success: false, error: error.message, message: 'Erreur lors de la récupération des salles' },
         { status: 500 }
@@ -110,7 +110,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<Gym[]>>> {
       status: gym.status
     })) || []
 
-    console.log('✅ Salles récupérées:', formattedGyms.length)
+    // Log supprimé pour production
 
     return NextResponse.json({
       success: true,
@@ -119,7 +119,7 @@ export async function GET(): Promise<NextResponse<ApiResponse<Gym[]>>> {
     })
 
   } catch (error) {
-    console.error('❌ Erreur API get gyms:', error)
+    // Log supprimé pour production
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', message: 'Une erreur inattendue s\'est produite' },
       { status: 500 }
