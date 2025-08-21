@@ -137,8 +137,12 @@ export default function FranchiseGymsPage() {
           .gte('timestamp', startOfDay.toISOString())
       ])
 
-      if (sessionsResp.error) // Log supprimé pour production
-      if (heartbeatsResp.error) // Log supprimé pour production
+      if (sessionsResp.error) {
+        // Log supprimé pour production
+      }
+      if (heartbeatsResp.error) {
+        // Log supprimé pour production
+      }
 
       const sessions = sessionsResp.data || []
       const heartbeats = heartbeatsResp.data || []

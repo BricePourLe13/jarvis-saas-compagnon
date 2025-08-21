@@ -14,21 +14,32 @@ const nextConfig = {
   }
 }
 
-// Sentry configuration for serverless
+// Configuration Sentry optimisée pour performance
 const sentryWebpackPluginOptions = {
-  // Additional config options for the Sentry webpack plugin. Keep in mind that
-  // the following options are set automatically, and overriding them is not
-  // recommended:
-  //   release, url, configFile, stripPrefix, urlPrefix, include, ignore
+  // Configuration de base
+  org: "jarvis-group",
+  project: "jarvis-saas-compagnon",
 
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
+  // 🚀 OPTIMISATIONS PERFORMANCE BUILD
+  silent: true, // Toujours silencieux pour accélérer
+  
+  // ❌ DÉSACTIVÉ: Upload source maps réduit (build plus rapide)
+  widenClientFileUpload: false,
+  
+  // ❌ DÉSACTIVÉ: Pas de tunnel route (économise ressources)
+  // tunnelRoute: "/monitoring",
 
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
+  // ✅ ACTIVÉ: Tree-shake Sentry logger statements
+  disableLogger: true,
 
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options.
+  // ❌ DÉSACTIVÉ: Pas de monitoring Vercel Cron (pour l'instant)
+  automaticVercelMonitors: false,
+  
+  // 🚀 OPTIMISATIONS SUPPLÉMENTAIRES
+  hideSourceMaps: true, // Cache les source maps du navigateur
+  sourcemaps: {
+    disable: process.env.NODE_ENV === 'development', // Pas de sourcemaps en dev
+  },
 };
 
 module.exports = withSentryConfig(nextConfig, sentryWebpackPluginOptions);

@@ -67,9 +67,6 @@ export async function POST(
     // Valider le code de provisioning
     if (kioskConfig?.provisioning_code !== provisioning_code) {
       // Log supprimé pour production
-        provided: provisioning_code,
-        expected: kioskConfig?.provisioning_code 
-      })
       return NextResponse.json(
         { error: 'Code d\'activation invalide' },
         { status: 400 }

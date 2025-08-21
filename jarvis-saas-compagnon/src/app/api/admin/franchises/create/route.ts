@@ -122,10 +122,6 @@ export async function POST(request: NextRequest) {
     let ownerId: string | null = null
     
     // Log supprimé pour production
-      name: body.name,
-      contact_email: body.contact_email,
-      create_owner: body.owner_email ? 'Yes' : 'No'
-    })
 
     // 6. Créer la franchise (sans config JARVIS - elle se fait au niveau salle)
     const franchiseData = {

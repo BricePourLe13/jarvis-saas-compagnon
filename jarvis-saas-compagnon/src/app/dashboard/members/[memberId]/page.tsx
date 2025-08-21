@@ -157,11 +157,7 @@ export default function MemberDetailPage(props: { params: { memberId: string } }
     }
     lastUpdateRef.current = now
     
-    // Log supprimé pour production
-      speaker: newConversation.speaker,
-      sessionId: newConversation.session_id,
-      message: newConversation.message_text.substring(0, 50) + '...'
-    })
+            // Log supprimé pour production
     
     // Ajouter à la liste globale
     setConversations(prev => [newConversation, ...prev])

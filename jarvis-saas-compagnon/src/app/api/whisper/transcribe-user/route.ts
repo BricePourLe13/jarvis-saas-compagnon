@@ -27,11 +27,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Log supprimé pour production
-      size: audioFile.size,
-      type: audioFile.type,
-      sessionId
-    })
+            // Log supprimé pour production
 
     // Préparer FormData pour OpenAI Whisper
     const whisperFormData = new FormData()

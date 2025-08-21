@@ -350,20 +350,6 @@ Reste COURT et drôle !`
       
       // 🚨 LOGGING RENFORCÉ POUR DEBUG ERREUR 400
       // Log supprimé pour production
-        status: sessionResponse.status,
-        statusText: sessionResponse.statusText,
-        error: errorText,
-        request_body: {
-          model: 'gpt-4o-realtime-preview-2024-12-17',
-          voice: 'verse',
-          gymSlug,
-          memberId,
-          memberName: memberData?.first_name,
-          hasOpenAIKey: !!process.env.OPENAI_API_KEY,
-          keyPrefix: process.env.OPENAI_API_KEY?.substring(0, 7) + '...'
-        },
-        timestamp: new Date().toISOString()
-      })
       
       // 📊 TRACKING ERREUR POUR ADMIN DASHBOARD
       try {
@@ -378,7 +364,9 @@ Reste COURT et drôle !`
             memberId,
             timestamp: new Date().toISOString()
           })
-        }).catch(trackError => // Log supprimé pour production
+        }).catch(trackError => {
+          // Log supprimé pour production
+        })
       } catch (trackError) {
         // Log supprimé pour production
       }

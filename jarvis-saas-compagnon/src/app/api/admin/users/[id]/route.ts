@@ -185,7 +185,9 @@ export async function PUT(
       oldValues,
       newValues,
       changedFields
-    ).catch(err => // Log supprimé pour production
+    ).catch(err => {
+      // Log supprimé pour production
+    })
 
     // Log supprimé pour production
 

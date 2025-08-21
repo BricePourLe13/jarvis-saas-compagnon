@@ -59,9 +59,6 @@ export async function GET(request: NextRequest) {
     }, 0)
     
     // Log supprimé pour production
-      realTimeItems: realTimeData.length,
-      totalCost: totalCostFromRealtime 
-    })
 
     // Traiter et formater les données d'usage
     const processedUsage = {

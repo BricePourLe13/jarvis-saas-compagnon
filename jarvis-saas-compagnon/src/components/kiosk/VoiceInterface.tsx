@@ -89,7 +89,9 @@ export default function VoiceInterface({
 
   useEffect(() => {
     if (!isActive && isConnected) {
-      disconnect().catch(// Log supprimé pour production
+      disconnect().catch(() => {
+        // Log supprimé pour production
+      })
     }
   }, [isActive, isConnected, disconnect])
 

@@ -135,3 +135,4 @@ class SimpleSessionManager {
 // Export singleton
 export const sessionManager = new SimpleSessionManager()
 export default sessionManager
+

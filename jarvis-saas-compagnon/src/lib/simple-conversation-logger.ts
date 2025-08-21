@@ -98,3 +98,4 @@ class SimpleConversationLogger {
 // Export singleton
 export const conversationLogger = new SimpleConversationLogger()
 export default conversationLogger
+

@@ -114,3 +114,4 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
   productionLogCleaner.activate()
   console.info('🔇 [PRODUCTION] Logs nettoyés pour la production')
 }
+

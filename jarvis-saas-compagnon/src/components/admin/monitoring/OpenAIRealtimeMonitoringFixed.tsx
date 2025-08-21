@@ -98,12 +98,7 @@ export default function OpenAIRealtimeMonitoringFixed({
       setAudioEvents(audioEventsData)
       setDiagnostic(diagnosticData)
 
-      // Log supprimé pour production
-        stats: !!statsData,
-        activeSessions: activeSessionsData.length,
-        audioEvents: audioEventsData.length,
-        diagnostic: diagnosticData
-      })
+                // Log supprimé pour production
 
     } catch (error) {
       // Log supprimé pour production
