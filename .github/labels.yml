@@ -1,0 +1,169 @@
+# Configuration des labels pour JARVIS SaaS Compagnon
+labels:
+  # Types de problèmes
+  - name: "bug"
+    color: "d73a4a"
+    description: "🐛 Quelque chose ne fonctionne pas"
+
+  - name: "enhancement"
+    color: "a2eeef"
+    description: "✨ Nouvelle fonctionnalité ou demande"
+
+  - name: "documentation"
+    color: "0075ca"
+    description: "📚 Amélioration ou ajout de documentation"
+
+  - name: "question"
+    color: "d876e3"
+    description: "❓ Question d'utilisation ou de clarification"
+
+  - name: "help-wanted"
+    color: "008672"
+    description: "🙋 Aide supplémentaire bienvenue"
+
+  - name: "good-first-issue"
+    color: "7057ff"
+    description: "👋 Bon pour les nouveaux contributeurs"
+
+  # Composants
+  - name: "admin"
+    color: "0052cc"
+    description: "👨‍💼 Interface d'administration"
+
+  - name: "kiosk"
+    color: "5319e7"
+    description: "🤖 Interface kiosk/IA"
+
+  - name: "api"
+    color: "fbca04"
+    description: "🔌 API et backend"
+
+  - name: "database"
+    color: "c2e0c6"
+    description: "🗄️ Base de données"
+
+  - name: "auth"
+    color: "f9d0c4"
+    description: "🔐 Authentification et autorisation"
+
+  - name: "ui/ux"
+    color: "e99695"
+    description: "🎨 Interface utilisateur et expérience"
+
+  - name: "deployment"
+    color: "bfd4f2"
+    description: "🚀 Déploiement et infrastructure"
+
+  - name: "ci/cd"
+    color: "d4c5f9"
+    description: "⚙️ Intégration et déploiement continu"
+
+  # Priorités
+  - name: "priority/critical"
+    color: "b60205"
+    description: "🚨 Critique - Problème bloquant"
+
+  - name: "priority/high"
+    color: "d93f0b"
+    description: "🔴 Haute - Doit être résolu rapidement"
+
+  - name: "priority/medium"
+    color: "fbca04"
+    description: "🟡 Moyenne - Important mais pas urgent"
+
+  - name: "priority/low"
+    color: "0e8a16"
+    description: "🟢 Faible - Nice-to-have"
+
+  # Statuts
+  - name: "status/needs-triage"
+    color: "ededed"
+    description: "🔍 Nécessite un tri et une évaluation"
+
+  - name: "status/needs-review"
+    color: "fef2c0"
+    description: "👀 En attente de révision"
+
+  - name: "status/in-progress"
+    color: "c5def5"
+    description: "🚧 En cours de développement"
+
+  - name: "status/blocked"
+    color: "b60205"
+    description: "⛔ Bloqué par une dépendance"
+
+  - name: "status/ready-for-test"
+    color: "0e8a16"
+    description: "🧪 Prêt pour les tests"
+
+  - name: "status/wontfix"
+    color: "ffffff"
+    description: "❌ Ne sera pas corrigé"
+
+  # Types de développement
+  - name: "frontend"
+    color: "1d76db"
+    description: "🎨 Développement frontend"
+
+  - name: "backend"
+    color: "0052cc"
+    description: "⚙️ Développement backend"
+
+  - name: "fullstack"
+    color: "5319e7"
+    description: "🔄 Développement fullstack"
+
+  - name: "infrastructure"
+    color: "006b75"
+    description: "🏗️ Infrastructure et DevOps"
+
+  - name: "security"
+    color: "d73a4a"
+    description: "🔒 Sécurité"
+
+  - name: "performance"
+    color: "fbca04"
+    description: "⚡ Performance et optimisation"
+
+  # Tests et qualité
+  - name: "testing"
+    color: "bfe5bf"
+    description: "🧪 Tests unitaires, intégration, E2E"
+
+  - name: "refactoring"
+    color: "fef2c0"
+    description: "🔧 Refactoring et amélioration du code"
+
+  - name: "dependencies"
+    color: "0366d6"
+    description: "📦 Gestion des dépendances"
+
+  - name: "technical-debt"
+    color: "d93f0b"
+    description: "⚠️ Dette technique"
+
+  # Environnements
+  - name: "env/development"
+    color: "c2e0c6"
+    description: "🛠️ Environnement de développement"
+
+  - name: "env/staging"
+    color: "fef2c0"
+    description: "🎭 Environnement de test"
+
+  - name: "env/production"
+    color: "d73a4a"
+    description: "🏭 Environnement de production"
+
+  # Contributions
+  - name: "first-contribution"
+    color: "7057ff"
+    description: "🎉 Première contribution"
+
+  - name: "hacktoberfest"
+    color: "ff6b35"
+    description: "🎃 Événement Hacktoberfest"
+
+  - name: "community"
+    color: "0e8a16"
+    description: "👥 Contribution de la communauté"

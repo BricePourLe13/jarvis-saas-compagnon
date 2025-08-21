@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "rewrites": [
+    {
+      "source": "/admin/:path*",
+      "destination": "/admin/:path*"
+    },
+    {
+      "source": "/kiosk/:path*", 
+      "destination": "/kiosk/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/kiosk/:path*",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "microphone=(self), camera=(), geolocation=(), interest-cohort=(), autoplay=(self), fullscreen=(self)"
+        },
+        {
+          "key": "Feature-Policy",
+          "value": "microphone 'self'; camera 'none'; geolocation 'none'"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "origin-when-cross-origin"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel.app *.supabase.co *.hcaptcha.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' *.supabase.co wss://api.openai.com *.vercel.app *.hcaptcha.com; font-src 'self' data:; frame-src *.hcaptcha.com;"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        }
+      ]
+    }
+  ]
+}

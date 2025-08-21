@@ -1,0 +1,289 @@
+/* === DESIGN APPLE/TESLA ULTRA MODERNE === */
+/* Palette claire, épurée, whitespace */
+
+:root {
+  /* Palette Apple/Tesla - Clair et épuré */
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+  --color-border-hover: #d1d5db;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-text-light: #9ca3af;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-success: #10b981;
+  --color-shadow: rgba(0, 0, 0, 0.04);
+  --color-shadow-hover: rgba(0, 0, 0, 0.08);
+  
+  /* Spacing & Layout */
+  --radius: 12px;
+  --radius-large: 20px;
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* Typography - Apple style */
+  --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Shadows - Apple style */
+  --shadow-sm: 0 1px 2px 0 var(--color-shadow);
+  --shadow-md: 0 4px 6px -1px var(--color-shadow), 0 2px 4px -1px var(--color-shadow);
+  --shadow-lg: 0 10px 15px -3px var(--color-shadow), 0 4px 6px -2px var(--color-shadow);
+  --shadow-xl: 0 20px 25px -5px var(--color-shadow), 0 10px 10px -5px var(--color-shadow);
+  
+  /* Transitions - Apple timing */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-system);
+  background: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  font-weight: var(--font-weight-normal);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* === TYPOGRAPHY === */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+}
+
+h1 { font-size: 2.5rem; font-weight: var(--font-weight-bold); }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+
+p {
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+/* === COMPONENTS === */
+
+/* Boutons Apple style */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-weight: var(--font-weight-medium);
+  font-size: 1rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  background: var(--color-accent);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.button:hover {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.button-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.button-secondary:hover {
+  background: var(--color-bg);
+  border-color: var(--color-border-hover);
+}
+
+/* Inputs Apple style */
+.input {
+  width: 100%;
+  padding: 16px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: all var(--transition-fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input::placeholder {
+  color: var(--color-text-light);
+}
+
+/* Cards épurées */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-large);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--color-border-hover);
+}
+
+/* Layout */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.section {
+  padding: var(--spacing-xl) 0;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effects modernes */
+.hover-lift {
+  transition: all var(--transition-normal);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Glassmorphisme léger */
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Spinner moderne */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-top: 2px solid var(--color-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar Apple style */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* Micro-interactions */
+.interactive {
+  transition: all var(--transition-fast);
+}
+
+.interactive:hover {
+  transform: scale(1.02);
+}
+
+.interactive:active {
+  transform: scale(0.98);
+}
+
+/* Grid moderne */
+.grid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Focus states accessibles */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* Text styles */
+.text-large { font-size: 1.125rem; }
+.text-small { font-size: 0.875rem; }
+.text-muted { color: var(--color-text-muted); }
+.text-light { color: var(--color-text-light); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+.font-bold { font-weight: var(--font-weight-bold); }

@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Production builds
+.next/
+out/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Database
+*.db
+*.sqlite
+
+# Temporary files
+*.tmp
+*.temp
+
+# Debug files
+debug-*.js
+test-*.js
+
+# Development documentation
+NETTOYAGE-COMPLET.md
+PROCHAINES-ETAPES.md
+SCRIPT-SQL-CORRIGE.md
+SETUP-SUPABASE-IMMEDIATE.md
+ETAT-DES-LIEUX-FINAL.md
+.vercel
+
+# Sentry Config File
+.env.sentry-build-plugin
