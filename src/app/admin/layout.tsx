@@ -46,6 +46,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         return
       }
 
+      // 2FA obligatoire pour admins/owners: rediriger vers l'enrôlement si requis
+      if (profile.mfa_required && !profile.mfa_enrolled && pathname !== '/auth/mfa') {
+        router.push('/auth/mfa')
+        return
+      }
+
       setUser(profile)
     } catch (error) {
       // Log supprimé pour production

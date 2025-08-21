@@ -460,10 +460,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   }, [currentMember, handleMemberScanned])
 
   // 🚫 ANCIENNE DÉTECTION AU REVOIR DÉSACTIVÉE
-  // Maintenant gérée par useGoodbyeDetection avec Web Speech API
+  // Détection désormais via transcripts OpenAI (useVoiceChat)
   const detectExitIntent = useCallback((transcript: string) => {
-    // Toujours retourner false - détection gérée par useGoodbyeDetection
-    // Log supprimé pour production
     return false
   }, [])
 

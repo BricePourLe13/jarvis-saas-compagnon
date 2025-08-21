@@ -47,7 +47,6 @@ import {
   FormLabel
 } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import OpenAIRealtimeMonitoringFixed from '@/components/admin/monitoring/OpenAIRealtimeMonitoringFixed'
 import { UnifiedLayout } from '@/components/unified/UnifiedLayout'
 import { 
   ArrowLeft,
@@ -1014,11 +1013,11 @@ export default function GymDetailsPage() {
                       </HStack>
                     </HStack>
                     {showAdvanced && (
-                      <OpenAIRealtimeMonitoringFixed 
-                        gymId={gym.id}
-                        gymName={gym.name}
-                        kioskSlug={gym.kiosk_config?.kiosk_url_slug || null}
-                      />
+                      <Box bg="#fafafa" border="1px dashed #e5e7eb" borderRadius="8px" p={4}>
+                        <Text fontSize="sm" color="#6b7280">
+                          Diagnostic détaillé désactivé. Réactivez un composant de monitoring si nécessaire.
+                        </Text>
+                      </Box>
                     )}
                   </VStack>
 

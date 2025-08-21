@@ -349,19 +349,37 @@ export default function LoginPage() {
       }
       
       if (data.user) {
-        // Vérifier le rôle de l'utilisateur pour rediriger correctement
+        // Vérifier le rôle de l'utilisateur
         const { data: userProfile } = await supabase
           .from('users')
           .select('role')
           .eq('id', data.user.id)
           .single()
-        
+
+        // Si admin/owner, exiger un challenge 2FA (TOTP) à CHAQUE login
+        const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'franchise_owner' || userProfile?.role === 'franchise_admin'
+        if (isAdmin) {
+          try {
+            // 1) Si aucun facteur TOTP → enrôlement
+            // @ts-ignore
+            const factors = await (supabase.auth as any).mfa?.listFactors?.()
+            const hasTotp = Array.isArray(factors?.data?.totp) && factors.data.totp.length > 0
+            if (!hasTotp) {
+              router.push('/auth/mfa')
+              return
+            }
+
+            // 2) Facteur présent → exiger challenge à chaque login
+            router.push('/auth/mfa/challenge')
+            return
+          } catch {}
+        }
+
         // Indiquer le succès avant la redirection
         setSuccess(true)
-        
-        // Redirection basée sur le rôle
+
+        // Redirection standard
         setTimeout(() => {
-          const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'franchise_owner' || userProfile?.role === 'franchise_admin'
           router.push(isAdmin ? '/admin' : '/dashboard')
         }, 800)
       }
