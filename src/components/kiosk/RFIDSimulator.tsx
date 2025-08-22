@@ -1,6 +1,7 @@
 "use client"
 import { useState } from 'react'
-import { Box, VStack, HStack, Text, Button, Badge, Avatar } from '@chakra-ui/react'
+import { Box, VStack, HStack, Text, Button, Badge, Avatar, Input, IconButton } from '@chakra-ui/react'
+import { Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GymMember } from '@/types/kiosk'
 
@@ -95,6 +96,25 @@ const DEMO_MEMBERS: GymMember[] = [
 export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RFIDSimulatorProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [lastScannedMember, setLastScannedMember] = useState<GymMember | null>(null)
+  const [members, setMembers] = useState<GymMember[]>(DEMO_MEMBERS)
+  const [query, setQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const pageSize = 20
+
+  const loadMembers = async (q = '', p = 1) => {
+    try {
+      if (!gymSlug) return // fallback sur DEMO_MEMBERS
+      const res = await fetch(`/api/kiosk/${gymSlug}/members?q=${encodeURIComponent(q)}&page=${p}&pageSize=${pageSize}`)
+      const json = await res.json()
+      if (json?.success && Array.isArray(json.members)) {
+        setMembers(json.members)
+      } else {
+        setMembers(DEMO_MEMBERS)
+      }
+    } catch {
+      setMembers(DEMO_MEMBERS)
+    }
+  }
 
   const simulateBadgeScan = async (member: GymMember) => {
     if (isActive) return // Ne pas scanner si une session est déjà active
@@ -205,9 +225,26 @@ export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RF
           )}
         </AnimatePresence>
 
-        {/* Liste des membres simulés */}
-        <VStack spacing={3} w="full" maxW="400px" opacity={isActive ? 0.5 : 1}>
-          {DEMO_MEMBERS.map((member) => (
+        {/* Recherche + pagination */}
+        <HStack w="full" maxW="520px" spacing={2}>
+          <Input
+            placeholder="Rechercher (nom, prénom, badge)"
+            value={query}
+            onChange={(e)=>setQuery(e.target.value)}
+            bg="rgba(255,255,255,0.06)"
+            border="1px solid rgba(255,255,255,0.12)"
+            color="white"
+          />
+          <IconButton
+            aria-label="Rechercher"
+            icon={<Search size={16} />}
+            onClick={()=>{ setPage(1); loadMembers(query, 1) }}
+          />
+        </HStack>
+
+        {/* Liste des membres */}
+        <VStack spacing={3} w="full" maxW="520px" opacity={isActive ? 0.5 : 1}>
+          {members.map((member) => (
             <motion.div
               key={member.id}
               whileHover={{ scale: isActive ? 1 : 1.02 }}
@@ -246,7 +283,7 @@ export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RF
                           {member.first_name} {member.last_name}
                         </Text>
                         <Text fontSize="lg">
-                          {getFitnessLevelEmoji(member.member_preferences?.goals[0] || 'beginner')}
+                          {getFitnessLevelEmoji((member as any)?.member_preferences?.goals?.[0] || 'beginner')}
                         </Text>
                       </HStack>
                       <HStack spacing={2}>
@@ -270,7 +307,7 @@ export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RF
                       {member.badge_id}
                     </Text>
                     <Text color="rgba(255,255,255,0.4)" fontSize="xs">
-                      {member.member_preferences?.language?.toUpperCase()}
+                      {((member as any)?.member_preferences?.language || 'fr').toUpperCase()}
                     </Text>
                   </VStack>
                 </HStack>

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
-import { sessionManager } from '@/lib/simple-session-manager'
+// import { sessionManager } from '@/lib/simple-session-manager'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -130,9 +130,13 @@ export function useVoiceChat(config: VoiceChatConfig) {
         console.log('⏰ [INACTIVITY] Timeout atteint - Fermeture automatique de la session')
         
         try {
-          // Fermer la session proprement
+          // Fermer la session côté serveur (no-op si déjà fermée)
           if (sessionRef.current?.session_id) {
-            await sessionManager.endSession(sessionRef.current.session_id, 'inactivity_timeout')
+            fetch('/api/voice/session/close', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'inactivity_timeout' })
+            }).catch(() => {})
           }
           
           // Déclencher déconnexion
@@ -147,7 +151,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
         }
       }, INACTIVITY_TIMEOUT_MS)
     }
-  }, [isConnected, disconnect])
+  }, [isConnected])
 
   const clearInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
@@ -227,9 +231,13 @@ export function useVoiceChat(config: VoiceChatConfig) {
     console.log('📊 [SESSION] Finalisation session:', tracking.sessionId)
     
     try {
-      // Fermer la session avec le gestionnaire simple
+      // Fermer la session côté serveur
       if (sessionRef.current?.session_id) {
-        await sessionManager.endSession(sessionRef.current.session_id, 'normal_end')
+        await fetch('/api/voice/session/close', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'normal_end' })
+        }).catch(() => {})
       }
       
       console.log('✅ [SESSION] Session finalisée avec succès')
@@ -381,9 +389,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 16000
-        } 
+          autoGainControl: true
+        }
       })
       
       console.log('✅ Permissions microphone accordées')
@@ -480,7 +487,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
       console.log('🔍 [DEBUG SESSION ASSIGN] session.session_id:', session?.session_id)
       console.log('✅ Connexion WebRTC établie avec OpenAI Realtime')
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur initialisation WebRTC:', error)
       throw error
     }
@@ -493,19 +500,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
         console.log('🎯 Session OpenAI créée')
         
         // 🚀 [SESSION SIMPLE] Démarrer le tracking de session
-        if (sessionRef.current?.session_id && sessionRef.current?.gym_id) {
-          const memberName = configRef.current.memberData ? 
-            `${configRef.current.memberData.first_name} ${configRef.current.memberData.last_name}` : 
-            undefined
-          
-          sessionManager.startSession({
-            session_id: sessionRef.current.session_id,
-            gym_id: sessionRef.current.gym_id,
-            member_id: sessionRef.current.member_id,
-            member_name: memberName,
-            started_at: new Date()
-          }).catch(error => console.warn('⚠️ Erreur démarrage session:', error))
-        }
+        // Démarrage déjà instrumenté côté API; rien à faire côté client
         break
         
       case 'session.updated':
@@ -645,9 +640,13 @@ export function useVoiceChat(config: VoiceChatConfig) {
             // 🚀 FERMETURE SIMPLE DE SESSION
             setTimeout(async () => {
               try {
-                // Fermer la session proprement
+                // Fermer la session côté serveur (goodbye)
                 if (sessionRef.current?.session_id) {
-                  await sessionManager.endSession(sessionRef.current.session_id, 'user_goodbye')
+                  await fetch('/api/voice/session/close', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'user_goodbye' })
+                  }).catch(() => {})
                 }
                 
                 // Déclencher déconnexion
@@ -793,7 +792,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
       
       console.log('🚀 Connexion voice chat établie avec succès')
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur connexion voice chat:', error)
       
       // Messages d'erreur détaillés selon le type
@@ -804,7 +803,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
         } else if (error.name === 'NotFoundError') {
           errorMessage = 'Aucun microphone détecté. Vérifiez votre équipement audio.'
         } else if (error.name === 'NotReadableError') {
-          errorMessage = 'Microphone déjà utilisé par une autre application.'
+          errorMessage = 'Micro déjà utilisé par une autre application (Teams/Zoom/Chrome onglet). Ferme-les puis réessaie.'
         } else if (error.message.includes('Session creation failed')) {
           errorMessage = 'Erreur serveur. Veuillez réessayer.'
         } else {
@@ -817,7 +816,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
       
       // Tentative de reconnexion automatique (sauf pour les erreurs de permissions)
       if (reconnectAttempts.current < RECONNECT_CONFIG.maxAttempts && 
-          !(error instanceof Error && error.name === 'NotAllowedError')) {
+          !(error instanceof Error && (error.name === 'NotAllowedError' || error.name === 'NotReadableError'))) {
         scheduleReconnect()
       }
     } finally {
