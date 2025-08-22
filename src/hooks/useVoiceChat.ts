@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
-import { conversationLogger } from '@/lib/simple-conversation-logger'
 import { sessionManager } from '@/lib/simple-session-manager'
 
 interface VoiceChatConfig {
@@ -619,16 +618,20 @@ export function useVoiceChat(config: VoiceChatConfig) {
             delete sessionTrackingRef.current.currentUserSpeech
           }
           
-          // 💾 [LOGGING SIMPLE] Sauver message utilisateur
+          // 💾 [LOGGING SIMPLE] Sauver message utilisateur via API (pas de service_role côté client)
           try {
             if (sessionRef.current?.session_id) {
-              conversationLogger.logMessage({
-                session_id: sessionRef.current.session_id,
-                speaker: 'user',
-                message: userTranscript,
-                member_id: sessionRef.current.member_id,
-                gym_id: sessionRef.current.gym_id
-              }).catch(error => console.warn('⚠️ Erreur logging user:', error))
+              fetch(`/api/kiosk/${configRef.current.gymSlug}/log-interaction`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  session_id: sessionRef.current.session_id,
+                  speaker: 'user',
+                  message_text: userTranscript,
+                  member_id: sessionRef.current.member_id,
+                  gym_id: sessionRef.current.gym_id
+                })
+              }).catch(error => console.warn('⚠️ Erreur logging user (API):', error))
             }
           } catch (logError) {
             console.warn('⚠️ Exception logging user:', logError)
@@ -681,16 +684,20 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
         }
 
-        // 💾 [LOGGING SIMPLE] Sauver réponse JARVIS
+        // 💾 [LOGGING SIMPLE] Sauver réponse JARVIS via API
         try {
           if (sessionRef.current?.session_id && finalTranscript) {
-            conversationLogger.logMessage({
-              session_id: sessionRef.current.session_id,
-              speaker: 'jarvis',
-              message: finalTranscript,
-              member_id: sessionRef.current.member_id,
-              gym_id: sessionRef.current.gym_id
-            }).catch(error => console.warn('⚠️ Erreur logging JARVIS:', error))
+            fetch(`/api/kiosk/${configRef.current.gymSlug}/log-interaction`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                session_id: sessionRef.current.session_id,
+                speaker: 'jarvis',
+                message_text: finalTranscript,
+                member_id: sessionRef.current.member_id,
+                gym_id: sessionRef.current.gym_id
+              })
+            }).catch(error => console.warn('⚠️ Erreur logging JARVIS (API):', error))
           }
         } catch (logError) {
           console.warn('⚠️ Exception logging JARVIS:', logError)
