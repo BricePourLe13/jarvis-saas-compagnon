@@ -27,8 +27,8 @@ export default function RootLayout({
             __html: `
               // Suppression des avertissements d'hydratation pour les extensions
               if (typeof window !== 'undefined') {
-                const originalConsoleError = // Log supprimé pour production
-                // Log supprimé pour production
+                const originalConsoleError = console.error;
+                console.error = function(...args) {
                   const message = args[0];
                   if (typeof message === 'string' && (
                     message.includes('bis_skin_checked') ||

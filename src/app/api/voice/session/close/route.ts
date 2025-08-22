@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { sessionManager } from '@/lib/simple-session-manager'
+// Removed legacy simple-session-manager import
 
 export async function POST(request: NextRequest) {
   try {

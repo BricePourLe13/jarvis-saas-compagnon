@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
 import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
 import JarvisAvatar from '@/components/common/JarvisAvatar'
-import BrowserPermissionsFallback from '@/components/kiosk/BrowserPermissionsFallback'
+// Removed BrowserPermissionsFallback - conflicts with MicrophoneManager
 import ProvisioningInterface from '@/components/kiosk/ProvisioningInterface'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
@@ -540,7 +540,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   }
 
   // ✅ SOLUTION 3: Browser permissions fallback state
-  const [showPermissionsFallback, setShowPermissionsFallback] = useState(false)
+  // Removed showPermissionsFallback - handled by MicrophoneManager
   const [permissionError, setPermissionError] = useState<string | null>(null)
   
   // État pour le provisioning
@@ -553,31 +553,10 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     // Log supprimé pour production
     setPermissionError(error)
     
-    // Show fallback after a short delay to let other attempts finish
-    setTimeout(() => {
-      setShowPermissionsFallback(true)
-    }, 2000)
+    // Permissions now handled by MicrophoneManager
   }, [])
 
-  // ✅ Handle successful permissions from fallback
-  const handlePermissionSuccess = useCallback(() => {
-    // Log supprimé pour production
-    setShowPermissionsFallback(false)
-    setPermissionError(null)
-    setSessionError(null)
-    
-    // Retry session creation
-    if (currentMember) {
-      handleMemberScanned(currentMember)
-    }
-  }, [currentMember, handleMemberScanned])
-
-  // ✅ Handle permission denial from fallback
-  const handlePermissionDenial = useCallback(() => {
-    // Log supprimé pour production
-    setShowPermissionsFallback(false)
-    setSessionError('Permissions microphone refusées')
-  }, [])
+  // Removed permission handlers - managed by MicrophoneManager
 
   // ✅ Enhanced error detection - trigger fallback for permission errors
   useEffect(() => {
@@ -1545,12 +1524,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
           )}
         </AnimatePresence>
 
-        {/* ✅ SOLUTION 3: Browser Permissions Fallback Modal */}
-        <BrowserPermissionsFallback
-          isVisible={showPermissionsFallback}
-          onPermissionGranted={handlePermissionSuccess}
-          onPermissionDenied={handlePermissionDenial}
-        />
+        {/* Removed BrowserPermissionsFallback - permissions handled by MicrophoneManager */}
       </Box>
     </>
   )

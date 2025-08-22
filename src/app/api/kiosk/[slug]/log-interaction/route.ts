@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { conversationLogger } from '@/lib/simple-conversation-logger'
+// Removed legacy simple-conversation-logger import
 
 export const dynamic = 'force-dynamic'
 

@@ -13,7 +13,9 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const q = (searchParams.get('q') || '').trim()
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
-    const pageSize = Math.max(1, Math.min(50, Number(searchParams.get('pageSize') || '20')))
+    const pageSizeParam = searchParams.get('pageSize') || '20'
+    const isAll = pageSizeParam === 'all'
+    const pageSize = isAll ? 100000 : Math.max(1, Math.min(1000, Number(pageSizeParam)))
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
@@ -46,7 +48,9 @@ export async function GET(
       .select('id,badge_id,first_name,last_name,email,membership_type,total_visits,last_visit,member_preferences')
       .eq('gym_id', gym.id)
       .order('last_visit', { ascending: false })
-      .range(from, to)
+    if (!isAll) {
+      query = (query as any).range(from, to)
+    }
 
     if (q) {
       query = query.or(
@@ -59,7 +63,7 @@ export async function GET(
       return NextResponse.json({ error: 'Erreur récupération membres' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, members, page, pageSize })
+    return NextResponse.json({ success: true, members, page, pageSize: isAll ? 'all' : pageSize })
   } catch (e) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }

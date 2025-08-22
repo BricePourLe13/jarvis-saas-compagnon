@@ -1,12 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
-// import { sessionManager } from '@/lib/simple-session-manager'
+import { kioskLogger } from '@/lib/kiosk-logger'
 
 interface VoiceChatConfig {
   gymSlug: string
   memberId?: string
   language?: 'fr' | 'en' | 'es'
-  // 🔧 BUGFIX: Ajouter memberData pour contourner le getMemberData hardcodé
   memberData?: {
     first_name: string
     last_name: string
@@ -30,377 +29,101 @@ interface VoiceChatSession {
   expires_at: string
 }
 
-// Configuration de reconnexion
-const RECONNECT_CONFIG = {
-  maxAttempts: 5,
-  baseDelay: 1000, // 1 seconde
-  maxDelay: 30000, // 30 secondes
-  backoffMultiplier: 2
-}
+const INACTIVITY_TIMEOUT_MS = 45000 // 45 secondes
 
 export function useVoiceChat(config: VoiceChatConfig) {
-  
-  const [audioState, setAudioState] = useState<AudioState>({
-    isRecording: false,
-    isPlaying: false,
-    micPermission: 'prompt',
-    audioLevel: 0
-  })
-
-  // 🕐 Timeout d'inactivité automatique
-  const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const INACTIVITY_TIMEOUT_MS = 30000 // 30 secondes d'inactivité
-  
-  const [isConnected, setIsConnected] = useState(false)
-  const [currentTranscript, setCurrentTranscript] = useState('')
-  
-  // 🔧 STABILITÉ SESSION - Éviter les déconnexions accidentelles  
-  const lastActivityRef = useRef<number>(Date.now())
-  const stabilityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // États principaux
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error' | 'reconnecting'>('idle')
-  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'unknown'>('unknown')
-
-  // 📊 États de tracking de session
-  const sessionTrackingRef = useRef<{
-    sessionId: string | null
-    gymId: string | null
-    franchiseId: string | null
-    startTime: Date | null
-    textInputTokens: number
-    textOutputTokens: number
-    audioInputSeconds: number
-    audioOutputSeconds: number
-    errorOccurred: boolean
-    transcriptHistory: string[]
-    speechStartTime?: number
-  }>({
-    sessionId: null,
-    gymId: null,
-    franchiseId: null,
-    startTime: null,
-    textInputTokens: 0,
-    textOutputTokens: 0,
-    audioInputSeconds: 0,
-    audioOutputSeconds: 0,
-    errorOccurred: false,
-    transcriptHistory: []
+  const [isConnected, setIsConnected] = useState(false)
+  const [audioState, setAudioState] = useState<AudioState>({
+    isListening: false,
+    isPlaying: false,
+    volume: 0,
+    transcript: '',
+    isFinal: false
   })
-  
-  // Refs pour éviter les re-créations
+
+  // Refs pour la gestion des ressources
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const dataChannelRef = useRef<RTCDataChannel | null>(null)
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const sessionRef = useRef<VoiceChatSession | null>(null)
   const isConnectingRef = useRef(false)
-  const configRef = useRef(config)
   
-  // Refs pour la reconnexion
-  const reconnectAttempts = useRef(0)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  
-  // Buffer pour les transcripts partiels
-  const transcriptBufferRef = useRef('')
-  
-  // Mettre à jour la config de référence
-  useEffect(() => {
-    configRef.current = config
-  }, [config])
+  // Refs pour les timeouts
+  const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Fonction utilitaire pour changer le status
+  // Fonction utilitaire pour mettre à jour le statut
   const updateStatus = useCallback((newStatus: typeof status) => {
     setStatus(newStatus)
-    configRef.current.onStatusChange?.(newStatus)
-    
-    // 🔧 STABILITÉ: Marquer l'activité pour éviter les timeouts
-    lastActivityRef.current = Date.now()
-  }, [])
+    config.onStatusChange?.(newStatus)
+  }, [config])
 
-  // 🕐 Gestion du timeout d'inactivité
-  const resetInactivityTimeout = useCallback(() => {
-    // Annuler le timeout précédent s'il existe
-    if (inactivityTimeoutRef.current) {
-      clearTimeout(inactivityTimeoutRef.current)
-      inactivityTimeoutRef.current = null
-    }
-
-    // Démarrer un nouveau timeout seulement si connecté
-    if (isConnected) {
-      console.log('🕐 [INACTIVITY] Timeout reset - 30s avant fermeture auto')
-      inactivityTimeoutRef.current = setTimeout(async () => {
-        console.log('⏰ [INACTIVITY] Timeout atteint - Fermeture automatique de la session')
-        
-        try {
-          // Fermer la session côté serveur (no-op si déjà fermée)
-          if (sessionRef.current?.session_id) {
-            fetch('/api/voice/session/close', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'inactivity_timeout' })
-            }).catch(() => {})
-          }
-          
-          // Déclencher déconnexion
-          await disconnect()
-          
-          // Notifier le parent
-          if (configRef.current.onError) {
-            configRef.current.onError('INACTIVITY_TIMEOUT')
-          }
-        } catch (error) {
-          console.error('❌ [INACTIVITY] Erreur fermeture timeout:', error)
-        }
-      }, INACTIVITY_TIMEOUT_MS)
-    }
-  }, [isConnected])
-
-  const clearInactivityTimeout = useCallback(() => {
-    if (inactivityTimeoutRef.current) {
-      clearTimeout(inactivityTimeoutRef.current)
-      inactivityTimeoutRef.current = null
-      console.log('🕐 [INACTIVITY] Timeout annulé')
-    }
-  }, [])
-  
-  // 🔧 STABILITÉ SESSION - Fonction de maintien en vie
-  const maintainSessionStability = useCallback(() => {
-    if (!isConnected) return
-    
-    const timeSinceActivity = Date.now() - lastActivityRef.current
-    
-    // Si pas d'activité depuis plus de 45 secondes, marquer l'activité
-    if (timeSinceActivity > 45000) {
-      console.log('🔧 [STABILITÉ] Maintien session - refresh activité')
-      lastActivityRef.current = Date.now()
-    }
-    
-    // Programmer le prochain check dans 20 secondes
-    stabilityTimeoutRef.current = setTimeout(maintainSessionStability, 20000)
-  }, [isConnected])
-  
-  // Démarrer le maintien de stabilité quand connecté
-  useEffect(() => {
-    if (isConnected) {
-      lastActivityRef.current = Date.now()
-      maintainSessionStability()
-    } else if (stabilityTimeoutRef.current) {
-      clearTimeout(stabilityTimeoutRef.current)
-      stabilityTimeoutRef.current = null
-    }
-    
-    return () => {
-      if (stabilityTimeoutRef.current) {
-        clearTimeout(stabilityTimeoutRef.current)
-        stabilityTimeoutRef.current = null
-      }
-    }
-  }, [isConnected, maintainSessionStability])
-
-  // 📊 Fonctions helper pour le tracking de session
-  const generateSessionId = useCallback(() => {
-    return `jarvis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  }, [])
-
-  const initSessionTracking = useCallback(async (gymData?: { gymId?: string; franchiseId?: string }) => {
-    const sessionId = generateSessionId()
-    
-    sessionTrackingRef.current = {
-      sessionId,
-      gymId: gymData?.gymId || null,
-      franchiseId: gymData?.franchiseId || null,
-      startTime: new Date(),
-      textInputTokens: 0,
-      textOutputTokens: 0,
-      audioInputSeconds: 0,
-      audioOutputSeconds: 0,
-      errorOccurred: false,
-      transcriptHistory: []
-    }
-
-    console.log('📊 [TRACKING] Session initialisée:', sessionId)
-  }, [generateSessionId])
-
-  const finalizeSessionTracking = useCallback(async () => {
-    const tracking = sessionTrackingRef.current
-    
-    // Vérifier si on a une session à finaliser
-    if (!tracking.sessionId) {
-      console.log('📊 [SESSION] Aucune session à finaliser')
-      return
-    }
-    
-    console.log('📊 [SESSION] Finalisation session:', tracking.sessionId)
-    
+  // 📡 CRÉER SESSION OPENAI
+  const createSession = useCallback(async (): Promise<VoiceChatSession> => {
     try {
-      // Fermer la session côté serveur
-      if (sessionRef.current?.session_id) {
-        await fetch('/api/voice/session/close', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'normal_end' })
-        }).catch(() => {})
-      }
-      
-      console.log('✅ [SESSION] Session finalisée avec succès')
-    } catch (error) {
-      console.error('❌ [SESSION] Erreur finalisation:', error)
-    }
-  }, [])
-
-  // 🔧 BUGFIX: Utiliser les données membre passées directement au lieu du hardcodé
-  const getMemberData = useCallback(async () => {
-    // Si on a les données membre directement, les utiliser
-    if (config.memberData) {
-      console.log(`📋 Utilisation des données membre pour: ${config.memberData.first_name} ${config.memberData.last_name}`)
-      return config.memberData
-    }
-    
-    // Sinon, fallback sur memberId (pour compatibilité future avec Supabase)
-    if (!config.memberId) return null
-    
-    try {
-      // TODO: Intégrer avec Supabase pour récupérer les vraies données depuis la BDD
-      console.warn('⚠️ Fallback vers données hardcodées - intégration Supabase requise')
-      return {
-        first_name: 'Pierre',
-        last_name: 'Martin',
-        member_preferences: {
-          goals: ['Perte de poids', 'Renforcement musculaire'],
-          favorite_activities: ['Entraînement du matin'],
-        },
-        last_visit: '2024-01-20'
-      }
-    } catch (error) {
-      console.warn('Impossible de récupérer les données membre:', error)
-      return null
-    }
-  }, [config.memberId, config.memberData])
-
-  // Créer une session OpenAI Realtime avec token ephémère
-  const createSession = useCallback(async () => {
-    try {
-      const memberData = await getMemberData()
-      
-             // 📊 [TRACKING] Récupérer les infos de gym/franchise pour le tracking
-       let gymData = null
-       try {
-         console.log('📊 [TRACKING] Récupération infos gym pour:', config.gymSlug)
-         const gymResponse = await fetch(`/api/kiosk/${config.gymSlug}`)
-         console.log('📊 [TRACKING] Réponse gym API:', gymResponse.status, gymResponse.ok)
-         
-                   if (gymResponse.ok) {
-            const gymInfo = await gymResponse.json()
-            console.log('📊 [TRACKING] Données gym complètes:', gymInfo)
-            
-            // ✅ CORRECTION: Plusieurs façons d'extraire les IDs pour compatibilité
-            const extractedGymId = gymInfo.data?.id || gymInfo.gym?.id || gymInfo.kiosk?.id
-            const extractedFranchiseId = gymInfo.data?.franchise_id || gymInfo.gym?.franchise_id
-            
-            gymData = {
-              gymId: extractedGymId,
-              franchiseId: extractedFranchiseId
-            }
-            console.log('📊 [TRACKING] Infos gym extraites:', gymData)
-            
-            if (!gymData.gymId) {
-              console.error('📊 [TRACKING] ❌ PROBLÈME: gymId manquant dans la réponse API')
-              console.error('📊 [TRACKING] Structure reçue:', {
-                hasData: !!gymInfo.data,
-                hasGym: !!gymInfo.gym,
-                hasKiosk: !!gymInfo.kiosk,
-                dataId: gymInfo.data?.id,
-                gymId: gymInfo.gym?.id,
-                kioskId: gymInfo.kiosk?.id
-              })
-            }
-         } else {
-           console.error('📊 [TRACKING] ❌ Erreur API gym:', gymResponse.status)
-         }
-       } catch (error) {
-         console.error('📊 [TRACKING] ❌ Exception récupération gym:', error)
-       }
+      kioskLogger.session('📡 Création session OpenAI...', 'info')
       
       const response = await fetch('/api/voice/session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memberId: config.memberId,
           gymSlug: config.gymSlug,
-          memberData,
-          voice: 'verse' // Voix recommandée pour français
-        }),
+          memberId: config.memberId,
+          memberData: config.memberData,
+          language: config.language || 'fr'
+        })
       })
 
       if (!response.ok) {
-        throw new Error(`Session creation failed: ${response.status}`)
+        const errorData = await response.text()
+        throw new Error(`Session creation failed: ${response.status} - ${errorData}`)
       }
 
-      const data = await response.json()
+      const responseData = await response.json()
+      // L'API retourne { success: true, session: {...} }
+      const session = responseData.session || responseData
+      sessionRef.current = session
       
-      console.log('🔍 [DEBUG SESSION] Réponse API complète:', data)
-      console.log('🔍 [DEBUG SESSION] data.session:', data.session)
-      console.log('🔍 [DEBUG SESSION] data.session?.id:', data.session?.id)
+      kioskLogger.session(`✅ Session créée: ${session.session_id}`, 'success')
+      config.onSessionCreated?.(session.session_id, config.memberId, config.gymSlug)
       
-      // 📊 [TRACKING] Initialiser le tracking de session
-      await initSessionTracking(gymData)
-      
-      return data.session
-    } catch (error) {
-      console.error('Erreur création session:', error)
+      return session
+    } catch (error: any) {
+      kioskLogger.session(`❌ Erreur création session: ${error.message}`, 'error')
       throw error
     }
-  }, [config.memberId, config.gymSlug, getMemberData, initSessionTracking])
+  }, [config])
 
-  // Programmer une reconnexion avec backoff exponentiel (AVANT connect pour éviter dépendance circulaire)
-  const scheduleReconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) return
-
-    reconnectAttempts.current++
-    const delay = Math.min(
-      RECONNECT_CONFIG.baseDelay * Math.pow(RECONNECT_CONFIG.backoffMultiplier, reconnectAttempts.current - 1),
-      RECONNECT_CONFIG.maxDelay
-    )
-
-    console.log(`🔄 Reconnexion programmée dans ${delay}ms (tentative ${reconnectAttempts.current}/${RECONNECT_CONFIG.maxAttempts})`)
-    updateStatus('reconnecting')
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      reconnectTimeoutRef.current = null
-      // Utiliser la référence directe pour éviter dépendance circulaire
-      connect()
-    }, delay)
-  }, [updateStatus])
-
-  // Initialiser la connexion WebRTC
+  // 🌐 INITIALISER WEBRTC (comme dans ba8f34a)
   const initializeWebRTC = useCallback(async (session: VoiceChatSession) => {
     try {
-      // Créer la peer connection
+      kioskLogger.session('🌐 Initialisation WebRTC...', 'info')
+
+      // Créer PeerConnection
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       })
-      
       peerConnectionRef.current = pc
 
-      // Demander permission micro et ajouter le track audio
-      console.log('🎤 Demande de permissions microphone...')
+      // 🎤 DEMANDER PERMISSION MICRO (exactement comme ba8f34a)
+      kioskLogger.session('🎤 Demande de permissions microphone...', 'info')
       
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 16000  // ← CLEF ! Comme dans ba8f34a
         }
       })
-      
-      console.log('✅ Permissions microphone accordées')
-      
+
+      kioskLogger.session('✅ Permissions microphone accordées', 'success')
+
       // Ajouter le track audio local
       stream.getTracks().forEach(track => {
         pc.addTrack(track, stream)
       })
-
-      setAudioState(prev => ({ ...prev, micPermission: 'granted' }))
 
       // Créer l'élément audio pour le playback
       if (!audioElementRef.current) {
@@ -409,27 +132,23 @@ export function useVoiceChat(config: VoiceChatConfig) {
         audioElementRef.current = audioEl
       }
 
-      // Gérer les tracks audio distants (réponses IA)
+      // Gérer l'audio entrant (réponses de JARVIS)
       pc.ontrack = (event) => {
-        console.log('🎵 Track audio reçu depuis OpenAI')
+        kioskLogger.session('🔊 Audio entrant reçu', 'info')
         if (audioElementRef.current && event.streams[0]) {
           audioElementRef.current.srcObject = event.streams[0]
           setAudioState(prev => ({ ...prev, isPlaying: true }))
         }
       }
 
-      // Créer le data channel pour les événements
+      // Créer data channel pour les événements
       const dc = pc.createDataChannel('oai-events')
       dataChannelRef.current = dc
 
-      // Gérer les messages du data channel
       dc.onopen = () => {
-        console.log('📡 Data channel ouvert')
+        kioskLogger.session('📡 Data channel ouvert', 'success')
         setIsConnected(true)
         updateStatus('connected')
-        reconnectAttempts.current = 0
-        
-        // 🕐 Démarrer le timeout d'inactivité
         resetInactivityTimeout()
       }
 
@@ -438,28 +157,25 @@ export function useVoiceChat(config: VoiceChatConfig) {
           const serverEvent = JSON.parse(event.data)
           handleServerEvent(serverEvent)
         } catch (error) {
-          console.error('Erreur parsing événement serveur:', error)
+          kioskLogger.session(`Erreur parsing événement: ${error}`, 'error')
         }
       }
 
       dc.onerror = (error) => {
-        console.error('Erreur data channel:', error)
-        configRef.current.onError?.('Erreur de communication')
+        kioskLogger.session(`Erreur data channel: ${error}`, 'error')
+        config.onError?.('Erreur de communication')
       }
 
       dc.onclose = () => {
-        console.log('📡 Data channel fermé')
+        kioskLogger.session('📡 Data channel fermé', 'info')
         setIsConnected(false)
-        if (status !== 'idle') {
-          updateStatus('error')
-        }
+        updateStatus('idle')
       }
 
-      // Créer l'offre WebRTC
+      // Créer et envoyer l'offre WebRTC
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      // Envoyer l'offre à OpenAI Realtime API
       const ephemeralKey = session.client_secret.value
       const realtimeResponse = await fetch(`https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`, {
         method: 'POST',
@@ -471,483 +187,217 @@ export function useVoiceChat(config: VoiceChatConfig) {
       })
 
       if (!realtimeResponse.ok) {
-        throw new Error(`WebRTC handshake failed: ${realtimeResponse.status}`)
+        throw new Error(`WebRTC setup failed: ${realtimeResponse.status}`)
       }
 
-      // Recevoir et appliquer la réponse
       const answerSdp = await realtimeResponse.text()
-      const answer = {
-        type: 'answer' as RTCSdpType,
-        sdp: answerSdp,
-      }
-      await pc.setRemoteDescription(answer)
+      await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp })
 
-      sessionRef.current = session
-      console.log('🔍 [DEBUG SESSION ASSIGN] sessionRef.current assigné:', session)
-      console.log('🔍 [DEBUG SESSION ASSIGN] session.session_id:', session?.session_id)
-      console.log('✅ Connexion WebRTC établie avec OpenAI Realtime')
-
+      kioskLogger.session('✅ WebRTC initialisé', 'success')
+      
     } catch (error: any) {
-      console.error('Erreur initialisation WebRTC:', error)
+      kioskLogger.session(`❌ Erreur WebRTC: ${error.message}`, 'error')
+      
+      // Messages d'erreur détaillés selon le type (comme ba8f34a)
+      let errorMessage = 'Erreur de connexion'
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Permissions microphone refusées. Autorisez le microphone et rechargez la page.'
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'Aucun microphone détecté. Vérifiez votre équipement audio.'
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Microphone déjà utilisé par une autre application.'
+      } else if (error.message.includes('Session creation failed')) {
+        errorMessage = 'Erreur serveur. Veuillez réessayer.'
+      } else {
+        errorMessage = error.message
+      }
+      
+      config.onError?.(errorMessage)
       throw error
     }
-  }, [status, updateStatus])
+  }, [updateStatus, config])
 
-  // Gérer les événements du serveur OpenAI
-  const handleServerEvent = useCallback((event: { type: string; [key: string]: unknown }) => {
+  // ⏰ GESTION TIMEOUT INACTIVITÉ
+  const resetInactivityTimeout = useCallback(() => {
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current)
+      inactivityTimeoutRef.current = null
+    }
+
+    if (isConnected) {
+      inactivityTimeoutRef.current = setTimeout(() => {
+        kioskLogger.session('⏰ Timeout inactivité - Fermeture session', 'info')
+        disconnect()
+        config.onError?.('INACTIVITY_TIMEOUT')
+      }, INACTIVITY_TIMEOUT_MS)
+    }
+  }, [isConnected, config])
+
+  // 📨 GESTION ÉVÉNEMENTS SERVEUR (comme ba8f34a)
+  const handleServerEvent = useCallback((event: any) => {
+    resetInactivityTimeout()
+
     switch (event.type) {
       case 'session.created':
-        console.log('🎯 Session OpenAI créée')
-        
-        // 🚀 [SESSION SIMPLE] Démarrer le tracking de session
-        // Démarrage déjà instrumenté côté API; rien à faire côté client
-        break
-        
-      case 'session.updated':
-        console.log('🔄 Session OpenAI mise à jour')
+        kioskLogger.session('🎯 Session OpenAI active', 'success')
         break
 
       case 'input_audio_buffer.speech_started':
-        console.log('🎤 Début de parole détecté')
+        kioskLogger.session('🎤 Début de parole détecté', 'info')
+        setAudioState(prev => ({ ...prev, isListening: true }))
         updateStatus('listening')
-        setAudioState(prev => ({ ...prev, isRecording: true }))
-        
-        // 🔧 STABILITÉ: Activité détectée
-        // 🕐 Réinitialiser le timeout d'inactivité (utilisateur parle)
-        resetInactivityTimeout()
-        lastActivityRef.current = Date.now()
-        
-        // 📊 [TRACKING] Marquer le début d'input audio
-        if (sessionTrackingRef.current.sessionId) {
-          sessionTrackingRef.current.speechStartTime = Date.now()
-        }
-        
-        // 🎯 [INSTRUMENTATION] Enregistrer événement audio
-        try {
-          if (sessionRef.current?.session_id) {
-            openaiRealtimeInstrumentation.recordAudioEvent({
-              session_id: sessionRef.current.session_id,
-              event_type: 'speech_started',
-              event_timestamp: new Date()
-            })
-          }
-        } catch (error) {
-          console.error('❌ [INSTRUMENTATION] Erreur speech_started:', error)
-        }
         break
 
       case 'input_audio_buffer.speech_stopped':
-        console.log('🤐 Fin de parole détectée')
-        setAudioState(prev => ({ ...prev, isRecording: false }))
-        
-        // 🔧 STABILITÉ: Activité détectée
-        lastActivityRef.current = Date.now()
-        
-        // 📊 [TRACKING] Calculer la durée d'input audio
-        if (sessionTrackingRef.current.sessionId && sessionTrackingRef.current.speechStartTime) {
-          const duration = (Date.now() - sessionTrackingRef.current.speechStartTime) / 1000
-          sessionTrackingRef.current.audioInputSeconds += duration
-          delete sessionTrackingRef.current.speechStartTime
-        }
-        
-        // 🎯 [INSTRUMENTATION] Enregistrer événement audio
-        try {
-          if (sessionRef.current?.session_id) {
-            openaiRealtimeInstrumentation.recordAudioEvent({
-              session_id: sessionRef.current.session_id,
-              event_type: 'speech_stopped',
-              event_timestamp: new Date()
-            })
-          }
-        } catch (error) {
-          console.error('❌ [INSTRUMENTATION] Erreur speech_stopped:', error)
-        }
-        break
-
-      case 'response.created':
-        console.log('💭 Réponse IA en cours de génération')
-        updateStatus('speaking')
-        // 🔧 ACTIVITÉ: JARVIS parle = activité (pas d'inactivité)
-        lastActivityRef.current = Date.now()
-        break
-
-      case 'response.audio_transcript.delta':
-        if (event.delta) {
-          transcriptBufferRef.current += event.delta
-          configRef.current.onTranscriptUpdate?.(transcriptBufferRef.current, false)
-          setCurrentTranscript(transcriptBufferRef.current)
-          // 🔧 ACTIVITÉ: JARVIS parle = activité
-          lastActivityRef.current = Date.now()
-        }
-        break
-
-      case 'conversation.item.input_audio_transcription.delta':
-        // 🎙️ NOUVEAU: Transcription utilisateur temps réel (deltas)
-        const deltaTranscript = event.delta?.transcript as string
-        if (deltaTranscript) {
-          console.log('🔊 [OPENAI USER] Speech delta:', deltaTranscript.substring(0, 30) + '...')
-          
-          // 📊 [TRACKING] Ajouter au buffer pour assemblage final
-          if (sessionTrackingRef.current.sessionId) {
-            // Buffer les deltas pour éviter duplication avec completed
-            if (!sessionTrackingRef.current.currentUserSpeech) {
-              sessionTrackingRef.current.currentUserSpeech = ''
-            }
-            sessionTrackingRef.current.currentUserSpeech += deltaTranscript
-          }
-        }
+        kioskLogger.session('🤐 Fin de parole détectée', 'info')
+        setAudioState(prev => ({ ...prev, isListening: false }))
         break
 
       case 'conversation.item.input_audio_transcription.completed':
-        // 🎙️ TRANSCRIPTION UTILISATEUR FINALE
-        const userTranscript = event.transcript as string
-        if (userTranscript) {
-          console.log('👤 [OPENAI USER] Speech captured FINAL:', userTranscript.substring(0, 50) + '...')
-          
-          // 📊 [TRACKING] Utiliser transcript final (plus fiable que deltas)
-          if (sessionTrackingRef.current.sessionId) {
-            sessionTrackingRef.current.transcriptHistory.push(`USER: ${userTranscript}`)
-            sessionTrackingRef.current.textInputTokens += Math.ceil(userTranscript.length / 4)
-            
-            // Reset buffer deltas
-            delete sessionTrackingRef.current.currentUserSpeech
-          }
-          
-          // 💾 [LOGGING SIMPLE] Sauver message utilisateur via API (pas de service_role côté client)
-          try {
-            if (sessionRef.current?.session_id) {
-              fetch(`/api/kiosk/${configRef.current.gymSlug}/log-interaction`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  session_id: sessionRef.current.session_id,
-                  speaker: 'user',
-                  message_text: userTranscript,
-                  member_id: sessionRef.current.member_id,
-                  gym_id: sessionRef.current.gym_id
-                })
-              }).catch(error => console.warn('⚠️ Erreur logging user (API):', error))
-            }
-          } catch (logError) {
-            console.warn('⚠️ Exception logging user:', logError)
-          }
-          
-          // 🎯 Détection "au revoir" directement depuis OpenAI
-          const isGoodbye = userTranscript.toLowerCase().trim().includes('au revoir')
-          if (isGoodbye) {
-            console.log('👋 [OPENAI USER] AU REVOIR DÉTECTÉ dans transcript OpenAI:', userTranscript)
-            
-            // 🚀 FERMETURE SIMPLE DE SESSION
-            setTimeout(async () => {
-              try {
-                // Fermer la session côté serveur (goodbye)
-                if (sessionRef.current?.session_id) {
-                  await fetch('/api/voice/session/close', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: sessionRef.current.session_id, reason: 'user_goodbye' })
-                  }).catch(() => {})
-                }
-                
-                // Déclencher déconnexion
-                await disconnect()
-                
-                // Notifier le parent (VoiceInterface) pour désactiver
-                if (configRef.current.onError) {
-                  configRef.current.onError('GOODBYE_DETECTED')
-                }
-              } catch (error) {
-                console.error('❌ Erreur fermeture au revoir:', error)
-              }
-            }, 1000) // Délai pour laisser JARVIS répondre "au revoir"
-          }
+        const transcript = event.transcript || ''
+        setAudioState(prev => ({ 
+          ...prev, 
+          transcript,
+          isFinal: true 
+        }))
+        config.onTranscriptUpdate?.(transcript, true)
+        
+        // Détection "au revoir" (comme ba8f34a)
+        if (transcript.toLowerCase().includes('au revoir') || 
+            transcript.toLowerCase().includes('aurevoir') ||
+            transcript.toLowerCase().includes('bye') ||
+            transcript.toLowerCase().includes('goodbye')) {
+          kioskLogger.session('👋 Au revoir détecté', 'info')
+          setTimeout(() => {
+            config.onError?.('GOODBYE_DETECTED')
+          }, 1000) // Délai pour laisser JARVIS répondre
         }
         break
 
-      case 'response.audio_transcript.done':
-        console.log('📝 Transcript final:', event.transcript)
-        const finalTranscript = (event.transcript as string) || transcriptBufferRef.current
-        
-        // 🔧 ACTIVITÉ: Fin de réponse JARVIS = activité
-        lastActivityRef.current = Date.now()
-        
-        // 👋 DÉTECTION "AU REVOIR" SUPPRIMÉE - gérée côté VoiceInterface pour éviter conflits
-        
-        configRef.current.onTranscriptUpdate?.(finalTranscript, true)
-        setCurrentTranscript(finalTranscript)
-        
-        // 📊 [TRACKING] Enregistrer la transcription
-        if (finalTranscript && sessionTrackingRef.current.sessionId) {
-          sessionTrackingRef.current.transcriptHistory.push(`AI: ${finalTranscript}`)
-          // Estimer les tokens de sortie (approximation: 1 token ≈ 4 caractères)
-          sessionTrackingRef.current.textOutputTokens += Math.ceil(finalTranscript.length / 4)
-        }
-
-        // 💾 [LOGGING SIMPLE] Sauver réponse JARVIS via API
-        try {
-          if (sessionRef.current?.session_id && finalTranscript) {
-            fetch(`/api/kiosk/${configRef.current.gymSlug}/log-interaction`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                session_id: sessionRef.current.session_id,
-                speaker: 'jarvis',
-                message_text: finalTranscript,
-                member_id: sessionRef.current.member_id,
-                gym_id: sessionRef.current.gym_id
-              })
-            }).catch(error => console.warn('⚠️ Erreur logging JARVIS (API):', error))
-          }
-        } catch (logError) {
-          console.warn('⚠️ Exception logging JARVIS:', logError)
-        }
-
-        // 🎙️ [OPENAI REALTIME] Logging IA intégré dans le tracking principal
-        console.log('🤖 [OPENAI REALTIME] IA Response logged:', finalTranscript.substring(0, 50) + '...')
-        
-        // 🎯 [INSTRUMENTATION] Enregistrer la transcription IA finale
-        try {
-          if (sessionRef.current?.session_id && finalTranscript) {
-            openaiRealtimeInstrumentation.recordAudioEvent({
-              session_id: sessionRef.current.session_id,
-              event_type: 'response_completed',
-              ai_transcript_final: finalTranscript,
-              event_timestamp: new Date()
-            })
-          }
-        } catch (error) {
-          console.error('❌ [INSTRUMENTATION] Erreur response_completed:', error)
-        }
-        
-        transcriptBufferRef.current = ''
+      case 'response.audio.delta':
+        updateStatus('speaking')
+        setAudioState(prev => ({ ...prev, isPlaying: true }))
         break
 
       case 'response.audio.done':
-        console.log('🔊 Audio de réponse terminé')
-        setAudioState(prev => ({ ...prev, isPlaying: false }))
-        
-        // 📊 [TRACKING] Estimer la durée audio de sortie (approximatif)
-        if (sessionTrackingRef.current.sessionId) {
-          sessionTrackingRef.current.audioOutputSeconds += 3 // Estimation moyenne
-        }
-        break
-
-      case 'response.done':
-        console.log('✅ Réponse complète')
         updateStatus('connected')
-        
-        // 🕐 JARVIS a fini de parler - Démarrer le timeout d'inactivité
-        resetInactivityTimeout()
+        setAudioState(prev => ({ ...prev, isPlaying: false }))
         break
 
       case 'error':
-        console.error('❌ Erreur serveur OpenAI:', event)
-        configRef.current.onError?.((event.error as { message?: string })?.message || 'Erreur serveur')
-        
-        // 📊 [TRACKING] Marquer l'erreur
-        if (sessionTrackingRef.current.sessionId) {
-          sessionTrackingRef.current.errorOccurred = true
-        }
-        
-        updateStatus('error')
+        kioskLogger.session(`❌ Erreur OpenAI: ${event.error?.message}`, 'error')
+        config.onError?.(event.error?.message || 'Erreur OpenAI')
         break
-
-      case 'rate_limits.updated':
-        console.log('⚡ Limites de taux mises à jour:', event.rate_limits)
-        break
-
-      default:
-        // 🔇 Logs événements non critiques silencieux en production
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📨 Événement serveur non géré:', event.type)
-        }
     }
-  }, [updateStatus])
+  }, [resetInactivityTimeout, updateStatus, config])
 
-  // Fonction principale de connexion
+  // 🔗 CONNEXION COMPLÈTE (comme ba8f34a mais simplifié)
   const connect = useCallback(async () => {
-    // 🔇 Debug logs silencieux en production
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔥 [CONNECT DEBUG] connect() appelée, isConnectingRef.current:', isConnectingRef.current, 'isConnected:', isConnected)
-    }
-    
     if (isConnectingRef.current || isConnected) {
-      console.log('⚠️ Connexion déjà en cours ou établie')
+      kioskLogger.session('⚠️ Connexion déjà en cours ou active', 'warning')
       return
     }
 
     isConnectingRef.current = true
     updateStatus('connecting')
-    console.log('🔥 [CONNECT DEBUG] Début connexion, appel createSession()')
 
     try {
-      // 1. Créer la session OpenAI avec token ephémère
+      kioskLogger.session('🚀 Démarrage session complète...', 'info')
+
+      // 1. Créer la session OpenAI
       const session = await createSession()
-      console.log('🔥 [CONNECT DEBUG] createSession() réussie, session:', session)
       
-      // 2. Initialiser WebRTC avec la session
-      console.log('🔥 [CONNECT DEBUG] Appel initializeWebRTC()')
+      // 2. Initialiser WebRTC avec micro intégré
       await initializeWebRTC(session)
-      console.log('🔥 [CONNECT DEBUG] initializeWebRTC() réussie')
       
-      console.log('🚀 Connexion voice chat établie avec succès')
+      kioskLogger.session('✅ Session complète active', 'success')
       
     } catch (error: any) {
-      console.error('Erreur connexion voice chat:', error)
-      
-      // Messages d'erreur détaillés selon le type
-      let errorMessage = 'Erreur de connexion'
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError') {
-          errorMessage = 'Permissions microphone refusées. Autorisez le microphone et rechargez la page.'
-        } else if (error.name === 'NotFoundError') {
-          errorMessage = 'Aucun microphone détecté. Vérifiez votre équipement audio.'
-        } else if (error.name === 'NotReadableError') {
-          errorMessage = 'Micro déjà utilisé par une autre application (Teams/Zoom/Chrome onglet). Ferme-les puis réessaie.'
-        } else if (error.message.includes('Session creation failed')) {
-          errorMessage = 'Erreur serveur. Veuillez réessayer.'
-        } else {
-          errorMessage = error.message
-        }
-      }
-      
-      configRef.current.onError?.(errorMessage)
+      kioskLogger.session(`❌ Erreur connexion: ${error.message}`, 'error')
       updateStatus('error')
-      
-      // Tentative de reconnexion automatique (sauf pour les erreurs de permissions)
-      if (reconnectAttempts.current < RECONNECT_CONFIG.maxAttempts && 
-          !(error instanceof Error && (error.name === 'NotAllowedError' || error.name === 'NotReadableError'))) {
-        scheduleReconnect()
-      }
+      config.onError?.(error.message)
     } finally {
       isConnectingRef.current = false
     }
-  }, [isConnected, createSession, initializeWebRTC, updateStatus, scheduleReconnect])
+  }, [isConnected, updateStatus, createSession, initializeWebRTC, config])
 
-  // Déconnexion propre (DÉCLARÉE EN PREMIER pour éviter erreur hoisting)
+  // 🔌 DÉCONNEXION COMPLÈTE
   const disconnect = useCallback(async () => {
-    console.log('🔌 DÉCONNEXION VOICE CHAT - RAISON:', {
-      timestamp: new Date().toISOString(),
-      isConnected,
-      status,
-      lastActivity: new Date(lastActivityRef.current).toISOString(),
-      timeSinceActivity: Date.now() - lastActivityRef.current,
-      sessionId: sessionTrackingRef.current.sessionId
-    })
-    
-    // Nettoyer les timeouts de stabilité
-    if (stabilityTimeoutRef.current) {
-      clearTimeout(stabilityTimeoutRef.current)
-      stabilityTimeoutRef.current = null
-    }
-    
-    // Nettoyer les timeouts
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-      reconnectTimeoutRef.current = null
-    }
-    
-    // 🕐 Nettoyer le timeout d'inactivité
-    clearInactivityTimeout()
+    try {
+      kioskLogger.session('🔌 Déconnexion session...', 'info')
 
-    // Fermer la peer connection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close()
-      peerConnectionRef.current = null
-    }
-
-    // Fermer le data channel
-    if (dataChannelRef.current) {
-      dataChannelRef.current.close()
-      dataChannelRef.current = null
-    }
-
-    // Arrêter l'audio
-    if (audioElementRef.current) {
-      audioElementRef.current.srcObject = null
-    }
-
-    // 🕐 Annuler le timeout d'inactivité
-    clearInactivityTimeout()
-
-    // 📊 [TRACKING] Finaliser le tracking de session AVANT de reset sessionRef
-    await finalizeSessionTracking()
-
-    // Reset states
-    setIsConnected(false)
-    setCurrentTranscript('')
-    setAudioState({
-      isRecording: false,
-      isPlaying: false,
-      micPermission: 'prompt',
-      audioLevel: 0
-    })
-    
-    sessionRef.current = null
-    isConnectingRef.current = false
-    reconnectAttempts.current = 0
-    transcriptBufferRef.current = ''
-    
-    updateStatus('idle')
-  }, [updateStatus, finalizeSessionTracking])
-
-  // Forcer une reconnexion
-  const forceReconnect = useCallback(async () => {
-    console.log('🔄 Reconnexion forcée demandée')
-    await disconnect()
-    reconnectAttempts.current = 0
-    setTimeout(() => connect(), 1000)
-  }, [connect, disconnect])
-
-  // Envoyer un message texte (optionnel)
-  const sendTextMessage = useCallback((text: string) => {
-    if (!dataChannelRef.current || !isConnected) {
-      console.warn('⚠️ Pas de connexion pour envoyer le message')
-      return
-    }
-
-    const event = {
-      type: 'conversation.item.create',
-      item: {
-        type: 'message',
-        role: 'user',
-        content: [
-          {
-            type: 'input_text',
-            text: text,
-          }
-        ]
+      // Nettoyer les timeouts
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current)
+        inactivityTimeoutRef.current = null
       }
-    }
 
-    dataChannelRef.current.send(JSON.stringify(event))
-    
-    // Déclencher une réponse
-    const responseEvent = {
-      type: 'response.create'
-    }
-    dataChannelRef.current.send(JSON.stringify(responseEvent))
-  }, [isConnected])
+      // Fermer WebRTC
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close()
+        peerConnectionRef.current = null
+      }
+      if (dataChannelRef.current) {
+        dataChannelRef.current.close()
+        dataChannelRef.current = null
+      }
 
-  // Nettoyage à la déconnexion du composant
+      // Arrêter l'audio
+      if (audioElementRef.current) {
+        audioElementRef.current.srcObject = null
+      }
+
+      // Fermer la session côté serveur
+      if (sessionRef.current) {
+        try {
+          await fetch('/api/voice/session/close', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: sessionRef.current.session_id })
+          })
+        } catch (error) {
+          kioskLogger.session(`⚠️ Erreur fermeture session serveur: ${error}`, 'warning')
+        }
+        sessionRef.current = null
+      }
+
+      // Réinitialiser les états
+      setIsConnected(false)
+      setAudioState({
+        isListening: false,
+        isPlaying: false,
+        volume: 0,
+        transcript: '',
+        isFinal: false
+      })
+      updateStatus('idle')
+      isConnectingRef.current = false
+
+      kioskLogger.session('✅ Déconnexion terminée', 'success')
+      
+    } catch (error: any) {
+      kioskLogger.session(`❌ Erreur déconnexion: ${error.message}`, 'error')
+    }
+  }, [updateStatus])
+
+  // 🧹 CLEANUP AU DÉMONTAGE
   useEffect(() => {
     return () => {
-      // Note: cleanup function cannot be async, but disconnect should be called
-      disconnect().catch(console.error)
+      disconnect()
     }
-  }, [disconnect])
+  }, [])
 
   return {
-    audioState,
-    isConnected,
+    // États
     status,
-    currentTranscript,
-    connectionQuality,
-    reconnectAttempts: reconnectAttempts.current,
+    isConnected,
+    audioState,
+    
+    // Actions
     connect,
     disconnect,
-    sendTextMessage,
-    forceReconnect,
-    getCurrentSessionId: () => sessionRef.current?.session_id || null
+    
+    // Utilitaires
+    resetInactivityTimeout
   }
-} 
+}

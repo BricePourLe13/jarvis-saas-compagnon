@@ -1,7 +1,6 @@
 "use client"
-import { useState } from 'react'
-import { Box, VStack, HStack, Text, Button, Badge, Avatar, Input, IconButton } from '@chakra-ui/react'
-import { Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Box, VStack, HStack, Text, Button, Badge, Avatar } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { GymMember } from '@/types/kiosk'
 
@@ -97,14 +96,12 @@ export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RF
   const [isScanning, setIsScanning] = useState(false)
   const [lastScannedMember, setLastScannedMember] = useState<GymMember | null>(null)
   const [members, setMembers] = useState<GymMember[]>(DEMO_MEMBERS)
-  const [query, setQuery] = useState('')
-  const [page, setPage] = useState(1)
-  const pageSize = 20
+  const pageSize = 'all'
 
-  const loadMembers = async (q = '', p = 1) => {
+  const loadMembers = async () => {
     try {
       if (!gymSlug) return // fallback sur DEMO_MEMBERS
-      const res = await fetch(`/api/kiosk/${gymSlug}/members?q=${encodeURIComponent(q)}&page=${p}&pageSize=${pageSize}`)
+      const res = await fetch(`/api/kiosk/${gymSlug}/members?page=1&pageSize=${pageSize}`)
       const json = await res.json()
       if (json?.success && Array.isArray(json.members)) {
         setMembers(json.members)
@@ -115,6 +112,9 @@ export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RF
       setMembers(DEMO_MEMBERS)
     }
   }
+
+  // Charger la liste complète au montage et quand le slug change
+  useEffect(() => { loadMembers() }, [gymSlug])
 
   const simulateBadgeScan = async (member: GymMember) => {
     if (isActive) return // Ne pas scanner si une session est déjà active
@@ -225,25 +225,19 @@ export default function RFIDSimulator({ onMemberScanned, isActive, gymSlug }: RF
           )}
         </AnimatePresence>
 
-        {/* Recherche + pagination */}
-        <HStack w="full" maxW="520px" spacing={2}>
-          <Input
-            placeholder="Rechercher (nom, prénom, badge)"
-            value={query}
-            onChange={(e)=>setQuery(e.target.value)}
-            bg="rgba(255,255,255,0.06)"
-            border="1px solid rgba(255,255,255,0.12)"
-            color="white"
-          />
-          <IconButton
-            aria-label="Rechercher"
-            icon={<Search size={16} />}
-            onClick={()=>{ setPage(1); loadMembers(query, 1) }}
-          />
-        </HStack>
+        {/* En-tête clair et unifié */}
+        <Box w="full" maxW="780px" p={4} bg="rgba(255,255,255,0.04)" border="1px solid rgba(255,255,255,0.08)" borderRadius="lg">
+          <HStack justify="space-between">
+            <VStack align="start" spacing={0}>
+              <Text color="white" fontWeight="600">Adhérents</Text>
+              <Text color="rgba(255,255,255,0.6)" fontSize="xs">Liste complète — cliquer pour simuler le badge</Text>
+            </VStack>
+            <Badge colorScheme="purple" borderRadius="full">{members.length} membres</Badge>
+          </HStack>
+        </Box>
 
         {/* Liste des membres */}
-        <VStack spacing={3} w="full" maxW="520px" opacity={isActive ? 0.5 : 1}>
+        <VStack spacing={3} w="full" maxW="780px" opacity={isActive ? 0.5 : 1}>
           {members.map((member) => (
             <motion.div
               key={member.id}

@@ -81,7 +81,7 @@ export default function VoiceInterface({
 
   // ✅ NOUVEAU: Activation directe du microphone (sauf si "au revoir" détecté)
   useEffect(() => {
-    if (isActive && !isConnected && status !== 'connecting' && currentMember && !hasDetectedGoodbye) {
+    if (isActive && !isConnected && status !== 'connecting' && status !== 'error' && currentMember && !hasDetectedGoodbye) {
       // Log supprimé pour production
       connect()
     }
