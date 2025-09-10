@@ -328,13 +328,19 @@ function Sidebar({ userContext, navigationContext, permissions, isOpen, onClose 
 
   const handleLogout = async () => {
     try {
-      const { getSupabaseSingleton } = await import('@/lib/supabase-singleton')
-      const supabase = getSupabaseSingleton()
-      await supabase.auth.signOut()
-      userContextManager.clearContext()
-      router.push('/auth/setup')
+      if (typeof window !== 'undefined') {
+        const { getSupabaseSingleton } = await import('@/lib/supabase-singleton')
+        const supabase = getSupabaseSingleton()
+        if (supabase?.auth) {
+          await supabase.auth.signOut()
+        }
+        userContextManager.clearContext()
+        router.push('/auth/setup')
+      }
     } catch (error) {
       console.error('Erreur déconnexion:', error)
+      // Forcer la redirection même en cas d'erreur
+      router.push('/auth/setup')
     }
   }
 

@@ -141,6 +141,11 @@ export class UserContextManager {
   async loadUserContext(): Promise<UserContext | null> {
     try {
       const supabase = getSupabaseSingleton()
+      if (!supabase?.auth) {
+        console.error('🚨 [USER CONTEXT] Supabase auth non disponible')
+        return null
+      }
+      
       const { data: { user: authUser } } = await supabase.auth.getUser()
       
       if (!authUser) return null

@@ -16,11 +16,16 @@ let supabaseInstance: SupabaseClient | null = null
  */
 export function getSupabaseSingleton(): SupabaseClient {
   if (!supabaseInstance) {
+    // Vérifier les variables d'environnement
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('🚨 [SUPABASE] Variables d\'environnement manquantes: NEXT_PUBLIC_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    }
+    
     // ✅ Créer une seule fois
-    supabaseInstance = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    supabaseInstance = createBrowserClient(supabaseUrl, supabaseAnonKey)
     
     // Supprimer le log en production pour éviter le spam
     if (process.env.NODE_ENV === 'development') {

@@ -127,7 +127,7 @@ function setBrowserSpecificHeaders(response: NextResponse, browserInfo: Record<s
                 const safariCSP = [
               "default-src 'self'",
               "media-src 'self' blob: mediastream:",
-              "connect-src 'self' wss: https: *.hcaptcha.com",
+              "connect-src 'self' wss: https: *.hcaptcha.com *.supabase.co *.vercel.app *.sentry.io",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.hcaptcha.com",
               "style-src 'self' 'unsafe-inline'",
               "frame-src *.hcaptcha.com"
@@ -148,7 +148,7 @@ function setWebRTCOptimizationHeaders(response: NextResponse) {
           const cspDirectives = [
           "default-src 'self'",
           "media-src 'self' blob: mediastream:",
-          "connect-src 'self' wss: https: *.openai.com *.hcaptcha.com",
+          "connect-src 'self' wss: https: *.openai.com *.hcaptcha.com *.supabase.co *.vercel.app *.sentry.io",
           "script-src 'self' 'unsafe-eval' 'unsafe-inline' *.hcaptcha.com",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob:",
