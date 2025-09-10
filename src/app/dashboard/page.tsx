@@ -275,8 +275,10 @@ export default function DashboardPage() {
   const [quickActions, setQuickActions] = useState<QuickAction[]>([])
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     loadDashboardData()
   }, [])
 
@@ -504,6 +506,11 @@ export default function DashboardPage() {
       case 'gym_manager': return 'Monitoring et gestion de votre salle'
       default: return 'Tableau de bord personnalisé'
     }
+  }
+
+  // Éviter les problèmes d'hydratation
+  if (!mounted) {
+    return null
   }
 
   return (

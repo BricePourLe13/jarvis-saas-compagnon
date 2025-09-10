@@ -59,7 +59,14 @@ interface Franchise {
   status: 'active' | 'warning' | 'error'
 }
 
+import AdminRedirect from './redirect'
+
 export default function AdminPage() {
+  // Rediriger vers le nouveau dashboard
+  return <AdminRedirect />
+}
+
+function AdminPageOld() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [alerts, setAlerts] = useState<Alert[]>([])

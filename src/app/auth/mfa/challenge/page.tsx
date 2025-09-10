@@ -37,12 +37,8 @@ export default function MFAChallengePage() {
     // @ts-ignore
     const verify = await (supabase.auth as any).mfa?.verify({ factorId, challengeId, code: code.trim() })
     if (verify?.error) { setError('Code invalide'); return }
-    // Retour au dashboard/admin
-    // Décider de la destination en fonction du rôle
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('users').select('role').eq('id', user?.id).single()
-    const isAdmin = profile?.role === 'super_admin' || profile?.role === 'franchise_owner' || profile?.role === 'franchise_admin'
-    router.push(isAdmin ? '/admin' : '/dashboard')
+    // Redirection vers le nouveau dashboard unifié
+    router.push('/dashboard')
   }
 
   return (

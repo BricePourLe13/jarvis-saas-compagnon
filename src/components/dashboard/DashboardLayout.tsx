@@ -540,13 +540,28 @@ export default function DashboardLayout({
     }
   }
 
-  // Loading state
-  if (isLoading || !userContext || !navigationContext || !permissions) {
+  // Loading state - éviter l'hydratation mismatch
+  if (isLoading) {
     return (
       <Flex h="100vh" align="center" justify="center" bg="gray.50">
         <VStack spacing={4}>
           <Spinner size="lg" color="blue.500" />
           <Text color="gray.600">Chargement du dashboard...</Text>
+        </VStack>
+      </Flex>
+    )
+  }
+
+  // Si pas de contexte, rediriger vers auth
+  if (!userContext || !navigationContext || !permissions) {
+    if (typeof window !== 'undefined') {
+      router.push('/auth/setup')
+    }
+    return (
+      <Flex h="100vh" align="center" justify="center" bg="gray.50">
+        <VStack spacing={4}>
+          <Spinner size="lg" color="blue.500" />
+          <Text color="gray.600">Redirection...</Text>
         </VStack>
       </Flex>
     )
