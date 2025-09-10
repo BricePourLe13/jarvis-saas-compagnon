@@ -2,6 +2,15 @@
   "mcpServers": {
     "Sentry": {
       "url": "https://mcp.sentry.dev/mcp/jarvis-group/jarvis-saas-compagnon"
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_4c6b98d5c149ed86d2e3e2dba4e59a91297ad402"
+      ]
     }
   }
 }

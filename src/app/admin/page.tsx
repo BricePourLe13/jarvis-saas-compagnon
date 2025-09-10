@@ -506,6 +506,44 @@ export default function AdminPage() {
                   </VStack>
                 </VStack>
               </Box>
+
+              <Box
+                bg="white"
+                p={6}
+                borderRadius="8px"
+                border="1px solid"
+                borderColor="gray.100"
+                cursor="pointer"
+                onClick={() => router.push('/admin/sessions/live')}
+                _hover={{
+                  shadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  borderColor: "gray.200"
+                }}
+                transition="all 0.2s ease"
+                textAlign="center"
+              >
+                <VStack spacing={3}>
+                  <Box
+                    w={12}
+                    h={12}
+                    bg="purple.100"
+                    borderRadius="8px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Activity size={24} color="var(--chakra-colors-purple-500)" />
+                  </Box>
+                  <VStack spacing={1}>
+                    <Text fontWeight="600" color="black">
+                      Sessions Live
+                    </Text>
+                    <Text fontSize="sm" color="gray.500">
+                      Conversations temps réel
+                    </Text>
+                  </VStack>
+                </VStack>
+              </Box>
             </SimpleGrid>
           </VStack>
         </MotionBox>

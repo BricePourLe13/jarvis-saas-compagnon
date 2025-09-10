@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
 import { kioskLogger } from '@/lib/kiosk-logger'
+import { realtimeClientInjector } from '@/lib/realtime-client-injector'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -46,6 +47,10 @@ export function useVoiceChat(config: VoiceChatConfig) {
   // Refs pour la gestion des ressources
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const dataChannelRef = useRef<RTCDataChannel | null>(null)
+  
+  // 💬 Refs pour logging des conversations
+  const currentMemberRef = useRef<{ id: string; gym_id: string } | null>(null)
+  const responseStartTimeRef = useRef<number | null>(null)
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const sessionRef = useRef<VoiceChatSession | null>(null)
   const isConnectingRef = useRef(false)
@@ -59,18 +64,49 @@ export function useVoiceChat(config: VoiceChatConfig) {
     config.onStatusChange?.(newStatus)
   }, [config])
 
-  // 📡 CRÉER SESSION OPENAI
+  // 💬 Initialiser les données membre pour le logging
+  useEffect(() => {
+    if (config.memberData?.badge_id && config.gymSlug) {
+      // Récupérer member_id et gym_id depuis le cache ou l'API
+      const fetchMemberData = async () => {
+        try {
+          const response = await fetch(`/api/kiosk/${config.gymSlug}/members/${config.memberData?.badge_id}`)
+          const result = await response.json()
+          
+          if (result.found && result.member) {
+            currentMemberRef.current = {
+              id: result.member.id,
+              gym_id: result.member.gym_id
+            }
+            console.log(`💬 [CONV] Membre configuré pour logging: ${result.member.first_name}`)
+          }
+        } catch (error) {
+          console.error('❌ [CONV] Erreur récupération données membre:', error)
+        }
+      }
+      
+      fetchMemberData()
+    }
+  }, [config.memberData?.badge_id, config.gymSlug])
+
+  // 📡 CRÉER SESSION OPENAI AVEC PROFIL RÉEL
   const createSession = useCallback(async (): Promise<VoiceChatSession> => {
     try {
       kioskLogger.session('📡 Création session OpenAI...', 'info')
+      
+      // Utiliser badge_id au lieu de memberId pour la nouvelle API
+      const badge_id = config.memberData?.badge_id || config.memberId
+      
+      if (!badge_id) {
+        throw new Error('Badge ID requis pour créer une session')
+      }
       
       const response = await fetch('/api/voice/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gymSlug: config.gymSlug,
-          memberId: config.memberId,
-          memberData: config.memberData,
+          badge_id: badge_id,
           language: config.language || 'fr'
         })
       })
@@ -95,21 +131,43 @@ export function useVoiceChat(config: VoiceChatConfig) {
     }
   }, [config])
 
-  // 🌐 INITIALISER WEBRTC (comme dans ba8f34a)
+  // 🌐 INITIALISER WEBRTC - VERSION AMÉLIORÉE AVEC DIAGNOSTIC
   const initializeWebRTC = useCallback(async (session: VoiceChatSession) => {
     try {
       kioskLogger.session('🌐 Initialisation WebRTC...', 'info')
 
-      // Créer PeerConnection
+      // 1. Vérifier support WebRTC
+      if (!window.RTCPeerConnection) {
+        throw new Error('WebRTC non supporté par ce navigateur')
+      }
+
+      // 2. Vérifier permissions avant getUserMedia
+      if (navigator.permissions) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+          if (permission.state === 'denied') {
+            throw new Error('MICROPHONE_PERMISSION_DENIED')
+          }
+          kioskLogger.session(`🔐 Permissions microphone: ${permission.state}`, 'info')
+        } catch (permError) {
+          kioskLogger.session('⚠️ Impossible de vérifier les permissions', 'warning')
+        }
+      }
+
+      // 3. Créer PeerConnection avec configuration robuste
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' } // Fallback
+        ]
       })
       peerConnectionRef.current = pc
 
-      // 🎤 DEMANDER PERMISSION MICRO (exactement comme ba8f34a)
+      // 4. Demander microphone avec timeout et gestion d'erreurs améliorée
       kioskLogger.session('🎤 Demande de permissions microphone...', 'info')
       
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Timeout pour getUserMedia
+      const streamPromise = navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -117,6 +175,12 @@ export function useVoiceChat(config: VoiceChatConfig) {
           sampleRate: 16000  // ← CLEF ! Comme dans ba8f34a
         }
       })
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('MICROPHONE_TIMEOUT')), 10000)
+      )
+
+      const stream = await Promise.race([streamPromise, timeoutPromise])
 
       kioskLogger.session('✅ Permissions microphone accordées', 'success')
 
@@ -198,19 +262,59 @@ export function useVoiceChat(config: VoiceChatConfig) {
     } catch (error: any) {
       kioskLogger.session(`❌ Erreur WebRTC: ${error.message}`, 'error')
       
-      // Messages d'erreur détaillés selon le type (comme ba8f34a)
+      // 🔧 GESTION D'ERREURS AMÉLIORÉE - Messages détaillés et solutions
       let errorMessage = 'Erreur de connexion'
-      if (error.name === 'NotAllowedError') {
-        errorMessage = 'Permissions microphone refusées. Autorisez le microphone et rechargez la page.'
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = 'Aucun microphone détecté. Vérifiez votre équipement audio.'
-      } else if (error.name === 'NotReadableError') {
-        errorMessage = 'Microphone déjà utilisé par une autre application.'
-      } else if (error.message.includes('Session creation failed')) {
-        errorMessage = 'Erreur serveur. Veuillez réessayer.'
-      } else {
-        errorMessage = error.message
+      let errorDetails = ''
+      
+      switch (error.message) {
+        case 'MICROPHONE_PERMISSION_DENIED':
+          errorMessage = 'Permissions microphone refusées'
+          errorDetails = 'Cliquez sur l\'icône cadenas dans la barre d\'adresse pour autoriser le microphone'
+          break
+        case 'MICROPHONE_TIMEOUT':
+          errorMessage = 'Timeout microphone'
+          errorDetails = 'Le microphone met trop de temps à répondre. Vérifiez qu\'il n\'est pas utilisé par une autre application'
+          break
+        case 'WebRTC non supporté par ce navigateur':
+          errorMessage = 'Navigateur incompatible'
+          errorDetails = 'Utilisez Chrome, Firefox ou Safari récent'
+          break
+        default:
+          // Erreurs getUserMedia standards
+          switch (error.name) {
+            case 'NotAllowedError':
+              errorMessage = 'Microphone bloqué'
+              errorDetails = 'Autorisez l\'accès au microphone et rechargez la page'
+              break
+            case 'NotFoundError':
+              errorMessage = 'Microphone introuvable'
+              errorDetails = 'Branchez un microphone et rechargez la page'
+              break
+            case 'NotReadableError':
+              errorMessage = 'Microphone occupé'
+              errorDetails = 'Fermez les autres applications utilisant le microphone'
+              break
+            case 'OverconstrainedError':
+              errorMessage = 'Configuration microphone incompatible'
+              errorDetails = 'Votre microphone ne supporte pas les paramètres requis'
+              break
+            case 'SecurityError':
+              errorMessage = 'Erreur de sécurité'
+              errorDetails = 'Accédez au site via HTTPS ou localhost'
+              break
+            default:
+              if (error.message.includes('Session creation failed')) {
+                errorMessage = 'Erreur serveur OpenAI'
+                errorDetails = 'Problème de connexion au serveur. Réessayez dans quelques instants'
+              } else {
+                errorMessage = error.message || 'Erreur inconnue'
+                errorDetails = 'Consultez la console pour plus de détails'
+              }
+          }
       }
+      
+      // Log détaillé pour le debugging
+      kioskLogger.session(`💡 Solution suggérée: ${errorDetails}`, 'info')
       
       config.onError?.(errorMessage)
       throw error
@@ -246,11 +350,29 @@ export function useVoiceChat(config: VoiceChatConfig) {
         kioskLogger.session('🎤 Début de parole détecté', 'info')
         setAudioState(prev => ({ ...prev, isListening: true }))
         updateStatus('listening')
+        
+        // 🎙️ INJECTER ÉVÉNEMENT REALTIME
+        if (currentMemberRef.current && sessionRef.current) {
+          realtimeClientInjector.injectUserSpeechStart(
+            sessionRef.current.session_id,
+            currentMemberRef.current.gym_id,
+            currentMemberRef.current.id
+          )
+        }
         break
 
       case 'input_audio_buffer.speech_stopped':
         kioskLogger.session('🤐 Fin de parole détectée', 'info')
         setAudioState(prev => ({ ...prev, isListening: false }))
+        
+        // 🎙️ INJECTER ÉVÉNEMENT REALTIME
+        if (currentMemberRef.current && sessionRef.current) {
+          realtimeClientInjector.injectUserSpeechEnd(
+            sessionRef.current.session_id,
+            currentMemberRef.current.gym_id,
+            currentMemberRef.current.id
+          )
+        }
         break
 
       case 'conversation.item.input_audio_transcription.completed':
@@ -261,6 +383,17 @@ export function useVoiceChat(config: VoiceChatConfig) {
           isFinal: true 
         }))
         config.onTranscriptUpdate?.(transcript, true)
+        
+        // 🎙️ INJECTER TRANSCRIPT UTILISATEUR DANS REALTIME
+        if (transcript.trim() && currentMemberRef.current && sessionRef.current) {
+          realtimeClientInjector.injectUserTranscript(
+            sessionRef.current.session_id,
+            currentMemberRef.current.gym_id,
+            currentMemberRef.current.id,
+            transcript,
+            event.confidence_score
+          )
+        }
         
         // Détection "au revoir" (comme ba8f34a)
         if (transcript.toLowerCase().includes('au revoir') || 

@@ -17,6 +17,9 @@ import { useKioskHeartbeat } from '@/hooks/useKioskHeartbeat'
 import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import ModernFluidShapes from '@/components/common/ModernFluidShapes'
+import MicrophoneDiagnostic from '@/components/kiosk/MicrophoneDiagnostic'
+import { startMicrophoneMonitoring, stopMicrophoneMonitoring } from '@/lib/microphone-health-monitor'
+import { kioskLogger } from '@/lib/kiosk-logger'
 
 // ✅ PHASE 3: Browser Compatibility & Fallbacks
 const getBrowserInfo = () => {
@@ -86,6 +89,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   // États pour session pre-warming
   const [prewarmStatus, setPrewarmStatus] = useState<'idle' | 'warming' | 'ready' | 'error'>('idle')
   const [prewarmCache, setPrewarmCache] = useState<Record<string, any>>({})
+  const [showDiagnostic, setShowDiagnostic] = useState(false)
 
   // État pour gérer la fin de session en attente
   const [pendingSessionEnd, setPendingSessionEnd] = useState<'natural' | 'timeout' | 'error' | null>(null)
@@ -116,25 +120,119 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     interval: 10000 // ⚡ 10 secondes pour détection ultra-rapide
   })
 
+  // 🎤 MONITORING MICROPHONE EN TEMPS RÉEL
+  useEffect(() => {
+    if (!kioskData?.kiosk?.id) return
+
+    // Démarrer le monitoring microphone
+    startMicrophoneMonitoring(kioskData.kiosk.id, slug)
+    kioskLogger.system('🎤 Monitoring microphone démarré', 'info')
+
+    // Nettoyer au démontage
+    return () => {
+      stopMicrophoneMonitoring()
+      kioskLogger.system('🎤 Monitoring microphone arrêté', 'info')
+    }
+  }, [kioskData?.kiosk?.id, slug])
 
 
-  // 🎤 PRÉ-INITIALISATION MICROPHONE SUPPRIMÉE
-  // RAISON: Conflit avec WebRTC getUserMedia() - permissions gérées dans VoiceInterface
-  // Le microphone sera initialisé uniquement après scan de badge pour éviter les conflits
-  
-  // ⚠️ ANCIEN CODE SUPPRIMÉ:
-  // useEffect(() => {
-  //   const prewarmMicrophone = async () => {
-  //     try {
-  //       await navigator.mediaDevices.getUserMedia({ audio: true })
-  //       // Log supprimé pour production
-  //     } catch (error) {
-  //       // Log supprimé pour production
-  //     }
-  //   }
-  //   const timer = setTimeout(prewarmMicrophone, 1000)
-  //   return () => clearTimeout(timer)
-  // }, [])
+
+  // 🎤 PRÉ-INITIALISATION MICROPHONE INTELLIGENTE
+  // NOUVELLE APPROCHE: Test permissions sans créer de stream persistant
+  useEffect(() => {
+    if (!kioskData?.gym) return
+
+    const initializeMicrophoneIntelligent = async () => {
+      try {
+        kioskLogger.system('🎤 Pré-initialisation microphone intelligente...', 'info')
+        
+        // 1. Vérifier support des APIs nécessaires
+        if (!navigator.mediaDevices?.getUserMedia) {
+          setKioskState(prev => ({ 
+            ...prev, 
+            hardware: { ...prev.hardware, microphone: 'unavailable' }
+          }))
+          kioskLogger.system('❌ getUserMedia non supporté', 'error')
+          return
+        }
+
+        // 2. Vérifier permissions via Permissions API si disponible
+        if (navigator.permissions) {
+          try {
+            const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+            
+            switch (permission.state) {
+              case 'granted':
+                kioskLogger.system('✅ Permissions microphone déjà accordées', 'success')
+                break
+              case 'denied':
+                setKioskState(prev => ({ 
+                  ...prev, 
+                  hardware: { ...prev.hardware, microphone: 'permission_denied' }
+                }))
+                kioskLogger.system('❌ Permissions microphone refusées', 'error')
+                return
+              case 'prompt':
+                kioskLogger.system('⚠️ Permissions microphone à demander', 'warning')
+                break
+            }
+          } catch (permError) {
+            kioskLogger.system('⚠️ Impossible de vérifier les permissions', 'warning')
+          }
+        }
+
+        // 3. Test rapide du microphone (sans stream persistant)
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: { 
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 16000 
+          } 
+        })
+        
+        // 4. Fermer immédiatement pour éviter les conflits avec WebRTC
+        stream.getTracks().forEach(track => track.stop())
+        
+        setKioskState(prev => ({ 
+          ...prev, 
+          hardware: { ...prev.hardware, microphone: 'available' }
+        }))
+        
+        kioskLogger.system('✅ Microphone pré-initialisé avec succès', 'success')
+        
+      } catch (error: any) {
+        let microphoneStatus: 'unavailable' | 'permission_denied' = 'unavailable'
+        let logMessage = 'Erreur pré-initialisation microphone'
+        
+        switch (error.name) {
+          case 'NotAllowedError':
+            microphoneStatus = 'permission_denied'
+            logMessage = 'Permissions microphone refusées'
+            break
+          case 'NotFoundError':
+            logMessage = 'Aucun microphone détecté'
+            break
+          case 'NotReadableError':
+            logMessage = 'Microphone déjà utilisé'
+            break
+          default:
+            logMessage = `Erreur microphone: ${error.message}`
+        }
+        
+        setKioskState(prev => ({ 
+          ...prev, 
+          hardware: { ...prev.hardware, microphone: microphoneStatus }
+        }))
+        
+        kioskLogger.system(`⚠️ ${logMessage}`, 'warning')
+      }
+    }
+
+    // Délai pour éviter les conflits avec le pre-warming des sessions
+    const timer = setTimeout(initializeMicrophoneIntelligent, 3000)
+    return () => clearTimeout(timer)
+  }, [kioskData?.gym])
 
   // 🎯 [OPENAI REALTIME] Logs simplifiés et structurés directement
 
@@ -1474,17 +1572,20 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                 position: 'absolute',
                 top: 0,
                 right: 0,
-                width: '280px', // 🔧 Plus compact (320px → 280px)
-                height: '100%',
+                width: '320px', // 🔧 Largeur augmentée pour plus d'espace
+                height: '100vh', // 🔧 Hauteur viewport complète
                 background: 'rgba(0, 0, 0, 0.92)',
                 backdropFilter: 'blur(40px)',
                 borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '24px 20px', // 🔧 Padding réduit
+                padding: '20px',
                 zIndex: 1000,
-                fontFamily: 'SF Pro Display, -apple-system, system-ui'
+                fontFamily: 'SF Pro Display, -apple-system, system-ui',
+                overflowY: 'auto', // 🔧 Scroll si contenu déborde
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
-              <VStack spacing={4} align="stretch"> {/* 🔧 Espacement réduit */}
+              <VStack spacing={4} align="stretch" flex="1" minH="0"> {/* 🔧 Flex pour occuper l'espace */}
                 <HStack justify="space-between" mb={2}> {/* 🔧 Margin réduite */}
                   <Text color="white" fontWeight="600" fontSize="md">Admin</Text> {/* 🔧 Titre simplifié */}
                   <motion.div

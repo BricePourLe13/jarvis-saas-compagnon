@@ -7,6 +7,7 @@ import { useVoiceChat } from '@/hooks/useVoiceChat'
 import AudioVisualizer from './AudioVisualizer'
 // import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker' // 🗑️ SUPPRIMÉ
 import { kioskLogger } from '@/lib/kiosk-logger'
+import { realtimeConversationCapture } from '@/lib/realtime-conversation-capture'
 
 interface VoiceInterfaceProps {
   gymSlug: string
@@ -43,9 +44,10 @@ export default function VoiceInterface({
     getCurrentSessionId
   } = useVoiceChat({
     gymSlug,
-    memberId: currentMember?.id,
+    memberId: currentMember?.badge_id, // 🔧 CORRECTION: Utiliser badge_id au lieu de id
     language: currentMember?.member_preferences?.language || 'fr',
     memberData: currentMember ? {
+      badge_id: currentMember.badge_id, // 🔧 AJOUT: Inclure badge_id dans memberData
       first_name: currentMember.first_name,
       last_name: currentMember.last_name,
       member_preferences: {
@@ -61,6 +63,8 @@ export default function VoiceInterface({
     }, []),
     onTranscriptUpdate: useCallback((text, isFinal) => {
       onTranscriptUpdate?.(text, isFinal)
+      
+      // Les transcripts sont maintenant capturés automatiquement via Realtime dans useVoiceChat
     }, [onTranscriptUpdate]),
     onError: useCallback((errorMessage) => {
       if (errorMessage === 'GOODBYE_DETECTED') {
@@ -99,18 +103,48 @@ export default function VoiceInterface({
   useEffect(() => {
     const currentBadge = currentMember?.badge_id
     
-    if (currentBadge && currentBadge !== prevBadgeRef.current && hasDetectedGoodbye) {
+    if (currentBadge && currentBadge !== prevBadgeRef.current) {
       // NOUVEAU membre différent détecté
-      const timer = setTimeout(() => {
-        setHasDetectedGoodbye(false)
-        kioskLogger.session(`Nouveau membre détecté (${currentBadge}) - Réinitialisation au revoir`, 'info')
-        prevBadgeRef.current = currentBadge
-      }, 100)
-      return () => clearTimeout(timer)
+      if (isConnected) {
+        // 🚨 FERMER L'ANCIENNE SESSION avant de démarrer la nouvelle
+        kioskLogger.session(`Changement de membre détecté (${prevBadgeRef.current} → ${currentBadge}) - Fermeture session précédente`, 'info')
+        
+        const closeOldSession = async () => {
+          try {
+            const sessionId = getCurrentSessionId?.()
+            if (sessionId) {
+              await fetch('/api/voice/session/close', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId, reason: 'member_change' }),
+                keepalive: true
+              }).catch(() => {})
+            }
+            
+            // Déconnecter proprement
+            await disconnect()
+          } catch (error) {
+            kioskLogger.session('Erreur fermeture session précédente', 'warning')
+          }
+        }
+        
+        closeOldSession()
+      }
+      
+      // Réinitialiser l'état "au revoir" pour le nouveau membre
+      if (hasDetectedGoodbye) {
+        const timer = setTimeout(() => {
+          setHasDetectedGoodbye(false)
+          kioskLogger.session(`Nouveau membre détecté (${currentBadge}) - Réinitialisation au revoir`, 'info')
+        }, 100)
+        return () => clearTimeout(timer)
+      }
+      
+      prevBadgeRef.current = currentBadge
     } else if (currentBadge) {
       prevBadgeRef.current = currentBadge
     }
-  }, [currentMember?.badge_id, hasDetectedGoodbye])
+  }, [currentMember?.badge_id, hasDetectedGoodbye, isConnected, getCurrentSessionId, disconnect])
   
   // 🚨 NOUVEAU: Reset automatique si plus de membre
   useEffect(() => {
@@ -129,6 +163,9 @@ export default function VoiceInterface({
         kioskLogger.setSession(sessionId, currentMember.first_name || 'Membre')
         kioskLogger.session('Connexion WebRTC établie', 'success')
         
+        // 🎙️ DÉMARRER L'ÉCOUTE REALTIME
+        realtimeConversationCapture.startListening(sessionId, currentMember.id, currentMember.gym_id)
+        
         // 🎙️ [OPENAI REALTIME] Tout est intégré dans OpenAI maintenant !
         kioskLogger.tracking('Session OpenAI configurée avec transcripts USER + IA', 'success', { sessionId: sessionId.slice(-6) })
       }
@@ -141,6 +178,9 @@ export default function VoiceInterface({
     try {
       const sessionId = getCurrentSessionId?.()
       if (sessionId) {
+        // 🎙️ ARRÊTER L'ÉCOUTE REALTIME
+        realtimeConversationCapture.stopListening(sessionId)
+        
         // Fermer côté serveur (idempotent)
         await fetch('/api/voice/session/close', {
           method: 'POST',
