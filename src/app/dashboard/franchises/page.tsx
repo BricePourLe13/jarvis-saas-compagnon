@@ -317,44 +317,53 @@ export default function FranchisesPage() {
     try {
       const supabase = getSupabaseSingleton()
 
-      // Charger les franchises avec leurs données enrichies
-      const { data: franchisesData, error } = await supabase
+      // 1. Charger les franchises
+      const { data: franchisesData, error: franchisesError } = await supabase
         .from('franchises')
         .select(`
           id,
           name,
           city,
           country,
-          owner_name,
-          owner_email,
           is_active,
-          created_at,
-          gyms (
-            id,
-            name,
-            is_active,
-            gym_members (id)
-          )
+          created_at
         `)
+        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (franchisesError) throw franchisesError
+
+      // 2. Charger les gyms
+      const { data: gymsData, error: gymsError } = await supabase
+        .from('gyms')
+        .select('id, name, franchise_id')
+
+      if (gymsError) throw gymsError
+
+      // 3. Charger les membres
+      const { data: membersData, error: membersError } = await supabase
+        .from('gym_members')
+        .select('id, gym_id')
+        .eq('is_active', true)
+
+      if (membersError) throw membersError
 
       // Enrichir les données
       const enrichedFranchises: Franchise[] = (franchisesData || []).map(f => {
-        const activeGyms = (f.gyms || []).filter((g: any) => g.is_active)
-        const totalMembers = (f.gyms || []).reduce((sum: number, g: any) => 
-          sum + (g.gym_members?.length || 0), 0
-        )
+        const franchiseGyms = (gymsData || []).filter(g => g.franchise_id === f.id)
+        const totalMembers = franchiseGyms.reduce((sum, gym) => {
+          const gymMembers = (membersData || []).filter(m => m.gym_id === gym.id)
+          return sum + gymMembers.length
+        }, 0)
 
         return {
           id: f.id,
           name: f.name,
           city: f.city || 'Non spécifiée',
           country: f.country || 'France',
-          owner_name: f.owner_name || 'Non assigné',
-          owner_email: f.owner_email || '',
-          gyms_count: activeGyms.length,
+          owner_name: 'Non assigné', // Colonne n'existe pas encore
+          owner_email: '', // Colonne n'existe pas encore
+          gyms_count: franchiseGyms.length,
           active_sessions: Math.floor(Math.random() * 5), // Simulé pour l'instant
           total_members: totalMembers,
           monthly_revenue: totalMembers * 29.99, // Estimation

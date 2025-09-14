@@ -3,9 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Box, Button, Text, VStack, HStack, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
-// import { useGoodbyeDetection } from '@/hooks/useGoodbyeDetection' // 🗑️ SUPPRIMÉ
 import AudioVisualizer from './AudioVisualizer'
-// import { whisperParallelTracker } from '@/lib/whisper-parallel-tracker' // 🗑️ SUPPRIMÉ
 import { kioskLogger } from '@/lib/kiosk-logger'
 import { realtimeConversationCapture } from '@/lib/realtime-conversation-capture'
 

@@ -52,7 +52,7 @@ import {
 } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useState, useEffect, ReactNode } from 'react'
-import Link from 'next/link'
+import SafeLink from '@/components/common/SafeLink'
 import { UserContext, NavigationContext, userContextManager, DashboardUrlBuilder, PermissionChecker } from '@/lib/user-context'
 
 // ===========================================
@@ -87,6 +87,11 @@ const getNavigationItems = (
   permissions: PermissionChecker
 ): SidebarItem[] => {
   const items: SidebarItem[] = []
+
+  // Vérification de sécurité
+  if (!userContext || !navigationContext || !permissions) {
+    return items
+  }
 
   // Vue d'ensemble (toujours visible)
   items.push({
@@ -190,6 +195,11 @@ interface DashboardBreadcrumbsProps {
 function DashboardBreadcrumbs({ userContext, navigationContext }: DashboardBreadcrumbsProps) {
   const breadcrumbs = []
 
+  // Protection contre les valeurs null/undefined
+  if (!userContext || !navigationContext) {
+    return null
+  }
+
   // Toujours commencer par Dashboard
   breadcrumbs.push({
     label: 'Dashboard',
@@ -221,14 +231,25 @@ function DashboardBreadcrumbs({ userContext, navigationContext }: DashboardBread
     <Breadcrumb spacing="8px" separator={<ChevronRight size={16} color="gray.400" />}>
       {breadcrumbs.map((crumb, index) => (
         <BreadcrumbItem key={index} isCurrentPage={crumb.isCurrentPage}>
-          <BreadcrumbLink 
-            as={Link} 
-            href={crumb.href}
-            color={crumb.isCurrentPage ? 'gray.800' : 'gray.500'}
-            fontWeight={crumb.isCurrentPage ? 'semibold' : 'normal'}
-          >
-            {crumb.label}
-          </BreadcrumbLink>
+          {crumb.isCurrentPage ? (
+            <Text 
+              color="gray.800"
+              fontWeight="semibold"
+            >
+              {crumb.label}
+            </Text>
+          ) : (
+            <SafeLink href={crumb.href}>
+              <Text 
+                color="gray.500"
+                fontWeight="normal"
+                _hover={{ color: 'gray.800' }}
+                cursor="pointer"
+              >
+                {crumb.label}
+              </Text>
+            </SafeLink>
+          )}
         </BreadcrumbItem>
       ))}
     </Breadcrumb>
@@ -324,7 +345,10 @@ function Sidebar({ userContext, navigationContext, permissions, isOpen, onClose 
   const bgColor = useColorModeValue('white', 'gray.800')
   const borderColor = useColorModeValue('gray.200', 'gray.700')
 
-  const navigationItems = getNavigationItems(userContext, navigationContext, permissions)
+  // Protection contre les valeurs null/undefined
+  const navigationItems = (userContext && navigationContext && permissions) 
+    ? getNavigationItems(userContext, navigationContext, permissions)
+    : []
 
   const handleLogout = async () => {
     try {
@@ -378,42 +402,42 @@ function Sidebar({ userContext, navigationContext, permissions, isOpen, onClose 
           
           return (
             <Box key={item.id}>
-              <Button
-                as={item.href ? Link : 'button'}
-                href={item.href}
-                variant={isActive ? 'solid' : 'ghost'}
-                colorScheme={isActive ? 'blue' : 'gray'}
-                justifyContent="start"
-                leftIcon={<item.icon size={18} />}
-                rightIcon={item.badge ? (
-                  <Badge colorScheme="red" borderRadius="full" minW="20px" h="20px">
-                    {item.badge}
-                  </Badge>
-                ) : undefined}
-                w="100%"
-                h="40px"
-                fontSize="sm"
-              >
-                {item.label}
-              </Button>
+              <SafeLink href={item.href}>
+                <Button
+                  variant={isActive ? 'solid' : 'ghost'}
+                  colorScheme={isActive ? 'blue' : 'gray'}
+                  justifyContent="start"
+                  leftIcon={<item.icon size={18} />}
+                  rightIcon={item.badge ? (
+                    <Badge colorScheme="red" borderRadius="full" minW="20px" h="20px">
+                      {item.badge}
+                    </Badge>
+                  ) : undefined}
+                  w="100%"
+                  h="40px"
+                  fontSize="sm"
+                >
+                  {item.label}
+                </Button>
+              </SafeLink>
               
               {/* Sous-menu si applicable */}
               {item.children && (
                 <VStack spacing={1} mt={2} ml={4} align="stretch">
                   {item.children.map(child => (
-                    <Button
-                      key={child.id}
-                      as={Link}
-                      href={child.href || '#'}
-                      variant="ghost"
-                      size="sm"
-                      justifyContent="start"
-                      leftIcon={<child.icon size={16} />}
-                      color="gray.600"
-                      _hover={{ color: 'gray.800', bg: 'gray.100' }}
-                    >
-                      {child.label}
-                    </Button>
+                    <SafeLink key={child.id} href={child.href}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        justifyContent="start"
+                        leftIcon={<child.icon size={16} />}
+                        color="gray.600"
+                        _hover={{ color: 'gray.800', bg: 'gray.100' }}
+                        w="100%"
+                      >
+                        {child.label}
+                      </Button>
+                    </SafeLink>
                   ))}
                 </VStack>
               )}

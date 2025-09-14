@@ -218,7 +218,7 @@ export class UserContextManager {
       let gymsQuery = supabase
         .from('gyms')
         .select('id, name, franchise_id')
-        .eq('is_active', true)
+        // Pas de is_active sur gyms
 
       if (franchiseId) {
         gymsQuery = gymsQuery.eq('franchise_id', franchiseId)
@@ -307,19 +307,23 @@ export class DashboardUrlBuilder {
     return '/dashboard/franchises'
   }
 
-  static franchise(franchiseId: string): string {
+  static franchise(franchiseId: string | undefined): string {
+    if (!franchiseId) return '/dashboard'
     return `/dashboard/franchises/${franchiseId}`
   }
 
-  static franchiseGyms(franchiseId: string): string {
+  static franchiseGyms(franchiseId: string | undefined): string {
+    if (!franchiseId) return '/dashboard'
     return `/dashboard/franchises/${franchiseId}/gyms`
   }
 
-  static gym(franchiseId: string, gymId: string): string {
+  static gym(franchiseId: string | undefined, gymId: string | undefined): string {
+    if (!franchiseId || !gymId) return '/dashboard'
     return `/dashboard/franchises/${franchiseId}/gyms/${gymId}`
   }
 
-  static gymDirect(gymId: string): string {
+  static gymDirect(gymId: string | undefined): string {
+    if (!gymId) return '/dashboard'
     return `/dashboard/gyms/${gymId}`
   }
 

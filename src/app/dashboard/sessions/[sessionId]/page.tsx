@@ -1,6 +1,6 @@
 /**
- * 🔄 ADMIN → DASHBOARD REDIRECT
- * Redirection automatique de l'ancien /admin vers le nouveau /dashboard
+ * 💬 SESSION DÉTAIL
+ * REDIRECTION VERS NOUVELLE VERSION SENTRY
  */
 
 'use client'
@@ -9,19 +9,20 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Box, Spinner, Text, VStack } from '@chakra-ui/react'
 
-export default function AdminRedirect() {
+export default function SessionRedirect({ params }: { params: { sessionId: string } }) {
   const router = useRouter()
+  const { sessionId } = params
 
   useEffect(() => {
-    // Redirection immédiate vers le nouveau dashboard
-    router.replace('/dashboard')
-  }, [router])
+    // Redirection vers la nouvelle version Sentry
+    router.replace(`/dashboard/sessions/${sessionId}/sentry`)
+  }, [router, sessionId])
 
   return (
     <Box h="100vh" display="flex" alignItems="center" justifyContent="center">
       <VStack spacing={4}>
         <Spinner size="lg" color="blue.500" />
-        <Text color="gray.600">Redirection vers le nouveau dashboard...</Text>
+        <Text color="gray.600">Redirection vers la conversation...</Text>
       </VStack>
     </Box>
   )
