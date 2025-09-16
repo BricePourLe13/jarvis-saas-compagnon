@@ -12,6 +12,11 @@ import Avatar3D from '@/components/kiosk/Avatar3D'
 import CardSwap, { Card } from '@/components/CardSwap'
 import TiltedCard from '@/components/TiltedCard'
 
+// Empêche la pré-génération statique de la page d'accueil sur Vercel
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 export default function ReactBitsLandingPage() {
   // 🎭 SECTION CONTEXTUELLE POUR SPHÈRE INTELLIGENTE
   const [currentSection, setCurrentSection] = useState<'hero' | 'social-proof' | 'solutions' | 'benefits'>('hero')
