@@ -16,3 +16,4 @@ export default function DashboardLayoutWrapper({ children }: DashboardLayoutProp
   // Cela permet une flexibilité maximale pour chaque niveau de navigation
   return <>{children}</>
 }
+

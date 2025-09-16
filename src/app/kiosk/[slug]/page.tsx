@@ -20,6 +20,7 @@ import ModernFluidShapes from '@/components/common/ModernFluidShapes'
 import MicrophoneDiagnostic from '@/components/kiosk/MicrophoneDiagnostic'
 import { startMicrophoneMonitoring, stopMicrophoneMonitoring } from '@/lib/microphone-health-monitor'
 import { kioskLogger } from '@/lib/kiosk-logger'
+import { startPeriodicCleanup } from '@/lib/session-cleanup'
 
 // ✅ PHASE 3: Browser Compatibility & Fallbacks
 const getBrowserInfo = () => {
@@ -128,10 +129,16 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     startMicrophoneMonitoring(kioskData.kiosk.id, slug)
     kioskLogger.system('🎤 Monitoring microphone démarré', 'info')
 
+    // 🧹 Démarrer le nettoyage automatique des sessions orphelines
+    const stopCleanup = startPeriodicCleanup(30) // Toutes les 30 minutes
+    kioskLogger.system('🧹 Nettoyage automatique sessions démarré', 'info')
+
     // Nettoyer au démontage
     return () => {
       stopMicrophoneMonitoring()
+      stopCleanup()
       kioskLogger.system('🎤 Monitoring microphone arrêté', 'info')
+      kioskLogger.system('🧹 Nettoyage automatique sessions arrêté', 'info')
     }
   }, [kioskData?.kiosk?.id, slug])
 
@@ -1450,10 +1457,18 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               gymSlug={slug}
               currentMember={currentMember}
               isActive={voiceActive}
-              onActivate={() => setVoiceActive(true)}
+              onActivate={() => {
+                // 🚀 FORCE ACTIVATION - Reset goodbye flag si nécessaire
+                console.log('🔄 [KIOSK] Activation manuelle - Reset au revoir forcé')
+                setVoiceActive(true)
+              }}
               onDeactivate={() => {
+                console.log('🔄 [KIOSK] Déactivation session - Reset complet')
                 setVoiceActive(false)
                 setCurrentMember(null) // Reset membre après au revoir
+                setSessionError(null) // Reset erreurs
+                setSessionLoading(false) // Reset loading
+                setKioskState(prev => ({ ...prev, status: 'idle' })) // Reset état
               }}
               onTranscriptUpdate={handleTranscriptUpdate}
             />

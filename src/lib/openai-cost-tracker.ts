@@ -145,12 +145,13 @@ export async function trackSessionCost(data: Omit<SessionCostBreakdown, 'textInp
       text_output_cost: sessionCost.textOutputCost,
       audio_input_cost: sessionCost.audioInputCost,
       audio_output_cost: sessionCost.audioOutputCost,
-             total_cost: sessionCost.totalCost,
-       user_satisfaction: sessionCost.userSatisfaction,
-       error_occurred: sessionCost.errorOccurred,
-       end_reason: sessionCost.endReason
-       // ✅ Système simplifié - Tracking basique seulement
+      total_cost: sessionCost.totalCost,
+      user_satisfaction: sessionCost.userSatisfaction,
+      error_occurred: sessionCost.errorOccurred,
+      end_reason: sessionCost.endReason
+      // ✅ Système unifié - Utilise la vue jarvis_unified_costs
     }])
+    .select()
   
   if (error) {
     console.error('❌ [COST TRACKER] Erreur sauvegarde:', error)

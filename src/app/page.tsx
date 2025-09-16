@@ -294,7 +294,10 @@ const JarvisIllustration = () => {
   )
 }
 
-export default function LoginPage() {
+// Site vitrine JARVIS Group - Page d'accueil principale
+export { default } from './(landing)/page'
+
+function LoginPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -378,9 +381,15 @@ export default function LoginPage() {
         // Indiquer le succès avant la redirection
         setSuccess(true)
 
-        // Redirection standard
+        // Redirection intelligente selon le profil utilisateur
         setTimeout(() => {
-          router.push(isAdmin ? '/admin' : '/dashboard')
+          if (isAdmin) {
+            router.push('/admin')
+          } else {
+            // Pour l'instant, tout le monde va vers le dashboard fitness
+            // Plus tard : logique de redirection selon les solutions accessibles
+            router.push('/dashboard')
+          }
         }, 800)
       }
     } catch {
@@ -660,15 +669,24 @@ export default function LoginPage() {
               </Box>
 
               {/* Footer */}
-              <Text 
-                textAlign="center" 
-                color="gray.400" 
-                fontSize="xs" 
-                mt={8}
-                letterSpacing="1px"
-              >
-                PLATEFORME SÉCURISÉE
-              </Text>
+              <VStack spacing={3} mt={8}>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  color="gray.500"
+                  onClick={() => router.push('/vitrine')}
+                >
+                  Découvrir nos solutions
+                </Button>
+                <Text 
+                  textAlign="center" 
+                  color="gray.400" 
+                  fontSize="xs" 
+                  letterSpacing="1px"
+                >
+                  PLATEFORME SÉCURISÉE
+                </Text>
+              </VStack>
             </motion.div>
           </Box>
         </Flex>

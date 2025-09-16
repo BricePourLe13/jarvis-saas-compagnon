@@ -323,3 +323,4 @@ export default function DataTable({
     </Box>
   )
 }
+

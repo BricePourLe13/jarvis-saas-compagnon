@@ -4,13 +4,14 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useVoiceVisualSync } from '@/hooks/useVoiceVisualSync'
 
 interface Avatar3DProps {
-  status: 'idle' | 'listening' | 'speaking' | 'thinking' | 'connecting'
+  status: 'idle' | 'listening' | 'speaking' | 'thinking' | 'connecting' | 'contextual'
   size?: number
   className?: string
   eyeScale?: number // Permet d'ajuster la taille des yeux selon le contexte (ex: Kiosk)
+  currentSection?: 'hero' | 'social-proof' | 'solutions' | 'benefits' // Section actuelle pour comportement contextuel
 }
 
-export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }: Avatar3DProps) {
+export default function Avatar3D({ status, size = 450, className, eyeScale = 1, currentSection = 'hero' }: Avatar3DProps) {
   const [rotation, setRotation] = useState(0)
   const [isBlinking, setIsBlinking] = useState(false)
   const [eyePosition, setEyePosition] = useState({ x: 0, y: 0 })
@@ -92,13 +93,66 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
     return () => clearInterval(blinkInterval)
   }, []) // Supprimé addTimer/addInterval pour éviter boucle infinie
 
-  // �� MOUVEMENT DES YEUX RÉALISTE - OBSERVATION DE L'ENVIRONNEMENT
+
+  // 👁️ MOUVEMENT DES YEUX RÉALISTE - OBSERVATION DE L'ENVIRONNEMENT
   useEffect(() => {
+    
     let lookSequenceIndex = 0
     let isInSequence = false
     
     // Patterns de regard réalistes selon le statut
     const getLookPatterns = () => {
+      // 🎭 MODE CONTEXTUEL - Comportements selon la section
+      if (status === 'contextual') {
+        switch (currentSection) {
+          case 'hero':
+            // Regard accueillant et confiant vers l'utilisateur
+            return [
+              { x: 0, y: 10, duration: 3000, description: "Accueil chaleureux" },
+              { x: -15, y: 5, duration: 1500, description: "Regard bienveillant gauche" },
+              { x: 15, y: 5, duration: 1500, description: "Regard bienveillant droite" },
+              { x: 0, y: 15, duration: 2000, description: "Focus utilisateur" },
+              { x: 0, y: -5, duration: 1000, description: "Regard vers le titre" }
+            ]
+          
+          case 'social-proof':
+            // Regard de fierté et de confiance vers les logos clients
+            return [
+              { x: -25, y: -10, duration: 2000, description: "Examine les logos clients" },
+              { x: 25, y: -10, duration: 2000, description: "Fier des partenariats" },
+              { x: 0, y: -20, duration: 1500, description: "Satisfaction des stats" },
+              { x: -15, y: 0, duration: 1000, description: "Confiance" },
+              { x: 15, y: 0, duration: 1000, description: "Assurance" }
+            ]
+          
+          case 'solutions':
+            // Regard curieux et analytique vers les cartes solutions
+            return [
+              { x: -30, y: 5, duration: 2500, description: "Examine JARVIS Fitness" },
+              { x: 30, y: 5, duration: 2500, description: "Analyse JARVIS Museums" },
+              { x: 0, y: -15, duration: 1500, description: "Vue d'ensemble solutions" },
+              { x: -20, y: 15, duration: 1200, description: "Détails techniques" },
+              { x: 20, y: 15, duration: 1200, description: "Fonctionnalités avancées" }
+            ]
+          
+          case 'benefits':
+            // Regard de satisfaction et d'encouragement vers les métriques
+            return [
+              { x: -25, y: -5, duration: 2000, description: "Fier du +40% engagement" },
+              { x: 0, y: -10, duration: 2000, description: "Satisfait du -60% temps d'attente" },
+              { x: 25, y: -5, duration: 2000, description: "Heureux du +25% NPS" },
+              { x: 0, y: 20, duration: 1500, description: "Encourage l'action" },
+              { x: 0, y: 0, duration: 1000, description: "Regard confiant final" }
+            ]
+          
+          default:
+            return [
+              { x: 0, y: 0, duration: 2000, description: "Neutre" }
+            ]
+        }
+      }
+
+      // Patterns originaux pour les autres statuts
       switch (status) {
         case 'listening':
           // Mouvement attentif, concentré vers le centre-bas (utilisateur)
@@ -203,7 +257,7 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
       if (initialTimer) clearTimeout(initialTimer)
       isInSequence = false
     }
-  }, [status])
+  }, [status, currentSection]) // Dépendances nettoyées
 
   // 👁️ MOUVEMENT D'ATTENTION SPONTANÉE (en plus des séquences)
   useEffect(() => {
@@ -230,7 +284,7 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
       
       return () => clearInterval(attentionInterval)
     }
-  }, [status])
+  }, [status]) // Dépendances nettoyées
 
   // 👀 SUIVI DE PARTICULES COSMIQUES (effet immersif)
   useEffect(() => {
@@ -263,10 +317,52 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
       
       return () => clearInterval(particleTrackingInterval)
     }
-  }, [status])
+  }, [status]) // Dépendances nettoyées
 
   // 🎨 COULEURS MARBRÉES SELON STATUS
   const getMarbleColors = () => {
+    // 🎭 COULEURS CONTEXTUELLES selon la section
+    if (status === 'contextual') {
+      switch (currentSection) {
+        case 'hero':
+          return {
+            primary: '#3b82f6', // Bleu confiant
+            secondary: '#22c55e', // Vert accueillant
+            accent: '#f59e0b', // Orange chaleureux
+            warm: '#a855f7' // Violet mystique
+          }
+        case 'social-proof':
+          return {
+            primary: '#22c55e', // Vert de réussite
+            secondary: '#3b82f6', // Bleu de confiance
+            accent: '#f59e0b', // Orange de fierté
+            warm: '#ef4444' // Rouge de passion
+          }
+        case 'solutions':
+          return {
+            primary: '#a855f7', // Violet d'innovation
+            secondary: '#3b82f6', // Bleu technologique
+            accent: '#22c55e', // Vert de croissance
+            warm: '#f59e0b' // Orange de créativité
+          }
+        case 'benefits':
+          return {
+            primary: '#f59e0b', // Orange de succès
+            secondary: '#22c55e', // Vert de performance
+            accent: '#3b82f6', // Bleu de confiance
+            warm: '#a855f7' // Violet d'excellence
+          }
+        default:
+          return {
+            primary: '#3b82f6',
+            secondary: '#a855f7',
+            accent: '#22c55e',
+            warm: '#f59e0b'
+          }
+      }
+    }
+
+    // Couleurs originales pour les autres statuts
     switch (status) {
       case 'listening': 
         return {
@@ -595,8 +691,8 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
                   animate={{
                     scaleY: isBlinking ? 0.1 : 1,
                     opacity: [0.95, 1, 0.95],
-                    x: eyePosition.x * 0.7,
-                    y: eyePosition.y * 0.5,
+                    x: eyePosition.x * 1.0, // Augmenté de 0.7 à 1.0 pour plus de mouvement
+                    y: eyePosition.y * 0.8, // Augmenté de 0.5 à 0.8 pour plus de mouvement
                     boxShadow: `
                       0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
                       0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
@@ -606,8 +702,14 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
                   transition={{ 
                     scaleY: { duration: isBlinking ? 0.08 : 0.15 },
                     opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                    x: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
-                    y: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
+                    x: { 
+                      duration: isLookingAround ? 1.2 : 2.5, 
+                      ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut"
+                    },
+                    y: { 
+                      duration: isLookingAround ? 1.2 : 2.5, 
+                      ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut"
+                    },
                     boxShadow: { duration: 0.3 }
                   }}
                 />
@@ -632,8 +734,8 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
                   animate={{
                     scaleY: isBlinking ? 0.1 : 1,
                     opacity: [0.95, 1, 0.95],
-                    x: eyePosition.x * 0.8,
-                    y: eyePosition.y * 0.6,
+                    x: eyePosition.x * 1.0, // Augmenté de 0.8 à 1.0 pour plus de mouvement
+                    y: eyePosition.y * 0.8, // Augmenté de 0.6 à 0.8 pour plus de mouvement
                     boxShadow: `
                       0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
                       0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
@@ -643,8 +745,14 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1 }
                   transition={{ 
                     scaleY: { duration: isBlinking ? 0.08 : 0.15 },
                     opacity: { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 },
-                    x: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
-                    y: { duration: isLookingAround ? 1.2 : 2.5, ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut" },
+                    x: { 
+                      duration: isLookingAround ? 1.2 : 2.5, 
+                      ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut"
+                    },
+                    y: { 
+                      duration: isLookingAround ? 1.2 : 2.5, 
+                      ease: isLookingAround ? [0.25, 0.46, 0.45, 0.94] : "easeOut"
+                    },
                     boxShadow: { duration: 0.3 }
                   }}
                 />

@@ -1,0 +1,31 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6b21a8;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#581c87;stop-opacity:0.9"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background plus contrasté -->
+  <rect width="300" height="300" fill="url(#purpleGradient)" rx="15"/>
+  
+  <!-- Pattern géométrique plus visible -->
+  <g opacity="0.3">
+    <line x1="0" y1="75" x2="300" y2="75" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <line x1="0" y1="150" x2="300" y2="150" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <line x1="0" y1="225" x2="300" y2="225" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    
+    <line x1="75" y1="0" x2="75" y2="300" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <line x1="150" y1="0" x2="150" y2="300" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <line x1="225" y1="0" x2="225" y2="300" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+  </g>
+  
+  <!-- Accent plus visible -->
+  <g transform="translate(250,50)" opacity="0.5">
+    <circle cx="0" cy="0" r="15" fill="none" stroke="rgba(168,85,247,0.7)" stroke-width="2"/>
+    <circle cx="0" cy="0" r="10" fill="none" stroke="rgba(168,85,247,0.5)" stroke-width="1"/>
+    <line x1="0" y1="0" x2="0" y2="-6" stroke="rgba(168,85,247,0.8)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="0" y1="0" x2="4" y2="0" stroke="rgba(168,85,247,0.8)" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="1" fill="rgba(168,85,247,0.8)"/>
+  </g>
+</svg>

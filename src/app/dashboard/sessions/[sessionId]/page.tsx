@@ -27,3 +27,4 @@ export default function SessionRedirect({ params }: { params: { sessionId: strin
     </Box>
   )
 }
+

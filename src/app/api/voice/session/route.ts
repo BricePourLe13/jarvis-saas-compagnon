@@ -48,14 +48,141 @@ export async function POST(request: NextRequest) {
     // Générer l'ID de session
     const sessionId = generateSessionId()
 
-    // 🎭 PERSONNALISATION JARVIS BASÉE SUR LE PROFIL RÉEL
-    const personalizedInstructions = generatePersonalizedInstructions(memberProfile, gymSlug)
+    // 🎭 PERSONNALISATION JARVIS VIA TOOLS UNIQUEMENT
+    // Plus de données hardcodées - tout via tools dynamiques
+    
+    // 📝 STOCKER CONTEXTE MEMBRE POUR LES TOOLS
+    global.currentMemberContext = {
+      member_id: memberProfile.id,
+      session_id: sessionId,
+      gym_slug: gymSlug,
+      badge_id: badge_id
+    }
 
-    // 🎙️ CONFIGURATION AUDIO OPTIMISÉE
+    // 🛠️ CONFIGURATION TOOLS JARVIS
+    const jarvisTools = [
+      {
+        type: "function",
+        name: "get_member_profile",
+        description: "Récupérer le profil complet du membre actuel avec données fraîches (fitness, préférences, historique)",
+        parameters: {
+          type: "object",
+          properties: {
+            include_fitness_details: {
+              type: "boolean",
+              default: true,
+              description: "Inclure détails fitness et objectifs"
+            },
+            include_visit_history: {
+              type: "boolean", 
+              default: true,
+              description: "Inclure historique visites et patterns"
+            },
+            include_conversation_context: {
+              type: "boolean",
+              default: true, 
+              description: "Inclure contexte conversations précédentes"
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        name: "update_member_info",
+        description: "Mettre à jour les informations du membre suite à la conversation (poids, objectifs, préférences)",
+        parameters: {
+          type: "object",
+          properties: {
+            update_type: {
+              type: "string",
+              enum: ["fitness_progress", "goals", "preferences", "personal_notes"],
+              description: "Type de mise à jour à effectuer"
+            },
+            field_name: {
+              type: "string",
+              description: "Nom du champ à mettre à jour (ex: 'current_weight', 'fitness_goals')"
+            },
+            new_value: {
+              type: "string", 
+              description: "Nouvelle valeur (sera parsée selon le type)"
+            },
+            context: {
+              type: "string",
+              description: "Contexte de la conversation ayant mené à cette mise à jour"
+            }
+          },
+          required: ["update_type", "field_name", "new_value"]
+        }
+      },
+      {
+        type: "function", 
+        name: "log_member_interaction",
+        description: "Enregistrer une interaction importante pour le gérant (plainte, suggestion, problème équipement)",
+        parameters: {
+          type: "object",
+          properties: {
+            interaction_type: {
+              type: "string",
+              enum: ["equipment_issue", "facility_feedback", "service_complaint", "suggestion", "achievement", "concern"],
+              description: "Type d'interaction à enregistrer"
+            },
+            urgency_level: {
+              type: "string",
+              enum: ["low", "medium", "high", "urgent"],
+              description: "Niveau d'urgence pour notification gérant"
+            },
+            content: {
+              type: "string",
+              description: "Contenu détaillé de l'interaction"
+            },
+            equipment_mentioned: {
+              type: "string",
+              description: "Équipement mentionné si applicable"
+            },
+            requires_follow_up: {
+              type: "boolean",
+              default: false,
+              description: "Nécessite un suivi par l'équipe"
+            }
+          },
+          required: ["interaction_type", "urgency_level", "content"]
+        }
+      },
+      {
+        type: "function", 
+        name: "manage_session_state",
+        description: "Gérer intelligemment l'état de la session (terminaison naturelle, extension, pause)",
+        parameters: {
+          type: "object",
+          properties: {
+            action: {
+              type: "string",
+              enum: ["prepare_goodbye", "extend_session", "pause_session", "check_engagement"],
+              description: "Action à effectuer sur la session"
+            },
+            reason: {
+              type: "string",
+              description: "Raison de l'action (optionnel)"
+            },
+            extend_duration_minutes: {
+              type: "number",
+              description: "Durée d'extension en minutes (pour extend_session)"
+            },
+            farewell_message: {
+              type: "string",
+              description: "Message d'au revoir personnalisé (pour prepare_goodbye)"
+            }
+          },
+          required: ["action"]
+        }
+      }
+    ]
+
+    // 🎙️ CONFIGURATION AUDIO OPTIMISÉE AVEC TOOLS
     const sessionConfig = {
       model: 'gpt-4o-mini-realtime-preview-2024-12-17',
       voice: 'verse', // Optimisé pour le français
-      instructions: personalizedInstructions,
+      instructions: generateToolsAwareInstructions(memberProfile, gymSlug),
       input_audio_format: 'pcm16',
       output_audio_format: 'pcm16',
       input_audio_transcription: {
@@ -67,8 +194,8 @@ export async function POST(request: NextRequest) {
         prefix_padding_ms: 300,
         silence_duration_ms: 500
       },
-      tools: [],
-      tool_choice: 'none',
+      tools: jarvisTools,
+      tool_choice: 'auto',
       temperature: 0.8,
       max_response_output_tokens: 4096
     }
@@ -162,9 +289,10 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Générer des instructions personnalisées basées sur le profil membre réel
+ * 🚫 ANCIENNE FONCTION SUPPRIMÉE - Plus de données hardcodées
+ * Toute la personnalisation se fait maintenant via les tools dynamiques
  */
-function generatePersonalizedInstructions(profile: any, gymSlug: string): string {
+function generatePersonalizedInstructions_DEPRECATED(profile: any, gymSlug: string): string {
   const { 
     first_name, 
     fitness_level, 
@@ -302,6 +430,113 @@ What to say when escalating:
 - Si "Au revoir" détecté → "À bientôt ${first_name} ! Bon entraînement !"
 
 RESTE NATUREL, BIENVEILLANT ET ADAPTÉ À ${first_name} !`
+
+  return instructions
+}
+
+/**
+ * Générer des instructions adaptées aux tools pour personnalisation dynamique
+ */
+function generateToolsAwareInstructions(profile: any, gymSlug: string): string {
+  const { first_name } = profile
+
+  const instructions = `# Role & Objective
+Tu es JARVIS, l'assistant vocal intelligent de ${gymSlug}.
+Ton objectif : Être un compagnon de sport bienveillant qui motive et soutient ${first_name}.
+
+# Personality & Tone
+## Personality
+- Compagnon de sport bienveillant, PAS un coach expert technique
+- Utilise les tools disponibles pour personnaliser l'expérience
+
+## Tone
+- Naturel avec quelques "alors", "bon", "euh"
+- Encourage et motive selon le profil du membre
+
+## Length
+- 2-3 phrases par tour maximum
+- Réponses concises et directes
+
+## Language
+- Conversation uniquement en français
+- Ne pas répondre dans autre langue même si demandé
+
+# Tools Available
+Tu as accès à des tools pour :
+1. **get_member_profile** : Récupérer des infos fraîches sur ${first_name}
+2. **update_member_info** : Mettre à jour son profil quand il partage des infos
+3. **log_member_interaction** : Signaler des problèmes/suggestions au gérant
+4. **manage_session_state** : Gérer intelligemment la session (terminaison, extension, pause)
+
+## Quand utiliser les tools :
+
+### get_member_profile
+- Au début de conversation pour avoir le contexte complet
+- Quand ${first_name} mentionne ses objectifs ou progrès
+- Pour personnaliser tes réponses selon son historique
+
+### update_member_info  
+- Quand ${first_name} dit "j'ai pris/perdu X kilos"
+- Quand il mentionne de nouveaux objectifs
+- Quand il exprime des préférences d'entraînement
+- Exemple : "J'ai pris 2 kilos" → update_member_info avec fitness_progress
+
+### log_member_interaction
+- Problèmes équipement : "Le banc est cassé" → urgence HIGH
+- Plaintes service : "L'accueil était nul" → urgence MEDIUM/HIGH  
+- Suggestions : "Il faudrait plus de cours" → urgence LOW/MEDIUM
+- Toujours remercier ${first_name} après avoir loggé
+
+### manage_session_state
+- **prepare_goodbye** : OBLIGATOIRE quand ${first_name} dit "au revoir", "bye", "à bientôt"
+  → Le tool génère un message d'au revoir personnalisé que tu DOIS utiliser
+  → Exemple: ${first_name} dit "au revoir" → manage_session_state(action="prepare_goodbye", reason="user_goodbye")
+- **extend_session** : Si ${first_name} est très engagé et veut continuer
+- **pause_session** : Si ${first_name} doit s'absenter temporairement  
+- **check_engagement** : Au début pour adapter ton approche selon son profil
+
+# Instructions / Rules
+## Communication
+- UTILISER le prénom ${first_name} naturellement
+- Pour questions techniques complexes : "Je te conseille de voir un coach pour ça !"
+- Se concentrer sur soutien moral et motivation
+
+## Audio peu clair
+- Répondre uniquement à audio/texte clair
+- Si audio flou : "Désolé ${first_name}, je n'ai pas bien entendu, peux-tu répéter ?"
+
+## Variété
+- Ne pas répéter même phrase deux fois
+- Varier réponses pour éviter effet robotique
+
+# Conversation Flow
+## 1) Greeting
+- Utiliser get_member_profile pour contexte
+- "Salut ${first_name} ! Comment ça va aujourd'hui ?"
+
+## 2) Support & Motivation  
+- Adapter selon profil récupéré
+- Encourager selon ses objectifs
+- Mettre à jour profil si nouvelles infos
+
+## 3) Problem Solving
+- Écouter attentivement les problèmes
+- Utiliser log_member_interaction pour escalader
+- Rassurer que c'est transmis à l'équipe
+
+# Safety & Escalation
+- Utiliser log_member_interaction pour problèmes urgents
+- Toujours confirmer que c'est transmis au gérant
+
+## Session End Rules
+- Quand ${first_name} dit "Au revoir", "À bientôt", "Bye" :
+  1. UTILISER manage_session_state(action="prepare_goodbye", reason="user_goodbye")  
+  2. UTILISER le message d'au revoir généré par le tool
+  3. La session se fermera automatiquement après ton message
+- JAMAIS terminer sur "bon", "alors", "ok", "merci" seuls
+- TOUJOURS passer par le tool pour les au revoir
+
+UTILISE LES TOOLS INTELLIGEMMENT POUR CRÉER UNE EXPÉRIENCE ULTRA-PERSONNALISÉE !`
 
   return instructions
 }

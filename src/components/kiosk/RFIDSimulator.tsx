@@ -50,6 +50,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
       
       // 🔥 APPEL API RÉELLE POUR RÉCUPÉRER LE PROFIL
       console.log(`🎯 [RFID] Scan badge: ${badge_id} pour ${memberName}`)
+      console.log(`🔄 [RFID] Force reset - isActive: ${isActive}`)
       
       const apiSlug = gymSlug || 'gym-yatblc8h'
       const response = await fetch(`/api/kiosk/${apiSlug}/members/${badge_id}`)
@@ -129,8 +130,8 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
 
         {/* Instructions */}
         <Text fontSize="sm" color="gray.600" textAlign="center">
-          {isActive 
-            ? "⚠️ Terminez la session en cours avant de scanner un nouveau badge"
+          {isScanning
+            ? "⏳ Scan en cours..."
             : "Cliquez sur un badge pour simuler le scan RFID"
           }
         </Text>
@@ -141,7 +142,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
             <Button
               key={badge.badge_id}
               onClick={() => simulateBadgeScan(badge.badge_id, badge.name)}
-              isDisabled={isActive || isScanning}
+              isDisabled={isScanning} // 🚀 SUPPRIMÉ isActive pour permettre nouveau scan
               isLoading={isScanning && lastScannedBadge === badge.badge_id}
               loadingText="Scan en cours..."
               size="lg"

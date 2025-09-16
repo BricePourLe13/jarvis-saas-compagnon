@@ -217,11 +217,11 @@ export function useMonitoringData({
       const activeSessions = transformedSessions.filter(s => s.status === 'active').length
       const totalSessions = transformedSessions.length
 
-      // Coûts du jour: utiliser jarvis_session_costs (live)
+      // Coûts du jour: utiliser la vue unifiée jarvis_unified_costs
       let todayCosts = 0
       {
         let costQuery = supabase
-          .from('jarvis_session_costs')
+          .from('jarvis_unified_costs')
           .select('total_cost, timestamp, gym_id, franchise_id')
           .gte('timestamp', startOfDay.toISOString())
         if (level === 'gym' && gymId) costQuery = costQuery.eq('gym_id', gymId)

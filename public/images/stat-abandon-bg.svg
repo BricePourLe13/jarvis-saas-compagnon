@@ -1,0 +1,16 @@
+<svg width="280" height="280" viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="abandonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.1" />
+      <stop offset="50%" style="stop-color:#dc2626;stop-opacity:0.05" />
+      <stop offset="100%" style="stop-color:#b91c1c;stop-opacity:0.1" />
+    </linearGradient>
+    <pattern id="abandonPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="1" fill="#ef4444" opacity="0.1"/>
+    </pattern>
+  </defs>
+  <rect width="280" height="280" fill="url(#abandonGradient)"/>
+  <rect width="280" height="280" fill="url(#abandonPattern)"/>
+  <path d="M50 50 L230 50 L230 230 L50 230 Z" stroke="#ef4444" stroke-width="1" opacity="0.2" fill="none"/>
+  <circle cx="140" cy="140" r="60" stroke="#ef4444" stroke-width="1" opacity="0.15" fill="none"/>
+</svg>

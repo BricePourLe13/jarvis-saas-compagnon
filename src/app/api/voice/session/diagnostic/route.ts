@@ -193,3 +193,4 @@ function generateRecommendations(envCheck: any, supabaseTest: any, rpcCheck: any
 
   return recommendations
 }
+

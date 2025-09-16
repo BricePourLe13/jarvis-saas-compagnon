@@ -103,6 +103,9 @@ export default function VoiceInterface({
     
     if (currentBadge && currentBadge !== prevBadgeRef.current) {
       // NOUVEAU membre différent détecté
+      console.log(`🔄 [VOICE] Nouveau membre détecté: ${currentBadge} - Reset hasDetectedGoodbye`)
+      setHasDetectedGoodbye(false) // 🚀 FORCE RESET du flag au revoir
+      
       if (isConnected) {
         // 🚨 FERMER L'ANCIENNE SESSION avant de démarrer la nouvelle
         kioskLogger.session(`Changement de membre détecté (${prevBadgeRef.current} → ${currentBadge}) - Fermeture session précédente`, 'info')
@@ -129,13 +132,10 @@ export default function VoiceInterface({
         closeOldSession()
       }
       
-      // Réinitialiser l'état "au revoir" pour le nouveau membre
+      // 🚀 FORCE RESET "au revoir" pour nouveau membre
       if (hasDetectedGoodbye) {
-        const timer = setTimeout(() => {
-          setHasDetectedGoodbye(false)
-          kioskLogger.session(`Nouveau membre détecté (${currentBadge}) - Réinitialisation au revoir`, 'info')
-        }, 100)
-        return () => clearTimeout(timer)
+        kioskLogger.session(`🔄 Nouveau membre détecté (${currentBadge}) - Reset immédiat au revoir`, 'info')
+        setHasDetectedGoodbye(false)
       }
       
       prevBadgeRef.current = currentBadge
@@ -147,6 +147,7 @@ export default function VoiceInterface({
   // 🚨 NOUVEAU: Reset automatique si plus de membre
   useEffect(() => {
     if (!currentMember && hasDetectedGoodbye) {
+      console.log(`🔄 [VOICE] Aucun membre + au revoir détecté - Reset pour nouveau scan`)
       // Garder hasDetectedGoodbye=true tant qu'aucun nouveau membre
       kioskLogger.session('Aucun membre actif - Garde au revoir actif', 'info')
     }

@@ -1000,3 +1000,4 @@ export default function SessionSentryPage({ params }: { params: { sessionId: str
     </SentryDashboardLayout>
   )
 }
+

@@ -337,6 +337,159 @@ export function useVoiceChat(config: VoiceChatConfig) {
     }
   }, [isConnected, config])
 
+  // 🛠️ GESTION FUNCTION CALLS
+  const handleFunctionCall = useCallback(async (functionCallItem: any) => {
+    const { name, call_id, arguments: argsString } = functionCallItem
+    
+    kioskLogger.session(`🛠️ Function call détecté: ${name}`, 'info')
+    
+    try {
+      // Parse les arguments
+      const args = JSON.parse(argsString || '{}')
+      
+      // Appeler l'API tool correspondante
+      let toolResponse: any
+      
+      switch (name) {
+        case 'get_member_profile':
+          toolResponse = await fetch('/api/jarvis/tools/get-member-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(args)
+          })
+          break
+          
+        case 'update_member_info':
+          toolResponse = await fetch('/api/jarvis/tools/update-member-info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(args)
+          })
+          break
+          
+        case 'log_member_interaction':
+          toolResponse = await fetch('/api/jarvis/tools/log-member-interaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(args)
+          })
+          break
+          
+        case 'manage_session_state':
+          toolResponse = await fetch('/api/jarvis/tools/manage-session-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(args)
+          })
+          break
+          
+        default:
+          throw new Error(`Tool non supporté: ${name}`)
+      }
+      
+      if (!toolResponse.ok) {
+        throw new Error(`Erreur tool ${name}: ${toolResponse.status}`)
+      }
+      
+      const result = await toolResponse.json()
+      kioskLogger.session(`✅ Tool ${name} exécuté avec succès`, 'success')
+      
+      // 🎭 GESTION SPÉCIALE POUR MANAGE_SESSION_STATE
+      if (name === 'manage_session_state') {
+        kioskLogger.session(`🎭 Tool manage_session_state traité`, 'info')
+        
+        // Envoyer le résultat au model pour qu'il utilise le message généré
+        if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+          const resultEvent = {
+            type: 'conversation.item.create',
+            item: {
+              type: 'function_call_output',
+              call_id: call_id,
+              output: JSON.stringify(result)
+            }
+          }
+          
+          dataChannelRef.current.send(JSON.stringify(resultEvent))
+          kioskLogger.session(`📤 Résultat tool envoyé au model`, 'info')
+          
+          // Demander réponse avec le message généré par le tool
+          setTimeout(() => {
+            if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+              const responseEvent = {
+                type: 'response.create'
+              }
+              dataChannelRef.current.send(JSON.stringify(responseEvent))
+              kioskLogger.session(`🎯 Demande réponse avec message tool`, 'info')
+              
+              // Si c'est une action de fermeture, programmer la fermeture après la réponse
+              if (result.session_control?.end_session) {
+                kioskLogger.session(`👋 Fermeture programmée après réponse JARVIS`, 'info')
+                setTimeout(() => {
+                  kioskLogger.session(`🔚 Fermeture session après message d'au revoir`, 'info')
+                  config.onError?.('GOODBYE_DETECTED')
+                }, 4000) // Plus de temps pour la réponse
+              }
+            }
+          }, 100)
+        }
+        return // Ne pas continuer le flow normal
+      }
+      
+      // Renvoyer le résultat au model via conversation.item.create
+      if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+        const resultEvent = {
+          type: 'conversation.item.create',
+          item: {
+            type: 'function_call_output',
+            call_id: call_id,
+            output: JSON.stringify(result)
+          }
+        }
+        
+        dataChannelRef.current.send(JSON.stringify(resultEvent))
+        kioskLogger.session(`📤 Résultat tool envoyé au model`, 'info')
+        
+        // Demander une nouvelle réponse du model
+        setTimeout(() => {
+          if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+            const responseEvent = {
+              type: 'response.create'
+            }
+            dataChannelRef.current.send(JSON.stringify(responseEvent))
+            kioskLogger.session(`🎯 Nouvelle réponse demandée au model`, 'info')
+          }
+        }, 100)
+      }
+      
+    } catch (error: any) {
+      kioskLogger.session(`❌ Erreur function call ${name}: ${error.message}`, 'error')
+      
+      // Envoyer erreur au model
+      if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+        const errorEvent = {
+          type: 'conversation.item.create',
+          item: {
+            type: 'function_call_output',
+            call_id: call_id,
+            output: JSON.stringify({ 
+              error: true, 
+              message: `Erreur lors de l'exécution: ${error.message}` 
+            })
+          }
+        }
+        
+        dataChannelRef.current.send(JSON.stringify(errorEvent))
+        
+        // Demander réponse même en cas d'erreur
+        setTimeout(() => {
+          if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+            dataChannelRef.current.send(JSON.stringify({ type: 'response.create' }))
+          }
+        }, 100)
+      }
+    }
+  }, [])
+
   // 📨 GESTION ÉVÉNEMENTS SERVEUR (comme ba8f34a)
   const handleServerEvent = useCallback((event: any) => {
     resetInactivityTimeout()
@@ -395,16 +548,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
           )
         }
         
-        // Détection "au revoir" (comme ba8f34a)
-        if (transcript.toLowerCase().includes('au revoir') || 
-            transcript.toLowerCase().includes('aurevoir') ||
-            transcript.toLowerCase().includes('bye') ||
-            transcript.toLowerCase().includes('goodbye')) {
-          kioskLogger.session('👋 Au revoir détecté', 'info')
-          setTimeout(() => {
-            config.onError?.('GOODBYE_DETECTED')
-          }, 1000) // Délai pour laisser JARVIS répondre
-        }
+        // 🚫 ANCIENNE DÉTECTION AU REVOIR COMPLÈTEMENT SUPPRIMÉE
+        // Maintenant 100% géré par le tool manage_session_state
         break
 
       case 'response.audio.delta':
@@ -417,12 +562,20 @@ export function useVoiceChat(config: VoiceChatConfig) {
         setAudioState(prev => ({ ...prev, isPlaying: false }))
         break
 
+      case 'response.done':
+        // 🛠️ DÉTECTER FUNCTION CALLS
+        if (event.response?.output?.[0]?.type === 'function_call') {
+          kioskLogger.session(`🛠️ Function call détecté dans response.done`, 'info')
+          handleFunctionCall(event.response.output[0])
+        }
+        break
+
       case 'error':
         kioskLogger.session(`❌ Erreur OpenAI: ${event.error?.message}`, 'error')
         config.onError?.(event.error?.message || 'Erreur OpenAI')
         break
     }
-  }, [resetInactivityTimeout, updateStatus, config])
+  }, [resetInactivityTimeout, updateStatus, config, handleFunctionCall])
 
   // 🔗 CONNEXION COMPLÈTE (comme ba8f34a mais simplifié)
   const connect = useCallback(async () => {
@@ -480,15 +633,43 @@ export function useVoiceChat(config: VoiceChatConfig) {
         audioElementRef.current.srcObject = null
       }
 
-      // Fermer la session côté serveur
+      // 🚨 FERMER LA SESSION OPENAI REALTIME CÔTÉ SERVEUR
       if (sessionRef.current) {
         try {
+          // 1. Fermer la session OpenAI Realtime via leur API
+          console.log('🔥 [DISCONNECT] Fermeture session OpenAI Realtime...')
+          
+          // Envoyer un événement de fermeture via le data channel si encore ouvert
+          if (dataChannelRef.current && dataChannelRef.current.readyState === 'open') {
+            try {
+              const closeEvent = {
+                type: 'session.update',
+                session: {
+                  turn_detection: null // Désactiver la détection
+                }
+              }
+              dataChannelRef.current.send(JSON.stringify(closeEvent))
+              
+              // Attendre un peu pour que l'événement soit traité
+              await new Promise(resolve => setTimeout(resolve, 100))
+            } catch (dcError) {
+              console.log('⚠️ [DISCONNECT] Erreur envoi événement fermeture:', dcError)
+            }
+          }
+          
+          // 2. Fermer notre enregistrement en base
           await fetch('/api/voice/session/close', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionId: sessionRef.current.session_id })
+            body: JSON.stringify({ 
+              sessionId: sessionRef.current.session_id,
+              reason: 'user_disconnect'
+            })
           })
+          
+          console.log('✅ [DISCONNECT] Session OpenAI fermée complètement')
         } catch (error) {
+          console.error('❌ [DISCONNECT] Erreur fermeture session:', error)
           kioskLogger.session(`⚠️ Erreur fermeture session serveur: ${error}`, 'warning')
         }
         sessionRef.current = null

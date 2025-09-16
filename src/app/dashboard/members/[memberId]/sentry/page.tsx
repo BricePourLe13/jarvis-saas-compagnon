@@ -1060,3 +1060,4 @@ export default function MemberSentryPage({ params }: { params: { memberId: strin
     </SentryDashboardLayout>
   )
 }
+
