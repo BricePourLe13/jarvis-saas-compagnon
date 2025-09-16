@@ -11,8 +11,7 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['@chakra-ui/react', 'framer-motion', 'lucide-react']
-  },
-  output: 'standalone'
+  }
 }
 
 // Configuration Sentry optimisée pour performance
