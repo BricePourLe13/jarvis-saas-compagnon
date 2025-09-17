@@ -2,7 +2,7 @@
 
 import { Box, Container, VStack, Heading, Text, Button, HStack, Grid, GridItem, Flex, SimpleGrid } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
 import Dock from '@/components/Dock'
 import GradualBlur from '@/components/GradualBlur'
@@ -11,12 +11,16 @@ import JarvisSimpleCards from '@/components/JarvisSimpleCards'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 import CardSwap, { Card } from '@/components/CardSwap'
 import TiltedCard from '@/components/TiltedCard'
+import ScrollCaptureSection from '@/components/ScrollCaptureSection'
 
 // Page client-only pour la landing page
 
 export default function LandingClientPage() {
   // 🎭 SECTION CONTEXTUELLE POUR SPHÈRE INTELLIGENTE
   const [currentSection, setCurrentSection] = useState<'hero' | 'social-proof' | 'solutions' | 'benefits'>('hero')
+  
+  // 🎯 REF POUR SECTION TARIFICATION
+  const tarifsRef = useRef<HTMLDivElement>(null)
 
   // 🎭 DÉTECTION DE SECTION POUR COMPORTEMENT CONTEXTUEL
   useEffect(() => {
@@ -42,6 +46,7 @@ export default function LandingClientPage() {
 
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
 
   // Fonction de navigation smooth scroll avec offset pour le dock
   const scrollToSection = (sectionId: string) => {
@@ -88,6 +93,45 @@ export default function LandingClientPage() {
 
   return (
     <Box bg="transparent" position="relative" minH="100vh">
+      {/* BOUTON CONNEXION FIXE EN HAUT À DROITE */}
+      <Box
+        position="fixed"
+        top={6}
+        right={6}
+        zIndex={1000}
+        pointerEvents="auto"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1 }}
+        >
+          <Button
+            variant="outline"
+            size="md"
+            bg="rgba(59, 130, 246, 0.15)"
+            backdropFilter="blur(20px)"
+            border="2px solid rgba(59, 130, 246, 0.4)"
+            color="white"
+            fontWeight="semibold"
+            boxShadow="0 4px 15px rgba(59, 130, 246, 0.2)"
+            _hover={{
+              bg: "rgba(59, 130, 246, 0.25)",
+              transform: "translateY(-2px)",
+              boxShadow: "0 8px 25px rgba(59, 130, 246, 0.3)",
+              borderColor: "rgba(59, 130, 246, 0.6)"
+            }}
+            transition="all 0.3s ease"
+            onClick={() => window.location.href = '/login'}
+          >
+            <HStack spacing={2}>
+              <Text fontSize="sm">Déjà client ?</Text>
+              <Box fontSize="xs">→</Box>
+            </HStack>
+          </Button>
+        </motion.div>
+      </Box>
+
       {/* Background LiquidEther - FIXE ET INTERACTIF */}
       <Box 
         position="fixed" 
@@ -308,28 +352,7 @@ export default function LandingClientPage() {
                   </Button>
                 </HStack>
                 
-                {/* Bouton discret pour clients existants */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.8, delay: 1.2 }}
-                >
-                  <Button
-                    variant="ghost"
-                    color="gray.400"
-                    size="sm"
-                    fontSize="sm"
-                    pointerEvents="auto"
-                    _hover={{ 
-                      color: "white",
-                      textDecoration: "underline"
-                    }}
-                    transition="all 0.3s"
-                    onClick={() => window.location.href = '/login'}
-                  >
-                    Déjà client ? Se connecter →
-                  </Button>
-                </motion.div>
+                {/* Bouton élégant pour clients existants */}
               </motion.div>
             </VStack>
 
@@ -346,87 +369,68 @@ export default function LandingClientPage() {
                   style={{ width: '100%', height: '100%' }}
                 />
                 
-                {/* Cercles orbitaux autour de la sphère - PARFAITEMENT CENTRÉS */}
-                {[0, 1, 2].map((index) => (
+                {/* Élément animé subtil autour de la sphère */}
+                <motion.div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '380px',
+                    height: '380px',
+                    transform: 'translate(-50%, -50%)',
+                    border: '1px solid rgba(59, 130, 246, 0.15)',
+                    borderRadius: '50%',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                  }}
+                  animate={{
+                    rotate: 360,
+                    scale: [1, 1.05, 1]
+                  }}
+                  transition={{
+                    rotate: {
+                      duration: 60,
+                      repeat: Infinity,
+                      ease: "linear"
+                    },
+                    scale: {
+                      duration: 8,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }
+                  }}
+                />
+                
+                {/* Points lumineux subtils */}
+                {[0, 1, 2].map((i) => (
                   <motion.div
-                    key={`orbital-${index}`}
+                    key={i}
                     style={{
                       position: 'absolute',
                       top: '50%',
                       left: '50%',
-                      width: `${160 + index * 35}px`,
-                      height: `${160 + index * 35}px`,
-                      border: '1px solid rgba(59, 130, 246, 0.15)',
+                      width: '3px',
+                      height: '3px',
+                      background: 'rgba(59, 130, 246, 0.4)',
                       borderRadius: '50%',
-                      transform: 'translate(-50%, -50%)',
+                      boxShadow: '0 0 8px rgba(59, 130, 246, 0.3)',
                       pointerEvents: 'none',
                       zIndex: 1
                     }}
                     animate={{
-                      rotate: index % 2 === 0 ? 360 : -360
-                    }}
-                    transition={{
-                      duration: 25 + index * 8,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                  />
-                ))}
-
-                {/* Points orbitaux */}
-                {[1, 2, 3, 4].map((index) => (
-                  <motion.div
-                    key={`point-${index}`}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      width: '4px',
-                      height: '4px',
-                      background: '#3b82f6',
-                      borderRadius: '50%',
-                      boxShadow: '0 0 10px rgba(59, 130, 246, 0.8)'
-                    }}
-                    animate={{
-                      x: [0, Math.cos(index * 90 * Math.PI / 180) * (140 + index * 20), 0],
-                      y: [0, Math.sin(index * 90 * Math.PI / 180) * (140 + index * 20), 0],
-                      opacity: [0.3, 1, 0.3]
-                    }}
-                    transition={{
-                      duration: 8 + index * 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: index * 0.5
-                    }}
-                  />
-                ))}
-
-                {/* Particules flottantes */}
-                {[1, 2, 3, 4, 5, 6].map((index) => (
-                  <motion.div
-                    key={`particle-${index}`}
-                    style={{
-                      position: 'absolute',
-                      top: `${20 + index * 10}%`,
-                      left: `${15 + index * 12}%`,
-                      width: '2px',
-                      height: '2px',
-                      background: '#60a5fa',
-                      borderRadius: '50%',
-                      boxShadow: '0 0 6px rgba(96, 165, 250, 0.6)'
-                    }}
-                    animate={{
-                      y: [-10, 10, -10],
+                      x: [0, Math.cos(i * 120 * Math.PI / 180) * 210, 0],
+                      y: [0, Math.sin(i * 120 * Math.PI / 180) * 210, 0],
                       opacity: [0.2, 0.8, 0.2]
                     }}
                     transition={{
-                      duration: 3 + index * 0.5,
+                      duration: 12 + i * 2,
                       repeat: Infinity,
                       ease: "easeInOut",
-                      delay: index * 0.3
+                      delay: i * 1.5
                     }}
                   />
                 ))}
+
               </motion.div>
             </Box>
           </Flex>
@@ -493,9 +497,9 @@ export default function LandingClientPage() {
                   imageSrc="/images/stat-abandon-bg.svg"
                   altText="Taux d'abandon critique"
                   captionText=""
-                  containerHeight="240px"
+                  containerHeight="260px"
                   containerWidth="100%"
-                  imageHeight="240px"
+                  imageHeight="260px"
                   imageWidth="100%"
                   rotateAmplitude={18}
                   scaleOnHover={1.08}
@@ -542,9 +546,9 @@ export default function LandingClientPage() {
                   imageSrc="/images/stat-cost-bg.svg"
                   altText="Coût d'acquisition élevé"
                   captionText=""
-                  containerHeight="240px"
+                  containerHeight="260px"
                   containerWidth="100%"
-                  imageHeight="240px"
+                  imageHeight="260px"
                   imageWidth="100%"
                   rotateAmplitude={20}
                   scaleOnHover={1.09}
@@ -591,9 +595,9 @@ export default function LandingClientPage() {
                   imageSrc="/images/stat-wait-bg.svg"
                   altText="Temps d'attente frustrant"
                   captionText=""
-                  containerHeight="240px"
+                  containerHeight="260px"
                   containerWidth="100%"
-                  imageHeight="240px"
+                  imageHeight="260px"
                   imageWidth="100%"
                   rotateAmplitude={22}
                   scaleOnHover={1.10}
@@ -663,9 +667,9 @@ export default function LandingClientPage() {
                     imageSrc="/images/stat-jarvis-bg.svg"
                     altText="Réduction du churn avec JARVIS"
                     captionText=""
-                    containerHeight="240px"
+                    containerHeight="260px"
                     containerWidth="100%"
-                    imageHeight="240px"
+                    imageHeight="260px"
                     imageWidth="100%"
                     rotateAmplitude={25}
                     scaleOnHover={1.12}
@@ -732,9 +736,9 @@ export default function LandingClientPage() {
                     imageSrc="/images/stat-cost-bg.svg"
                     altText="Réduction coût d'acquisition avec JARVIS"
                     captionText=""
-                    containerHeight="240px"
+                    containerHeight="260px"
                     containerWidth="100%"
-                    imageHeight="240px"
+                    imageHeight="260px"
                     imageWidth="100%"
                     rotateAmplitude={22}
                     scaleOnHover={1.10}
@@ -800,9 +804,9 @@ export default function LandingClientPage() {
                     imageSrc="/images/stat-wait-bg.svg"
                     altText="Élimination temps d'attente avec JARVIS"
                     captionText=""
-                    containerHeight="240px"
+                    containerHeight="260px"
                     containerWidth="100%"
-                    imageHeight="240px"
+                    imageHeight="260px"
                     imageWidth="100%"
                     rotateAmplitude={24}
                     scaleOnHover={1.11}
@@ -1677,8 +1681,8 @@ export default function LandingClientPage() {
         </motion.div>
       </Container>
 
-      {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ */}
-      <Container id="tarifs" maxW="8xl" px={8} py={24} mt={28} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
+       {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ */}
+       <Container id="tarifs" ref={tarifsRef} maxW="8xl" px={8} py={24} mt={28} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1701,33 +1705,9 @@ export default function LandingClientPage() {
                     pointerEvents="none"
                     textAlign="center"
                     lineHeight="1.1"
-                    position="relative"
+                    color="white"
                   >
-                    <motion.div
-                      animate={{
-                        background: [
-                          "linear-gradient(45deg, #3b82f6 0%, #22c55e 50%, #f59e0b 100%)",
-                          "linear-gradient(45deg, #22c55e 0%, #f59e0b 50%, #a855f7 100%)",
-                          "linear-gradient(45deg, #f59e0b 0%, #a855f7 50%, #3b82f6 100%)",
-                          "linear-gradient(45deg, #3b82f6 0%, #22c55e 50%, #f59e0b 100%)"
-                        ]
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                      style={{
-                        backgroundClip: "text",
-                        WebkitBackgroundClip: "text",
-                        WebkitTextFillColor: "transparent"
-                      }}
-                    >
-                      Modèle
-                    </motion.div>
-                    <Text as="span" color="white" ml={4}>
-                      Tarification
-                    </Text>
+                    Modèle Tarification
                   </Heading>
                 </motion.div>
                 
@@ -1750,278 +1730,553 @@ export default function LandingClientPage() {
                 </motion.div>
               </VStack>
 
-              {/* Processus tarifaire unifié */}
-              <Box w="full" maxW="700px" pointerEvents="none">
-                <motion.div
-                  initial={{ opacity: 0, y: 40, scale: 0.9 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ 
-                    duration: 0.8, 
-                    type: "spring",
-                    bounce: 0.3
-                  }}
-                  viewport={{ once: true }}
-                >
-                  <Box
-                    position="relative"
-                    p={8}
-                    borderRadius="3xl"
-                    border="2px solid rgba(34, 197, 94, 0.4)"
-                    bg="rgba(0, 0, 0, 0.6)"
-                    backdropFilter="blur(30px)"
-                    overflow="hidden"
-                    _hover={{
-                      borderColor: "rgba(34, 197, 94, 0.6)",
-                      transform: "translateY(-12px)",
-                      boxShadow: "0 30px 60px rgba(34, 197, 94, 0.3)"
-                    }}
-                    transition="all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
-                    pointerEvents="auto"
-                  >
-                    {/* Badge "Solution Complète" */}
-                    <Box
-                      position="absolute"
-                      top={-2}
-                      left="50%"
-                      transform="translateX(-50%)"
-                      bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
-                      color="white"
-                      px={8}
-                      py={3}
-                      borderRadius="full"
-                      fontSize="sm"
-                      fontWeight="bold"
-                      textTransform="uppercase"
-                      letterSpacing="wider"
-                      zIndex={3}
-                    >
-                      ✨ Solution Complète
-                    </Box>
+               {/* Espacement pour voir le titre et description */}
+               <Box h="60vh" />
 
-                    {/* Glow effect animé */}
-                    <motion.div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        background: "linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1))",
-                        borderRadius: "24px"
-                      }}
-                      animate={{
-                        opacity: [0.1, 0.2, 0.1]
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
+               {/* ScrollCapture Tarification Immersive */}
+               <ScrollCaptureSection
+                 height="400vh"
+               >
+                 {/* Carte 1 - Installation & Formation */}
+                 <Box
+                   w="full"
+                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
+                   h={{ base: "600px", md: "700px", lg: "800px" }}
+                   borderRadius="3xl"
+                   position="relative"
+                   overflow="hidden"
+                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                   border="2px solid rgba(255, 255, 255, 0.15)"
+                   boxShadow="0 30px 60px rgba(0, 0, 0, 0.7)"
+                   backdropFilter="blur(30px)"
+                   _before={{
+                     content: '""',
+                     position: 'absolute',
+                     inset: 0,
+                     bg: 'rgba(15, 23, 42, 0.85)',
+                     zIndex: 1
+                   }}
+                 >
+                       {/* Image de fond */}
+                       <Box
+                         position="absolute"
+                         inset={0}
+                         backgroundImage="url('/images/installation-bg.jpg')"
+                         backgroundSize="cover"
+                         backgroundPosition="center"
+                         opacity={0.2}
+                         filter="blur(2px)"
+                       />
+                       
+                       {/* Contenu */}
+                       <Flex h="full" align="center" justify="space-between" p={16} position="relative" zIndex={3}>
+                         <VStack align="flex-start" spacing={8} flex="1" maxW="55%">
+                           <Box>
+                             <motion.div
+                               animate={{ 
+                                 rotate: [0, 5, -5, 0],
+                                 scale: [1, 1.1, 1]
+                               }}
+                               transition={{ 
+                                 duration: 4,
+                                 repeat: Infinity,
+                                 ease: "easeInOut"
+                               }}
+                             >
+                               <Text fontSize="8xl" mb={6}>🚀</Text>
+                             </motion.div>
+                             <motion.div
+                               initial={{ opacity: 0, y: 20 }}
+                               whileInView={{ opacity: 1, y: 0 }}
+                               transition={{ duration: 0.8, delay: 0.2 }}
+                             >
+                               <Heading fontSize="5xl" fontWeight="black" color="white" mb={6}>
+                                 Installation & Formation
+                               </Heading>
+                             </motion.div>
+                             <motion.div
+                               initial={{ opacity: 0, y: 20 }}
+                               whileInView={{ opacity: 1, y: 0 }}
+                               transition={{ duration: 0.8, delay: 0.4 }}
+                             >
+                               <Text fontSize="2xl" color="rgba(255,255,255,0.9)" lineHeight="1.6">
+                                 Déploiement complet sur site avec formation personnalisée de votre équipe. 
+                                 Configuration IA adaptée à votre environnement.
+                               </Text>
+                             </motion.div>
+                           </Box>
+                           
+                           <VStack align="flex-start" spacing={6}>
+                             {[
+                               { icon: "🔧", title: "Installation matérielle complète", desc: "Miroirs digitaux, capteurs IA, infrastructure réseau" },
+                               { icon: "🤖", title: "Configuration IA personnalisée", desc: "Calibrage vocal, reconnaissance faciale, données membres" },
+                               { icon: "👥", title: "Formation équipe (2 jours)", desc: "Prise en main, maintenance, support technique" },
+                               { icon: "📊", title: "Dashboard manager intégré", desc: "Analytics temps réel, insights membres, ROI tracking" },
+                               { icon: "🔄", title: "Synchronisation cloud", desc: "Backup automatique, mises à jour OTA, monitoring 24/7" }
+                             ].map((item, i) => (
+                               <motion.div
+                                 key={i}
+                                 initial={{ opacity: 0, x: -20 }}
+                                 whileInView={{ opacity: 1, x: 0 }}
+                                 transition={{ duration: 0.6, delay: 0.6 + i * 0.1 }}
+                               >
+                                 <HStack spacing={4} align="flex-start">
+                                   <motion.div
+                                     animate={{ 
+                                       scale: [1, 1.1, 1],
+                                       rotate: [0, 5, -5, 0]
+                                     }}
+                                     transition={{ 
+                                       duration: 3,
+                                       repeat: Infinity,
+                                       delay: i * 0.5
+                                     }}
+                                   >
+                                     <Text fontSize="2xl">{item.icon}</Text>
+                                   </motion.div>
+                                   <VStack align="flex-start" spacing={1}>
+                                     <Text fontSize="lg" fontWeight="bold" color="white">{item.title}</Text>
+                                     <Text fontSize="md" color="rgba(255,255,255,0.7)" lineHeight="1.4">{item.desc}</Text>
+                                   </VStack>
+                                 </HStack>
+                               </motion.div>
+                             ))}
+                           </VStack>
+                           
+                           <motion.div
+                             initial={{ opacity: 0, scale: 0.8 }}
+                             whileInView={{ opacity: 1, scale: 1 }}
+                             transition={{ duration: 0.6, delay: 0.8 }}
+                             whileHover={{ scale: 1.05 }}
+                           >
+                             <Box
+                               bg="rgba(255,255,255,0.2)"
+                               px={6}
+                               py={3}
+                               borderRadius="full"
+                               backdropFilter="blur(10px)"
+                               position="relative"
+                               overflow="hidden"
+                             >
+                               <Text fontSize="lg" fontWeight="bold" color="white">
+                                 💰 Sur devis personnalisé
+                               </Text>
+                             </Box>
+                           </motion.div>
+                         </VStack>
+                         
+                         {/* Illustration droite */}
+                         <Box flex="0 0 40%" h="full" position="relative">
+                           <motion.div
+                             animate={{
+                               y: [0, -20, 0],
+                               rotateY: [0, 5, 0]
+                             }}
+                             transition={{
+                               duration: 6,
+                               repeat: Infinity,
+                               ease: "easeInOut"
+                             }}
+                             style={{ height: "100%" }}
+                           >
+                             <Box
+                               w="full"
+                               h="80%"
+                               bg="rgba(255,255,255,0.1)"
+                               borderRadius="2xl"
+                               border="2px solid rgba(255,255,255,0.2)"
+                               backdropFilter="blur(10px)"
+                               display="flex"
+                               alignItems="center"
+                               justifyContent="center"
+                               position="relative"
+                               overflow="hidden"
+                             >
+                               <Text fontSize="8xl" opacity={0.3}>🏗️</Text>
+                               
+                               {/* Particules flottantes */}
+                               {[...Array(6)].map((_, i) => (
+                                 <motion.div
+                                   key={i}
+                                   style={{
+                                     position: "absolute",
+                                     width: "4px",
+                                     height: "4px",
+                                     background: "white",
+                                     borderRadius: "50%",
+                                     left: `${20 + i * 12}%`,
+                                     top: `${20 + i * 10}%`
+                                   }}
+                                   animate={{
+                                     y: [0, -15, 0],
+                                     opacity: [0.3, 1, 0.3]
+                                   }}
+                                   transition={{
+                                     duration: 2 + i * 0.5,
+                                     repeat: Infinity,
+                                     delay: i * 0.3
+                                   }}
+                                 />
+                               ))}
+                             </Box>
+                           </motion.div>
+                         </Box>
+                       </Flex>
+                     </Box>
 
-                    <VStack spacing={8} position="relative" zIndex={2} pointerEvents="none">
-                      {/* Titre principal */}
-                      <VStack spacing={4} textAlign="center" pointerEvents="none">
-                        <Heading 
-                          fontSize={{ base: "2xl", md: "3xl" }}
-                          fontWeight="black"
-                          color="white"
-                          pointerEvents="none"
-                        >
-                          JARVIS Intégral
-                        </Heading>
-                        <Text 
-                          fontSize="lg"
-                          color="gray.300"
-                          textAlign="center"
-                          maxW="600px"
-                          lineHeight="1.6"
-                          pointerEvents="none"
-                        >
-                          Installation personnalisée + Formation + Abonnement mensuel
-                          <br />
-                          <Text as="span" color="#22c55e" fontWeight="bold">
-                            Tout-en-un pour votre salle
-                          </Text>
-                        </Text>
-                      </VStack>
+                 {/* Carte 2 - Abonnement Mensuel */}
+                 <Box
+                   w="full"
+                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
+                   h={{ base: "600px", md: "700px", lg: "800px" }}
+                   borderRadius="3xl"
+                   position="relative"
+                   overflow="hidden"
+                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                   border="2px solid rgba(34, 197, 94, 0.3)"
+                   boxShadow="0 30px 60px rgba(34, 197, 94, 0.2)"
+                   backdropFilter="blur(30px)"
+                   _before={{
+                     content: '""',
+                     position: 'absolute',
+                     inset: 0,
+                     bg: 'rgba(15, 23, 42, 0.85)',
+                     zIndex: 1
+                   }}
+                 >
+                       {/* Badge Populaire */}
+                       <Box
+                         position="absolute"
+                         top={8}
+                         right={8}
+                         bg="rgba(255,255,255,0.9)"
+                         color="green.600"
+                         px={4}
+                         py={2}
+                         borderRadius="full"
+                         fontSize="sm"
+                         fontWeight="bold"
+                         zIndex={10}
+                       >
+                         ⭐ POPULAIRE
+                       </Box>
+                       
+                       <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
+                         <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
+                           <Box>
+                             <Text fontSize="6xl" mb={4}>💎</Text>
+                             <Heading fontSize="4xl" fontWeight="black" color="white" mb={4}>
+                               Abonnement Mensuel
+                             </Heading>
+                             <Text fontSize="xl" color="rgba(255,255,255,0.9)" lineHeight="1.6">
+                               Accès complet à JARVIS avec toutes les fonctionnalités IA, 
+                               support 24/7 et mises à jour automatiques.
+                             </Text>
+                           </Box>
+                           
+                           <VStack align="flex-start" spacing={4}>
+                             {[
+                               { icon: "🤖", title: "IA conversationnelle illimitée", desc: "Interactions membres sans limite" },
+                               { icon: "📊", title: "Dashboard analytics avancé", desc: "Métriques temps réel et insights" },
+                               { icon: "🛟", title: "Support prioritaire 24/7", desc: "Assistance technique dédiée" },
+                               { icon: "🔄", title: "Mises à jour automatiques", desc: "Nouvelles fonctionnalités incluses" },
+                               { icon: "☁️", title: "Stockage cloud illimité", desc: "Données membres sécurisées" },
+                               { icon: "📱", title: "App mobile manager", desc: "Contrôle à distance de votre salle" }
+                             ].map((feature, i) => (
+                               <motion.div
+                                 key={i}
+                                 initial={{ opacity: 0, x: -15 }}
+                                 whileInView={{ opacity: 1, x: 0 }}
+                                 transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
+                               >
+                                 <HStack spacing={3} align="flex-start">
+                                   <Text fontSize="lg">{feature.icon}</Text>
+                                   <VStack align="flex-start" spacing={0}>
+                                     <Text fontSize="md" fontWeight="semibold" color="white">{feature.title}</Text>
+                                     <Text fontSize="sm" color="rgba(255,255,255,0.7)">{feature.desc}</Text>
+                                   </VStack>
+                                 </HStack>
+                               </motion.div>
+                             ))}
+                           </VStack>
+                           
+                           <Box
+                             bg="rgba(255,255,255,0.2)"
+                             px={6}
+                             py={3}
+                             borderRadius="full"
+                             backdropFilter="blur(10px)"
+                           >
+                             <Text fontSize="lg" fontWeight="bold" color="white">
+                               💳 Forfait mensuel flexible
+                             </Text>
+                           </Box>
+                         </VStack>
+                         
+                         <Box flex="0 0 40%" h="full" position="relative">
+                           <motion.div
+                             animate={{
+                               scale: [1, 1.05, 1],
+                               rotateZ: [0, 2, -2, 0]
+                             }}
+                             transition={{
+                               duration: 4,
+                               repeat: Infinity,
+                               ease: "easeInOut"
+                             }}
+                             style={{ height: "100%" }}
+                           >
+                             <Box
+                               w="full"
+                               h="80%"
+                               bg="rgba(255,255,255,0.1)"
+                               borderRadius="2xl"
+                               border="2px solid rgba(255,255,255,0.2)"
+                               backdropFilter="blur(10px)"
+                               display="flex"
+                               alignItems="center"
+                               justifyContent="center"
+                               position="relative"
+                               overflow="hidden"
+                             >
+                               <Text fontSize="8xl" opacity={0.3}>📊</Text>
+                               
+                               {/* Effet de pulsation */}
+                               <motion.div
+                                 style={{
+                                   position: "absolute",
+                                   inset: 0,
+                                   background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)",
+                                   borderRadius: "16px"
+                                 }}
+                                 animate={{
+                                   opacity: [0.1, 0.3, 0.1]
+                                 }}
+                                 transition={{
+                                   duration: 3,
+                                   repeat: Infinity
+                                 }}
+                               />
+                             </Box>
+                           </motion.div>
+                         </Box>
+                       </Flex>
+                     </Box>
+                 {/* Carte 3 - Support & Évolutions */}
+                 <Box
+                   w="full"
+                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
+                   h={{ base: "600px", md: "700px", lg: "800px" }}
+                   borderRadius="3xl"
+                   position="relative"
+                   overflow="hidden"
+                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                   border="2px solid rgba(249, 115, 22, 0.3)"
+                   boxShadow="0 30px 60px rgba(249, 115, 22, 0.2)"
+                   backdropFilter="blur(30px)"
+                   _before={{
+                     content: '""',
+                     position: 'absolute',
+                     inset: 0,
+                     bg: 'rgba(15, 23, 42, 0.85)',
+                     zIndex: 1
+                   }}
+                 >
+                       <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
+                         <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
+                           <Box>
+                             <Text fontSize="6xl" mb={4}>🛠️</Text>
+                             <Heading fontSize="4xl" fontWeight="black" color="white" mb={4}>
+                               Support & Évolutions
+                             </Heading>
+                             <Text fontSize="xl" color="rgba(255,255,255,0.9)" lineHeight="1.6">
+                               Maintenance proactive, mises à jour continues et évolutions 
+                               technologiques pour rester à la pointe de l'innovation.
+                             </Text>
+                           </Box>
+                           
+                           <VStack align="flex-start" spacing={3}>
+                             <HStack spacing={3}>
+                               <Box w="6px" h="6px" bg="white" borderRadius="50%" />
+                               <Text color="rgba(255,255,255,0.8)">Maintenance préventive</Text>
+                             </HStack>
+                             <HStack spacing={3}>
+                               <Box w="6px" h="6px" bg="white" borderRadius="50%" />
+                               <Text color="rgba(255,255,255,0.8)">Mises à jour automatiques</Text>
+                             </HStack>
+                             <HStack spacing={3}>
+                               <Box w="6px" h="6px" bg="white" borderRadius="50%" />
+                               <Text color="rgba(255,255,255,0.8)">Nouvelles fonctionnalités</Text>
+                             </HStack>
+                           </VStack>
+                           
+                           <Box
+                             bg="rgba(255,255,255,0.2)"
+                             px={6}
+                             py={3}
+                             borderRadius="full"
+                             backdropFilter="blur(10px)"
+                           >
+                             <Text fontSize="lg" fontWeight="bold" color="white">
+                               🔧 Inclus dans l'abonnement
+                             </Text>
+                           </Box>
+                         </VStack>
+                         
+                         <Box flex="0 0 40%" h="full" position="relative">
+                           <motion.div
+                             animate={{
+                               rotateY: [0, 10, -10, 0],
+                               y: [0, -10, 0]
+                             }}
+                             transition={{
+                               duration: 5,
+                               repeat: Infinity,
+                               ease: "easeInOut"
+                             }}
+                             style={{ height: "100%" }}
+                           >
+                             <Box
+                               w="full"
+                               h="80%"
+                               bg="rgba(255,255,255,0.1)"
+                               borderRadius="2xl"
+                               border="2px solid rgba(255,255,255,0.2)"
+                               backdropFilter="blur(10px)"
+                               display="flex"
+                               alignItems="center"
+                               justifyContent="center"
+                               position="relative"
+                               overflow="hidden"
+                             >
+                               <Text fontSize="8xl" opacity={0.3}>⚙️</Text>
+                               
+                               {/* Engrenages animés */}
+                               {[...Array(3)].map((_, i) => (
+                                 <motion.div
+                                   key={i}
+                                   style={{
+                                     position: "absolute",
+                                     width: "20px",
+                                     height: "20px",
+                                     border: "2px solid rgba(255,255,255,0.4)",
+                                     borderRadius: "50%",
+                                     left: `${30 + i * 20}%`,
+                                     top: `${30 + i * 15}%`
+                                   }}
+                                   animate={{
+                                     rotate: [0, 360]
+                                   }}
+                                   transition={{
+                                     duration: 3 + i,
+                                     repeat: Infinity,
+                                     ease: "linear"
+                                   }}
+                                 />
+                               ))}
+                             </Box>
+                           </motion.div>
+                         </Box>
+                       </Flex>
+                     </Box>
+                 {/* Carte 4 - CTA Final */}
+                 <Box
+                   w="full"
+                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
+                   h={{ base: "600px", md: "700px", lg: "800px" }}
+                   borderRadius="3xl"
+                   position="relative"
+                   overflow="hidden"
+                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                   border="2px solid rgba(139, 92, 246, 0.3)"
+                   boxShadow="0 30px 60px rgba(139, 92, 246, 0.2)"
+                   backdropFilter="blur(30px)"
+                   _before={{
+                     content: '""',
+                     position: 'absolute',
+                     inset: 0,
+                     bg: 'rgba(15, 23, 42, 0.85)',
+                     zIndex: 1
+                   }}
+                 >
+                       <Flex h="full" align="center" justify="center" p={12} position="relative" zIndex={3}>
+                         <VStack spacing={8} textAlign="center" maxW="600px">
+                           <Box>
+                             <Text fontSize="8xl" mb={6}>✨</Text>
+                             <Heading fontSize="5xl" fontWeight="black" color="white" mb={6}>
+                               Prêt à transformer votre salle ?
+                             </Heading>
+                             <Text fontSize="xl" color="rgba(255,255,255,0.9)" lineHeight="1.6" mb={8}>
+                               Rejoignez les salles de sport qui révolutionnent l'expérience membre 
+                               avec l'IA conversationnelle JARVIS.
+                             </Text>
+                           </Box>
+                           
+                           <HStack spacing={6} justify="center" flexWrap="wrap">
+                             <motion.div
+                               whileHover={{ scale: 1.05 }}
+                               whileTap={{ scale: 0.95 }}
+                             >
+                               <Button
+                                 size="xl"
+                                 px={12}
+                                 py={8}
+                                 borderRadius="2xl"
+                                 fontWeight="black"
+                                 fontSize="xl"
+                                 bg="rgba(255,255,255,0.9)"
+                                 color="purple.600"
+                                 _hover={{
+                                   bg: "white",
+                                   transform: "translateY(-2px)",
+                                   boxShadow: "0 20px 40px rgba(0,0,0,0.2)"
+                                 }}
+                                 transition="all 0.3s"
+                               >
+                                 🚀 Commencer maintenant
+                               </Button>
+                             </motion.div>
+                             
+                             <motion.div
+                               whileHover={{ scale: 1.05 }}
+                               whileTap={{ scale: 0.95 }}
+                             >
+                               <Button
+                                 size="xl"
+                                 px={12}
+                                 py={8}
+                                 borderRadius="2xl"
+                                 fontWeight="black"
+                                 fontSize="xl"
+                                 variant="outline"
+                                 borderColor="rgba(255,255,255,0.4)"
+                                 color="white"
+                                 _hover={{
+                                   borderColor: "white",
+                                   bg: "rgba(255,255,255,0.1)",
+                                   transform: "translateY(-2px)"
+                                 }}
+                                 transition="all 0.3s"
+                               >
+                                 📞 Parler à un expert
+                               </Button>
+                             </motion.div>
+                           </HStack>
+                           
+                         </VStack>
+                       </Flex>
+                       
+                     </Box>
+               </ScrollCaptureSection>
 
-                      {/* Processus en 3 étapes */}
-                      <VStack spacing={6} w="full" pointerEvents="none">
-                        {[
-                          {
-                            step: "1",
-                            title: "Installation & Configuration",
-                            desc: "Déploiement complet sur site avec configuration personnalisée",
-                            price: "Sur devis",
-                            color: "#3b82f6",
-                            features: ["🔧 Installation matérielle", "🤖 Configuration IA", "🛡️ Tests & validation"]
-                          },
-                          {
-                            step: "2", 
-                            title: "Formation & Accompagnement",
-                            desc: "Formation complète de votre équipe et mise en service",
-                            price: "Inclus",
-                            color: "#f59e0b",
-                            features: ["👥 Formation équipe", "📚 Documentation", "🎯 Mise en service"]
-                          },
-                          {
-                            step: "3",
-                            title: "Abonnement Mensuel",
-                            desc: "Accès complet aux fonctionnalités avec support continu",
-                            price: "Forfait mensuel",
-                            color: "#22c55e",
-                            features: ["💬 IA conversationnelle", "📊 Dashboard gérant", "⚡ Support 24/7"]
-                          }
-                        ].map((phase, index) => (
-                          <motion.div
-                            key={index}
-                            initial={{ opacity: 0, x: -30 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ 
-                              duration: 0.6, 
-                              delay: index * 0.2
-                            }}
-                            viewport={{ once: true }}
-                          >
-                            <HStack spacing={4} align="center" w="full" pointerEvents="none">
-                              {/* Numéro d'étape */}
-                              <Box
-                                w="50px"
-                                h="50px"
-                                borderRadius="50%"
-                                bg={phase.color}
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                                flexShrink={0}
-                                boxShadow={`0 0 20px ${phase.color}40`}
-                              >
-                                <Text fontSize="xl" fontWeight="black" color="white">
-                                  {phase.step}
-                                </Text>
-                              </Box>
-
-                              {/* Contenu de l'étape */}
-                              <VStack align="flex-start" spacing={2} flex="1" pointerEvents="none">
-                                <HStack justify="space-between" w="full" pointerEvents="none">
-                                  <Text fontSize="lg" fontWeight="bold" color="white" pointerEvents="none">
-                                    {phase.title}
-                                  </Text>
-                                  <Text fontSize="md" fontWeight="bold" color={phase.color} pointerEvents="none">
-                                    {phase.price}
-                                  </Text>
-                                </HStack>
-                                
-                                <Text fontSize="sm" color="gray.400" lineHeight="1.5" pointerEvents="none">
-                                  {phase.desc}
-                                </Text>
-                                
-                                <HStack spacing={4} flexWrap="wrap" pointerEvents="none">
-                                  {phase.features.map((feature, featureIndex) => (
-                                    <Text key={featureIndex} fontSize="xs" color="gray.500" pointerEvents="none">
-                                      {feature}
-                                    </Text>
-                                  ))}
-                                </HStack>
-                              </VStack>
-                            </HStack>
-                          </motion.div>
-                        ))}
-                      </VStack>
-
-                      {/* CTA unifié */}
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{ pointerEvents: "auto", width: "100%" }}
-                      >
-                        <Button
-                          w="full"
-                          size="xl"
-                          bg="linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
-                          color="white"
-                          py={8}
-                          borderRadius="xl"
-                          fontWeight="bold"
-                          fontSize="xl"
-                          pointerEvents="auto"
-                          _hover={{
-                            transform: "translateY(-4px)",
-                            boxShadow: "0 20px 40px rgba(34, 197, 94, 0.4)"
-                          }}
-                          transition="all 0.3s"
-                        >
-                          🚀 Démarrer avec JARVIS
-                        </Button>
-                      </motion.div>
-                    </VStack>
-                  </Box>
-                </motion.div>
-              </Box>
-
-              {/* Message de garantie */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
-                viewport={{ once: true }}
-              >
-                <Box
-                  p={8}
-                  borderRadius="2xl"
-                  border="1px solid rgba(255, 255, 255, 0.1)"
-                  bg="rgba(0, 0, 0, 0.4)"
-                  backdropFilter="blur(20px)"
-                  maxW="600px"
-                  position="relative"
-                  overflow="hidden"
-                >
-                  <motion.div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: "2px",
-                      background: "linear-gradient(90deg, #22c55e, #3b82f6, #f59e0b, #22c55e)"
-                    }}
-                    animate={{
-                      backgroundPosition: ["0% 0%", "200% 0%"]
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                  />
-                  
-                  <VStack spacing={4} pointerEvents="none">
-                    <Text 
-                      fontSize="lg"
-                      fontWeight="bold"
-                      color="white"
-                      textAlign="center"
-                      pointerEvents="none"
-                    >
-                      🛡️ Garantie Satisfaction 30 jours
-                    </Text>
-                    <Text 
-                      fontSize="md"
-                      color="gray.300"
-                      textAlign="center"
-                      pointerEvents="none"
-                      lineHeight="1.5"
-                    >
-                      Testez JARVIS sans risque. Si vous n'êtes pas entièrement satisfait, 
-                      nous vous remboursons intégralement.
-                    </Text>
-                  </VStack>
-                </Box>
-              </motion.div>
+               {/* Espacement pour voir la dernière carte */}
+               <Box h="60vh" />
             </VStack>
           </motion.div>
         </Container>
 
       {/* SECTION CONTACT */}
-      <Container id="contact" maxW="6xl" px={6} py={24} mt={28} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
+      <Container id="contact" maxW="4xl" px={6} py={32} mt={20} mb={32} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
