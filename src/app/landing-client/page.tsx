@@ -370,24 +370,24 @@ export default function LandingClientPage() {
                 />
                 
                 {/* Élément animé subtil autour de la sphère */}
-                <motion.div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
+                  <motion.div
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
                     width: '380px',
                     height: '380px',
                     transform: 'translate(-50%, -50%)',
-                    border: '1px solid rgba(59, 130, 246, 0.15)',
-                    borderRadius: '50%',
-                    pointerEvents: 'none',
+                      border: '1px solid rgba(59, 130, 246, 0.15)',
+                      borderRadius: '50%',
+                      pointerEvents: 'none',
                     zIndex: 0
-                  }}
-                  animate={{
+                    }}
+                    animate={{
                     rotate: 360,
                     scale: [1, 1.05, 1]
-                  }}
-                  transition={{
+                    }}
+                    transition={{
                     rotate: {
                       duration: 60,
                       repeat: Infinity,
@@ -1681,7 +1681,7 @@ export default function LandingClientPage() {
         </motion.div>
       </Container>
 
-       {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ */}
+      {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ */}
        <Container id="tarifs" ref={tarifsRef} maxW="8xl" px={8} py={24} mt={28} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -1731,9 +1731,9 @@ export default function LandingClientPage() {
               </VStack>
 
                {/* Espacement pour voir le titre et description */}
-               <Box h="60vh" />
+              <Box h="30vh" />
 
-               {/* ScrollCapture Tarification Immersive */}
+              {/* ScrollCapture Tarification Immersive */}
                <ScrollCaptureSection
                  height="400vh"
                >
@@ -1742,9 +1742,9 @@ export default function LandingClientPage() {
                    w="full"
                    maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
                    h={{ base: "600px", md: "700px", lg: "800px" }}
-                   borderRadius="3xl"
+                    borderRadius="3xl"
                    position="relative"
-                   overflow="hidden"
+                    overflow="hidden"
                    bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
                    border="2px solid rgba(255, 255, 255, 0.15)"
                    boxShadow="0 30px 60px rgba(0, 0, 0, 0.7)"
@@ -1758,8 +1758,8 @@ export default function LandingClientPage() {
                    }}
                  >
                        {/* Image de fond */}
-                       <Box
-                         position="absolute"
+                    <Box
+                      position="absolute"
                          inset={0}
                          backgroundImage="url('/images/installation-bg.jpg')"
                          backgroundSize="cover"
@@ -1769,8 +1769,8 @@ export default function LandingClientPage() {
                        />
                        
                        {/* Contenu */}
-                       <Flex h="full" align="center" justify="space-between" p={16} position="relative" zIndex={3}>
-                         <VStack align="flex-start" spacing={8} flex="1" maxW="55%">
+                       <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
+                         <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
                            <Box>
                              <motion.div
                                animate={{ 
@@ -1783,14 +1783,14 @@ export default function LandingClientPage() {
                                  ease: "easeInOut"
                                }}
                              >
-                               <Text fontSize="8xl" mb={6}>🚀</Text>
+                               <Text fontSize="5xl" mb={4}>🚀</Text>
                              </motion.div>
                              <motion.div
                                initial={{ opacity: 0, y: 20 }}
                                whileInView={{ opacity: 1, y: 0 }}
                                transition={{ duration: 0.8, delay: 0.2 }}
                              >
-                               <Heading fontSize="5xl" fontWeight="black" color="white" mb={6}>
+                               <Heading fontSize="3xl" fontWeight="black" color="white" mb={4}>
                                  Installation & Formation
                                </Heading>
                              </motion.div>
@@ -1799,14 +1799,14 @@ export default function LandingClientPage() {
                                whileInView={{ opacity: 1, y: 0 }}
                                transition={{ duration: 0.8, delay: 0.4 }}
                              >
-                               <Text fontSize="2xl" color="rgba(255,255,255,0.9)" lineHeight="1.6">
+                               <Text fontSize="lg" color="rgba(255,255,255,0.9)" lineHeight="1.5">
                                  Déploiement complet sur site avec formation personnalisée de votre équipe. 
                                  Configuration IA adaptée à votre environnement.
                                </Text>
                              </motion.div>
-                           </Box>
-                           
-                           <VStack align="flex-start" spacing={6}>
+                    </Box>
+
+                           <VStack align="flex-start" spacing={4}>
                              {[
                                { icon: "🔧", title: "Installation matérielle complète", desc: "Miroirs digitaux, capteurs IA, infrastructure réseau" },
                                { icon: "🤖", title: "Configuration IA personnalisée", desc: "Calibrage vocal, reconnaissance faciale, données membres" },
@@ -1814,29 +1814,29 @@ export default function LandingClientPage() {
                                { icon: "📊", title: "Dashboard manager intégré", desc: "Analytics temps réel, insights membres, ROI tracking" },
                                { icon: "🔄", title: "Synchronisation cloud", desc: "Backup automatique, mises à jour OTA, monitoring 24/7" }
                              ].map((item, i) => (
-                               <motion.div
+                    <motion.div
                                  key={i}
                                  initial={{ opacity: 0, x: -20 }}
                                  whileInView={{ opacity: 1, x: 0 }}
                                  transition={{ duration: 0.6, delay: 0.6 + i * 0.1 }}
                                >
-                                 <HStack spacing={4} align="flex-start">
+                                 <HStack spacing={3} align="flex-start">
                                    <motion.div
-                                     animate={{ 
+                      animate={{
                                        scale: [1, 1.1, 1],
                                        rotate: [0, 5, -5, 0]
-                                     }}
-                                     transition={{ 
-                                       duration: 3,
-                                       repeat: Infinity,
+                      }}
+                      transition={{
+                        duration: 3,
+                        repeat: Infinity,
                                        delay: i * 0.5
                                      }}
                                    >
-                                     <Text fontSize="2xl">{item.icon}</Text>
+                                     <Text fontSize="xl">{item.icon}</Text>
                                    </motion.div>
-                                   <VStack align="flex-start" spacing={1}>
-                                     <Text fontSize="lg" fontWeight="bold" color="white">{item.title}</Text>
-                                     <Text fontSize="md" color="rgba(255,255,255,0.7)" lineHeight="1.4">{item.desc}</Text>
+                                   <VStack align="flex-start" spacing={0.5}>
+                                     <Text fontSize="md" fontWeight="bold" color="white">{item.title}</Text>
+                                     <Text fontSize="sm" color="rgba(255,255,255,0.7)" lineHeight="1.3">{item.desc}</Text>
                                    </VStack>
                                  </HStack>
                                </motion.div>
@@ -1860,19 +1860,19 @@ export default function LandingClientPage() {
                              >
                                <Text fontSize="lg" fontWeight="bold" color="white">
                                  💰 Sur devis personnalisé
-                               </Text>
+                          </Text>
                              </Box>
                            </motion.div>
-                         </VStack>
-                         
+                      </VStack>
+
                          {/* Illustration droite */}
                          <Box flex="0 0 40%" h="full" position="relative">
-                           <motion.div
+                          <motion.div
                              animate={{
                                y: [0, -20, 0],
                                rotateY: [0, 5, 0]
                              }}
-                             transition={{
+                            transition={{ 
                                duration: 6,
                                repeat: Infinity,
                                ease: "easeInOut"
@@ -1886,9 +1886,9 @@ export default function LandingClientPage() {
                                borderRadius="2xl"
                                border="2px solid rgba(255,255,255,0.2)"
                                backdropFilter="blur(10px)"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
+                                display="flex"
+                                alignItems="center"
+                                justifyContent="center"
                                position="relative"
                                overflow="hidden"
                              >
@@ -1922,7 +1922,7 @@ export default function LandingClientPage() {
                            </motion.div>
                          </Box>
                        </Flex>
-                     </Box>
+                              </Box>
 
                  {/* Carte 2 - Abonnement Mensuel */}
                  <Box
@@ -1964,17 +1964,17 @@ export default function LandingClientPage() {
                        <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
                          <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
                            <Box>
-                             <Text fontSize="6xl" mb={4}>💎</Text>
-                             <Heading fontSize="4xl" fontWeight="black" color="white" mb={4}>
+                             <Text fontSize="4xl" mb={3}>💎</Text>
+                             <Heading fontSize="3xl" fontWeight="black" color="white" mb={3}>
                                Abonnement Mensuel
                              </Heading>
-                             <Text fontSize="xl" color="rgba(255,255,255,0.9)" lineHeight="1.6">
+                             <Text fontSize="lg" color="rgba(255,255,255,0.9)" lineHeight="1.5">
                                Accès complet à JARVIS avec toutes les fonctionnalités IA, 
                                support 24/7 et mises à jour automatiques.
-                             </Text>
+                                </Text>
                            </Box>
                            
-                           <VStack align="flex-start" spacing={4}>
+                           <VStack align="flex-start" spacing={3}>
                              {[
                                { icon: "🤖", title: "IA conversationnelle illimitée", desc: "Interactions membres sans limite" },
                                { icon: "📊", title: "Dashboard analytics avancé", desc: "Métriques temps réel et insights" },
@@ -1994,12 +1994,12 @@ export default function LandingClientPage() {
                                    <VStack align="flex-start" spacing={0}>
                                      <Text fontSize="md" fontWeight="semibold" color="white">{feature.title}</Text>
                                      <Text fontSize="sm" color="rgba(255,255,255,0.7)">{feature.desc}</Text>
-                                   </VStack>
-                                 </HStack>
-                               </motion.div>
-                             ))}
-                           </VStack>
-                           
+                              </VStack>
+                            </HStack>
+                          </motion.div>
+                        ))}
+                      </VStack>
+
                            <Box
                              bg="rgba(255,255,255,0.2)"
                              px={6}
@@ -2014,7 +2014,7 @@ export default function LandingClientPage() {
                          </VStack>
                          
                          <Box flex="0 0 40%" h="full" position="relative">
-                           <motion.div
+                      <motion.div
                              animate={{
                                scale: [1, 1.05, 1],
                                rotateZ: [0, 2, -2, 0]
@@ -2027,7 +2027,7 @@ export default function LandingClientPage() {
                              style={{ height: "100%" }}
                            >
                              <Box
-                               w="full"
+                          w="full"
                                h="80%"
                                bg="rgba(255,255,255,0.1)"
                                borderRadius="2xl"
@@ -2057,8 +2057,8 @@ export default function LandingClientPage() {
                                    repeat: Infinity
                                  }}
                                />
-                             </Box>
-                           </motion.div>
+                  </Box>
+                </motion.div>
                          </Box>
                        </Flex>
                      </Box>
@@ -2085,46 +2085,46 @@ export default function LandingClientPage() {
                        <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
                          <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
                            <Box>
-                             <Text fontSize="6xl" mb={4}>🛠️</Text>
-                             <Heading fontSize="4xl" fontWeight="black" color="white" mb={4}>
+                             <Text fontSize="4xl" mb={3}>🛠️</Text>
+                             <Heading fontSize="3xl" fontWeight="black" color="white" mb={3}>
                                Support & Évolutions
                              </Heading>
-                             <Text fontSize="xl" color="rgba(255,255,255,0.9)" lineHeight="1.6">
+                             <Text fontSize="lg" color="rgba(255,255,255,0.9)" lineHeight="1.5">
                                Maintenance proactive, mises à jour continues et évolutions 
                                technologiques pour rester à la pointe de l'innovation.
                              </Text>
-                           </Box>
-                           
-                           <VStack align="flex-start" spacing={3}>
+              </Box>
+
+                           <VStack align="flex-start" spacing={2}>
                              <HStack spacing={3}>
-                               <Box w="6px" h="6px" bg="white" borderRadius="50%" />
-                               <Text color="rgba(255,255,255,0.8)">Maintenance préventive</Text>
+                               <Box w="4px" h="4px" bg="white" borderRadius="50%" />
+                               <Text fontSize="sm" color="rgba(255,255,255,0.8)">Maintenance préventive</Text>
                              </HStack>
                              <HStack spacing={3}>
-                               <Box w="6px" h="6px" bg="white" borderRadius="50%" />
-                               <Text color="rgba(255,255,255,0.8)">Mises à jour automatiques</Text>
+                               <Box w="4px" h="4px" bg="white" borderRadius="50%" />
+                               <Text fontSize="sm" color="rgba(255,255,255,0.8)">Mises à jour automatiques</Text>
                              </HStack>
                              <HStack spacing={3}>
-                               <Box w="6px" h="6px" bg="white" borderRadius="50%" />
-                               <Text color="rgba(255,255,255,0.8)">Nouvelles fonctionnalités</Text>
+                               <Box w="4px" h="4px" bg="white" borderRadius="50%" />
+                               <Text fontSize="sm" color="rgba(255,255,255,0.8)">Nouvelles fonctionnalités</Text>
                              </HStack>
                            </VStack>
                            
                            <Box
                              bg="rgba(255,255,255,0.2)"
-                             px={6}
-                             py={3}
+                             px={4}
+                             py={2}
                              borderRadius="full"
                              backdropFilter="blur(10px)"
                            >
-                             <Text fontSize="lg" fontWeight="bold" color="white">
+                             <Text fontSize="md" fontWeight="bold" color="white">
                                🔧 Inclus dans l'abonnement
                              </Text>
                            </Box>
                          </VStack>
                          
                          <Box flex="0 0 40%" h="full" position="relative">
-                           <motion.div
+              <motion.div
                              animate={{
                                rotateY: [0, 10, -10, 0],
                                y: [0, -10, 0]
@@ -2135,44 +2135,44 @@ export default function LandingClientPage() {
                                ease: "easeInOut"
                              }}
                              style={{ height: "100%" }}
-                           >
-                             <Box
+              >
+                <Box
                                w="full"
                                h="80%"
                                bg="rgba(255,255,255,0.1)"
-                               borderRadius="2xl"
+                  borderRadius="2xl"
                                border="2px solid rgba(255,255,255,0.2)"
                                backdropFilter="blur(10px)"
                                display="flex"
                                alignItems="center"
                                justifyContent="center"
-                               position="relative"
-                               overflow="hidden"
-                             >
+                  position="relative"
+                  overflow="hidden"
+                >
                                <Text fontSize="8xl" opacity={0.3}>⚙️</Text>
                                
                                {/* Engrenages animés */}
                                {[...Array(3)].map((_, i) => (
-                                 <motion.div
+                  <motion.div
                                    key={i}
-                                   style={{
-                                     position: "absolute",
+                    style={{
+                      position: "absolute",
                                      width: "20px",
                                      height: "20px",
                                      border: "2px solid rgba(255,255,255,0.4)",
                                      borderRadius: "50%",
                                      left: `${30 + i * 20}%`,
                                      top: `${30 + i * 15}%`
-                                   }}
-                                   animate={{
+                    }}
+                    animate={{
                                      rotate: [0, 360]
-                                   }}
-                                   transition={{
+                    }}
+                    transition={{
                                      duration: 3 + i,
-                                     repeat: Infinity,
-                                     ease: "linear"
-                                   }}
-                                 />
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                  />
                                ))}
                              </Box>
                            </motion.div>
@@ -2209,7 +2209,7 @@ export default function LandingClientPage() {
                              <Text fontSize="xl" color="rgba(255,255,255,0.9)" lineHeight="1.6" mb={8}>
                                Rejoignez les salles de sport qui révolutionnent l'expérience membre 
                                avec l'IA conversationnelle JARVIS.
-                             </Text>
+                    </Text>
                            </Box>
                            
                            <HStack spacing={6} justify="center" flexWrap="wrap">
@@ -2263,14 +2263,14 @@ export default function LandingClientPage() {
                              </motion.div>
                            </HStack>
                            
-                         </VStack>
+                  </VStack>
                        </Flex>
                        
-                     </Box>
+                </Box>
                </ScrollCaptureSection>
 
                {/* Espacement pour voir la dernière carte */}
-               <Box h="60vh" />
+               <Box h="30vh" />
             </VStack>
           </motion.div>
         </Container>
