@@ -995,17 +995,26 @@ export default function LandingClientPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.5 }}
               >
-                <Text 
-                  fontSize={{ base: "lg", md: "xl" }}
-                  color="gray.300" 
-                  lineHeight="1.6"
-                  textAlign="left"
-                  pointerEvents="none"
-                >
-                  JARVIS transforme chaque interaction membre en expérience personnalisée 24/7.
-                  <br /><br />
-                  Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.
-                </Text>
+                <VStack spacing={4} align="flex-start">
+                  <Text 
+                    fontSize={{ base: "lg", md: "xl" }}
+                    color="gray.300" 
+                    lineHeight="1.6"
+                    textAlign="left"
+                    pointerEvents="none"
+                  >
+                    JARVIS transforme chaque interaction membre en expérience personnalisée 24/7.
+                  </Text>
+                  <Text 
+                    fontSize={{ base: "lg", md: "xl" }}
+                    color="gray.300" 
+                    lineHeight="1.6"
+                    textAlign="left"
+                    pointerEvents="none"
+                  >
+                    Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.
+                  </Text>
+                </VStack>
               </motion.div>
 
               {/* Points clés */}
