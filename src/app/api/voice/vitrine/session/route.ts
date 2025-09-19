@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         session: {
           type: "realtime",
-          model: "gpt-4o-realtime-preview-2024-12-17",
+          model: "gpt-4o-realtime",
           audio: {
             input: {
               format: {
@@ -89,9 +89,17 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Erreur OpenAI API:', response.status, errorText)
+      console.error('❌ Erreur OpenAI API:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      })
       return NextResponse.json(
-        { error: 'Service temporairement indisponible' },
+        { 
+          error: 'Service temporairement indisponible',
+          details: process.env.NODE_ENV === 'development' ? errorText : undefined 
+        },
         { status: 503 }
       )
     }

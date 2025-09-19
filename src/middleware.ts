@@ -42,8 +42,8 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // ✅ Only apply to kiosk routes
-  if (pathname.startsWith('/kiosk/')) {
+  // ✅ Apply to kiosk routes and landing page with voice interface
+  if (pathname.startsWith('/kiosk/') || pathname.startsWith('/landing-client')) {
     const response = NextResponse.next()
     
     // ✅ Browser detection for specific strategies

@@ -45,7 +45,7 @@ export function useVoiceVitrineChat({
     const sessionConfig = {
       session: {
         type: "realtime",
-        model: "gpt-4o-realtime-preview-2024-12-17",
+        model: "gpt-4o-realtime",
         audio: {
           input: {
             format: {
