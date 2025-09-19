@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google'
 import { ChakraProviders } from '@/components/ChakraProviders'
 import { SupabaseProvider } from '@/components/providers/SupabaseProvider'
+import { SentryProvider } from '@/components/providers/SentryProvider'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -46,11 +47,13 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <SupabaseProvider>
-          <ChakraProviders>
-            {children}
-          </ChakraProviders>
-        </SupabaseProvider>
+        <SentryProvider>
+          <SupabaseProvider>
+            <ChakraProviders>
+              {children}
+            </ChakraProviders>
+          </SupabaseProvider>
+        </SentryProvider>
       </body>
     </html>
   )

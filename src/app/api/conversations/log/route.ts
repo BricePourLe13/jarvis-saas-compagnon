@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { conversationLogger } from '@/lib/conversation-logger'
+import { logger } from '@/lib/production-logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('❌ [API CONV] Erreur:', error)
+    logger.error('API CONV Erreur', error, { component: 'ConversationAPI', action: 'log_conversation' })
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', details: error.message },
       { status: 500 }
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('❌ [API CONV] Erreur stats:', error)
+    logger.error('API CONV Erreur stats', error, { component: 'ConversationAPI', action: 'get_stats' })
     return NextResponse.json(
       { success: false, error: 'Erreur serveur', details: error.message },
       { status: 500 }

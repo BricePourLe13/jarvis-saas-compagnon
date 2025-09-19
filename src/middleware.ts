@@ -1,11 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { logger } from '@/lib/production-logger'
+import { apiRateLimiter, voiceRateLimiter, getClientIdentifier } from '@/lib/rate-limiter-simple'
 
 // ✅ SOLUTION 3: Advanced Browser Permissions Middleware + Fallback Strategies
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const userAgent = request.headers.get('user-agent') || ''
   
-  console.log(`🔧 [MIDDLEWARE] ${pathname} - ${userAgent.substring(0, 50)}...`)
+  logger.debug(`MIDDLEWARE ${pathname}`, { userAgent: userAgent.substring(0, 50) }, { component: 'Middleware' })
+
+  // 🚦 Rate limiting pour les routes sensibles
+  const clientId = getClientIdentifier(request)
+  
+  if (pathname.startsWith('/api/voice/')) {
+    const { allowed, remaining, resetTime } = voiceRateLimiter.isAllowed(clientId)
+    if (!allowed) {
+      logger.warn(`Rate limit exceeded for voice API`, { clientId, pathname }, { component: 'RateLimiter' })
+      return new NextResponse('Rate limit exceeded', { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '30',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': resetTime.toString(),
+          'Retry-After': Math.ceil((resetTime - Date.now()) / 1000).toString()
+        }
+      })
+    }
+  } else if (pathname.startsWith('/api/')) {
+    const { allowed, remaining, resetTime } = apiRateLimiter.isAllowed(clientId)
+    if (!allowed) {
+      logger.warn(`Rate limit exceeded for API`, { clientId, pathname }, { component: 'RateLimiter' })
+      return new NextResponse('Rate limit exceeded', { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '100',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': resetTime.toString(),
+          'Retry-After': Math.ceil((resetTime - Date.now()) / 1000).toString()
+        }
+      })
+    }
+  }
 
   // ✅ Only apply to kiosk routes
   if (pathname.startsWith('/kiosk/')) {
@@ -13,7 +48,7 @@ export function middleware(request: NextRequest) {
     
     // ✅ Browser detection for specific strategies
     const browserInfo = detectBrowser(userAgent)
-    console.log(`🌐 [MIDDLEWARE] Browser: ${browserInfo.name} ${browserInfo.version}`)
+    logger.debug(`Browser detected: ${browserInfo.name} ${browserInfo.version}`, browserInfo, { component: 'Middleware' })
     
     // ✅ Multi-layer permissions strategy
     setAdvancedPermissionsHeaders(response, browserInfo)
@@ -27,7 +62,7 @@ export function middleware(request: NextRequest) {
     // ✅ CORS for microphone access
     setCORSHeaders(response)
     
-    console.log(`✅ [MIDDLEWARE] Applied advanced permissions for ${browserInfo.name}`)
+    logger.debug(`Applied advanced permissions for ${browserInfo.name}`, null, { component: 'Middleware' })
     return response
   }
 
@@ -168,20 +203,37 @@ function setWebRTCOptimizationHeaders(response: NextResponse) {
   response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
 }
 
-// ✅ CORS headers for cross-origin requests
+// ✅ CORS headers for cross-origin requests - SÉCURISÉ
 function setCORSHeaders(response: NextResponse) {
-  response.headers.set('Access-Control-Allow-Origin', '*')
+  // 🔒 CORS sécurisé - uniquement domaines autorisés
+  const allowedOrigins = [
+    'https://jarvis-group.net',
+    'https://jarvis-saas-compagnon.vercel.app',
+    'https://jarvis-compagnon.com',
+    ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:3001'] : [])
+  ]
+  
+  const origin = response.headers.get('origin')
+  if (origin && allowedOrigins.includes(origin)) {
+    response.headers.set('Access-Control-Allow-Origin', origin)
+  } else if (process.env.NODE_ENV === 'development') {
+    // En développement, plus permissif mais logué
+    response.headers.set('Access-Control-Allow-Origin', '*')
+  }
+  
   response.headers.set('Access-Control-Allow-Credentials', 'true')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   response.headers.set('Access-Control-Allow-Headers', 
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    'Content-Type, Authorization, X-Requested-With'
   )
 }
 
-// ✅ Apply to kiosk routes only
+// ✅ Apply to kiosk routes and APIs
 export const config = {
   matcher: [
     '/kiosk/:path*',
-    '/api/voice/:path*'
+    '/api/voice/:path*',
+    '/api/conversations/:path*',
+    '/api/jarvis/:path*'
   ]
 }
