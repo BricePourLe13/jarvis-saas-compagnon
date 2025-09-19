@@ -45,7 +45,7 @@ export function useVoiceVitrineChat({
     const sessionConfig = {
       session: {
         type: "realtime",
-        model: "gpt-4o-realtime",
+        model: "gpt-4o-mini-realtime-preview-2024-12-17",
         audio: {
           input: {
             format: {
@@ -232,8 +232,8 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      // Envoyer à OpenAI
-      const realtimeResponse = await fetch('https://api.openai.com/v1/realtime/calls', {
+      // Envoyer à OpenAI (format kiosk)
+      const realtimeResponse = await fetch(`https://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview-2024-12-17`, {
         method: 'POST',
         body: offer.sdp,
         headers: {

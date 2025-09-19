@@ -20,40 +20,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const sessionConfig = await request.json()
-
-    // Créer une session éphémère OpenAI Realtime pour la démo
-    const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        session: {
-          type: "realtime",
-          model: "gpt-4o-realtime",
-          audio: {
-            input: {
-              format: {
-                type: "audio/pcm",
-                rate: 24000,
-              },
-              turn_detection: {
-                type: "semantic_vad",
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 500
-              }
-            },
-            output: {
-              format: {
-                type: "audio/pcm",
-              },
-              voice: "nova",
-            }
-          },
-          instructions: `Tu es JARVIS, l'assistant IA de notre plateforme fitness révolutionnaire.
+    // Créer une session OpenAI Realtime pour la démo (même format que kiosk)
+    const sessionConfig = {
+      model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+      voice: 'nova',
+      instructions: `Tu es JARVIS, l'assistant IA de notre plateforme fitness révolutionnaire.
 
 CONTEXTE DÉMO VITRINE:
 - C'est une démonstration de 2 minutes pour les visiteurs du site
@@ -82,9 +53,28 @@ SALUTATION INITIALE:
 Commence par: "Bonjour ! Je suis JARVIS, votre futur compagnon d'entraînement IA. En quoi puis-je vous aider à découvrir notre solution révolutionnaire ?"
 
 IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
-          output_modalities: ["audio", "text"]
-        }
-      }),
+      input_audio_format: 'pcm16',
+      output_audio_format: 'pcm16',
+      input_audio_transcription: {
+        model: 'whisper-1'
+      },
+      turn_detection: {
+        type: 'server_vad',
+        threshold: 0.5,
+        prefix_padding_ms: 300,
+        silence_duration_ms: 500
+      },
+      temperature: 0.8,
+      max_response_output_tokens: 4096
+    }
+
+    const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sessionConfig),
     })
 
     if (!response.ok) {
@@ -104,16 +94,25 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
       )
     }
 
-    const data = await response.json()
+    const sessionData = await response.json()
 
     // Log pour monitoring (sans exposer les clés)
     console.log('✅ Session vitrine créée:', {
       timestamp: new Date().toISOString(),
       clientIP: clientIP.substring(0, 8) + '...',
-      sessionId: data.client_secret?.value?.substring(0, 10) + '...'
+      sessionId: sessionData.id?.substring(0, 10) + '...'
     })
 
-    return NextResponse.json(data)
+    // Retourner le format attendu par le hook (compatible kiosk)
+    return NextResponse.json({
+      success: true,
+      session_id: sessionData.id,
+      client_secret: {
+        value: sessionData.client_secret
+      },
+      model: sessionConfig.model,
+      expires_at: sessionData.expires_at
+    })
 
   } catch (error) {
     console.error('❌ Erreur création session vitrine:', error)
