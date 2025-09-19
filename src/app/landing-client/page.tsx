@@ -14,6 +14,8 @@ import { useResponsive } from '@/hooks/useResponsive'
 import { useLenis } from '@/hooks/useLenis'
 import { useSimpleScrollAnimations } from '@/hooks/useSimpleScrollAnimations'
 import PricingSection from '@/components/pricing/PricingSection'
+import VoiceVitrineInterface from '@/components/vitrine/VoiceVitrineInterface'
+import { useDisclosure } from '@chakra-ui/react'
 
 // Lazy loading des composants lourds pour optimiser les performances
 const LazyTiltedCard = lazy(() => import('@/components/TiltedCard'))
@@ -30,6 +32,9 @@ export default function LandingClientPage() {
   // 🎭 ANIMATIONS SIMPLES ET STABLES
   useLenis() // Smooth scroll global
   const { refreshScrollTrigger } = useSimpleScrollAnimations() // Animations stables
+
+  // 🎤 INTERFACE VOCALE VITRINE
+  const { isOpen: isVoiceOpen, onOpen: onVoiceOpen, onClose: onVoiceClose } = useDisclosure()
 
   // 🎭 SECTION CONTEXTUELLE POUR SPHÈRE INTELLIGENTE
   const [currentSection, setCurrentSection] = useState<'hero' | 'social-proof' | 'solutions' | 'benefits'>('hero')
@@ -287,6 +292,8 @@ export default function LandingClientPage() {
                   }}
                   transition="all 0.3s ease"
                   mt={8}
+                  onClick={onVoiceOpen}
+                  leftIcon={<Box as="span" fontSize="md">🎤</Box>}
                 >
                   Parler à JARVIS
                 </Button>
@@ -850,6 +857,7 @@ export default function LandingClientPage() {
 
   // 🖥️ VERSION DESKTOP (INCHANGÉE)
   return (
+    <>
     <Box bg="transparent" position="relative" minH="100vh">
       {/* BOUTON CONNEXION FIXE EN HAUT À DROITE */}
       <Box
@@ -1087,6 +1095,7 @@ export default function LandingClientPage() {
                       shadow: '0 10px 30px rgba(59, 130, 246, 0.4)'
                     }}
                     transition="all 0.2s"
+                    onClick={onVoiceOpen}
                   >
                     🗣️ Parler à JARVIS
                   </Button>
@@ -2455,5 +2464,9 @@ export default function LandingClientPage() {
         </motion.div>
       </Container>
     </Box>
+
+    {/* 🎤 INTERFACE VOCALE VITRINE - Modale globale */}
+    <VoiceVitrineInterface isOpen={isVoiceOpen} onClose={onVoiceClose} />
+  </>
   )
 }
