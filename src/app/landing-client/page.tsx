@@ -2,16 +2,19 @@
 
 import { Box, Container, VStack, Heading, Text, Button, HStack, Grid, GridItem, Flex, SimpleGrid } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
 import Dock from '@/components/Dock'
-import GradualBlur from '@/components/GradualBlur'
 import { VscHome, VscArchive, VscAccount, VscSettingsGear, VscMail, VscCreditCard } from 'react-icons/vsc'
-import JarvisSimpleCards from '@/components/JarvisSimpleCards'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 import CardSwap, { Card } from '@/components/CardSwap'
 import TiltedCard from '@/components/TiltedCard'
 import { useResponsive } from '@/hooks/useResponsive'
+
+// Lazy loading des composants lourds pour optimiser les performances
+const LazyTiltedCard = lazy(() => import('@/components/TiltedCard'))
+const LazyCardSwap = lazy(() => import('@/components/CardSwap'))
+
 // Mobile version inline - plus d'import externe
 
 // Page client-only pour la landing page
@@ -26,9 +29,21 @@ export default function LandingClientPage() {
   // 🎯 REF POUR SECTION TARIFICATION
   const tarifsRef = useRef<HTMLDivElement>(null)
 
-  // 🎭 DÉTECTION DE SECTION POUR COMPORTEMENT CONTEXTUEL
+  // Throttle function pour optimiser les performances
+  const throttle = useCallback((func: Function, limit: number) => {
+    let inThrottle: boolean
+    return function(this: any, ...args: any[]) {
+      if (!inThrottle) {
+        func.apply(this, args)
+        inThrottle = true
+        setTimeout(() => inThrottle = false, limit)
+      }
+    }
+  }, [])
+
+  // 🎭 DÉTECTION DE SECTION POUR COMPORTEMENT CONTEXTUEL (optimisé)
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = throttle(() => {
       const scrollY = window.scrollY
       const windowHeight = window.innerHeight
 
@@ -42,18 +57,18 @@ export default function LandingClientPage() {
       } else {
         setCurrentSection('benefits')
       }
-    }
+    }, 100) // Throttle à 100ms pour de meilleures performances
 
     // Écouter le scroll
     window.addEventListener('scroll', handleScroll)
     handleScroll() // Appel initial
 
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [throttle])
 
 
-  // Fonction de navigation smooth scroll avec offset pour le dock
-  const scrollToSection = (sectionId: string) => {
+  // Fonction de navigation smooth scroll avec offset pour le dock (optimisée)
+  const scrollToSection = useCallback((sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
       const yOffset = -150; // Offset augmenté pour meilleur positionnement
@@ -64,10 +79,10 @@ export default function LandingClientPage() {
         behavior: 'smooth'
       });
     }
-  };
+  }, []);
 
-  // Configuration du Dock - Navigation fonctionnelle
-  const dockItems = [
+  // Configuration du Dock - Navigation fonctionnelle (optimisée)
+  const dockItems = useMemo(() => [
     {
       icon: <VscHome size={22} color="#ffffff" />,
       label: "Accueil",
@@ -93,7 +108,7 @@ export default function LandingClientPage() {
       label: "Contact",
       onClick: () => scrollToSection("contact")
     }
-  ];
+  ], [scrollToSection]);
 
   // 📱 CONDITIONAL RENDERING : MOBILE vs DESKTOP
   if (showMobileVersion) {
@@ -996,14 +1011,14 @@ export default function LandingClientPage() {
                 transition={{ duration: 0.8, delay: 0.5 }}
               >
                 <VStack spacing={4} align="flex-start">
-                  <Text 
-                    fontSize={{ base: "lg", md: "xl" }}
-                    color="gray.300" 
-                    lineHeight="1.6"
-                    textAlign="left"
-                    pointerEvents="none"
-                  >
-                    JARVIS transforme chaque interaction membre en expérience personnalisée 24/7.
+                <Text 
+                  fontSize={{ base: "lg", md: "xl" }}
+                  color="gray.300" 
+                  lineHeight="1.6"
+                  textAlign="left"
+                  pointerEvents="none"
+                >
+                  JARVIS transforme chaque interaction membre en expérience personnalisée 24/7. 
                   </Text>
                   <Text 
                     fontSize={{ base: "lg", md: "xl" }}
@@ -1012,8 +1027,8 @@ export default function LandingClientPage() {
                     textAlign="left"
                     pointerEvents="none"
                   >
-                    Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.
-                  </Text>
+                  Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.
+                </Text>
                 </VStack>
               </motion.div>
 
