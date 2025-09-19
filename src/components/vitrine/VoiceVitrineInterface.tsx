@@ -19,6 +19,17 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
   const [timeRemaining, setTimeRemaining] = useState(120) // 2 minutes démo
   const [hasStarted, setHasStarted] = useState(false)
   
+  // Réinitialiser tous les états quand la modale se ferme
+  useEffect(() => {
+    if (!isOpen) {
+      setIsListening(false)
+      setTranscript('')
+      setStatus('idle')
+      setTimeRemaining(120)
+      setHasStarted(false)
+    }
+  }, [isOpen])
+  
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   
   // Hook pour l'interface vocale (version vitrine)
@@ -70,13 +81,21 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
 
   const handleEndDemo = useCallback(async () => {
     try {
-      await disconnect()
+      // Réinitialiser immédiatement les états pour fermeture rapide
       setHasStarted(false)
       setTimeRemaining(120)
       setTranscript('')
+      setStatus('idle')
+      
+      // Déconnecter en arrière-plan
+      await disconnect()
+      
+      // Fermer l'interface
       onClose()
     } catch (error) {
       console.error('Erreur de déconnexion:', error)
+      // Forcer la fermeture même en cas d'erreur
+      onClose()
     }
   }, [disconnect, onClose])
 

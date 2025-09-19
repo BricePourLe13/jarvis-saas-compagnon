@@ -287,6 +287,9 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
       await initializeWebRTC()
     } catch (error) {
       console.error('Erreur de connexion:', error)
+      // Réinitialiser l'état en cas d'erreur pour éviter la boucle
+      updateStatus('error')
+      setIsConnected(false)
       throw error
     }
   }, [isConnected, initializeWebRTC, updateStatus])

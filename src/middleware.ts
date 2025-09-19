@@ -232,6 +232,7 @@ function setCORSHeaders(response: NextResponse) {
 export const config = {
   matcher: [
     '/kiosk/:path*',
+    '/landing-client/:path*',
     '/api/voice/:path*',
     '/api/conversations/:path*',
     '/api/jarvis/:path*'
