@@ -2,7 +2,7 @@
 
 import { Box, Container, VStack, Heading, Text, Button, HStack, Grid, GridItem, Flex, SimpleGrid } from '@chakra-ui/react'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring, useMotionValue, useAnimationFrame } from 'framer-motion'
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
 import Dock from '@/components/Dock'
@@ -81,6 +81,38 @@ export default function LandingClientPage() {
       });
     }
   }, []);
+
+  // 🎯 HOOK PARALLAXE POUR SECTION TARIFS
+  const usePricingParallax = () => {
+    const containerRef = useRef<HTMLDivElement>(null)
+    const { scrollYProgress } = useScroll({
+      target: containerRef,
+      offset: ["start end", "end start"]
+    })
+
+    // 🌊 Transformations fluides avec spring
+    const y1 = useSpring(useTransform(scrollYProgress, [0, 1], [100, -100]), { stiffness: 100, damping: 30 })
+    const y2 = useSpring(useTransform(scrollYProgress, [0, 1], [200, -200]), { stiffness: 80, damping: 25 })
+    const y3 = useSpring(useTransform(scrollYProgress, [0, 1], [50, -50]), { stiffness: 120, damping: 35 })
+    
+    // 🎨 Rotations et scales dynamiques
+    const rotate = useSpring(useTransform(scrollYProgress, [0, 0.5, 1], [0, 5, 0]), { stiffness: 100 })
+    const scale = useSpring(useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1, 0.8]), { stiffness: 100 })
+    const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0])
+
+    // 🌟 Particules flottantes
+    const particleY = useSpring(useTransform(scrollYProgress, [0, 1], [0, -300]), { stiffness: 60, damping: 20 })
+    const particleRotate = useTransform(scrollYProgress, [0, 1], [0, 360])
+
+    return {
+      containerRef,
+      scrollYProgress,
+      transforms: { y1, y2, y3, rotate, scale, opacity, particleY, particleRotate }
+    }
+  }
+
+  // Initialisation du hook parallaxe
+  const pricingParallax = usePricingParallax()
 
   // Configuration du Dock - Navigation fonctionnelle (optimisée)
   const dockItems = useMemo(() => [
@@ -2376,14 +2408,106 @@ export default function LandingClientPage() {
         </motion.div>
       </Container>
 
-      {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ */}
-       <Container id="tarifs" ref={tarifsRef} maxW="6xl" px={6} py={20} mt={20} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
+      {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ AVEC PARALLAXE */}
+       <Container 
+         id="tarifs" 
+         ref={pricingParallax.containerRef}
+         maxW="6xl" 
+         px={6} 
+         py={20} 
+         mt={20} 
+         position="relative" 
+         zIndex={10} 
+         pointerEvents="none" 
+         style={{ scrollMarginTop: '160px' }}
+         overflow="hidden"
+       >
+          {/* 🌟 ÉLÉMENTS PARALLAXE FLOTTANTS */}
+          <motion.div
+            style={{
+              position: 'absolute',
+              top: '10%',
+              left: '5%',
+              width: '100px',
+              height: '100px',
+              background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)',
+              borderRadius: '50%',
+              filter: 'blur(20px)',
+              y: pricingParallax.transforms.y1,
+              rotate: pricingParallax.transforms.rotate,
+              zIndex: 1
+            }}
+          />
+          <motion.div
+            style={{
+              position: 'absolute',
+              top: '60%',
+              right: '10%',
+              width: '150px',
+              height: '150px',
+              background: 'radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, transparent 70%)',
+              borderRadius: '50%',
+              filter: 'blur(30px)',
+              y: pricingParallax.transforms.y2,
+              rotate: pricingParallax.transforms.rotate,
+              zIndex: 1
+            }}
+          />
+          <motion.div
+            style={{
+              position: 'absolute',
+              top: '30%',
+              right: '20%',
+              width: '80px',
+              height: '80px',
+              background: 'radial-gradient(circle, rgba(34, 197, 94, 0.25) 0%, transparent 70%)',
+              borderRadius: '50%',
+              filter: 'blur(15px)',
+              y: pricingParallax.transforms.y3,
+              rotate: pricingParallax.transforms.rotate,
+              zIndex: 1
+            }}
+          />
+
+          {/* 🎯 PARTICULES DYNAMIQUES */}
+          {[...Array(12)].map((_, i) => (
+            <motion.div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: `${10 + i * 8}%`,
+                top: `${20 + (i % 3) * 25}%`,
+                width: '3px',
+                height: '3px',
+                background: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '50%',
+                boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
+                y: pricingParallax.transforms.particleY,
+                rotate: pricingParallax.transforms.particleRotate,
+                zIndex: 1
+              }}
+              animate={{
+                opacity: [0.3, 1, 0.3],
+                scale: [0.8, 1.2, 0.8]
+              }}
+              transition={{
+                duration: 3 + i * 0.2,
+                repeat: Infinity,
+                delay: i * 0.1
+              }}
+            />
+          ))}
+
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true, margin: "-100px" }}
-            style={{ pointerEvents: "none" }}
+            style={{ 
+              pointerEvents: "none",
+              position: 'relative',
+              zIndex: 5
+            }}
           >
             <VStack spacing={12} textAlign="center" pointerEvents="none">
               {/* Titre avec effet holographique */}
@@ -2430,18 +2554,26 @@ export default function LandingClientPage() {
 
               {/* Tarification Simplifiée - Carousel */}
                <VStack spacing={12}>
-                 {/* Carte 1 - Installation & Formation */}
-                 <Box
-                   w="full"
-                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
-                   h={{ base: "600px", md: "700px", lg: "800px" }}
-                    borderRadius="3xl"
-                   position="relative"
-                    overflow="hidden"
-                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-                   border="2px solid rgba(255, 255, 255, 0.15)"
-                   boxShadow="0 30px 60px rgba(0, 0, 0, 0.7)"
-                   backdropFilter="blur(30px)"
+                 {/* Carte 1 - Installation & Formation AVEC PARALLAXE */}
+                 <motion.div
+                   style={{
+                     y: pricingParallax.transforms.y1,
+                     scale: pricingParallax.transforms.scale,
+                     rotateY: pricingParallax.transforms.rotate,
+                   }}
+                 >
+                   <Box
+                     w="full"
+                     maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
+                     h={{ base: "600px", md: "700px", lg: "800px" }}
+                     borderRadius="3xl"
+                     position="relative"
+                     overflow="hidden"
+                     bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                     border="2px solid rgba(255, 255, 255, 0.15)"
+                     boxShadow="0 30px 60px rgba(0, 0, 0, 0.7)"
+                     backdropFilter="blur(30px)"
+                     transform="translateZ(0)" // Force GPU acceleration
                    _before={{
                      content: '""',
                      position: 'absolute',
@@ -2615,20 +2747,29 @@ export default function LandingClientPage() {
                            </motion.div>
                          </Box>
                        </Flex>
-                              </Box>
+                     </Box>
+                 </motion.div>
 
-                 {/* Carte 2 - Abonnement Mensuel */}
-                 <Box
-                   w="full"
-                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
-                   h={{ base: "600px", md: "700px", lg: "800px" }}
-                   borderRadius="3xl"
-                   position="relative"
-                   overflow="hidden"
-                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-                   border="2px solid rgba(34, 197, 94, 0.3)"
-                   boxShadow="0 30px 60px rgba(34, 197, 94, 0.2)"
-                   backdropFilter="blur(30px)"
+                 {/* Carte 2 - Abonnement Mensuel AVEC PARALLAXE */}
+                 <motion.div
+                   style={{
+                     y: pricingParallax.transforms.y2,
+                     scale: pricingParallax.transforms.scale,
+                     rotateY: pricingParallax.transforms.rotate,
+                   }}
+                 >
+                   <Box
+                     w="full"
+                     maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
+                     h={{ base: "600px", md: "700px", lg: "800px" }}
+                     borderRadius="3xl"
+                     position="relative"
+                     overflow="hidden"
+                     bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                     border="2px solid rgba(34, 197, 94, 0.3)"
+                     boxShadow="0 30px 60px rgba(34, 197, 94, 0.2)"
+                     backdropFilter="blur(30px)"
+                     transform="translateZ(0)" // Force GPU acceleration
                    _before={{
                      content: '""',
                      position: 'absolute',
@@ -2872,18 +3013,28 @@ export default function LandingClientPage() {
                          </Box>
                        </Flex>
                      </Box>
-                 {/* Carte 4 - CTA Final */}
-                 <Box
-                   w="full"
-                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
-                   h={{ base: "600px", md: "700px", lg: "800px" }}
-                   borderRadius="3xl"
-                   position="relative"
-                   overflow="hidden"
-                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-                   border="2px solid rgba(139, 92, 246, 0.3)"
-                   boxShadow="0 30px 60px rgba(139, 92, 246, 0.2)"
-                   backdropFilter="blur(30px)"
+                 </motion.div>
+
+                 {/* Carte 4 - CTA Final AVEC PARALLAXE */}
+                 <motion.div
+                   style={{
+                     y: pricingParallax.transforms.y3,
+                     scale: pricingParallax.transforms.scale,
+                     rotateY: pricingParallax.transforms.rotate,
+                   }}
+                 >
+                   <Box
+                     w="full"
+                     maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
+                     h={{ base: "600px", md: "700px", lg: "800px" }}
+                     borderRadius="3xl"
+                     position="relative"
+                     overflow="hidden"
+                     bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+                     border="2px solid rgba(139, 92, 246, 0.3)"
+                     boxShadow="0 30px 60px rgba(139, 92, 246, 0.2)"
+                     backdropFilter="blur(30px)"
+                     transform="translateZ(0)" // Force GPU acceleration
                    _before={{
                      content: '""',
                      position: 'absolute',
@@ -2958,8 +3109,8 @@ export default function LandingClientPage() {
                            
                   </VStack>
                        </Flex>
-                       
-                </Box>
+                     </Box>
+                 </motion.div>
                </VStack>
 
                {/* Espacement pour voir la dernière carte */}
