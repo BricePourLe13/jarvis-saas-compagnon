@@ -660,6 +660,7 @@ html {
   overflow-x: hidden !important;
   width: 100vw !important;
   max-width: 100vw !important;
+  scroll-behavior: smooth; /* Smooth scroll global */
 }
 
 * {
@@ -700,4 +701,231 @@ html {
 .jarvis-background-fallback {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 30%, #312e81 60%, #0f172a 100%) !important;
   animation: backgroundPulseFallback 8s ease-in-out infinite !important;
+}
+
+/* 🎭 ANIMATIONS MODERNES - OPTIMISATIONS PERFORMANCE */
+
+/* Optimisations GPU pour animations */
+.hero-title,
+.hero-subtitle,
+.section-container,
+.pricing-cards > *,
+.hover-card,
+.parallax-element,
+.text-reveal {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force GPU layer */
+  backface-visibility: hidden;
+}
+
+/* 🎭 ANIMATIONS SIMPLES ET STABLES - ÉTATS INITIAUX */
+.hero-title {
+  opacity: 0.7;
+  transform: translateY(30px) scale(0.95);
+}
+
+.hero-subtitle {
+  opacity: 0.7;
+  transform: translateY(20px);
+}
+
+.section-container {
+  opacity: 0.8;
+  transform: translateY(40px);
+}
+
+.pricing-cards > * {
+  opacity: 0.6;
+  transform: translateY(50px) scale(0.95);
+}
+
+.text-reveal {
+  opacity: 0.8;
+  transform: translateY(20px);
+}
+
+/* États actifs après animation */
+.section-active {
+  transform: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Hover effects optimisés */
+.hover-card {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.hover-card:hover {
+  transform: translateY(-5px) scale(1.01);
+}
+
+/* Parallaxe subtil */
+.parallax-element {
+  transform: translateZ(0);
+}
+
+/* Optimisations mobile */
+@media (max-width: 768px) {
+  .hero-title,
+  .hero-subtitle,
+  .section-container,
+  .pricing-cards > *,
+  .hover-card,
+  .parallax-element,
+  .text-reveal {
+    will-change: auto; /* Désactiver will-change sur mobile */
+  }
+  
+  .hover-card:hover {
+    transform: none; /* Pas d'hover sur mobile */
+  }
+}
+
+/* Réduction de mouvement pour accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Classe de secours pour forcer la visibilité */
+.force-visible,
+.force-visible * {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Fallback si les animations ne se chargent pas */
+.no-animations .hero-title,
+.no-animations .hero-subtitle,
+.no-animations .section-container,
+.no-animations .pricing-cards > *,
+.no-animations .text-reveal {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* 🎭 EFFETS VISUELS AVANCÉS */
+
+/* Perspective globale pour les effets 3D */
+.perspective-container {
+  perspective: 1200px;
+  perspective-origin: center center;
+}
+
+/* Effets de morphing et particules */
+.morphing-bg {
+  position: absolute;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* Amélioration des cartes avec effets 3D */
+.hover-card {
+  transform-style: preserve-3d;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.hover-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.hover-card:hover::before {
+  opacity: 1;
+}
+
+/* Effet de glow sur les éléments interactifs */
+.glow-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-effect::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(102,126,234,0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.glow-effect:hover::after {
+  opacity: 1;
+}
+
+/* Animations de caractères pour text-reveal */
+.char {
+  display: inline-block;
+  transform-origin: center bottom;
+}
+
+/* Optimisations pour les animations 3D */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+}
+
+/* Effets de parallaxe avancés */
+.parallax-element {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Indicateur de progression de scroll */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  z-index: 9999;
+  transform-origin: left;
+}
+
+/* Curseur magnétique */
+.magnetic-cursor {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, rgba(102,126,234,0.8) 0%, rgba(118,75,162,0.4) 100%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: difference;
+}
+
+/* Particules flottantes */
+.floating-particle {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  background: rgba(102,126,234,0.3);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
 }

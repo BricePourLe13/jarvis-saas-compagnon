@@ -11,6 +11,9 @@ import Avatar3D from '@/components/kiosk/Avatar3D'
 import CardSwap, { Card } from '@/components/CardSwap'
 import TiltedCard from '@/components/TiltedCard'
 import { useResponsive } from '@/hooks/useResponsive'
+import { useLenis } from '@/hooks/useLenis'
+import { useSimpleScrollAnimations } from '@/hooks/useSimpleScrollAnimations'
+import PricingSection from '@/components/pricing/PricingSection'
 
 // Lazy loading des composants lourds pour optimiser les performances
 const LazyTiltedCard = lazy(() => import('@/components/TiltedCard'))
@@ -23,6 +26,10 @@ const LazyCardSwap = lazy(() => import('@/components/CardSwap'))
 export default function LandingClientPage() {
   // 📱 RESPONSIVE DETECTION
   const { showMobileVersion, showDesktopVersion } = useResponsive()
+
+  // 🎭 ANIMATIONS SIMPLES ET STABLES
+  useLenis() // Smooth scroll global
+  const { refreshScrollTrigger } = useSimpleScrollAnimations() // Animations stables
 
   // 🎭 SECTION CONTEXTUELLE POUR SPHÈRE INTELLIGENTE
   const [currentSection, setCurrentSection] = useState<'hero' | 'social-proof' | 'solutions' | 'benefits'>('hero')
@@ -72,7 +79,7 @@ export default function LandingClientPage() {
   const scrollToSection = useCallback((sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      const yOffset = -150; // Offset augmenté pour meilleur positionnement
+      const yOffset = -120; // Offset optimisé pour le dock
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       
       window.scrollTo({
@@ -82,37 +89,6 @@ export default function LandingClientPage() {
     }
   }, []);
 
-  // 🎯 HOOK PARALLAXE POUR SECTION TARIFS
-  const usePricingParallax = () => {
-    const containerRef = useRef<HTMLDivElement>(null)
-    const { scrollYProgress } = useScroll({
-      target: containerRef,
-      offset: ["start end", "end start"]
-    })
-
-    // 🌊 Transformations fluides avec spring
-    const y1 = useSpring(useTransform(scrollYProgress, [0, 1], [100, -100]), { stiffness: 100, damping: 30 })
-    const y2 = useSpring(useTransform(scrollYProgress, [0, 1], [200, -200]), { stiffness: 80, damping: 25 })
-    const y3 = useSpring(useTransform(scrollYProgress, [0, 1], [50, -50]), { stiffness: 120, damping: 35 })
-    
-    // 🎨 Rotations et scales dynamiques
-    const rotate = useSpring(useTransform(scrollYProgress, [0, 0.5, 1], [0, 5, 0]), { stiffness: 100 })
-    const scale = useSpring(useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1, 0.8]), { stiffness: 100 })
-    const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0])
-
-    // 🌟 Particules flottantes
-    const particleY = useSpring(useTransform(scrollYProgress, [0, 1], [0, -300]), { stiffness: 60, damping: 20 })
-    const particleRotate = useTransform(scrollYProgress, [0, 1], [0, 360])
-
-    return {
-      containerRef,
-      scrollYProgress,
-      transforms: { y1, y2, y3, rotate, scale, opacity, particleY, particleRotate }
-    }
-  }
-
-  // Initialisation du hook parallaxe
-  const pricingParallax = usePricingParallax()
 
   // Configuration du Dock - Navigation fonctionnelle (optimisée)
   const dockItems = useMemo(() => [
@@ -213,7 +189,7 @@ export default function LandingClientPage() {
               style={{
                 position: "absolute",
                 top: "15%",
-                right: "-10%",
+                right: "30%",
                 width: "300px",
                 height: "300px",
                 zIndex: 0
@@ -319,8 +295,8 @@ export default function LandingClientPage() {
           </Box>
 
           {/* === SECTION PROBLÈMES === */}
-          <Box w="100%" py={16} px={6} id="problemes-mobile">
-            <VStack spacing={8} maxW="400px" mx="auto">
+          <Box w="100%" py={20} px={6} id="problemes-mobile">
+            <VStack spacing={8} maxW="480px" mx="auto">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -406,8 +382,8 @@ export default function LandingClientPage() {
           </Box>
 
           {/* === SECTION SOLUTIONS === */}
-          <Box w="100%" py={16} px={6} bg="rgba(255, 255, 255, 0.02)" id="solutions-mobile">
-            <VStack spacing={8} maxW="400px" mx="auto">
+          <Box w="100%" py={20} px={6} bg="rgba(255, 255, 255, 0.02)" id="solutions-mobile">
+            <VStack spacing={8} maxW="480px" mx="auto">
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -469,8 +445,8 @@ export default function LandingClientPage() {
           </Box>
 
           {/* === SECTION COMMENT ÇA MARCHE === */}
-          <Box w="100%" py={16} px={6} id="comment-mobile">
-            <VStack spacing={8} maxW="400px" mx="auto">
+          <Box w="100%" py={20} px={6} id="comment-mobile">
+            <VStack spacing={8} maxW="480px" mx="auto">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -580,8 +556,8 @@ export default function LandingClientPage() {
           </Box>
 
           {/* === SECTION TARIFICATION === */}
-          <Box w="100%" py={16} px={6} bg="rgba(255, 255, 255, 0.02)" id="tarifs-mobile">
-            <VStack spacing={8} maxW="400px" mx="auto">
+          <Box w="100%" py={20} px={6} bg="rgba(255, 255, 255, 0.02)" id="tarifs-mobile">
+            <VStack spacing={8} maxW="480px" mx="auto">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -658,7 +634,7 @@ export default function LandingClientPage() {
           </Box>
 
           {/* === SECTION CONTACT === */}
-          <Box w="100%" py={16} px={6} id="contact-mobile">
+          <Box w="100%" py={20} px={6} id="contact-mobile">
             <VStack spacing={8} maxW="400px" mx="auto" textAlign="center">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -987,7 +963,7 @@ export default function LandingClientPage() {
       </Box>
 
       {/* 1. HERO SECTION - LAYOUT CENTRÉ ÉLÉGANT */}
-      <Container id="hero" maxW="8xl" px={8} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
+      <Container id="hero" maxW="7xl" px={8} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
         <VStack 
           spacing={8}
           justify="center"
@@ -1004,7 +980,6 @@ export default function LandingClientPage() {
             maxW="7xl"
             gap={16}
             pointerEvents="none"
-            mt={16}
           >
             {/* CONTENU GAUCHE - TEXTE ET DÉTAILS */}
             <VStack align="flex-start" spacing={8} flex="1" maxW="600px" pointerEvents="none">
@@ -1021,6 +996,7 @@ export default function LandingClientPage() {
                   lineHeight="1.2"
                   textAlign="left"
                   pointerEvents="none"
+                  className="hero-title"
                 >
                   L'IA qui révolutionne{" "}
                   <Text 
@@ -1060,7 +1036,7 @@ export default function LandingClientPage() {
                     textAlign="left"
                     pointerEvents="none"
                   >
-                  Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.
+                  <span className="text-reveal">Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.</span>
                 </Text>
                 </VStack>
               </motion.div>
@@ -1141,7 +1117,7 @@ export default function LandingClientPage() {
             </VStack>
 
             {/* SPHÈRE JARVIS À DROITE */}
-            <Box flex="0 0 400px" h="400px" position="relative" pointerEvents="none">
+            <Box flex="0 0 300px" h="400px" position="relative" pointerEvents="none" mr={8}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, x: 50 }}
                 animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -1161,7 +1137,7 @@ export default function LandingClientPage() {
       </Container>
 
       {/* 2. SECTION PROBLÈME - TILTEDCARDS STATS */}
-      <Container id="probleme" maxW="6xl" px={6} position="relative" zIndex={10} py={20} mt={20} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
+      <Container id="probleme" maxW="6xl" px={8} position="relative" zIndex={10} py={20} mt={16} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1591,7 +1567,7 @@ export default function LandingClientPage() {
       </Container>
 
       {/* 3. SECTION COMMENT ÇA MARCHE - SOLUTION */}
-      <Container id="comment-ca-marche" maxW="6xl" px={6} py={20} mt={20} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
+      <Container id="comment-ca-marche" maxW="6xl" px={8} py={20} mt={16} position="relative" zIndex={5} style={{ scrollMarginTop: '200px' }} className="section-container">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1714,8 +1690,8 @@ export default function LandingClientPage() {
       </Container>
 
       {/* 4. SECTION DASHBOARD GÉRANT - AMÉLIORÉE AVEC CARDSWAP */}
-      <Box id="dashboard" w="100vw" position="relative" zIndex={10} py={20} mt={20} overflow="hidden" minH="700px" pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
-        <Container maxW="6xl" px={6} pointerEvents="none">
+      <Container id="dashboard" maxW="6xl" px={8} position="relative" zIndex={10} py={20} mt={16} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
+        <Box w="full" pointerEvents="none">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -2130,11 +2106,11 @@ export default function LandingClientPage() {
               </Box>
             </Flex>
           </motion.div>
-        </Container>
-      </Box>
+        </Box>
+      </Container>
 
       {/* 5. SECTION TÉMOIGNAGE VIDÉO - MOINS RÉPÉTITIF */}
-      <Container maxW="6xl" px={6} position="relative" zIndex={10} py={20} pointerEvents="none">
+      <Container maxW="6xl" px={8} position="relative" zIndex={10} py={20} mt={16} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -2408,727 +2384,18 @@ export default function LandingClientPage() {
         </motion.div>
       </Container>
 
-      {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ AVEC PARALLAXE */}
-       <Container 
-         id="tarifs" 
-         ref={pricingParallax.containerRef}
-         maxW="6xl" 
-         px={6} 
-         py={20} 
-         mt={20} 
-         position="relative" 
-         zIndex={10} 
-         pointerEvents="none" 
-         style={{ scrollMarginTop: '160px' }}
-         overflow="hidden"
-       >
-          {/* 🌟 ÉLÉMENTS PARALLAXE FLOTTANTS */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              top: '10%',
-              left: '5%',
-              width: '100px',
-              height: '100px',
-              background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)',
-              borderRadius: '50%',
-              filter: 'blur(20px)',
-              y: pricingParallax.transforms.y1,
-              rotate: pricingParallax.transforms.rotate,
-              zIndex: 1
-            }}
-          />
-          <motion.div
-            style={{
-              position: 'absolute',
-              top: '60%',
-              right: '10%',
-              width: '150px',
-              height: '150px',
-              background: 'radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, transparent 70%)',
-              borderRadius: '50%',
-              filter: 'blur(30px)',
-              y: pricingParallax.transforms.y2,
-              rotate: pricingParallax.transforms.rotate,
-              zIndex: 1
-            }}
-          />
-          <motion.div
-            style={{
-              position: 'absolute',
-              top: '30%',
-              right: '20%',
-              width: '80px',
-              height: '80px',
-              background: 'radial-gradient(circle, rgba(34, 197, 94, 0.25) 0%, transparent 70%)',
-              borderRadius: '50%',
-              filter: 'blur(15px)',
-              y: pricingParallax.transforms.y3,
-              rotate: pricingParallax.transforms.rotate,
-              zIndex: 1
-            }}
-          />
-
-          {/* 🎯 PARTICULES DYNAMIQUES */}
-          {[...Array(12)].map((_, i) => (
-            <motion.div
-              key={i}
-              style={{
-                position: 'absolute',
-                left: `${10 + i * 8}%`,
-                top: `${20 + (i % 3) * 25}%`,
-                width: '3px',
-                height: '3px',
-                background: 'rgba(255, 255, 255, 0.6)',
-                borderRadius: '50%',
-                boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
-                y: pricingParallax.transforms.particleY,
-                rotate: pricingParallax.transforms.particleRotate,
-                zIndex: 1
-              }}
-              animate={{
-                opacity: [0.3, 1, 0.3],
-                scale: [0.8, 1.2, 0.8]
-              }}
-              transition={{
-                duration: 3 + i * 0.2,
-                repeat: Infinity,
-                delay: i * 0.1
-              }}
-            />
-          ))}
-
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true, margin: "-100px" }}
-            style={{ 
-              pointerEvents: "none",
-              position: 'relative',
-              zIndex: 5
-            }}
-          >
-            <VStack spacing={12} textAlign="center" pointerEvents="none">
-              {/* Titre avec effet holographique */}
-              <VStack spacing={6} pointerEvents="none">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 1.0, delay: 0.2 }}
-                  viewport={{ once: true }}
-                >
-                  <Heading 
-                    fontSize={{ base: "3xl", md: "4xl", lg: "5xl" }}
-                    fontWeight="black"
-                    pointerEvents="none"
-                    textAlign="center"
-                    lineHeight="1.1"
-                    color="white"
-                  >
-                    Modèle Tarification
-                  </Heading>
-                </motion.div>
-                
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
-                  viewport={{ once: true }}
-                >
-                  <Text 
-                    fontSize={{ base: "lg", md: "xl" }}
-                    color="gray.300" 
-                    maxW="700px"
-                    pointerEvents="none"
-                    lineHeight="1.6"
-                  >
-                    Un modèle tarifaire transparent et évolutif, conçu pour maximiser votre ROI 
-                    dès le premier mois d'utilisation.
-                  </Text>
-                </motion.div>
-              </VStack>
-
-               {/* Espacement pour voir le titre et description */}
-              <Box h="30vh" />
-
-              {/* Tarification Simplifiée - Carousel */}
-               <VStack spacing={12}>
-                 {/* Carte 1 - Installation & Formation AVEC PARALLAXE */}
-                 <motion.div
-                   style={{
-                     y: pricingParallax.transforms.y1,
-                     scale: pricingParallax.transforms.scale,
-                     rotateY: pricingParallax.transforms.rotate,
-                   }}
-                 >
-                   <Box
-                     w="full"
-                     maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
-                     h={{ base: "600px", md: "700px", lg: "800px" }}
-                     borderRadius="3xl"
-                     position="relative"
-                     overflow="hidden"
-                     bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-                     border="2px solid rgba(255, 255, 255, 0.15)"
-                     boxShadow="0 30px 60px rgba(0, 0, 0, 0.7)"
-                     backdropFilter="blur(30px)"
-                     transform="translateZ(0)" // Force GPU acceleration
-                   _before={{
-                     content: '""',
-                     position: 'absolute',
-                     inset: 0,
-                     bg: 'rgba(15, 23, 42, 0.85)',
-                     zIndex: 1
-                   }}
-                 >
-                       {/* Image de fond */}
-                    <Box
-                      position="absolute"
-                         inset={0}
-                         backgroundImage="url('/images/installation-bg.jpg')"
-                         backgroundSize="cover"
-                         backgroundPosition="center"
-                         opacity={0.2}
-                         filter="blur(2px)"
-                       />
-                       
-                       {/* Contenu */}
-                       <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
-                         <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
-                           <Box>
-                             <motion.div
-                               animate={{ 
-                                 rotate: [0, 5, -5, 0],
-                                 scale: [1, 1.1, 1]
-                               }}
-                               transition={{ 
-                                 duration: 4,
-                                 repeat: Infinity,
-                                 ease: "easeInOut"
-                               }}
-                             >
-                               <Text fontSize="5xl" mb={4}>🚀</Text>
-                             </motion.div>
-                             <motion.div
-                               initial={{ opacity: 0, y: 20 }}
-                               whileInView={{ opacity: 1, y: 0 }}
-                               transition={{ duration: 0.8, delay: 0.2 }}
-                             >
-                               <Heading fontSize="3xl" fontWeight="black" color="white" mb={4}>
-                                 Installation & Formation
-                               </Heading>
-                             </motion.div>
-                             <motion.div
-                               initial={{ opacity: 0, y: 20 }}
-                               whileInView={{ opacity: 1, y: 0 }}
-                               transition={{ duration: 0.8, delay: 0.4 }}
-                             >
-                               <Text fontSize="lg" color="rgba(255,255,255,0.9)" lineHeight="1.5">
-                                 Déploiement complet sur site avec formation personnalisée de votre équipe. 
-                                 Configuration IA adaptée à votre environnement.
-                               </Text>
-                             </motion.div>
-                    </Box>
-
-                           <VStack align="flex-start" spacing={4}>
-                             {[
-                               { icon: "🔧", title: "Installation matérielle complète", desc: "Miroirs digitaux, capteurs IA, infrastructure réseau" },
-                               { icon: "🤖", title: "Configuration IA personnalisée", desc: "Calibrage vocal, reconnaissance faciale, données membres" },
-                               { icon: "👥", title: "Formation équipe (2 jours)", desc: "Prise en main, maintenance, support technique" },
-                               { icon: "📊", title: "Dashboard manager intégré", desc: "Analytics temps réel, insights membres, ROI tracking" },
-                               { icon: "🔄", title: "Synchronisation cloud", desc: "Backup automatique, mises à jour OTA, monitoring 24/7" }
-                             ].map((item, i) => (
-                    <motion.div
-                                 key={i}
-                                 initial={{ opacity: 0, x: -20 }}
-                                 whileInView={{ opacity: 1, x: 0 }}
-                                 transition={{ duration: 0.6, delay: 0.6 + i * 0.1 }}
-                               >
-                                 <HStack spacing={3} align="flex-start">
-                                   <motion.div
-                      animate={{
-                                       scale: [1, 1.1, 1],
-                                       rotate: [0, 5, -5, 0]
-                      }}
-                      transition={{
-                        duration: 3,
-                        repeat: Infinity,
-                                       delay: i * 0.5
-                                     }}
-                                   >
-                                     <Text fontSize="xl">{item.icon}</Text>
-                                   </motion.div>
-                                   <VStack align="flex-start" spacing={0.5}>
-                                     <Text fontSize="md" fontWeight="bold" color="white">{item.title}</Text>
-                                     <Text fontSize="sm" color="rgba(255,255,255,0.7)" lineHeight="1.3">{item.desc}</Text>
-                                   </VStack>
-                                 </HStack>
-                               </motion.div>
-                             ))}
-                           </VStack>
-                           
-                           <motion.div
-                             initial={{ opacity: 0, scale: 0.8 }}
-                             whileInView={{ opacity: 1, scale: 1 }}
-                             transition={{ duration: 0.6, delay: 0.8 }}
-                             whileHover={{ scale: 1.05 }}
-                           >
-                             <Box
-                               bg="rgba(255,255,255,0.2)"
-                               px={6}
-                               py={3}
-                               borderRadius="full"
-                               backdropFilter="blur(10px)"
-                               position="relative"
-                               overflow="hidden"
-                             >
-                               <Text fontSize="lg" fontWeight="bold" color="white">
-                                 💰 Sur devis personnalisé
-                          </Text>
-                             </Box>
-                           </motion.div>
-                      </VStack>
-
-                         {/* Illustration droite */}
-                         <Box flex="0 0 40%" h="full" position="relative">
-                          <motion.div
-                             animate={{
-                               y: [0, -20, 0],
-                               rotateY: [0, 5, 0]
-                             }}
-                            transition={{ 
-                               duration: 6,
-                               repeat: Infinity,
-                               ease: "easeInOut"
-                             }}
-                             style={{ height: "100%" }}
-                           >
-                             <Box
-                               w="full"
-                               h="80%"
-                               bg="rgba(255,255,255,0.1)"
-                               borderRadius="2xl"
-                               border="2px solid rgba(255,255,255,0.2)"
-                               backdropFilter="blur(10px)"
-                                display="flex"
-                                alignItems="center"
-                                justifyContent="center"
-                               position="relative"
-                               overflow="hidden"
-                             >
-                               <Text fontSize="8xl" opacity={0.3}>🏗️</Text>
-                               
-                               {/* Particules flottantes */}
-                               {[...Array(6)].map((_, i) => (
-                                 <motion.div
-                                   key={i}
-                                   style={{
-                                     position: "absolute",
-                                     width: "4px",
-                                     height: "4px",
-                                     background: "white",
-                                     borderRadius: "50%",
-                                     left: `${20 + i * 12}%`,
-                                     top: `${20 + i * 10}%`
-                                   }}
-                                   animate={{
-                                     y: [0, -15, 0],
-                                     opacity: [0.3, 1, 0.3]
-                                   }}
-                                   transition={{
-                                     duration: 2 + i * 0.5,
-                                     repeat: Infinity,
-                                     delay: i * 0.3
-                                   }}
-                                 />
-                               ))}
-                             </Box>
-                           </motion.div>
-                         </Box>
-                       </Flex>
-                     </Box>
-                 </motion.div>
-
-                 {/* Carte 2 - Abonnement Mensuel AVEC PARALLAXE */}
-                 <motion.div
-                   style={{
-                     y: pricingParallax.transforms.y2,
-                     scale: pricingParallax.transforms.scale,
-                     rotateY: pricingParallax.transforms.rotate,
-                   }}
-                 >
-                   <Box
-                     w="full"
-                     maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
-                     h={{ base: "600px", md: "700px", lg: "800px" }}
-                     borderRadius="3xl"
-                     position="relative"
-                     overflow="hidden"
-                     bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-                     border="2px solid rgba(34, 197, 94, 0.3)"
-                     boxShadow="0 30px 60px rgba(34, 197, 94, 0.2)"
-                     backdropFilter="blur(30px)"
-                     transform="translateZ(0)" // Force GPU acceleration
-                   _before={{
-                     content: '""',
-                     position: 'absolute',
-                     inset: 0,
-                     bg: 'rgba(15, 23, 42, 0.85)',
-                     zIndex: 1
-                   }}
-                 >
-                       {/* Badge Populaire */}
-                       <Box
-                         position="absolute"
-                         top={8}
-                         right={8}
-                         bg="rgba(255,255,255,0.9)"
-                         color="green.600"
-                         px={4}
-                         py={2}
-                         borderRadius="full"
-                         fontSize="sm"
-                         fontWeight="bold"
-                         zIndex={10}
-                       >
-                         ⭐ POPULAIRE
-                       </Box>
-                       
-                       <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
-                         <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
-                           <Box>
-                             <Text fontSize="4xl" mb={3}>💎</Text>
-                             <Heading fontSize="3xl" fontWeight="black" color="white" mb={3}>
-                               Abonnement Mensuel
-                             </Heading>
-                             <Text fontSize="lg" color="rgba(255,255,255,0.9)" lineHeight="1.5">
-                               Accès complet à JARVIS avec toutes les fonctionnalités IA, 
-                               support 24/7 et mises à jour automatiques.
-                                </Text>
-                           </Box>
-                           
-                           <VStack align="flex-start" spacing={3}>
-                             {[
-                               { icon: "🤖", title: "IA conversationnelle illimitée", desc: "Interactions membres sans limite" },
-                               { icon: "📊", title: "Dashboard analytics avancé", desc: "Métriques temps réel et insights" },
-                               { icon: "🛟", title: "Support prioritaire 24/7", desc: "Assistance technique dédiée" },
-                               { icon: "🔄", title: "Mises à jour automatiques", desc: "Nouvelles fonctionnalités incluses" },
-                               { icon: "☁️", title: "Stockage cloud illimité", desc: "Données membres sécurisées" },
-                               { icon: "📱", title: "App mobile manager", desc: "Contrôle à distance de votre salle" }
-                             ].map((feature, i) => (
-                               <motion.div
-                                 key={i}
-                                 initial={{ opacity: 0, x: -15 }}
-                                 whileInView={{ opacity: 1, x: 0 }}
-                                 transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-                               >
-                                 <HStack spacing={3} align="flex-start">
-                                   <Text fontSize="lg">{feature.icon}</Text>
-                                   <VStack align="flex-start" spacing={0}>
-                                     <Text fontSize="md" fontWeight="semibold" color="white">{feature.title}</Text>
-                                     <Text fontSize="sm" color="rgba(255,255,255,0.7)">{feature.desc}</Text>
-                              </VStack>
-                            </HStack>
-                          </motion.div>
-                        ))}
-                      </VStack>
-
-                           <Box
-                             bg="rgba(255,255,255,0.2)"
-                             px={6}
-                             py={3}
-                             borderRadius="full"
-                             backdropFilter="blur(10px)"
-                           >
-                             <Text fontSize="lg" fontWeight="bold" color="white">
-                               💳 Forfait mensuel flexible
-                             </Text>
-                           </Box>
-                         </VStack>
-                         
-                         <Box flex="0 0 40%" h="full" position="relative">
-                      <motion.div
-                             animate={{
-                               scale: [1, 1.05, 1],
-                               rotateZ: [0, 2, -2, 0]
-                             }}
-                             transition={{
-                               duration: 4,
-                               repeat: Infinity,
-                               ease: "easeInOut"
-                             }}
-                             style={{ height: "100%" }}
-                           >
-                             <Box
-                          w="full"
-                               h="80%"
-                               bg="rgba(255,255,255,0.1)"
-                               borderRadius="2xl"
-                               border="2px solid rgba(255,255,255,0.2)"
-                               backdropFilter="blur(10px)"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                               position="relative"
-                               overflow="hidden"
-                             >
-                               <Text fontSize="8xl" opacity={0.3}>📊</Text>
-                               
-                               {/* Effet de pulsation */}
-                               <motion.div
-                                 style={{
-                                   position: "absolute",
-                                   inset: 0,
-                                   background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)",
-                                   borderRadius: "16px"
-                                 }}
-                                 animate={{
-                                   opacity: [0.1, 0.3, 0.1]
-                                 }}
-                                 transition={{
-                                   duration: 3,
-                                   repeat: Infinity
-                                 }}
-                               />
-                  </Box>
-                </motion.div>
-                         </Box>
-                       </Flex>
-                     </Box>
-                 {/* Carte 3 - Support & Évolutions */}
-                 <Box
-                   w="full"
-                   maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
-                   h={{ base: "600px", md: "700px", lg: "800px" }}
-                   borderRadius="3xl"
-                   position="relative"
-                   overflow="hidden"
-                   bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-                   border="2px solid rgba(249, 115, 22, 0.3)"
-                   boxShadow="0 30px 60px rgba(249, 115, 22, 0.2)"
-                   backdropFilter="blur(30px)"
-                   _before={{
-                     content: '""',
-                     position: 'absolute',
-                     inset: 0,
-                     bg: 'rgba(15, 23, 42, 0.85)',
-                     zIndex: 1
-                   }}
-                 >
-                       <Flex h="full" align="center" justify="space-between" p={12} position="relative" zIndex={3}>
-                         <VStack align="flex-start" spacing={6} flex="1" maxW="55%">
-                           <Box>
-                             <Text fontSize="4xl" mb={3}>🛠️</Text>
-                             <Heading fontSize="3xl" fontWeight="black" color="white" mb={3}>
-                               Support & Évolutions
-                             </Heading>
-                             <Text fontSize="lg" color="rgba(255,255,255,0.9)" lineHeight="1.5">
-                               Maintenance proactive, mises à jour continues et évolutions 
-                               technologiques pour rester à la pointe de l'innovation.
-                             </Text>
-              </Box>
-
-                           <VStack align="flex-start" spacing={2}>
-                             <HStack spacing={3}>
-                               <Box w="4px" h="4px" bg="white" borderRadius="50%" />
-                               <Text fontSize="sm" color="rgba(255,255,255,0.8)">Maintenance préventive</Text>
-                             </HStack>
-                             <HStack spacing={3}>
-                               <Box w="4px" h="4px" bg="white" borderRadius="50%" />
-                               <Text fontSize="sm" color="rgba(255,255,255,0.8)">Mises à jour automatiques</Text>
-                             </HStack>
-                             <HStack spacing={3}>
-                               <Box w="4px" h="4px" bg="white" borderRadius="50%" />
-                               <Text fontSize="sm" color="rgba(255,255,255,0.8)">Nouvelles fonctionnalités</Text>
-                             </HStack>
-                           </VStack>
-                           
-                           <Box
-                             bg="rgba(255,255,255,0.2)"
-                             px={4}
-                             py={2}
-                             borderRadius="full"
-                             backdropFilter="blur(10px)"
-                           >
-                             <Text fontSize="md" fontWeight="bold" color="white">
-                               🔧 Inclus dans l'abonnement
-                             </Text>
-                           </Box>
-                         </VStack>
-                         
-                         <Box flex="0 0 40%" h="full" position="relative">
-              <motion.div
-                             animate={{
-                               rotateY: [0, 10, -10, 0],
-                               y: [0, -10, 0]
-                             }}
-                             transition={{
-                               duration: 5,
-                               repeat: Infinity,
-                               ease: "easeInOut"
-                             }}
-                             style={{ height: "100%" }}
-              >
-                <Box
-                               w="full"
-                               h="80%"
-                               bg="rgba(255,255,255,0.1)"
-                  borderRadius="2xl"
-                               border="2px solid rgba(255,255,255,0.2)"
-                               backdropFilter="blur(10px)"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                  position="relative"
-                  overflow="hidden"
-                >
-                               <Text fontSize="8xl" opacity={0.3}>⚙️</Text>
-                               
-                               {/* Engrenages animés */}
-                               {[...Array(3)].map((_, i) => (
-                  <motion.div
-                                   key={i}
-                    style={{
-                      position: "absolute",
-                                     width: "20px",
-                                     height: "20px",
-                                     border: "2px solid rgba(255,255,255,0.4)",
-                                     borderRadius: "50%",
-                                     left: `${30 + i * 20}%`,
-                                     top: `${30 + i * 15}%`
-                    }}
-                    animate={{
-                                     rotate: [0, 360]
-                    }}
-                    transition={{
-                                     duration: 3 + i,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                  />
-                               ))}
-                             </Box>
-                           </motion.div>
-                         </Box>
-                       </Flex>
-                     </Box>
-                 </motion.div>
-
-                 {/* Carte 4 - CTA Final AVEC PARALLAXE */}
-                 <motion.div
-                   style={{
-                     y: pricingParallax.transforms.y3,
-                     scale: pricingParallax.transforms.scale,
-                     rotateY: pricingParallax.transforms.rotate,
-                   }}
-                 >
-                   <Box
-                     w="full"
-                     maxW={{ base: "95vw", md: "1200px", lg: "1600px" }}
-                     h={{ base: "600px", md: "700px", lg: "800px" }}
-                     borderRadius="3xl"
-                     position="relative"
-                     overflow="hidden"
-                     bg="linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-                     border="2px solid rgba(139, 92, 246, 0.3)"
-                     boxShadow="0 30px 60px rgba(139, 92, 246, 0.2)"
-                     backdropFilter="blur(30px)"
-                     transform="translateZ(0)" // Force GPU acceleration
-                   _before={{
-                     content: '""',
-                     position: 'absolute',
-                     inset: 0,
-                     bg: 'rgba(15, 23, 42, 0.85)',
-                     zIndex: 1
-                   }}
-                 >
-                       <Flex h="full" align="center" justify="center" p={12} position="relative" zIndex={3}>
-                         <VStack spacing={8} textAlign="center" maxW="600px">
-                           <Box>
-                             <Text fontSize="8xl" mb={6}>✨</Text>
-                             <Heading fontSize="5xl" fontWeight="black" color="white" mb={6}>
-                               Prêt à transformer votre salle ?
-                             </Heading>
-                             <Text fontSize="xl" color="rgba(255,255,255,0.9)" lineHeight="1.6" mb={8}>
-                               Rejoignez les salles de sport qui révolutionnent l'expérience membre 
-                               avec l'IA conversationnelle JARVIS.
-                    </Text>
-                           </Box>
-                           
-                           <HStack spacing={6} justify="center" flexWrap="wrap">
-                             <motion.div
-                               whileHover={{ scale: 1.05 }}
-                               whileTap={{ scale: 0.95 }}
-                             >
-                               <Button
-                                 size="xl"
-                                 px={12}
-                                 py={8}
-                                 borderRadius="2xl"
-                                 fontWeight="black"
-                                 fontSize="xl"
-                                 bg="rgba(255,255,255,0.9)"
-                                 color="purple.600"
-                                 _hover={{
-                                   bg: "white",
-                                   transform: "translateY(-2px)",
-                                   boxShadow: "0 20px 40px rgba(0,0,0,0.2)"
-                                 }}
-                                 transition="all 0.3s"
-                               >
-                                 🚀 Commencer maintenant
-                               </Button>
-                             </motion.div>
-                             
-                             <motion.div
-                               whileHover={{ scale: 1.05 }}
-                               whileTap={{ scale: 0.95 }}
-                             >
-                               <Button
-                                 size="xl"
-                                 px={12}
-                                 py={8}
-                                 borderRadius="2xl"
-                                 fontWeight="black"
-                                 fontSize="xl"
-                                 variant="outline"
-                                 borderColor="rgba(255,255,255,0.4)"
-                                 color="white"
-                                 _hover={{
-                                   borderColor: "white",
-                                   bg: "rgba(255,255,255,0.1)",
-                                   transform: "translateY(-2px)"
-                                 }}
-                                 transition="all 0.3s"
-                               >
-                                 📞 Parler à un expert
-                               </Button>
-                             </motion.div>
-                           </HStack>
-                           
-                  </VStack>
-                       </Flex>
-                     </Box>
-                 </motion.div>
-               </VStack>
-
-               {/* Espacement pour voir la dernière carte */}
-               <Box h="30vh" />
-            </VStack>
-          </motion.div>
-        </Container>
-
+        {/* SECTION PRICING REDESIGNÉE */}
+        <PricingSection />
 
       {/* SECTION CONTACT */}
-      <Container id="contact" maxW="4xl" px={6} py={20} mt={20} mb={20} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
+      <Container id="contact" maxW="6xl" px={8} py={32} mt={16} mb={32} position="relative" zIndex={5} style={{ scrollMarginTop: '200px' }} className="section-container">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true, margin: "-100px" }}
         >
-          <VStack spacing={12} textAlign="center">
+          <VStack spacing={16} textAlign="center" justify="center" minH="60vh">
             <VStack spacing={6}>
               <Heading
                 fontSize={{ base: "3xl", md: "5xl" }}
