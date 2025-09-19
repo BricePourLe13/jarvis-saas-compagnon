@@ -11,11 +11,15 @@ import JarvisSimpleCards from '@/components/JarvisSimpleCards'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 import CardSwap, { Card } from '@/components/CardSwap'
 import TiltedCard from '@/components/TiltedCard'
-import ScrollCaptureSection from '@/components/ScrollCaptureSection'
+import { useResponsive } from '@/hooks/useResponsive'
+// Mobile version inline - plus d'import externe
 
 // Page client-only pour la landing page
 
 export default function LandingClientPage() {
+  // 📱 RESPONSIVE DETECTION
+  const { showMobileVersion, showDesktopVersion } = useResponsive()
+
   // 🎭 SECTION CONTEXTUELLE POUR SPHÈRE INTELLIGENTE
   const [currentSection, setCurrentSection] = useState<'hero' | 'social-proof' | 'solutions' | 'benefits'>('hero')
   
@@ -91,6 +95,736 @@ export default function LandingClientPage() {
     }
   ];
 
+  // 📱 CONDITIONAL RENDERING : MOBILE vs DESKTOP
+  if (showMobileVersion) {
+    return (
+      <Box 
+        minH="100vh"
+        position="relative"
+        width="100vw"
+        overflowX="hidden"
+        // BACKGROUND SOBRE - GRIS FONCÉ ÉLÉGANT
+        background="linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 30%, #1f1f1f 60%, #0a0a0a 100%)"
+        _before={{
+          content: '""',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          background: `
+            radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
+            radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
+            radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.015) 0%, transparent 55%)
+          `,
+          animation: 'backgroundPulseSubtle 12s ease-in-out infinite',
+          zIndex: -1
+        }}
+      >
+        {/* STYLE INLINE POUR ANIMATION SOBRE */}
+        <style jsx>{`
+          @keyframes backgroundPulseSubtle {
+            0%, 100% {
+              background: 
+                radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
+                radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.015) 0%, transparent 55%);
+            }
+            50% {
+              background: 
+                radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.015) 0%, transparent 55%),
+                radial-gradient(circle at 20% 70%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.01) 0%, transparent 50%);
+            }
+          }
+        `}</style>
+
+        {/* CONTENU MOBILE COMPLET */}
+        <VStack spacing={0} position="relative" zIndex={1} width="100%" maxW="100vw">
+          
+          {/* === SECTION HERO === */}
+          <Box 
+            w="100%" 
+            minH="100vh" 
+            position="relative"
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="center"
+            px={4}
+            overflow="hidden"
+            id="hero-mobile"
+          >
+            {/* SPHÈRE JARVIS - POSITIONNÉE EN ARRIÈRE-PLAN */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
+              animate={{ opacity: 0.3, scale: 0.8, rotate: 0 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              style={{
+                position: "absolute",
+                top: "15%",
+                right: "-10%",
+                width: "300px",
+                height: "300px",
+                zIndex: 0
+              }}
+            >
+              <Avatar3D 
+                status="contextual"
+              />
+            </motion.div>
+
+            {/* CONTENU PRINCIPAL - AU PREMIER PLAN */}
+            <VStack 
+              spacing={6} 
+              textAlign="left"
+              alignItems="flex-start"
+              position="relative"
+              zIndex={2}
+              w="100%"
+              maxW="320px"
+              pl={4}
+            >
+              {/* TITRE PRINCIPAL */}
+              <motion.div
+                initial={{ opacity: 0, x: -50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+              >
+                <VStack spacing={3} alignItems="flex-start">
+                  <Heading 
+                    fontSize="3xl" 
+                    color="white" 
+                    fontWeight="bold"
+                    textShadow="0 0 20px rgba(255, 255, 255, 0.2)"
+                    lineHeight="1.1"
+                  >
+                    JARVIS
+                  </Heading>
+                  <Text 
+                    fontSize="lg" 
+                    color="rgba(255,255,255,0.9)" 
+                    lineHeight="1.4"
+                    fontWeight="medium"
+                  >
+                    révolutionne l'expérience
+                    <br />
+                    salle de sport
+                  </Text>
+                </VStack>
+              </motion.div>
+
+              {/* POINTS CLÉS */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+              >
+                <VStack spacing={4} mt={6} alignItems="flex-start">
+                  <Text fontSize="sm" color="rgba(255,255,255,0.8)" display="flex" alignItems="center">
+                    <Box as="span" mr={3} fontSize="md">⚡</Box>
+                    Coach virtuel personnalisé
+                  </Text>
+                  <Text fontSize="sm" color="rgba(255,255,255,0.8)" display="flex" alignItems="center">
+                    <Box as="span" mr={3} fontSize="md">📊</Box>
+                    Analytics en temps réel
+                  </Text>
+                  <Text fontSize="sm" color="rgba(255,255,255,0.8)" display="flex" alignItems="center">
+                    <Box as="span" mr={3} fontSize="md">🎯</Box>
+                    Expérience membre immersive
+                  </Text>
+                </VStack>
+              </motion.div>
+
+              {/* CTA PRINCIPAL */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.9 }}
+              >
+                <Button
+                  size="lg"
+                  px={8}
+                  py={4}
+                  bg="rgba(255, 255, 255, 0.12)"
+                  color="white"
+                  border="1px solid rgba(255, 255, 255, 0.25)"
+                  borderRadius="full"
+                  fontWeight="medium"
+                  fontSize="md"
+                  backdropFilter="blur(15px)"
+                  boxShadow="0 8px 32px rgba(0, 0, 0, 0.3)"
+                  _hover={{
+                    bg: "rgba(255, 255, 255, 0.18)",
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)'
+                  }}
+                  transition="all 0.3s ease"
+                  mt={8}
+                >
+                  Parler à JARVIS
+                </Button>
+              </motion.div>
+            </VStack>
+          </Box>
+
+          {/* === SECTION PROBLÈMES === */}
+          <Box w="100%" py={16} px={6} id="problemes-mobile">
+            <VStack spacing={8} maxW="400px" mx="auto">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                viewport={{ once: true, margin: "-100px" }}
+              >
+                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
+                  Les défis du fitness aujourd'hui
+                </Heading>
+              </motion.div>
+              
+              <VStack spacing={6}>
+                <motion.div
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  style={{ width: '100%' }}
+                >
+                  <Box 
+                    p={4} 
+                    bg="rgba(255, 255, 255, 0.03)" 
+                    borderRadius="lg" 
+                    border="1px solid rgba(255, 255, 255, 0.1)"
+                    w="100%"
+                  >
+                    <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
+                      📉 Taux d'abandon élevé
+                    </Text>
+                    <Text fontSize="xs" color="rgba(255,255,255,0.6)">
+                      40% des membres abandonnent dans les 6 premiers mois
+                    </Text>
+                  </Box>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  style={{ width: '100%' }}
+                >
+                  <Box 
+                    p={4} 
+                    bg="rgba(255, 255, 255, 0.03)" 
+                    borderRadius="lg" 
+                    border="1px solid rgba(255, 255, 255, 0.1)"
+                    w="100%"
+                  >
+                    <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
+                      🤷 Manque d'accompagnement
+                    </Text>
+                    <Text fontSize="xs" color="rgba(255,255,255,0.6)">
+                      Les membres se sentent perdus sans guidance
+                    </Text>
+                  </Box>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  viewport={{ once: true }}
+                  style={{ width: '100%' }}
+                >
+                  <Box 
+                    p={4} 
+                    bg="rgba(255, 255, 255, 0.03)" 
+                    borderRadius="lg" 
+                    border="1px solid rgba(255, 255, 255, 0.1)"
+                    w="100%"
+                  >
+                    <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
+                      📊 Données inexploitées
+                    </Text>
+                    <Text fontSize="xs" color="rgba(255,255,255,0.6)">
+                      Aucune analyse comportementale des membres
+                    </Text>
+                  </Box>
+                </motion.div>
+              </VStack>
+            </VStack>
+          </Box>
+
+          {/* === SECTION SOLUTIONS === */}
+          <Box w="100%" py={16} px={6} bg="rgba(255, 255, 255, 0.02)" id="solutions-mobile">
+            <VStack spacing={8} maxW="400px" mx="auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                viewport={{ once: true, margin: "-50px" }}
+              >
+                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
+                  La solution JARVIS
+                </Heading>
+              </motion.div>
+              
+              <VStack spacing={6}>
+                <Box 
+                  p={4} 
+                  bg="rgba(255, 255, 255, 0.05)" 
+                  borderRadius="lg" 
+                  border="1px solid rgba(255, 255, 255, 0.15)"
+                  w="100%"
+                >
+                  <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
+                    🤖 Coach IA personnalisé
+                  </Text>
+                  <Text fontSize="xs" color="rgba(255,255,255,0.7)">
+                    Accompagnement 24/7 adapté à chaque membre
+                  </Text>
+                </Box>
+
+                <Box 
+                  p={4} 
+                  bg="rgba(255, 255, 255, 0.05)" 
+                  borderRadius="lg" 
+                  border="1px solid rgba(255, 255, 255, 0.15)"
+                  w="100%"
+                >
+                  <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
+                    📱 Interface immersive
+                  </Text>
+                  <Text fontSize="xs" color="rgba(255,255,255,0.7)">
+                    Miroir digital interactif et expérience gamifiée
+                  </Text>
+                </Box>
+
+                <Box 
+                  p={4} 
+                  bg="rgba(255, 255, 255, 0.05)" 
+                  borderRadius="lg" 
+                  border="1px solid rgba(255, 255, 255, 0.15)"
+                  w="100%"
+                >
+                  <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
+                    📊 Dashboard gérant
+                  </Text>
+                  <Text fontSize="xs" color="rgba(255,255,255,0.7)">
+                    Analytics avancés et insights business
+                  </Text>
+                </Box>
+              </VStack>
+            </VStack>
+          </Box>
+
+          {/* === SECTION COMMENT ÇA MARCHE === */}
+          <Box w="100%" py={16} px={6} id="comment-mobile">
+            <VStack spacing={8} maxW="400px" mx="auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+              >
+                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
+                  Comment ça marche ?
+                </Heading>
+              </motion.div>
+              
+              <VStack spacing={8}>
+                <motion.div
+                  initial={{ opacity: 0, x: -50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  style={{ width: '100%' }}
+                >
+                  <HStack spacing={4} align="start" w="100%">
+                    <Box 
+                      w="30px" 
+                      h="30px" 
+                      bg="rgba(255, 255, 255, 0.1)" 
+                      borderRadius="full" 
+                      display="flex" 
+                      alignItems="center" 
+                      justifyContent="center"
+                      flexShrink={0}
+                    >
+                      <Text fontSize="sm" color="white" fontWeight="bold">1</Text>
+                    </Box>
+                    <VStack align="start" spacing={1}>
+                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
+                        Badge d'identification
+                      </Text>
+                      <Text fontSize="xs" color="rgba(255,255,255,0.6)">
+                        Le membre scanne son badge pour démarrer sa session
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  style={{ width: '100%' }}
+                >
+                  <HStack spacing={4} align="start" w="100%">
+                    <Box 
+                      w="30px" 
+                      h="30px" 
+                      bg="rgba(255, 255, 255, 0.1)" 
+                      borderRadius="full" 
+                      display="flex" 
+                      alignItems="center" 
+                      justifyContent="center"
+                      flexShrink={0}
+                    >
+                      <Text fontSize="sm" color="white" fontWeight="bold">2</Text>
+                    </Box>
+                    <VStack align="start" spacing={1}>
+                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
+                        Interaction avec JARVIS
+                      </Text>
+                      <Text fontSize="xs" color="rgba(255,255,255,0.6)">
+                        L'IA analyse et propose un programme personnalisé
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  viewport={{ once: true }}
+                  style={{ width: '100%' }}
+                >
+                  <HStack spacing={4} align="start" w="100%">
+                    <Box 
+                      w="30px" 
+                      h="30px" 
+                      bg="rgba(255, 255, 255, 0.1)" 
+                      borderRadius="full" 
+                      display="flex" 
+                      alignItems="center" 
+                      justifyContent="center"
+                      flexShrink={0}
+                    >
+                      <Text fontSize="sm" color="white" fontWeight="bold">3</Text>
+                    </Box>
+                    <VStack align="start" spacing={1}>
+                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
+                        Suivi en temps réel
+                      </Text>
+                      <Text fontSize="xs" color="rgba(255,255,255,0.6)">
+                        Analytics et feedback continu pour optimiser les résultats
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </motion.div>
+              </VStack>
+            </VStack>
+          </Box>
+
+          {/* === SECTION TARIFICATION === */}
+          <Box w="100%" py={16} px={6} bg="rgba(255, 255, 255, 0.02)" id="tarifs-mobile">
+            <VStack spacing={8} maxW="400px" mx="auto">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
+                  Modèle tarifaire
+                </Heading>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                viewport={{ once: true }}
+                style={{ width: '100%' }}
+              >
+                <Box 
+                  p={6} 
+                  bg="rgba(255, 255, 255, 0.05)" 
+                  borderRadius="xl" 
+                  border="1px solid rgba(255, 255, 255, 0.15)"
+                  w="100%"
+                >
+                <VStack spacing={4}>
+                  <Text fontSize="lg" color="white" fontWeight="semibold" textAlign="center">
+                    Solution complète
+                  </Text>
+                  
+                  <VStack spacing={3} w="100%">
+                    <HStack justify="space-between" w="100%">
+                      <Text fontSize="sm" color="rgba(255,255,255,0.8)">
+                        Installation & Formation
+                      </Text>
+                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
+                        Sur devis
+                      </Text>
+                    </HStack>
+                    
+                    <HStack justify="space-between" w="100%">
+                      <Text fontSize="sm" color="rgba(255,255,255,0.8)">
+                        Abonnement mensuel
+                      </Text>
+                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
+                        Forfait + usage
+                      </Text>
+                    </HStack>
+                  </VStack>
+
+                  <Button
+                    size="md"
+                    w="100%"
+                    bg="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    border="1px solid rgba(255, 255, 255, 0.2)"
+                    borderRadius="lg"
+                    fontWeight="medium"
+                    fontSize="sm"
+                    backdropFilter="blur(10px)"
+                    _hover={{
+                      bg: "rgba(255, 255, 255, 0.15)",
+                      transform: 'translateY(-1px)'
+                    }}
+                    transition="all 0.3s ease"
+                    mt={4}
+                  >
+                    Demander un devis
+                  </Button>
+                </VStack>
+                </Box>
+              </motion.div>
+            </VStack>
+          </Box>
+
+          {/* === SECTION CONTACT === */}
+          <Box w="100%" py={16} px={6} id="contact-mobile">
+            <VStack spacing={8} maxW="400px" mx="auto" textAlign="center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <Heading fontSize="xl" color="white" fontWeight="semibold">
+                  Prêt à révolutionner votre salle ?
+                </Heading>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                viewport={{ once: true }}
+              >
+                <Text fontSize="sm" color="rgba(255,255,255,0.7)" lineHeight="1.6">
+                  Découvrez comment JARVIS peut transformer l'expérience de vos membres et optimiser votre business.
+                </Text>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                viewport={{ once: true }}
+                style={{ width: '100%' }}
+              >
+                <VStack spacing={4} w="100%">
+                <Button
+                  size="lg"
+                  w="100%"
+                  bg="rgba(255, 255, 255, 0.1)"
+                  color="white"
+                  border="1px solid rgba(255, 255, 255, 0.2)"
+                  borderRadius="lg"
+                  fontWeight="medium"
+                  fontSize="md"
+                  backdropFilter="blur(10px)"
+                  _hover={{
+                    bg: "rgba(255, 255, 255, 0.15)",
+                    transform: 'translateY(-1px)'
+                  }}
+                  transition="all 0.3s ease"
+                >
+                  Parler à JARVIS
+                </Button>
+
+                <Button
+                  size="md"
+                  w="100%"
+                  bg="transparent"
+                  color="rgba(255,255,255,0.8)"
+                  border="1px solid rgba(255, 255, 255, 0.1)"
+                  borderRadius="lg"
+                  fontWeight="normal"
+                  fontSize="sm"
+                  _hover={{
+                    bg: "rgba(255, 255, 255, 0.05)",
+                    color: "white"
+                  }}
+                  transition="all 0.3s ease"
+                >
+                  Réserver une démo
+                </Button>
+                </VStack>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+                viewport={{ once: true }}
+              >
+                <Text fontSize="xs" color="rgba(255,255,255,0.5)" mt={8}>
+                  © 2024 JARVIS Group - L'avenir du fitness
+                </Text>
+              </motion.div>
+            </VStack>
+          </Box>
+
+        </VStack>
+
+        {/* === DOCK ÉLÉGANT === */}
+        <Box
+          position="fixed"
+          bottom="25px"
+          left="50%"
+          transform="translateX(-50%)"
+          zIndex={1000}
+        >
+          <HStack
+            spacing={4}
+            bg="rgba(255, 255, 255, 0.06)"
+            backdropFilter="blur(15px)"
+            borderRadius="full"
+            px={4}
+            py={3}
+            border="1px solid rgba(255, 255, 255, 0.1)"
+            boxShadow="0 4px 20px rgba(0, 0, 0, 0.15)"
+          >
+            {/* HOME */}
+            <Box
+              as="button"
+              w="12px"
+              h="12px"
+              borderRadius="full"
+              bg="rgba(255, 255, 255, 0.5)"
+              _hover={{ 
+                bg: "rgba(255, 255, 255, 0.7)",
+                transform: "scale(1.2)"
+              }}
+              transition="all 0.2s ease"
+              onClick={() => {
+                console.log('Navigating to hero-mobile');
+                document.getElementById('hero-mobile')?.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'start' 
+                });
+              }}
+            />
+
+            {/* PROBLÈMES & SOLUTIONS */}
+            <Box
+              as="button"
+              w="12px"
+              h="12px"
+              borderRadius="full"
+              bg="rgba(255, 255, 255, 0.2)"
+              _hover={{ 
+                bg: "rgba(255, 255, 255, 0.5)",
+                transform: "scale(1.2)"
+              }}
+              transition="all 0.2s ease"
+              onClick={() => {
+                console.log('Navigating to problemes-mobile');
+                document.getElementById('problemes-mobile')?.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'start' 
+                });
+              }}
+            />
+
+            {/* COMMENT ÇA MARCHE */}
+            <Box
+              as="button"
+              w="12px"
+              h="12px"
+              borderRadius="full"
+              bg="rgba(255, 255, 255, 0.2)"
+              _hover={{ 
+                bg: "rgba(255, 255, 255, 0.5)",
+                transform: "scale(1.2)"
+              }}
+              transition="all 0.2s ease"
+              onClick={() => {
+                console.log('Navigating to comment-mobile');
+                document.getElementById('comment-mobile')?.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'start' 
+                });
+              }}
+            />
+
+            {/* TARIFS */}
+            <Box
+              as="button"
+              w="12px"
+              h="12px"
+              borderRadius="full"
+              bg="rgba(255, 255, 255, 0.2)"
+              _hover={{ 
+                bg: "rgba(255, 255, 255, 0.5)",
+                transform: "scale(1.2)"
+              }}
+              transition="all 0.2s ease"
+              onClick={() => {
+                console.log('Navigating to tarifs-mobile');
+                document.getElementById('tarifs-mobile')?.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'start' 
+                });
+              }}
+            />
+
+            {/* CONTACT */}
+            <Box
+              as="button"
+              w="12px"
+              h="12px"
+              borderRadius="full"
+              bg="rgba(255, 255, 255, 0.2)"
+              _hover={{ 
+                bg: "rgba(255, 255, 255, 0.5)",
+                transform: "scale(1.2)"
+              }}
+              transition="all 0.2s ease"
+              onClick={() => {
+                console.log('Navigating to contact-mobile');
+                document.getElementById('contact-mobile')?.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'start' 
+                });
+              }}
+            />
+          </HStack>
+        </Box>
+      </Box>
+    )
+  }
+
+  // 🖥️ VERSION DESKTOP (INCHANGÉE)
   return (
     <Box bg="transparent" position="relative" minH="100vh">
       {/* BOUTON CONNEXION FIXE EN HAUT À DROITE */}
@@ -160,6 +894,39 @@ export default function LandingClientPage() {
         />
       </Box>
 
+      {/* LOGO JARVIS DISCRET EN HAUT À GAUCHE */}
+      <Box
+        position="fixed"
+        top={6}
+        left={6}
+        zIndex={1000}
+        pointerEvents="auto"
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+        >
+          <Heading 
+            fontSize={{ base: "xl", md: "2xl" }}
+            color="white" 
+            fontWeight="semibold"
+            letterSpacing="0.05em"
+            pointerEvents="none"
+            fontFamily="system-ui, -apple-system, sans-serif"
+            opacity={0.8}
+            style={{
+              background: "linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #ffffff 100%)",
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
+            }}
+          >
+            JARVIS
+          </Heading>
+        </motion.div>
+      </Box>
+
       {/* DOCK NAVIGATION - STYLE REACT BITS */}
       <Box position="fixed" bottom={4} left="50%" transform="translateX(-50%)" zIndex={100}>
         <Dock 
@@ -175,52 +942,11 @@ export default function LandingClientPage() {
       <Container id="hero" maxW="8xl" px={8} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
         <VStack 
           spacing={8}
-          justify="flex-start"
+          justify="center"
           minH="100vh"
           textAlign="center"
           pointerEvents="none"
-          pt={8}
         >
-          {/* LOGO JARVIS AVEC EFFET GLITCH/GLOW - RESTE EN HAUT */}
-          <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.0, delay: 0.1 }}
-            style={{ marginTop: '0px', marginBottom: '2rem' }}
-          >
-            <motion.div
-              animate={{
-                textShadow: [
-                  "0 0 20px rgba(255,255,255,0.5), 0 0 40px rgba(59,130,246,0.3), 0 0 60px rgba(59,130,246,0.2)",
-                  "0 0 30px rgba(255,255,255,0.8), 0 0 60px rgba(59,130,246,0.5), 0 0 90px rgba(59,130,246,0.3)",
-                  "0 0 20px rgba(255,255,255,0.5), 0 0 40px rgba(59,130,246,0.3), 0 0 60px rgba(59,130,246,0.2)"
-                ]
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <Heading 
-                fontSize={{ base: "4xl", md: "5xl", lg: "6xl" }}
-                color="white" 
-                fontWeight="black"
-                letterSpacing="0.1em"
-                pointerEvents="none"
-                textAlign="center"
-                fontFamily="system-ui, -apple-system, sans-serif"
-                style={{
-                  background: "linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #ffffff 100%)",
-                  backgroundClip: "text",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent"
-                }}
-              >
-                JARVIS
-              </Heading>
-            </motion.div>
-          </motion.div>
 
           {/* CONTENU PRINCIPAL HORIZONTAL - TEXTE + SPHÈRE */}
           <Flex 
@@ -276,7 +1002,8 @@ export default function LandingClientPage() {
                   textAlign="left"
                   pointerEvents="none"
                 >
-                  JARVIS transforme chaque interaction membre en expérience personnalisée 24/7. 
+                  JARVIS transforme chaque interaction membre en expérience personnalisée 24/7.
+                  <br /><br />
                   Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.
                 </Text>
               </motion.div>
@@ -365,71 +1092,10 @@ export default function LandingClientPage() {
                 style={{ width: '100%', height: '100%' }}
               >
                 <Avatar3D 
+                  status="contextual"
                   currentSection={currentSection}
-                  style={{ width: '100%', height: '100%' }}
                 />
                 
-                {/* Élément animé subtil autour de la sphère */}
-                  <motion.div
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                    width: '380px',
-                    height: '380px',
-                    transform: 'translate(-50%, -50%)',
-                      border: '1px solid rgba(59, 130, 246, 0.15)',
-                      borderRadius: '50%',
-                      pointerEvents: 'none',
-                    zIndex: 0
-                    }}
-                    animate={{
-                    rotate: 360,
-                    scale: [1, 1.05, 1]
-                    }}
-                    transition={{
-                    rotate: {
-                      duration: 60,
-                      repeat: Infinity,
-                      ease: "linear"
-                    },
-                    scale: {
-                      duration: 8,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }
-                  }}
-                />
-                
-                {/* Points lumineux subtils */}
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      width: '3px',
-                      height: '3px',
-                      background: 'rgba(59, 130, 246, 0.4)',
-                      borderRadius: '50%',
-                      boxShadow: '0 0 8px rgba(59, 130, 246, 0.3)',
-                      pointerEvents: 'none',
-                      zIndex: 1
-                    }}
-                    animate={{
-                      x: [0, Math.cos(i * 120 * Math.PI / 180) * 210, 0],
-                      y: [0, Math.sin(i * 120 * Math.PI / 180) * 210, 0],
-                      opacity: [0.2, 0.8, 0.2]
-                    }}
-                    transition={{
-                      duration: 12 + i * 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: i * 1.5
-                    }}
-                  />
-                ))}
 
               </motion.div>
             </Box>
@@ -1733,10 +2399,8 @@ export default function LandingClientPage() {
                {/* Espacement pour voir le titre et description */}
               <Box h="30vh" />
 
-              {/* ScrollCapture Tarification Immersive */}
-               <ScrollCaptureSection
-                 height="400vh"
-               >
+              {/* Tarification Simplifiée - Carousel */}
+               <VStack spacing={12}>
                  {/* Carte 1 - Installation & Formation */}
                  <Box
                    w="full"
@@ -2267,13 +2931,14 @@ export default function LandingClientPage() {
                        </Flex>
                        
                 </Box>
-               </ScrollCaptureSection>
+               </VStack>
 
                {/* Espacement pour voir la dernière carte */}
                <Box h="30vh" />
             </VStack>
           </motion.div>
         </Container>
+
 
       {/* SECTION CONTACT */}
       <Container id="contact" maxW="4xl" px={6} py={32} mt={20} mb={32} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
