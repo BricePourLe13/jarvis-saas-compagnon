@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Box, Button, Text, VStack, HStack, Modal, ModalOverlay, ModalContent, ModalBody, useDisclosure } from '@chakra-ui/react'
+import { Box, Button, Text, VStack, HStack, Modal, ModalOverlay, ModalContent, ModalBody, Heading } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiMic, FiMicOff, FiX } from 'react-icons/fi'
 import Avatar3D from '@/components/kiosk/Avatar3D'
