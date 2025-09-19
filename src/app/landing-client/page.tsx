@@ -1,6 +1,7 @@
 "use client"
 
 import { Box, Container, VStack, Heading, Text, Button, HStack, Grid, GridItem, Flex, SimpleGrid } from '@chakra-ui/react'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
@@ -1558,7 +1559,7 @@ export default function LandingClientPage() {
       </Container>
 
       {/* 3. SECTION COMMENT ÇA MARCHE - SOLUTION */}
-      <Container id="comment-ca-marche" maxW="6xl" px={6} py={20} mt={24} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
+      <Container id="comment-ca-marche" maxW="6xl" px={6} py={20} mt={20} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1681,8 +1682,8 @@ export default function LandingClientPage() {
       </Container>
 
       {/* 4. SECTION DASHBOARD GÉRANT - AMÉLIORÉE AVEC CARDSWAP */}
-      <Box id="dashboard" w="100vw" position="relative" zIndex={10} py={28} mt={24} overflow="hidden" minH="700px" pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
-        <Container maxW="8xl" px={8} pointerEvents="none">
+      <Box id="dashboard" w="100vw" position="relative" zIndex={10} py={20} mt={20} overflow="hidden" minH="700px" pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
+        <Container maxW="6xl" px={6} pointerEvents="none">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1821,9 +1822,13 @@ export default function LandingClientPage() {
                            border="1px solid rgba(59, 130, 246, 0.3)"
                            boxShadow="0 0 25px rgba(59, 130, 246, 0.2)"
                          >
-                           <img 
-                             src="/images/DAHSBOARD GERANT.jpg"
+                           <Image 
+                             src="/images/dashboard-gerant.jpg"
                              alt="Dashboard JARVIS - Vue d'ensemble"
+                             width={800}
+                             height={600}
+                             priority={false}
+                             loading="lazy"
                              style={{
                                width: '100%',
                                height: '100%',
@@ -2097,7 +2102,7 @@ export default function LandingClientPage() {
       </Box>
 
       {/* 5. SECTION TÉMOIGNAGE VIDÉO - MOINS RÉPÉTITIF */}
-      <Container maxW="8xl" px={6} position="relative" zIndex={10} py={24} pointerEvents="none">
+      <Container maxW="6xl" px={6} position="relative" zIndex={10} py={20} pointerEvents="none">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -2372,7 +2377,7 @@ export default function LandingClientPage() {
       </Container>
 
       {/* 6. SECTION MODÈLE TARIFICATION - DESIGN ÉPURÉ */}
-       <Container id="tarifs" ref={tarifsRef} maxW="8xl" px={8} py={24} mt={28} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
+       <Container id="tarifs" ref={tarifsRef} maxW="6xl" px={6} py={20} mt={20} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '160px' }}>
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -2965,7 +2970,7 @@ export default function LandingClientPage() {
 
 
       {/* SECTION CONTACT */}
-      <Container id="contact" maxW="4xl" px={6} py={32} mt={20} mb={32} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
+      <Container id="contact" maxW="4xl" px={6} py={20} mt={20} mb={20} position="relative" zIndex={5} style={{ scrollMarginTop: '160px' }}>
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
