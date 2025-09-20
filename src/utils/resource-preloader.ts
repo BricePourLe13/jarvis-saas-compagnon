@@ -23,7 +23,7 @@ class ResourcePreloader {
     ],
     performance: [
       // Modules lourds pour devices performants
-      '/api/voice/vitrine/session', // API endpoint critique
+      // '/api/voice/vitrine/session', // API POST-only, cannot preload
     ],
     lazy: [
       // Ressources pour interactions futures

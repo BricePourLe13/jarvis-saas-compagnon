@@ -1018,6 +1018,7 @@ export default function LiquidEther({
       // 🎮 PERFORMANCE: FPS Throttling pour navigateurs non-Canary
       private _lastFrameTime = 0;
       private _targetFPS = 60;
+      private _isInitialized = false;
       constructor(props: any) {
         this.props = props;
         // Common.init will be called in initAsync
@@ -1060,12 +1061,22 @@ export default function LiquidEther({
         // Chrome Canary: 60 FPS, Chrome Normal: 30 FPS, Autres: 20 FPS
         this._targetFPS = browserCaps.isCanary ? 60 : 
                          browserCaps.performanceLevel === 'standard' ? 30 : 20;
+        
+        // 🔧 MARQUER COMME INITIALISÉ et démarrer le rendu
+        this._isInitialized = true;
+        this.start();
       }
       resize() {
         Common.resize();
-        this.output.resize();
+        // 🔧 PROTECTION: Vérifier que output est initialisé avant resize
+        if (this.output) {
+          this.output.resize();
+        }
       }
       render() {
+        // 🔧 PROTECTION: Ne pas rendre si pas initialisé
+        if (!this._isInitialized || !this.output) return;
+        
         if (this.autoDriver) this.autoDriver.update();
         Mouse.update();
         Common.update();
