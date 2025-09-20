@@ -136,7 +136,7 @@ export default function LiquidEther({
         this.container = container;
         
         // 🔍 DÉTECTION NAVIGATEUR AVANCÉE pour Chrome Canary vs Normal
-        const { WebGLDetector } = await import('../../utils/webgl-detector');
+        const { WebGLDetector } = await import('../utils/webgl-detector');
         const optimalConfig = WebGLDetector.getOptimalConfig();
         const browserCaps = WebGLDetector.getBrowserCapabilities();
         
@@ -1054,7 +1054,7 @@ export default function LiquidEther({
         this.output = new Output();
         
         // 🎮 CONFIGURER FPS selon le navigateur
-        const { WebGLDetector } = await import('../../utils/webgl-detector');
+        const { WebGLDetector } = await import('../utils/webgl-detector');
         const browserCaps = WebGLDetector.getBrowserCapabilities();
         
         // Chrome Canary: 60 FPS, Chrome Normal: 30 FPS, Autres: 20 FPS
