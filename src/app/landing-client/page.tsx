@@ -12,6 +12,7 @@ const useMotionValueLazy = () => import('framer-motion').then(m => m.useMotionVa
 const useAnimationFrameLazy = () => import('framer-motion').then(m => m.useAnimationFrame)
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
+import SilkCSS from '@/components/backgrounds/SilkCSS'
 import { WebGLDetector, createCSSFallbackBackground, injectFallbackCSS } from '@/utils/webgl-detector'
 import { usePerformanceManager } from '@/utils/performance-manager'
 import { useResourcePreloader } from '@/utils/resource-preloader'
@@ -955,34 +956,11 @@ export default function LandingClientPage() {
         w="100vw"
         h="100vh"
       >
-        {useWebGL && webglSupported ? (
-          <LiquidEther
-            colors={['#f8f9fa', '#e9ecef', '#dee2e6', '#ced4da']}
-            mouseForce={12}
-            cursorSize={150}
-            isViscous={false}
-            viscous={15}
-            iterationsViscous={20}
-            iterationsPoisson={20}
-            resolution={0.3}
-            isBounce={false}
-            autoDemo={true}
-            autoSpeed={0.2}
-            autoIntensity={1.2}
-            takeoverDuration={0.5}
-            autoResumeDelay={4000}
-            autoRampDuration={1.0}
-            style={{ width: '100%', height: '100%' }}
-          />
-        ) : (
-          // 🎨 CSS FALLBACK BACKGROUND (Identique visuellement)
-          <Box
-            className="webgl-fallback"
-            width="100%"
-            height="100%"
-            style={createCSSFallbackBackground()}
-          />
-        )}
+        <SilkCSS
+          speed={25}          // ⚡ Animation lente et apaisante  
+          color="#0f0f23"     // 🎨 Couleur sombre harmonieuse
+          opacity={0.6}       // 🎨 Subtil et élégant
+        />
       </Box>
 
       {/* LOGO JARVIS DISCRET EN HAUT À GAUCHE */}
