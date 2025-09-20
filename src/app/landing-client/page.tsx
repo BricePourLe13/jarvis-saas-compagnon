@@ -12,7 +12,7 @@ const useMotionValueLazy = () => import('framer-motion').then(m => m.useMotionVa
 const useAnimationFrameLazy = () => import('framer-motion').then(m => m.useAnimationFrame)
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
-import SilkCSS from '@/components/backgrounds/SilkCSS'
+import Silk from '@/components/backgrounds/Silk'
 import { WebGLDetector, createCSSFallbackBackground, injectFallbackCSS } from '@/utils/webgl-detector'
 import { usePerformanceManager } from '@/utils/performance-manager'
 import { useResourcePreloader } from '@/utils/resource-preloader'
@@ -956,10 +956,12 @@ export default function LandingClientPage() {
         w="100vw"
         h="100vh"
       >
-        <SilkCSS
-          speed={25}          // ⚡ Animation lente et apaisante  
-          color="#0f0f23"     // 🎨 Couleur sombre harmonieuse
-          opacity={0.6}       // 🎨 Subtil et élégant
+        <Silk
+          speed={2}           // ⚡ Animation très lente pour performance
+          scale={1.5}         // 🎨 Plus grand pour remplir l'écran
+          color="#1a1a2e"     // 🎨 Couleur sombre harmonieuse React Bits
+          noiseIntensity={0.5} // ⚡ Noise réduit pour performance
+          rotation={0.02}     // 🎨 Rotation très subtile
         />
       </Box>
 
