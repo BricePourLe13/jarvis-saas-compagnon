@@ -99,18 +99,26 @@ export default function LandingClientPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [throttle])
 
-  // 🎯 WEBGL DETECTION EFFECT
+  // 🎯 WEBGL DETECTION EFFECT AVANCÉE
   useEffect(() => {
     const checkWebGL = () => {
       const supported = WebGLDetector.isWebGLSupported()
-      const performanceLevel = WebGLDetector.getWebGLPerformanceLevel()
-      const isLowEnd = WebGLDetector.isLowEndDevice()
+      const optimalConfig = WebGLDetector.getOptimalConfig()
+      const browserCaps = WebGLDetector.getBrowserCapabilities()
       
       setWebglSupported(supported)
       
-      // Décision intelligente : utiliser WebGL seulement si performant
-      const shouldUseWebGL = supported && performanceLevel !== 'low' && !isLowEnd
+      // 🔧 UTILISER LA NOUVELLE DÉTECTION OPTIMALE
+      const shouldUseWebGL = optimalConfig.useWebGL
       setUseWebGL(shouldUseWebGL)
+      
+      // 🎯 DEBUG: Log de la décision
+      console.log('🎮 Landing WebGL Decision:', {
+        browser: browserCaps.isCanary ? 'Chrome Canary' : browserCaps.isChrome ? `Chrome ${browserCaps.version}` : 'Other',
+        performanceLevel: browserCaps.performanceLevel,
+        useWebGL: shouldUseWebGL,
+        reason: shouldUseWebGL ? 'Browser capable' : 'Using CSS fallback for performance'
+      })
       
       // Injecter CSS fallback si nécessaire
       if (!shouldUseWebGL) {

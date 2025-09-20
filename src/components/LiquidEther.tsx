@@ -132,21 +132,36 @@ export default function LiquidEther({
       container: HTMLElement | null = null;
       renderer: THREE.WebGLRenderer | null = null;
       clock: THREE.Clock | null = null;
-      init(container: HTMLElement) {
+      async init(container: HTMLElement) {
         this.container = container;
         
-        // 📱 MOBILE OPTIMIZATION: Réduire pixelRatio et anti-aliasing
-        const isMobile = this.width < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        this.pixelRatio = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2);
+        // 🔍 DÉTECTION NAVIGATEUR AVANCÉE pour Chrome Canary vs Normal
+        const { WebGLDetector } = await import('../../utils/webgl-detector');
+        const optimalConfig = WebGLDetector.getOptimalConfig();
+        const browserCaps = WebGLDetector.getBrowserCapabilities();
+        
+        // 📊 CONFIGURATION ADAPTATIVE SELON NAVIGATEUR
+        this.pixelRatio = optimalConfig.pixelRatio;
         this.resize();
         
-        // ⚡ PERFORMANCE: Anti-aliasing conditionnel + GPU haute performance
+        // 🎯 PARAMÈTRES RENDERER SELON NAVIGATEUR
         this.renderer = new THREE.WebGLRenderer({ 
-          antialias: !isMobile, // Désactiver anti-aliasing sur mobile
+          antialias: optimalConfig.antialias, // TRUE uniquement pour Chrome Canary
           alpha: true,
-          powerPreference: "high-performance", // Utiliser GPU dédié si disponible
+          powerPreference: optimalConfig.powerPreference,
           stencil: false, // Désactiver stencil buffer (non utilisé)
-          depth: false    // Désactiver depth buffer (non utilisé pour 2D fluid)
+          depth: false,   // Désactiver depth buffer (non utilisé pour 2D fluid)
+          preserveDrawingBuffer: false, // ⚡ Performance: pas de capture
+          failIfMajorPerformanceCaveat: !optimalConfig.enableAdvancedEffects // ⚡ Fail si perf trop faible
+        });
+        
+        // 🔧 DEBUG: Log configuration pour diagnostic
+        console.log('🎮 LiquidEther Config:', {
+          browser: browserCaps.isCanary ? 'Chrome Canary' : browserCaps.isChrome ? `Chrome ${browserCaps.version}` : 'Other',
+          performanceLevel: browserCaps.performanceLevel,
+          pixelRatio: this.pixelRatio,
+          antialias: optimalConfig.antialias,
+          powerPreference: optimalConfig.powerPreference
         });
         // Always transparent
         this.renderer.autoClear = false;
@@ -1000,9 +1015,12 @@ export default function LiquidEther({
       private _loop = this.loop.bind(this);
       private _resize = this.resize.bind(this);
       private _onVisibility?: () => void;
+      // 🎮 PERFORMANCE: FPS Throttling pour navigateurs non-Canary
+      private _lastFrameTime = 0;
+      private _targetFPS = 60;
       constructor(props: any) {
         this.props = props;
-        Common.init(props.$wrapper);
+        // Common.init will be called in initAsync
         Mouse.init(props.$wrapper);
         Mouse.autoIntensity = props.autoIntensity;
         Mouse.takeoverDuration = props.takeoverDuration;
@@ -1016,7 +1034,7 @@ export default function LiquidEther({
           resumeDelay: props.autoResumeDelay,
           rampDuration: props.autoRampDuration
         });
-        this.init();
+        this.initAsync(); // Proper async handling
         window.addEventListener('resize', this._resize);
         this._onVisibility = () => {
           const hidden = document.hidden;
@@ -1028,10 +1046,20 @@ export default function LiquidEther({
         };
         document.addEventListener('visibilitychange', this._onVisibility);
       }
-      init() {
+      async initAsync() {
+        // 🔧 ATTENDRE que Common.init soit terminé (async)
+        await Common.init(this.props.$wrapper);
         if (!Common.renderer) return;
         this.props.$wrapper.prepend(Common.renderer.domElement);
         this.output = new Output();
+        
+        // 🎮 CONFIGURER FPS selon le navigateur
+        const { WebGLDetector } = await import('../../utils/webgl-detector');
+        const browserCaps = WebGLDetector.getBrowserCapabilities();
+        
+        // Chrome Canary: 60 FPS, Chrome Normal: 30 FPS, Autres: 20 FPS
+        this._targetFPS = browserCaps.isCanary ? 60 : 
+                         browserCaps.performanceLevel === 'standard' ? 30 : 20;
       }
       resize() {
         Common.resize();
@@ -1045,7 +1073,17 @@ export default function LiquidEther({
       }
       loop() {
         if (!this.running) return;
-        this.render();
+        
+        // 🎮 FPS THROTTLING: Limiter selon le navigateur
+        const now = performance.now();
+        const deltaTime = now - this._lastFrameTime;
+        const targetInterval = 1000 / this._targetFPS;
+        
+        if (deltaTime >= targetInterval) {
+          this.render();
+          this._lastFrameTime = now - (deltaTime % targetInterval); // Drift correction
+        }
+        
         rafRef.current = requestAnimationFrame(this._loop);
       }
       start() {
