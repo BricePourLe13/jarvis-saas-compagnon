@@ -80,22 +80,26 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
   }, [connect])
 
   const handleEndDemo = useCallback(async () => {
+    // Fermeture immédiate de l'interface AVANT tout traitement
+    onClose()
+    
     try {
-      // Réinitialiser immédiatement les états pour fermeture rapide
+      // Réinitialiser les états en arrière-plan
       setHasStarted(false)
       setTimeRemaining(120)
       setTranscript('')
       setStatus('idle')
       
-      // Déconnecter en arrière-plan
-      await disconnect()
-      
-      // Fermer l'interface
-      onClose()
+      // Déconnexion en arrière-plan
+      setTimeout(async () => {
+        try {
+          await disconnect()
+        } catch (error) {
+          console.error('Erreur de déconnexion en arrière-plan:', error)
+        }
+      }, 100)
     } catch (error) {
-      console.error('Erreur de déconnexion:', error)
-      // Forcer la fermeture même en cas d'erreur
-      onClose()
+      console.error('Erreur de fermeture:', error)
     }
   }, [disconnect, onClose])
 
@@ -125,7 +129,15 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="full" motionPreset="slideInBottom">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      size="full" 
+      motionPreset="slideInBottom"
+      closeOnEsc={true}
+      closeOnOverlayClick={true}
+      isCentered
+    >
       <ModalOverlay 
         bg="rgba(0, 0, 0, 0.95)" 
         backdropFilter="blur(10px)"
@@ -136,6 +148,8 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
         display="flex"
         alignItems="center"
         justifyContent="center"
+        position="relative"
+        zIndex={9999}
       >
         <ModalBody p={0} w="100%" h="100vh" display="flex" alignItems="center" justifyContent="center">
           <VStack spacing={8} textAlign="center" color="white" maxW="600px" px={6}>

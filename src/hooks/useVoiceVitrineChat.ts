@@ -42,63 +42,13 @@ export function useVoiceVitrineChat({
 
   // Créer une session éphémère pour la démo
   const createDemoSession = useCallback(async () => {
-    const sessionConfig = {
-      session: {
-        type: "realtime",
-        model: "gpt-4o-mini-realtime-preview-2024-12-17",
-        audio: {
-          input: {
-            format: {
-              type: "audio/pcm",
-              rate: 24000,
-            },
-            turn_detection: {
-              type: "semantic_vad"
-            }
-          },
-          output: {
-            format: {
-              type: "audio/pcm",
-            },
-            voice: "nova",
-          }
-        },
-        instructions: `Tu es JARVIS, l'assistant IA de notre plateforme fitness révolutionnaire.
-
-CONTEXTE DÉMO VITRINE:
-- C'est une démonstration de 2 minutes pour les visiteurs du site
-- Tu représentes notre solution complète pour les salles de sport
-- Sois enthousiaste mais concis
-
-PERSONNALITÉ:
-- Accueillant et énergique
-- Expert en fitness et technologie IA
-- Passionné par l'innovation dans le sport
-
-RÉPONSES:
-- Garde tes réponses courtes (15-30 secondes max)
-- Mets en avant les bénéfices concrets de notre solution
-- Invite à découvrir nos offres personnalisées
-- Utilise des exemples concrets et inspirants
-
-SUJETS À ABORDER SI PERTINENT:
-- Analyse personnalisée des performances
-- Recommandations d'entraînement intelligentes  
-- Motivation adaptative basée sur l'IA
-- Suivi de progression en temps réel
-- Interface vocale dans les salles de sport
-
-IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
-        output_modalities: ["audio", "text"]
-      }
-    }
-
+    // L'API attend maintenant directement la config sans wrapper "session"
     const response = await fetch('/api/voice/vitrine/session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(sessionConfig),
+      body: JSON.stringify({}), // L'API crée la config elle-même maintenant
     })
 
     if (!response.ok) {
@@ -117,7 +67,8 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
       }
 
       // Créer session démo
-      const session = await createDemoSession()
+      const sessionResponse = await createDemoSession()
+      const session = sessionResponse.session
       
       // Configurer peer connection
       const pc = new RTCPeerConnection({
@@ -237,7 +188,7 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
         method: 'POST',
         body: offer.sdp,
         headers: {
-          'Authorization': `Bearer ${session.client_secret.value}`,
+          'Authorization': `Bearer ${session.client_secret}`,
           'Content-Type': 'application/sdp'
         },
       })

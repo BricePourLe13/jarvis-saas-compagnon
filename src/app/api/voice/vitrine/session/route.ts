@@ -106,12 +106,13 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
     // Retourner le format attendu par le hook (compatible kiosk)
     return NextResponse.json({
       success: true,
-      session_id: sessionData.id,
-      client_secret: {
-        value: sessionData.client_secret
-      },
-      model: sessionConfig.model,
-      expires_at: sessionData.expires_at
+      session: {
+        session_id: sessionData.id,
+        client_secret: sessionData.client_secret,
+        model: sessionConfig.model,
+        voice: sessionConfig.voice,
+        expires_at: sessionData.expires_at
+      }
     })
 
   } catch (error) {
