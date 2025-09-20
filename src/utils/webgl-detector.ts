@@ -65,6 +65,92 @@ export const WebGLDetector = {
     const connection = nav.connection?.effectiveType || '4g'
     
     return cores < 4 || memory < 4 || ['slow-2g', '2g', '3g'].includes(connection)
+  },
+
+  // 🔍 DÉTECTION NAVIGATEUR AVANCÉE (pour Chrome Canary vs Normal)
+  getBrowserCapabilities(): {
+    isCanary: boolean;
+    isChrome: boolean;
+    version: number;
+    hasAdvancedFeatures: boolean;
+    performanceLevel: 'premium' | 'standard' | 'basic';
+  } {
+    const userAgent = navigator.userAgent
+    const isChrome = /Chrome/.test(userAgent)
+    const isCanary = /Chrome\/(\d+)/.test(userAgent) && userAgent.includes('dev')
+    
+    // Extraire version Chrome
+    const chromeVersion = userAgent.match(/Chrome\/(\d+)/)?.[1] || '0'
+    const version = parseInt(chromeVersion)
+    
+    // Features avancées (Canary/Chrome récent)
+    const hasAdvancedFeatures = isCanary || version >= 120
+    
+    // Test capacités réelles
+    const supportsOffscreenCanvas = 'OffscreenCanvas' in window
+    const supportsWebGL2 = !!document.createElement('canvas').getContext('webgl2')
+    const supportsSharedArrayBuffer = 'SharedArrayBuffer' in window
+    
+    // Déterminer niveau performance
+    let performanceLevel: 'premium' | 'standard' | 'basic' = 'basic'
+    
+    if (isCanary && supportsOffscreenCanvas && supportsWebGL2) {
+      performanceLevel = 'premium'
+    } else if (isChrome && version >= 110 && supportsWebGL2) {
+      performanceLevel = 'standard'  
+    }
+    
+    return {
+      isCanary,
+      isChrome,
+      version,
+      hasAdvancedFeatures,
+      performanceLevel
+    }
+  },
+
+  // 🎯 RECOMMANDATION OPTIMALE SELON NAVIGATEUR
+  getOptimalConfig(): {
+    useWebGL: boolean;
+    pixelRatio: number;
+    antialias: boolean;
+    powerPreference: 'default' | 'high-performance' | 'low-power';
+    enableAdvancedEffects: boolean;
+  } {
+    const webglLevel = this.getWebGLPerformanceLevel()
+    const isLowEnd = this.isLowEndDevice()
+    const browserCaps = this.getBrowserCapabilities()
+    
+    // 🚀 CHROME CANARY: Configuration premium
+    if (browserCaps.isCanary || browserCaps.performanceLevel === 'premium') {
+      return {
+        useWebGL: true,
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+        antialias: true,
+        powerPreference: 'high-performance',
+        enableAdvancedEffects: true
+      }
+    }
+    
+    // ✅ CHROME/FIREFOX RÉCENT: Configuration standard
+    if (browserCaps.performanceLevel === 'standard' && !isLowEnd) {
+      return {
+        useWebGL: webglLevel !== 'none',
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+        antialias: false, // OFF pour autres navigateurs
+        powerPreference: 'default',
+        enableAdvancedEffects: false
+      }
+    }
+    
+    // 📱 MOBILE/VIEUX: CSS Fallback
+    return {
+      useWebGL: false,
+      pixelRatio: 1,
+      antialias: false,
+      powerPreference: 'low-power',
+      enableAdvancedEffects: false
+    }
   }
 }
 
