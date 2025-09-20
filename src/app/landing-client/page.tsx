@@ -12,7 +12,22 @@ const useMotionValueLazy = () => import('framer-motion').then(m => m.useMotionVa
 const useAnimationFrameLazy = () => import('framer-motion').then(m => m.useAnimationFrame)
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
-import Silk from '@/components/backgrounds/Silk'
+import dynamic from 'next/dynamic'
+
+// 🎯 CHARGEMENT DYNAMIQUE SILK - RÉSOUT SSR + COMPATIBILITÉ
+const Silk = dynamic(() => import('@/components/backgrounds/Silk'), { 
+  ssr: false,
+  loading: () => (
+    <div 
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1829 100%)',
+        opacity: 0.8
+      }}
+    />
+  )
+})
 import { WebGLDetector, createCSSFallbackBackground, injectFallbackCSS } from '@/utils/webgl-detector'
 import { usePerformanceManager } from '@/utils/performance-manager'
 import { useResourcePreloader } from '@/utils/resource-preloader'
