@@ -74,24 +74,39 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1, 
     return () => cleanupResources()
   }, [cleanupResources])
   
-  // 🔄 ROTATION LENTE CONTINUE
+  // 🔄 ROTATION LENTE CONTINUE + 👁️ CLIGNEMENTS OPTIMISÉS (RAF unique)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setRotation(prev => prev + 0.1)
-    }, 50)
-    return () => clearInterval(interval)
-  }, [])
-
-  // 👁️ CLIGNEMENTS NATURELS
-  useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      setIsBlinking(true)
-      const timer = setTimeout(() => setIsBlinking(false), 150)
-      activeTimers.current.add(timer)
-    }, 2000 + Math.random() * 3000)
-    activeIntervals.current.add(blinkInterval)
-    return () => clearInterval(blinkInterval)
-  }, []) // Supprimé addTimer/addInterval pour éviter boucle infinie
+    let lastRotationTime = 0
+    let lastBlinkTime = 0
+    let nextBlinkDelay = 2000 + Math.random() * 3000
+    
+    const animate = (currentTime: number) => {
+      // Rotation toutes les 50ms (même vitesse visuelle)
+      if (currentTime - lastRotationTime > 50) {
+        setRotation(prev => prev + 0.1)
+        lastRotationTime = currentTime
+      }
+      
+      // Clignement probabiliste (même comportement visuel)
+      if (currentTime - lastBlinkTime > nextBlinkDelay) {
+        setIsBlinking(true)
+        const blinkTimer = addTimer(setTimeout(() => setIsBlinking(false), 150))
+        lastBlinkTime = currentTime
+        nextBlinkDelay = 2000 + Math.random() * 3000 // Nouveau délai aléatoire
+      }
+      
+      animationFrameRef.current = requestAnimationFrame(animate)
+    }
+    
+    animationFrameRef.current = requestAnimationFrame(animate)
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current)
+        animationFrameRef.current = null
+      }
+    }
+  }, [addTimer])
 
 
   // 👁️ MOUVEMENT DES YEUX RÉALISTE - OBSERVATION DE L'ENVIRONNEMENT

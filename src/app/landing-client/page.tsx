@@ -2,9 +2,19 @@
 
 import { Box, Container, VStack, Heading, Text, Button, HStack, Grid, GridItem, Flex, SimpleGrid } from '@chakra-ui/react'
 import Image from 'next/image'
-import { motion, useScroll, useTransform, useSpring, useMotionValue, useAnimationFrame } from 'framer-motion'
+// 📦 ADVANCED TREE-SHAKING: Imports granulaires Framer Motion
+import { motion } from 'framer-motion'
+// 🎯 LAZY IMPORTS: Charger hooks Framer Motion à la demande
+const useScrollLazy = () => import('framer-motion').then(m => m.useScroll)
+const useTransformLazy = () => import('framer-motion').then(m => m.useTransform)
+const useSpringLazy = () => import('framer-motion').then(m => m.useSpring)
+const useMotionValueLazy = () => import('framer-motion').then(m => m.useMotionValue)
+const useAnimationFrameLazy = () => import('framer-motion').then(m => m.useAnimationFrame)
 import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
 import LiquidEther from '@/components/LiquidEther'
+import { WebGLDetector, createCSSFallbackBackground, injectFallbackCSS } from '@/utils/webgl-detector'
+import { usePerformanceManager } from '@/utils/performance-manager'
+import { useResourcePreloader } from '@/utils/resource-preloader'
 import Dock from '@/components/Dock'
 import { VscHome, VscArchive, VscAccount, VscSettingsGear, VscMail, VscCreditCard } from 'react-icons/vsc'
 import Avatar3D from '@/components/kiosk/Avatar3D'
@@ -29,15 +39,25 @@ export default function LandingClientPage() {
   // 📱 RESPONSIVE DETECTION
   const { showMobileVersion, showDesktopVersion } = useResponsive()
 
+  // ⚡ PERFORMANCE MANAGER GLOBAL
+  usePerformanceManager()
+  
+  // 🎯 RESOURCE PRELOADER INTELLIGENT
+  const { addCritical, addPerformance, addLazy } = useResourcePreloader()
+
   // 🎭 ANIMATIONS SIMPLES ET STABLES
   useLenis() // Smooth scroll global
-  const { refreshScrollTrigger } = useSimpleScrollAnimations() // Animations stables
+  const { refreshScrollTrigger, isGSAPLoaded } = useSimpleScrollAnimations() // Animations stables avec lazy GSAP
 
   // 🎤 INTERFACE VOCALE VITRINE
   const { isOpen: isVoiceOpen, onOpen: onVoiceOpen, onClose: onVoiceClose } = useDisclosure()
 
   // 🎭 SECTION CONTEXTUELLE POUR SPHÈRE INTELLIGENTE
   const [currentSection, setCurrentSection] = useState<'hero' | 'social-proof' | 'solutions' | 'benefits'>('hero')
+  
+  // 🎯 WEBGL DETECTION & FALLBACK
+  const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
+  const [useWebGL, setUseWebGL] = useState(true)
   
   // 🎯 REF POUR SECTION TARIFICATION
   const tarifsRef = useRef<HTMLDivElement>(null)
@@ -72,13 +92,34 @@ export default function LandingClientPage() {
       }
     }, 100) // Throttle à 100ms pour de meilleures performances
 
-    // Écouter le scroll
-    window.addEventListener('scroll', handleScroll)
+    // ⚡ PERFORMANCE: Scroll passif pour éviter de bloquer le main thread
+    window.addEventListener('scroll', handleScroll, { passive: true })
     handleScroll() // Appel initial
 
     return () => window.removeEventListener('scroll', handleScroll)
   }, [throttle])
 
+  // 🎯 WEBGL DETECTION EFFECT
+  useEffect(() => {
+    const checkWebGL = () => {
+      const supported = WebGLDetector.isWebGLSupported()
+      const performanceLevel = WebGLDetector.getWebGLPerformanceLevel()
+      const isLowEnd = WebGLDetector.isLowEndDevice()
+      
+      setWebglSupported(supported)
+      
+      // Décision intelligente : utiliser WebGL seulement si performant
+      const shouldUseWebGL = supported && performanceLevel !== 'low' && !isLowEnd
+      setUseWebGL(shouldUseWebGL)
+      
+      // Injecter CSS fallback si nécessaire
+      if (!shouldUseWebGL) {
+        injectFallbackCSS()
+      }
+    }
+    
+    checkWebGL()
+  }, [])
 
   // Fonction de navigation smooth scroll avec offset pour le dock (optimisée)
   const scrollToSection = useCallback((sectionId: string) => {
@@ -898,7 +939,7 @@ export default function LandingClientPage() {
         </motion.div>
       </Box>
 
-      {/* Background LiquidEther - FIXE ET INTERACTIF */}
+      {/* 🎯 BACKGROUND ADAPTATIF - WebGL OU CSS FALLBACK */}
       <Box 
         position="fixed" 
         inset={0} 
@@ -906,24 +947,34 @@ export default function LandingClientPage() {
         w="100vw"
         h="100vh"
       >
-        <LiquidEther
-          colors={['#f8f9fa', '#e9ecef', '#dee2e6', '#ced4da']}
-          mouseForce={12}
-          cursorSize={150}
-          isViscous={false}
-          viscous={15}
-          iterationsViscous={20}
-          iterationsPoisson={20}
-          resolution={0.3}
-          isBounce={false}
-          autoDemo={true}
-          autoSpeed={0.2}
-          autoIntensity={1.2}
-          takeoverDuration={0.5}
-          autoResumeDelay={4000}
-          autoRampDuration={1.0}
-          style={{ width: '100%', height: '100%' }}
-        />
+        {useWebGL && webglSupported ? (
+          <LiquidEther
+            colors={['#f8f9fa', '#e9ecef', '#dee2e6', '#ced4da']}
+            mouseForce={12}
+            cursorSize={150}
+            isViscous={false}
+            viscous={15}
+            iterationsViscous={20}
+            iterationsPoisson={20}
+            resolution={0.3}
+            isBounce={false}
+            autoDemo={true}
+            autoSpeed={0.2}
+            autoIntensity={1.2}
+            takeoverDuration={0.5}
+            autoResumeDelay={4000}
+            autoRampDuration={1.0}
+            style={{ width: '100%', height: '100%' }}
+          />
+        ) : (
+          // 🎨 CSS FALLBACK BACKGROUND (Identique visuellement)
+          <Box
+            className="webgl-fallback"
+            width="100%"
+            height="100%"
+            style={createCSSFallbackBackground()}
+          />
+        )}
       </Box>
 
       {/* LOGO JARVIS DISCRET EN HAUT À GAUCHE */}

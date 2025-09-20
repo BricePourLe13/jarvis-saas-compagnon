@@ -1,19 +1,69 @@
 "use client"
 
-import { useEffect, useRef } from 'react'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useEffect, useRef, useState } from 'react'
 
-// Enregistrer le plugin ScrollTrigger
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger)
+// 📦 DYNAMIC GSAP IMPORTS - Chargement à la demande
+type GSAPType = typeof import('gsap').gsap
+type ScrollTriggerType = typeof import('gsap/ScrollTrigger').ScrollTrigger
+
+interface GSAPModules {
+  gsap: GSAPType
+  ScrollTrigger: ScrollTriggerType
 }
 
 export function useSimpleScrollAnimations() {
   const animationsInitialized = useRef(false)
+  const [gsapModules, setGsapModules] = useState<GSAPModules | null>(null)
+
+  // 🎯 LAZY LOAD GSAP au premier scroll
+  useEffect(() => {
+    let isScrolled = false
+    
+    const loadGSAP = async () => {
+      if (isScrolled || gsapModules) return
+      
+      try {
+        // Import dynamique de GSAP
+        const [gsapModule, scrollTriggerModule] = await Promise.all([
+          import('gsap'),
+          import('gsap/ScrollTrigger')
+        ])
+        
+        // Enregistrer plugin
+        gsapModule.gsap.registerPlugin(scrollTriggerModule.ScrollTrigger)
+        
+        setGsapModules({
+          gsap: gsapModule.gsap,
+          ScrollTrigger: scrollTriggerModule.ScrollTrigger
+        })
+        
+        isScrolled = true
+      } catch (error) {
+        console.warn('GSAP loading failed, animations disabled:', error)
+      }
+    }
+    
+    // Charger GSAP au premier scroll
+    const handleFirstScroll = () => {
+      loadGSAP()
+      window.removeEventListener('scroll', handleFirstScroll)
+    }
+    
+    // Ou après 2s si pas de scroll
+    const fallbackTimer = setTimeout(loadGSAP, 2000)
+    
+    window.addEventListener('scroll', handleFirstScroll, { passive: true, once: true })
+    
+    return () => {
+      window.removeEventListener('scroll', handleFirstScroll)
+      clearTimeout(fallbackTimer)
+    }
+  }, [gsapModules])
 
   useEffect(() => {
-    if (animationsInitialized.current || typeof window === 'undefined') return
+    if (animationsInitialized.current || typeof window === 'undefined' || !gsapModules) return
+
+    const { gsap, ScrollTrigger } = gsapModules
 
     try {
       // Configuration GSAP simple
@@ -142,15 +192,18 @@ export function useSimpleScrollAnimations() {
         console.error('Erreur nettoyage GSAP:', error)
       }
     }
-  }, [])
+  }, [gsapModules])
 
   return { 
     refreshScrollTrigger: () => {
       try {
-        ScrollTrigger.refresh()
+        if (gsapModules?.ScrollTrigger) {
+          gsapModules.ScrollTrigger.refresh()
+        }
       } catch (error) {
         console.error('Erreur refresh ScrollTrigger:', error)
       }
-    }
+    },
+    isGSAPLoaded: !!gsapModules
   }
 }
