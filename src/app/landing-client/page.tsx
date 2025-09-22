@@ -128,38 +128,46 @@ export default function LandingClientOptimizedPage() {
 
   // 🎯 DATA DEFINITIONS
 
-  // Navigation items optimisée
-  const dockItems = [
+  // Navigation items pour FloatingDock (Desktop - JSX)
+  const dockItemsDesktop = [
     {
       title: "Accueil",
-      icon: <VscHome className="h-full w-full text-white/80 hover:text-white transition-colors" />,
+      icon: <VscHome className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
       href: "#hero",
     },
     {
       title: "Problème",
-      icon: <VscWarning className="h-full w-full text-white/80 hover:text-white transition-colors" />,
+      icon: <VscWarning className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
       href: "#problems",
     },
     {
       title: "Solution",
-      icon: <VscRobot className="h-full w-full text-white/80 hover:text-white transition-colors" />,
+      icon: <VscRobot className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
       href: "#solution",
     },
     {
       title: "Process",
-      icon: <VscGear className="h-full w-full text-white/80 hover:text-white transition-colors" />,
+      icon: <VscGear className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
       href: "#process",
     },
     {
       title: "Résultats",
-      icon: <VscGraph className="h-full w-full text-white/80 hover:text-white transition-colors" />,
+      icon: <VscGraph className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
       href: "#results",
     },
     {
       title: "Contact",
-      icon: <VscMail className="h-full w-full text-white/80 hover:text-white transition-colors" />,
+      icon: <VscMail className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
       href: "#contact",
     }
+  ];
+
+  // Navigation items pour Mobile (Composants)
+  const dockItemsMobile = [
+    { title: "Accueil", icon: VscHome, href: "#hero" },
+    { title: "Problème", icon: VscWarning, href: "#problems" },
+    { title: "Solution", icon: VscRobot, href: "#solution" },
+    { title: "Contact", icon: VscMail, href: "#contact" }
   ];
 
   // Hero words pour FlipWords
@@ -296,15 +304,37 @@ export default function LandingClientOptimizedPage() {
       />
 
       {/* 🎯 FLOATING NAVIGATION */}
-      <FloatingDock
-        items={dockItems}
-        desktopClassName="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40"
-        mobileClassName="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40"
-      />
+      {/* Desktop: FloatingDock normal */}
+      <div className="hidden lg:block">
+            <FloatingDock
+              items={dockItemsDesktop}
+          desktopClassName="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40"
+        />
+      </div>
+      
+      {/* Mobile: Dock horizontal compact */}
+      <div className="lg:hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
+        <div className="flex items-center space-x-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-full px-4 py-2">
+          {dockItemsMobile.map((item) => (
+            <motion.button
+              key={item.title}
+              onClick={() => {
+                const element = document.getElementById(item.href.slice(1));
+                element?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <item.icon className="w-4 h-4 text-white" />
+            </motion.button>
+          ))}
+        </div>
+      </div>
 
       {/* 🎯 SECTION 1: HERO IMPACT */}
-      <section id="hero" className="relative min-h-screen flex items-center pt-20">
-        <div className="w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+      <section id="hero" className="relative min-h-screen lg:min-h-screen flex items-center pt-20 pb-20 lg:pb-0">
+        <div className="w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-12 items-center">
           
           {/* Hero Content */}
           <motion.div
@@ -382,7 +412,7 @@ export default function LandingClientOptimizedPage() {
 
           {/* Hero Visual */}
           {/* CONTAINER PROPRE SANS TRANSFORMS PARASITES */}
-          <div className="relative flex justify-center order-first lg:order-last">
+          <div className="relative flex justify-center order-last lg:order-last pt-8 lg:pt-0">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -444,14 +474,16 @@ export default function LandingClientOptimizedPage() {
                     whileTap={!isVoiceActive ? { scale: 0.98 } : {}}
                   >
                     {/* Container de la sphère avec dimensions responsives */}
-                    <div className="w-80 h-80 md:w-[480px] md:h-[480px] flex items-center justify-center relative">
-                      <Avatar3D 
-                        size={480}
+                    <div className="w-72 h-72 md:w-[480px] md:h-[480px] flex items-center justify-center relative">
+                      <div className="scale-90 md:scale-100">
+                        <Avatar3D 
+                          size={480} // Taille originale, scale CSS pour mobile
                         currentSection="hero" 
                         status={voiceStatus === 'speaking' ? 'speaking' : 
                                voiceStatus === 'listening' ? 'listening' : 
                                voiceStatus === 'connecting' ? 'connecting' : 'idle'} 
                       />
+                      </div>
                       
                       {/* Effet de lueur parfaitement centré */}
                       <motion.div
