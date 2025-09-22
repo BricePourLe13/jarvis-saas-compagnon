@@ -475,7 +475,7 @@ export default function LandingClientOptimizedPage() {
                   >
                     {/* Container de la sphère avec dimensions responsives */}
                     <div className="w-72 h-72 md:w-[480px] md:h-[480px] flex items-center justify-center relative">
-                      <div className="scale-90 md:scale-100">
+                      <div className="scale-75 md:scale-100">
                         <Avatar3D 
                           size={480} // Taille originale, scale CSS pour mobile
                         currentSection="hero" 
