@@ -25,7 +25,7 @@ import {
   VscMail, 
   VscPlay,
   VscShield,
-  VscStar,
+  VscHeart,
   VscGear,
   VscArrowUp,
   VscPieChart
@@ -102,9 +102,9 @@ export default function LandingClientAceternityPage() {
     {
       title: "ROI Prouvé",
       description: "Augmentation mesurable de la satisfaction client et réduction du churn.",
-      header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 items-center justify-center"><VscStar className="h-12 w-12 text-yellow-400" /></div>,
+      header: <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 items-center justify-center"><VscHeart className="h-12 w-12 text-yellow-400" /></div>,
       className: "md:col-span-2",
-      icon: <VscStar className="h-4 w-4 text-neutral-300" />,
+      icon: <VscHeart className="h-4 w-4 text-neutral-300" />,
     },
   ];
 
