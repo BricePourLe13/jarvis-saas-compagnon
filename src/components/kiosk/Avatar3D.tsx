@@ -433,7 +433,14 @@ export default function Avatar3D({ status, size = 450, className, eyeScale = 1, 
   return (
     <div 
       className={`relative ${className}`}
-      style={{ width: size, height: size }}
+      style={{ 
+        width: size, 
+        height: size,
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
       suppressHydrationWarning
     >
       {/* 🔮 SPHÈRE TRANSLUCIDE RÉALISTE AVEC EFFET MARBRÉ */}

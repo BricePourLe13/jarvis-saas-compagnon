@@ -14,6 +14,7 @@ import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
 // 🎯 BUSINESS COMPONENTS
 import Avatar3D from "@/components/kiosk/Avatar3D";
 import VoiceVitrineInterface from "@/components/vitrine/VoiceVitrineInterface";
+import { useVoiceVitrineChat } from "@/hooks/useVoiceVitrineChat";
 
 // 🎯 ICONS
 import { 
@@ -49,9 +50,81 @@ const useInView = (threshold = 0.1) => {
 
 export default function LandingClientOptimizedPage() {
   // 🎯 STATE
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  
+  // 🎤 VOICE INTEGRATION STATE
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'>('idle');
+  const [voiceTranscript, setVoiceTranscript] = useState('');
+  const [voiceTimeRemaining, setVoiceTimeRemaining] = useState(120);
+  
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
+
+  // 🎤 VOICE CHAT HOOK
+  const {
+    connect: connectVoice,
+    disconnect: disconnectVoice,
+    isConnected: isVoiceConnected,
+    error: voiceError,
+    currentTranscript,
+    isAISpeaking
+  } = useVoiceVitrineChat({
+    onStatusChange: setVoiceStatus,
+    onTranscriptUpdate: setVoiceTranscript,
+    maxDuration: 120
+  });
+
+  // 🎤 VOICE FUNCTIONS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleStartVoice = async () => {
+    try {
+      setIsVoiceActive(true);
+      setVoiceStatus('connecting');
+      await connectVoice();
+      setVoiceStatus('connected');
+      
+      // Timer de démo
+      const timer = setInterval(() => {
+        setVoiceTimeRemaining(prev => {
+          if (prev <= 1) {
+            handleEndVoice();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      // Stocker le timer pour le nettoyer
+      (window as any).voiceTimer = timer;
+    } catch (error) {
+      console.error('Erreur connexion vocale:', error);
+      setVoiceStatus('error');
+    }
+  };
+
+  const handleEndVoice = async () => {
+    try {
+      await disconnectVoice();
+      
+      // Nettoyage
+      if ((window as any).voiceTimer) {
+        clearInterval((window as any).voiceTimer);
+        (window as any).voiceTimer = null;
+      }
+      
+      setIsVoiceActive(false);
+      setVoiceStatus('idle');
+      setVoiceTranscript('');
+      setVoiceTimeRemaining(120);
+    } catch (error) {
+      console.error('Erreur déconnexion vocale:', error);
+    }
+  };
 
   // 🎯 DATA DEFINITIONS
 
@@ -59,32 +132,32 @@ export default function LandingClientOptimizedPage() {
   const dockItems = [
     {
       title: "Accueil",
-      icon: <VscHome className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscHome className="h-full w-full text-white/80 hover:text-white transition-colors" />,
       href: "#hero",
     },
     {
       title: "Problème",
-      icon: <VscWarning className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscWarning className="h-full w-full text-white/80 hover:text-white transition-colors" />,
       href: "#problems",
     },
     {
       title: "Solution",
-      icon: <VscRobot className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscRobot className="h-full w-full text-white/80 hover:text-white transition-colors" />,
       href: "#solution",
     },
     {
       title: "Process",
-      icon: <VscGear className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscGear className="h-full w-full text-white/80 hover:text-white transition-colors" />,
       href: "#process",
     },
     {
       title: "Résultats",
-      icon: <VscGraph className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscGraph className="h-full w-full text-white/80 hover:text-white transition-colors" />,
       href: "#results",
     },
     {
       title: "Contact",
-      icon: <VscMail className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscMail className="h-full w-full text-white/80 hover:text-white transition-colors" />,
       href: "#contact",
     }
   ];
@@ -251,7 +324,7 @@ export default function LandingClientOptimizedPage() {
                 🚀 Révolution IA pour salles de sport
               </motion.div>
               
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-neutral-600 dark:text-neutral-400">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
                 Une IA{" "}
                 <FlipWords words={heroWords} className="text-white" duration={3000} />
                 <br />
@@ -283,29 +356,7 @@ export default function LandingClientOptimizedPage() {
               <span className="text-sm font-medium text-white">Recherche partenaires pilotes</span>
             </motion.div>
 
-            {/* CTA Principal */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-              className="space-y-4"
-            >
-              <motion.button
-                onClick={() => setIsVoiceModalOpen(true)}
-                className="group relative w-full sm:w-auto px-8 py-4 bg-white text-black rounded-xl font-semibold text-lg hover:bg-neutral-100 transition-all duration-300 shadow-lg hover:shadow-xl"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="relative z-10">
-                  Voir JARVIS en action
-                </span>
-                <div className="text-sm text-neutral-600 mt-1">3 minutes • Démonstration live</div>
-              </motion.button>
-              
-              <p className="text-sm text-neutral-500 text-center sm:text-left">
-                🚀 Test MVP gratuit • 🤝 Partenariat pilote • 📊 Validation concept
-              </p>
-            </motion.div>
+            {/* CTA supprimé - Interface vocale maintenant intégrée à la sphère */}
 
             {/* Proof Points Subtils */}
             <motion.div
@@ -319,7 +370,7 @@ export default function LandingClientOptimizedPage() {
                 <div className="text-xs text-neutral-500">churn</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-white">6 mois</div>
+                <div className="text-lg font-bold text-white">1 mois</div>
                 <div className="text-xs text-neutral-500">ROI</div>
               </div>
               <div className="text-center">
@@ -330,32 +381,133 @@ export default function LandingClientOptimizedPage() {
           </motion.div>
 
           {/* Hero Visual */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, x: 30 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            transition={{ duration: 1, delay: 0.3 }}
-            className="relative flex justify-center order-first lg:order-last"
-            style={{ y }}
-          >
-            <div className="relative w-64 h-64 md:w-80 md:h-80 lg:w-96 lg:h-96">
-              <Avatar3D currentSection="hero" status="idle" />
+          {/* CONTAINER PROPRE SANS TRANSFORMS PARASITES */}
+          <div className="relative flex justify-center order-first lg:order-last">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.3 }}
+              className="flex flex-col items-center space-y-6"
+            >
               
-              {/* Effet de lueur optimisé */}
-              <motion.div
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-green-500/20 blur-3xl"
-                animate={{
-                  scale: [1, 1.1, 1],
-                  opacity: [0.3, 0.6, 0.3] 
-                }}
-                transition={{
-                  duration: 6, 
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
+              {/* 🎯 INTERFACE VOCALE REFONTE COMPLÈTE */}
+              <div className="relative">
+                {/* Container principal centré */}
+                <div className="flex flex-col items-center justify-center space-y-8">
+                  
+                  {/* Texte d'instruction (au dessus) */}
+                  {!isVoiceActive && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="text-center"
+                    >
+                      <motion.p 
+                        className="text-white/90 text-lg font-medium px-6 py-3 bg-white/5 backdrop-blur-sm rounded-full border border-white/10"
+                        animate={{ 
+                          opacity: [0.8, 1, 0.8],
+                          scale: [1, 1.02, 1]
+                        }}
+                        transition={{ 
+                          duration: 3, 
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        👇 Cliquez pour parler à JARVIS
+                      </motion.p>
+                    </motion.div>
+                  )}
 
-            </div>
-          </motion.div>
+                  {/* Timer (quand actif) */}
+                  {isVoiceActive && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-center"
+                    >
+                      <div className="text-red-400 font-bold text-2xl">
+                        {formatTime(voiceTimeRemaining)}
+                      </div>
+                      <div className="text-sm text-neutral-400 mt-1">
+                        Démo gratuite • Session temporaire
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {/* SPHÈRE JARVIS - Container parfaitement centré */}
+                  <motion.div 
+                    className="relative cursor-pointer"
+                    onClick={!isVoiceActive ? handleStartVoice : undefined}
+                    whileHover={!isVoiceActive ? { scale: 1.02 } : {}}
+                    whileTap={!isVoiceActive ? { scale: 0.98 } : {}}
+                  >
+                    {/* Container de la sphère avec dimensions responsives */}
+                    <div className="w-80 h-80 md:w-[480px] md:h-[480px] flex items-center justify-center relative">
+                      <Avatar3D 
+                        size={480}
+                        currentSection="hero" 
+                        status={voiceStatus === 'speaking' ? 'speaking' : 
+                               voiceStatus === 'listening' ? 'listening' : 
+                               voiceStatus === 'connecting' ? 'connecting' : 'idle'} 
+                      />
+                      
+                      {/* Effet de lueur parfaitement centré */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-green-500/20 blur-3xl"
+                        animate={{
+                          scale: [1, 1.1, 1],
+                          opacity: [0.3, 0.6, 0.3] 
+                        }}
+                        transition={{
+                          duration: 6, 
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+
+                  {/* Status et contrôles (en dessous, parfaitement centrés) */}
+                  {isVoiceActive && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col items-center space-y-4"
+                    >
+                      {/* Status text */}
+                      <div className="text-center">
+                        <p className="text-white text-lg font-medium bg-black/60 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20">
+                          {voiceStatus === 'connecting' ? '⚡ Connexion...' :
+                           voiceStatus === 'listening' ? '🎤 JARVIS vous écoute' :
+                           voiceStatus === 'speaking' ? '🗣️ JARVIS répond' :
+                           '✨ Session active'}
+                        </p>
+                      </div>
+                      
+                      {/* Bouton terminer */}
+                      <button
+                        onClick={handleEndVoice}
+                        className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
+                      >
+                        Terminer
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              {/* Transcript - En dessous si nécessaire */}
+              {isVoiceActive && voiceTranscript && (
+                <div className="max-w-md w-full">
+                  <div className="bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+                    <p className="text-white text-sm text-center">{voiceTranscript}</p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -1052,10 +1204,7 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* Voice Interface Modal */}
-      <VoiceVitrineInterface 
-        isOpen={isVoiceModalOpen}
-        onClose={() => setIsVoiceModalOpen(false)}
-      />
+      {/* Ancienne interface modale supprimée - Maintenant intégrée dans le hero */}
     </div>
   );
 }
