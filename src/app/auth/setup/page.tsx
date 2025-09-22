@@ -305,9 +305,15 @@ function SetupContent() {
         duration: 3000,
       })
 
-      // Redirection vers le nouveau dashboard unifié
+      // Redirection selon le rôle
       setTimeout(() => {
-        router.push('/dashboard')
+        if (userInfo?.role === 'super_admin' || userInfo?.role === 'franchise_owner') {
+          router.push('/admin')
+        } else if (userInfo?.role === 'gym_manager' || userInfo?.role === 'gym_staff') {
+          router.push('/franchise')
+        } else {
+          router.push('/admin') // Fallback vers admin
+        }
       }, 2000)
 
     } catch (error) {

@@ -55,7 +55,11 @@ export function useVoiceVitrineChat({
       throw new Error(`Erreur session: ${response.status}`)
     }
 
-    return await response.json()
+    const sessionData = await response.json()
+    console.log('✅ Session créée:', sessionData)
+    console.log('🔍 Structure session:', JSON.stringify(sessionData.session, null, 2))
+    console.log('🔍 client_secret:', sessionData.session?.client_secret)
+    return sessionData
   }, [])
 
   // Initialiser WebRTC
@@ -69,6 +73,7 @@ export function useVoiceVitrineChat({
       // Créer session démo
       const sessionResponse = await createDemoSession()
       const session = sessionResponse.session
+      console.log('🔍 Session utilisée:', session)
       
       // Configurer peer connection
       const pc = new RTCPeerConnection({
@@ -76,15 +81,19 @@ export function useVoiceVitrineChat({
       })
       peerConnectionRef.current = pc
 
-      // Configurer audio output
-      const audioElement = document.createElement('audio')
-      audioElement.autoplay = true
-      audioElement.playsInline = true
-      audioElementRef.current = audioElement
-      
+      // Créer l'élément audio pour le playback (COMME LE KIOSK)
+      if (!audioElementRef.current) {
+        const audioEl = document.createElement('audio')
+        audioEl.autoplay = true
+        audioElementRef.current = audioEl
+      }
+
+      // Gérer l'audio entrant (réponses de JARVIS) - COMME LE KIOSK
       pc.ontrack = (event) => {
-        if (audioElement) {
-          audioElement.srcObject = event.streams[0]
+        console.log('🔊 Audio entrant reçu (style kiosk)')
+        if (audioElementRef.current && event.streams[0]) {
+          audioElementRef.current.srcObject = event.streams[0]
+          console.log('✅ Audio srcObject défini')
         }
       }
 
@@ -94,7 +103,11 @@ export function useVoiceVitrineChat({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true
+            autoGainControl: true,
+            sampleRate: 24000, // Qualité HD pour meilleur rendu
+            channelCount: 1,
+            latency: 0.01, // Faible latence
+            volume: 1.0
           }
         })
         
@@ -115,13 +128,12 @@ export function useVoiceVitrineChat({
         updateStatus('connected')
         sessionStartTimeRef.current = Date.now()
         
-        // Configuration de session
+        // Configuration de session (format BETA comme le kiosk)
         dc.send(JSON.stringify({
           type: 'session.update',
           session: {
-            type: "realtime",
-            instructions: session.session.instructions,
-            output_modalities: ["audio", "text"]
+            voice: "echo",
+            instructions: "Tu es JARVIS, l'assistant IA commercial expert. Garde tes réponses courtes et vendeuses pour le programme pilote."
           }
         }))
       }
@@ -150,10 +162,19 @@ export function useVoiceVitrineChat({
               setIsAISpeaking(false)
               break
               
+            case 'response.audio.delta':
+              console.log('🎤 Chunk audio reçu de JARVIS')
+              // Audio chunks from BETA API - traitement immédiat
+              break
+              
             case 'conversation.item.input_audio_transcription.completed':
               if (message.transcript) {
                 updateTranscript(message.transcript)
               }
+              break
+              
+            case 'response.output_text.delta':
+              // Text chunks from GA API
               break
               
             case 'error':
@@ -183,13 +204,16 @@ export function useVoiceVitrineChat({
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      // Envoyer à OpenAI (format kiosk)
-      const realtimeResponse = await fetch(`https://api.openai.com/v1/realtime?model=gpt-4o-mini-realtime-preview-2024-12-17`, {
+      // Envoyer à OpenAI (format BETA comme le kiosk)
+      const ephemeralKey = session.client_secret.value
+      console.log('🔑 Token utilisé:', ephemeralKey?.substring(0, 20) + '...')
+      const realtimeResponse = await fetch(`https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`, {
         method: 'POST',
         body: offer.sdp,
         headers: {
-          'Authorization': `Bearer ${session.client_secret}`,
-          'Content-Type': 'application/sdp'
+          'Authorization': `Bearer ${ephemeralKey}`,
+          'Content-Type': 'application/sdp',
+          'OpenAI-Beta': 'realtime=v1'
         },
       })
 
@@ -260,9 +284,13 @@ export function useVoiceVitrineChat({
         peerConnectionRef.current = null
       }
 
-      // Arrêter audio
+      // Arrêter audio et nettoyer DOM
       if (audioElementRef.current) {
         audioElementRef.current.srcObject = null
+        // Retirer du DOM
+        if (audioElementRef.current.parentNode) {
+          audioElementRef.current.parentNode.removeChild(audioElementRef.current)
+        }
         audioElementRef.current = null
       }
 

@@ -118,3 +118,4 @@ const SilkCSS: React.FC<SilkCSSProps> = ({
 };
 
 export default SilkCSS;
+

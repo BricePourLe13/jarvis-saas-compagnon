@@ -197,3 +197,5 @@ export const useOptimizedInterval = (
 ) => {
   return performanceManager.useOptimizedInterval(callback, delay, deps)
 }
+
+

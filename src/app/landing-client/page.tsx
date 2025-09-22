@@ -1,2526 +1,1061 @@
-"use client"
+"use client";
 
-import { Box, Container, VStack, Heading, Text, Button, HStack, Grid, GridItem, Flex, SimpleGrid } from '@chakra-ui/react'
-import Image from 'next/image'
-// 📦 ADVANCED TREE-SHAKING: Imports granulaires Framer Motion
-import { motion } from 'framer-motion'
-// 🎯 LAZY IMPORTS: Charger hooks Framer Motion à la demande
-const useScrollLazy = () => import('framer-motion').then(m => m.useScroll)
-const useTransformLazy = () => import('framer-motion').then(m => m.useTransform)
-const useSpringLazy = () => import('framer-motion').then(m => m.useSpring)
-const useMotionValueLazy = () => import('framer-motion').then(m => m.useMotionValue)
-const useAnimationFrameLazy = () => import('framer-motion').then(m => m.useAnimationFrame)
-import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react'
-import LiquidEther from '@/components/LiquidEther'
-import dynamic from 'next/dynamic'
+import React, { useState, useEffect } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import Image from "next/image";
 
-// 🎯 CHARGEMENT DYNAMIQUE SILK - RÉSOUT SSR + COMPATIBILITÉ
-const Silk = dynamic(() => import('@/components/backgrounds/Silk'), { 
-  ssr: false,
-  loading: () => (
-    <div 
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1829 100%)',
-        opacity: 0.8
-      }}
-    />
-  )
-})
-import { WebGLDetector, createCSSFallbackBackground, injectFallbackCSS } from '@/utils/webgl-detector'
-import { usePerformanceManager } from '@/utils/performance-manager'
-import { useResourcePreloader } from '@/utils/resource-preloader'
-import Dock from '@/components/Dock'
-import { VscHome, VscArchive, VscAccount, VscSettingsGear, VscMail, VscCreditCard } from 'react-icons/vsc'
-import Avatar3D from '@/components/kiosk/Avatar3D'
-import CardSwap, { Card } from '@/components/CardSwap'
-import TiltedCard from '@/components/TiltedCard'
-import { useResponsive } from '@/hooks/useResponsive'
-import { useLenis } from '@/hooks/useLenis'
-import { useSimpleScrollAnimations } from '@/hooks/useSimpleScrollAnimations'
-import PricingSection from '@/components/pricing/PricingSection'
-import VoiceVitrineInterface from '@/components/vitrine/VoiceVitrineInterface'
-import { useDisclosure } from '@chakra-ui/react'
+// 🎯 ACETERNITY UI COMPONENTS (Optimisés)
+import { ShootingStars } from "@/components/ui/shooting-stars";
+import { StarsBackground } from "@/components/ui/stars-background";
+import { FlipWords } from "@/components/ui/flip-words";
+import { FloatingDock } from "@/components/ui/floating-dock";
+import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
 
-// Lazy loading des composants lourds pour optimiser les performances
-const LazyTiltedCard = lazy(() => import('@/components/TiltedCard'))
-const LazyCardSwap = lazy(() => import('@/components/CardSwap'))
+// 🎯 BUSINESS COMPONENTS
+import Avatar3D from "@/components/kiosk/Avatar3D";
+import VoiceVitrineInterface from "@/components/vitrine/VoiceVitrineInterface";
 
-// Mobile version inline - plus d'import externe
+// 🎯 ICONS
+import { 
+  VscHome, 
+  VscRobot, 
+  VscGraph, 
+  VscMail, 
+  VscPlay,
+  VscShield,
+  VscHeart,
+  VscGear,
+  VscWarning,
+  VscChromeMinimize,
+  VscCheckAll
+} from 'react-icons/vsc';
 
-// Page client-only pour la landing page
+// 🎯 CUSTOM HOOK FOR PERFORMANCE
+const useInView = (threshold = 0.1) => {
+  const [inView, setInView] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
 
-export default function LandingClientPage() {
-  // 📱 RESPONSIVE DETECTION
-  const { showMobileVersion, showDesktopVersion } = useResponsive()
-
-  // ⚡ PERFORMANCE MANAGER GLOBAL
-  usePerformanceManager()
-  
-  // 🎯 RESOURCE PRELOADER INTELLIGENT
-  const { addCritical, addPerformance, addLazy } = useResourcePreloader()
-
-  // 🎭 ANIMATIONS SIMPLES ET STABLES
-  useLenis() // Smooth scroll global
-  const { refreshScrollTrigger, isGSAPLoaded } = useSimpleScrollAnimations() // Animations stables avec lazy GSAP
-
-  // 🎤 INTERFACE VOCALE VITRINE
-  const { isOpen: isVoiceOpen, onOpen: onVoiceOpen, onClose: onVoiceClose } = useDisclosure()
-
-  // 🎭 SECTION CONTEXTUELLE POUR SPHÈRE INTELLIGENTE
-  const [currentSection, setCurrentSection] = useState<'hero' | 'social-proof' | 'solutions' | 'benefits'>('hero')
-  
-  // 🎯 WEBGL DETECTION & FALLBACK
-  const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
-  const [useWebGL, setUseWebGL] = useState(true)
-  
-  // 🎯 REF POUR SECTION TARIFICATION
-  const tarifsRef = useRef<HTMLDivElement>(null)
-
-  // Throttle function pour optimiser les performances
-  const throttle = useCallback((func: Function, limit: number) => {
-    let inThrottle: boolean
-    return function(this: any, ...args: any[]) {
-      if (!inThrottle) {
-        func.apply(this, args)
-        inThrottle = true
-        setTimeout(() => inThrottle = false, limit)
-      }
-    }
-  }, [])
-
-  // 🎭 DÉTECTION DE SECTION POUR COMPORTEMENT CONTEXTUEL (optimisé)
   useEffect(() => {
-    const handleScroll = throttle(() => {
-      const scrollY = window.scrollY
-      const windowHeight = window.innerHeight
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold, rootMargin: '50px' }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [threshold]);
 
-      // Définir les seuils de sections basés sur la hauteur de viewport
-      if (scrollY < windowHeight * 0.8) {
-        setCurrentSection('hero')
-      } else if (scrollY < windowHeight * 1.3) {
-        setCurrentSection('social-proof')
-      } else if (scrollY < windowHeight * 2.2) {
-        setCurrentSection('solutions')
-      } else {
-        setCurrentSection('benefits')
-      }
-    }, 100) // Throttle à 100ms pour de meilleures performances
+  return [ref, inView] as const;
+};
 
-    // ⚡ PERFORMANCE: Scroll passif pour éviter de bloquer le main thread
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // Appel initial
+export default function LandingClientOptimizedPage() {
+  // 🎯 STATE
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [throttle])
+  // 🎯 DATA DEFINITIONS
 
-  // 🎯 WEBGL DETECTION EFFECT AVANCÉE
-  useEffect(() => {
-    const checkWebGL = () => {
-      const supported = WebGLDetector.isWebGLSupported()
-      const optimalConfig = WebGLDetector.getOptimalConfig()
-      const browserCaps = WebGLDetector.getBrowserCapabilities()
-      
-      setWebglSupported(supported)
-      
-      // 🔧 UTILISER LA NOUVELLE DÉTECTION OPTIMALE
-      const shouldUseWebGL = optimalConfig.useWebGL
-      setUseWebGL(shouldUseWebGL)
-      
-      // 🎯 DEBUG: Log de la décision
-      console.log('🎮 Landing WebGL Decision:', {
-        browser: browserCaps.isCanary ? 'Chrome Canary' : browserCaps.isChrome ? `Chrome ${browserCaps.version}` : 'Other',
-        performanceLevel: browserCaps.performanceLevel,
-        useWebGL: shouldUseWebGL,
-        reason: shouldUseWebGL ? 'Browser capable' : 'Using CSS fallback for performance'
-      })
-      
-      // Injecter CSS fallback si nécessaire
-      if (!shouldUseWebGL) {
-        injectFallbackCSS()
-      }
+  // Navigation items optimisée
+  const dockItems = [
+    {
+      title: "Accueil",
+      icon: <VscHome className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      href: "#hero",
+    },
+    {
+      title: "Problème",
+      icon: <VscWarning className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      href: "#problems",
+    },
+    {
+      title: "Solution",
+      icon: <VscRobot className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      href: "#solution",
+    },
+    {
+      title: "Process",
+      icon: <VscGear className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      href: "#process",
+    },
+    {
+      title: "Résultats",
+      icon: <VscGraph className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      href: "#results",
+    },
+    {
+      title: "Contact",
+      icon: <VscMail className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      href: "#contact",
     }
-    
-    checkWebGL()
-  }, [])
+  ];
 
-  // Fonction de navigation smooth scroll avec offset pour le dock (optimisée)
-  const scrollToSection = useCallback((sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const yOffset = -120; // Offset optimisé pour le dock
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+  // Hero words pour FlipWords
+  const heroWords = ["révolutionnaire", "conversationnelle", "prédictive", "personnalisée"];
+
+  // Pain points des gérants
+  const painPoints = [
+    {
+      icon: <VscWarning className="w-8 h-8 text-red-400" />,
+      title: "Churn invisible",
+      description: "30% de vos membres partent sans prévenir. Vous découvrez les problèmes trop tard.",
+      stat: "30% de churn moyen",
+      color: "red"
+    },
+    {
+      icon: <VscChromeMinimize className="w-8 h-8 text-orange-400" />,
+      title: "Staff débordé",
+      description: "Vos coachs passent 60% de leur temps sur des questions répétitives basiques.",
+      stat: "60% du temps perdu",
+      color: "orange"
+    },
+    {
+      icon: <VscGraph className="w-8 h-8 text-yellow-400" />,
+      title: "Données inexploitées", 
+      description: "Vous avez des centaines d'interactions par jour, mais aucun insight actionnable.",
+      stat: "0% d'analytics comportementaux",
+      color: "yellow"
+    }
+  ];
+
+  // Solution benefits
+  const solutionBenefits = [
+    {
+      icon: <VscGraph className="w-8 h-8 text-green-400" />,
+      title: "Détection churn 60 jours avant",
+      description: "JARVIS analyse chaque conversation et vous alerte sur les membres à risque",
+      metric: "85% de précision"
+    },
+    {
+      icon: <VscHeart className="w-8 h-8 text-blue-400" />, 
+      title: "+40% satisfaction membre",
+      description: "Réponses instantanées 24/7, personnalisées selon le profil de chaque adhérent",
+      metric: "24/7 disponible"
+    },
+    {
+      icon: <VscRobot className="w-8 h-8 text-purple-400" />,
+      title: "70% des questions automatisées",
+      description: "Vos coachs se concentrent sur l'accompagnement à haute valeur ajoutée",
+      metric: "70% d'automatisation"
+    },
+    {
+      icon: <VscGraph className="w-8 h-8 text-green-400" />,
+      title: "ROI moyen +25% dès 6 mois",
+      description: "Rétention améliorée + revenus publicitaires partagés",
+      metric: "ROI garanti"
+    }
+  ];
+
+  // Process steps
+  const processSteps = [
+    {
+      number: "01",
+      title: "Installation & Formation",
+      description: "Nous installons les miroirs digitaux et formons votre équipe en 2 jours",
+      duration: "2 jours",
+      icon: <VscGear className="w-8 h-8" />
+    },
+    {
+      number: "02", 
+      title: "Déploiement personnalisé",
+      description: "JARVIS apprend votre salle, vos services et commence à converser avec vos membres",
+      duration: "1 semaine",
+      icon: <VscRobot className="w-8 h-8" />
+    },
+    {
+      number: "03",
+      title: "Insights & Optimisation",
+      description: "Vous recevez des analytics et recommandations IA pour optimiser votre business",
+      duration: "En continu",
+      icon: <VscGraph className="w-8 h-8" />
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-black text-white overflow-x-hidden">
       
-      window.scrollTo({
-        top: y,
-        behavior: 'smooth'
-      });
-    }
-  }, []);
-
-
-  // Configuration du Dock - Navigation fonctionnelle (optimisée)
-  const dockItems = useMemo(() => [
-    {
-      icon: <VscHome size={22} color="#ffffff" />,
-      label: "Accueil",
-      onClick: () => scrollToSection("hero")
-    },
-    {
-      icon: <VscArchive size={22} color="#ffffff" />,
-      label: "Problème & Solution",
-      onClick: () => scrollToSection("probleme")
-    },
-    {
-      icon: <VscAccount size={22} color="#ffffff" />,
-      label: "Fonctionnement",
-      onClick: () => scrollToSection("comment-ca-marche")
-    },
-    {
-      icon: <VscCreditCard size={22} color="#ffffff" />,
-      label: "Tarification",
-      onClick: () => scrollToSection("tarifs")
-    },
-    {
-      icon: <VscMail size={22} color="#ffffff" />,
-      label: "Contact",
-      onClick: () => scrollToSection("contact")
-    }
-  ], [scrollToSection]);
-
-  // 📱 CONDITIONAL RENDERING : MOBILE vs DESKTOP
-  if (showMobileVersion) {
-    return (
-      <Box 
-        minH="100vh"
-        position="relative"
-        width="100vw"
-        overflowX="hidden"
-        // BACKGROUND SOBRE - GRIS FONCÉ ÉLÉGANT
-        background="linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 30%, #1f1f1f 60%, #0a0a0a 100%)"
-        _before={{
-          content: '""',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100vw',
-          height: '100vh',
-          background: `
-            radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
-            radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
-            radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.015) 0%, transparent 55%)
-          `,
-          animation: 'backgroundPulseSubtle 12s ease-in-out infinite',
-          zIndex: -1
-        }}
-      >
-        {/* STYLE INLINE POUR ANIMATION SOBRE */}
-        <style jsx>{`
-          @keyframes backgroundPulseSubtle {
-            0%, 100% {
-              background: 
-                radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
-                radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
-                radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.015) 0%, transparent 55%);
-            }
-            50% {
-              background: 
-                radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.015) 0%, transparent 55%),
-                radial-gradient(circle at 20% 70%, rgba(255, 255, 255, 0.02) 0%, transparent 60%),
-                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.01) 0%, transparent 50%);
-            }
-          }
-        `}</style>
-
-        {/* CONTENU MOBILE COMPLET */}
-        <VStack spacing={0} position="relative" zIndex={1} width="100%" maxW="100vw">
-          
-          {/* === SECTION HERO === */}
-          <Box 
-            w="100%" 
-            minH="100vh" 
-            position="relative"
-            display="flex"
-            flexDirection="column"
-            justifyContent="center"
-            alignItems="center"
-            px={4}
-            overflow="hidden"
-            id="hero-mobile"
+      {/* 🎯 HEADER NAVIGATION */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-xl font-bold text-white"
           >
-            {/* SPHÈRE JARVIS - POSITIONNÉE EN ARRIÈRE-PLAN */}
+            JARVIS-GROUP
+          </motion.div>
+
+          {/* CTA Header */}
+          <motion.a
+            href="/dashboard"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="group relative px-6 py-2 border border-neutral-600 rounded-full text-neutral-300 font-semibold hover:border-neutral-400 hover:text-white transition-all duration-300"
+          >
+            <span className="relative z-10">Déjà client ?</span>
             <motion.div
-              initial={{ opacity: 0, scale: 0.5, rotate: -180 }}
-              animate={{ opacity: 0.3, scale: 0.8, rotate: 0 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-              style={{
-                position: "absolute",
-                top: "15%",
-                right: "30%",
-                width: "300px",
-                height: "300px",
-                zIndex: 0
-              }}
+              className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100"
+              transition={{ duration: 0.3 }}
+            />
+          </motion.a>
+        </div>
+      </header>
+
+      {/* 🎯 BACKGROUND EFFECTS */}
+      <ShootingStars 
+        minSpeed={8}
+        maxSpeed={20}
+        minDelay={4000}
+        maxDelay={10000}
+        starColor="#FFFFFF"
+        trailColor="#CCCCCC"
+        starWidth={6}
+        starHeight={1}
+      />
+      <StarsBackground 
+        starDensity={0.0001}
+        allStarsTwinkle={true}
+        twinkleProbability={0.6}
+        minTwinkleSpeed={0.8}
+        maxTwinkleSpeed={2}
+      />
+
+      {/* 🎯 FLOATING NAVIGATION */}
+      <FloatingDock
+        items={dockItems}
+        desktopClassName="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40"
+        mobileClassName="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40"
+      />
+
+      {/* 🎯 SECTION 1: HERO IMPACT */}
+      <section id="hero" className="relative min-h-screen flex items-center pt-20">
+        <div className="w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          
+          {/* Hero Content */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="space-y-8"
+          >
+            {/* Headline */}
+            <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="inline-block px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-sm font-medium"
+              >
+                🚀 Révolution IA pour salles de sport
+              </motion.div>
+              
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-neutral-600 dark:text-neutral-400">
+                Une IA{" "}
+                <FlipWords words={heroWords} className="text-white" duration={3000} />
+                <br />
+                <span className="text-white">qui garde vos membres</span>{" "}
+                <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                  40% plus longtemps
+                </span>
+              </h1>
+              
+              <p className="text-lg md:text-xl lg:text-2xl text-neutral-300 leading-relaxed max-w-2xl">
+                JARVIS détecte les membres qui vont partir <span className="text-white font-semibold">avant qu'ils ne partent</span>. Plus de churn surprise.
+              </p>
+            </div>
+
+            {/* Social Proof */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="flex items-center gap-4 text-neutral-400"
             >
-              <Avatar3D 
-                status="contextual"
-              />
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">🚀</span>
+                </div>
+                <span className="text-sm">MVP prêt à tester</span>
+              </div>
+              <div className="w-px h-6 bg-neutral-600" />
+              <span className="text-sm font-medium text-white">Recherche partenaires pilotes</span>
             </motion.div>
 
-            {/* CONTENU PRINCIPAL - AU PREMIER PLAN */}
-            <VStack 
-              spacing={6} 
-              textAlign="left"
-              alignItems="flex-start"
-              position="relative"
-              zIndex={2}
-              w="100%"
-              maxW="320px"
-              pl={4}
+            {/* CTA Principal */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="space-y-4"
             >
-              {/* TITRE PRINCIPAL */}
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
+              <motion.button
+                onClick={() => setIsVoiceModalOpen(true)}
+                className="group relative w-full sm:w-auto px-8 py-4 bg-white text-black rounded-xl font-semibold text-lg hover:bg-neutral-100 transition-all duration-300 shadow-lg hover:shadow-xl"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <VStack spacing={3} alignItems="flex-start">
-                  <Heading 
-                    fontSize="3xl" 
-                    color="white" 
-                    fontWeight="bold"
-                    textShadow="0 0 20px rgba(255, 255, 255, 0.2)"
-                    lineHeight="1.1"
-                  >
-                    JARVIS
-                  </Heading>
-                  <Text 
-                    fontSize="lg" 
-                    color="rgba(255,255,255,0.9)" 
-                    lineHeight="1.4"
-                    fontWeight="medium"
-                  >
-                    révolutionne l'expérience
-                    <br />
-                    salle de sport
-                  </Text>
-                </VStack>
-              </motion.div>
-
-              {/* POINTS CLÉS */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-              >
-                <VStack spacing={4} mt={6} alignItems="flex-start">
-                  <Text fontSize="sm" color="rgba(255,255,255,0.8)" display="flex" alignItems="center">
-                    <Box as="span" mr={3} fontSize="md">⚡</Box>
-                    Coach virtuel personnalisé
-                  </Text>
-                  <Text fontSize="sm" color="rgba(255,255,255,0.8)" display="flex" alignItems="center">
-                    <Box as="span" mr={3} fontSize="md">📊</Box>
-                    Analytics en temps réel
-                  </Text>
-                  <Text fontSize="sm" color="rgba(255,255,255,0.8)" display="flex" alignItems="center">
-                    <Box as="span" mr={3} fontSize="md">🎯</Box>
-                    Expérience membre immersive
-                  </Text>
-                </VStack>
-              </motion.div>
-
-              {/* CTA PRINCIPAL */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.9 }}
-              >
-                <Button
-                  size="lg"
-                  px={8}
-                  py={4}
-                  bg="rgba(255, 255, 255, 0.12)"
-                  color="white"
-                  border="1px solid rgba(255, 255, 255, 0.25)"
-                  borderRadius="full"
-                  fontWeight="medium"
-                  fontSize="md"
-                  backdropFilter="blur(15px)"
-                  boxShadow="0 8px 32px rgba(0, 0, 0, 0.3)"
-                  _hover={{
-                    bg: "rgba(255, 255, 255, 0.18)",
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4)'
-                  }}
-                  transition="all 0.3s ease"
-                  mt={8}
-                  onClick={onVoiceOpen}
-                  leftIcon={<Box as="span" fontSize="md">🎤</Box>}
-                >
-                  Parler à JARVIS
-                </Button>
-              </motion.div>
-            </VStack>
-          </Box>
-
-          {/* === SECTION PROBLÈMES === */}
-          <Box w="100%" py={20} px={6} id="problemes-mobile">
-            <VStack spacing={8} maxW="480px" mx="auto">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                viewport={{ once: true, margin: "-100px" }}
-              >
-                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
-                  Les défis du fitness aujourd'hui
-                </Heading>
-              </motion.div>
+                <span className="relative z-10">
+                  Voir JARVIS en action
+                </span>
+                <div className="text-sm text-neutral-600 mt-1">3 minutes • Démonstration live</div>
+              </motion.button>
               
-              <VStack spacing={6}>
-                <motion.div
-                  initial={{ opacity: 0, x: -30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  viewport={{ once: true }}
-                  style={{ width: '100%' }}
-                >
-                  <Box 
-                    p={4} 
-                    bg="rgba(255, 255, 255, 0.03)" 
-                    borderRadius="lg" 
-                    border="1px solid rgba(255, 255, 255, 0.1)"
-                    w="100%"
-                  >
-                    <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
-                      📉 Taux d'abandon élevé
-                    </Text>
-                    <Text fontSize="xs" color="rgba(255,255,255,0.6)">
-                      40% des membres abandonnent dans les 6 premiers mois
-                    </Text>
-                  </Box>
-                </motion.div>
+              <p className="text-sm text-neutral-500 text-center sm:text-left">
+                🚀 Test MVP gratuit • 🤝 Partenariat pilote • 📊 Validation concept
+              </p>
+            </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, x: 30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  viewport={{ once: true }}
-                  style={{ width: '100%' }}
-                >
-                  <Box 
-                    p={4} 
-                    bg="rgba(255, 255, 255, 0.03)" 
-                    borderRadius="lg" 
-                    border="1px solid rgba(255, 255, 255, 0.1)"
-                    w="100%"
-                  >
-                    <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
-                      🤷 Manque d'accompagnement
-                    </Text>
-                    <Text fontSize="xs" color="rgba(255,255,255,0.6)">
-                      Les membres se sentent perdus sans guidance
-                    </Text>
-                  </Box>
-                </motion.div>
+            {/* Proof Points Subtils */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 1 }}
+              className="flex justify-center sm:justify-start items-center gap-8 pt-6 border-t border-neutral-800/50"
+            >
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">-40%</div>
+                <div className="text-xs text-neutral-500">churn</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">6 mois</div>
+                <div className="text-xs text-neutral-500">ROI</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-white">24/7</div>
+                <div className="text-xs text-neutral-500">actif</div>
+              </div>
+            </motion.div>
+          </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, x: -30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  viewport={{ once: true }}
-                  style={{ width: '100%' }}
-                >
-                  <Box 
-                    p={4} 
-                    bg="rgba(255, 255, 255, 0.03)" 
-                    borderRadius="lg" 
-                    border="1px solid rgba(255, 255, 255, 0.1)"
-                    w="100%"
-                  >
-                    <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
-                      📊 Données inexploitées
-                    </Text>
-                    <Text fontSize="xs" color="rgba(255,255,255,0.6)">
-                      Aucune analyse comportementale des membres
-                    </Text>
-                  </Box>
-                </motion.div>
-              </VStack>
-            </VStack>
-          </Box>
-
-          {/* === SECTION SOLUTIONS === */}
-          <Box w="100%" py={20} px={6} bg="rgba(255, 255, 255, 0.02)" id="solutions-mobile">
-            <VStack spacing={8} maxW="480px" mx="auto">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                viewport={{ once: true, margin: "-50px" }}
-              >
-                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
-                  La solution JARVIS
-                </Heading>
-              </motion.div>
-              
-              <VStack spacing={6}>
-                <Box 
-                  p={4} 
-                  bg="rgba(255, 255, 255, 0.05)" 
-                  borderRadius="lg" 
-                  border="1px solid rgba(255, 255, 255, 0.15)"
-                  w="100%"
-                >
-                  <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
-                    🤖 Coach IA personnalisé
-                  </Text>
-                  <Text fontSize="xs" color="rgba(255,255,255,0.7)">
-                    Accompagnement 24/7 adapté à chaque membre
-                  </Text>
-                </Box>
-
-                <Box 
-                  p={4} 
-                  bg="rgba(255, 255, 255, 0.05)" 
-                  borderRadius="lg" 
-                  border="1px solid rgba(255, 255, 255, 0.15)"
-                  w="100%"
-                >
-                  <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
-                    📱 Interface immersive
-                  </Text>
-                  <Text fontSize="xs" color="rgba(255,255,255,0.7)">
-                    Miroir digital interactif et expérience gamifiée
-                  </Text>
-                </Box>
-
-                <Box 
-                  p={4} 
-                  bg="rgba(255, 255, 255, 0.05)" 
-                  borderRadius="lg" 
-                  border="1px solid rgba(255, 255, 255, 0.15)"
-                  w="100%"
-                >
-                  <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium" mb={2}>
-                    📊 Dashboard gérant
-                  </Text>
-                  <Text fontSize="xs" color="rgba(255,255,255,0.7)">
-                    Analytics avancés et insights business
-                  </Text>
-                </Box>
-              </VStack>
-            </VStack>
-          </Box>
-
-          {/* === SECTION COMMENT ÇA MARCHE === */}
-          <Box w="100%" py={20} px={6} id="comment-mobile">
-            <VStack spacing={8} maxW="480px" mx="auto">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-              >
-                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
-                  Comment ça marche ?
-                </Heading>
-              </motion.div>
-              
-              <VStack spacing={8}>
-                <motion.div
-                  initial={{ opacity: 0, x: -50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1 }}
-                  viewport={{ once: true }}
-                  style={{ width: '100%' }}
-                >
-                  <HStack spacing={4} align="start" w="100%">
-                    <Box 
-                      w="30px" 
-                      h="30px" 
-                      bg="rgba(255, 255, 255, 0.1)" 
-                      borderRadius="full" 
-                      display="flex" 
-                      alignItems="center" 
-                      justifyContent="center"
-                      flexShrink={0}
-                    >
-                      <Text fontSize="sm" color="white" fontWeight="bold">1</Text>
-                    </Box>
-                    <VStack align="start" spacing={1}>
-                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
-                        Badge d'identification
-                      </Text>
-                      <Text fontSize="xs" color="rgba(255,255,255,0.6)">
-                        Le membre scanne son badge pour démarrer sa session
-                      </Text>
-                    </VStack>
-                  </HStack>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: 50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  viewport={{ once: true }}
-                  style={{ width: '100%' }}
-                >
-                  <HStack spacing={4} align="start" w="100%">
-                    <Box 
-                      w="30px" 
-                      h="30px" 
-                      bg="rgba(255, 255, 255, 0.1)" 
-                      borderRadius="full" 
-                      display="flex" 
-                      alignItems="center" 
-                      justifyContent="center"
-                      flexShrink={0}
-                    >
-                      <Text fontSize="sm" color="white" fontWeight="bold">2</Text>
-                    </Box>
-                    <VStack align="start" spacing={1}>
-                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
-                        Interaction avec JARVIS
-                      </Text>
-                      <Text fontSize="xs" color="rgba(255,255,255,0.6)">
-                        L'IA analyse et propose un programme personnalisé
-                      </Text>
-                    </VStack>
-                  </HStack>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                  viewport={{ once: true }}
-                  style={{ width: '100%' }}
-                >
-                  <HStack spacing={4} align="start" w="100%">
-                    <Box 
-                      w="30px" 
-                      h="30px" 
-                      bg="rgba(255, 255, 255, 0.1)" 
-                      borderRadius="full" 
-                      display="flex" 
-                      alignItems="center" 
-                      justifyContent="center"
-                      flexShrink={0}
-                    >
-                      <Text fontSize="sm" color="white" fontWeight="bold">3</Text>
-                    </Box>
-                    <VStack align="start" spacing={1}>
-                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
-                        Suivi en temps réel
-                      </Text>
-                      <Text fontSize="xs" color="rgba(255,255,255,0.6)">
-                        Analytics et feedback continu pour optimiser les résultats
-                      </Text>
-                    </VStack>
-                  </HStack>
-                </motion.div>
-              </VStack>
-            </VStack>
-          </Box>
-
-          {/* === SECTION TARIFICATION === */}
-          <Box w="100%" py={20} px={6} bg="rgba(255, 255, 255, 0.02)" id="tarifs-mobile">
-            <VStack spacing={8} maxW="480px" mx="auto">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-              >
-                <Heading fontSize="xl" color="white" textAlign="center" fontWeight="semibold">
-                  Modèle tarifaire
-                </Heading>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                viewport={{ once: true }}
-                style={{ width: '100%' }}
-              >
-                <Box 
-                  p={6} 
-                  bg="rgba(255, 255, 255, 0.05)" 
-                  borderRadius="xl" 
-                  border="1px solid rgba(255, 255, 255, 0.15)"
-                  w="100%"
-                >
-                <VStack spacing={4}>
-                  <Text fontSize="lg" color="white" fontWeight="semibold" textAlign="center">
-                    Solution complète
-                  </Text>
-                  
-                  <VStack spacing={3} w="100%">
-                    <HStack justify="space-between" w="100%">
-                      <Text fontSize="sm" color="rgba(255,255,255,0.8)">
-                        Installation & Formation
-                      </Text>
-                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
-                        Sur devis
-                      </Text>
-                    </HStack>
-                    
-                    <HStack justify="space-between" w="100%">
-                      <Text fontSize="sm" color="rgba(255,255,255,0.8)">
-                        Abonnement mensuel
-                      </Text>
-                      <Text fontSize="sm" color="rgba(255,255,255,0.9)" fontWeight="medium">
-                        Forfait + usage
-                      </Text>
-                    </HStack>
-                  </VStack>
-
-                  <Button
-                    size="md"
-                    w="100%"
-                    bg="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    border="1px solid rgba(255, 255, 255, 0.2)"
-                    borderRadius="lg"
-                    fontWeight="medium"
-                    fontSize="sm"
-                    backdropFilter="blur(10px)"
-                    _hover={{
-                      bg: "rgba(255, 255, 255, 0.15)",
-                      transform: 'translateY(-1px)'
-                    }}
-                    transition="all 0.3s ease"
-                    mt={4}
-                  >
-                    Demander un devis
-                  </Button>
-                </VStack>
-                </Box>
-              </motion.div>
-            </VStack>
-          </Box>
-
-          {/* === SECTION CONTACT === */}
-          <Box w="100%" py={20} px={6} id="contact-mobile">
-            <VStack spacing={8} maxW="400px" mx="auto" textAlign="center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-              >
-                <Heading fontSize="xl" color="white" fontWeight="semibold">
-                  Prêt à révolutionner votre salle ?
-                </Heading>
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                viewport={{ once: true }}
-              >
-                <Text fontSize="sm" color="rgba(255,255,255,0.7)" lineHeight="1.6">
-                  Découvrez comment JARVIS peut transformer l'expérience de vos membres et optimiser votre business.
-                </Text>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                viewport={{ once: true }}
-                style={{ width: '100%' }}
-              >
-                <VStack spacing={4} w="100%">
-                <Button
-                  size="lg"
-                  w="100%"
-                  bg="rgba(255, 255, 255, 0.1)"
-                  color="white"
-                  border="1px solid rgba(255, 255, 255, 0.2)"
-                  borderRadius="lg"
-                  fontWeight="medium"
-                  fontSize="md"
-                  backdropFilter="blur(10px)"
-                  _hover={{
-                    bg: "rgba(255, 255, 255, 0.15)",
-                    transform: 'translateY(-1px)'
-                  }}
-                  transition="all 0.3s ease"
-                >
-                  Parler à JARVIS
-                </Button>
-
-                <Button
-                  size="md"
-                  w="100%"
-                  bg="transparent"
-                  color="rgba(255,255,255,0.8)"
-                  border="1px solid rgba(255, 255, 255, 0.1)"
-                  borderRadius="lg"
-                  fontWeight="normal"
-                  fontSize="sm"
-                  _hover={{
-                    bg: "rgba(255, 255, 255, 0.05)",
-                    color: "white"
-                  }}
-                  transition="all 0.3s ease"
-                >
-                  Réserver une démo
-                </Button>
-                </VStack>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                viewport={{ once: true }}
-              >
-                <Text fontSize="xs" color="rgba(255,255,255,0.5)" mt={8}>
-                  © 2024 JARVIS Group - L'avenir du fitness
-                </Text>
-              </motion.div>
-            </VStack>
-          </Box>
-
-        </VStack>
-
-        {/* === DOCK ÉLÉGANT === */}
-        <Box
-          position="fixed"
-          bottom="25px"
-          left="50%"
-          transform="translateX(-50%)"
-          zIndex={1000}
-        >
-          <HStack
-            spacing={4}
-            bg="rgba(255, 255, 255, 0.06)"
-            backdropFilter="blur(15px)"
-            borderRadius="full"
-            px={4}
-            py={3}
-            border="1px solid rgba(255, 255, 255, 0.1)"
-            boxShadow="0 4px 20px rgba(0, 0, 0, 0.15)"
+          {/* Hero Visual */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, x: 30 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 1, delay: 0.3 }}
+            className="relative flex justify-center order-first lg:order-last"
+            style={{ y }}
           >
-            {/* HOME */}
-            <Box
-              as="button"
-              w="12px"
-              h="12px"
-              borderRadius="full"
-              bg="rgba(255, 255, 255, 0.5)"
-              _hover={{ 
-                bg: "rgba(255, 255, 255, 0.7)",
-                transform: "scale(1.2)"
-              }}
-              transition="all 0.2s ease"
-              onClick={() => {
-                console.log('Navigating to hero-mobile');
-                document.getElementById('hero-mobile')?.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'start' 
-                });
-              }}
-            />
-
-            {/* PROBLÈMES & SOLUTIONS */}
-            <Box
-              as="button"
-              w="12px"
-              h="12px"
-              borderRadius="full"
-              bg="rgba(255, 255, 255, 0.2)"
-              _hover={{ 
-                bg: "rgba(255, 255, 255, 0.5)",
-                transform: "scale(1.2)"
-              }}
-              transition="all 0.2s ease"
-              onClick={() => {
-                console.log('Navigating to problemes-mobile');
-                document.getElementById('problemes-mobile')?.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'start' 
-                });
-              }}
-            />
-
-            {/* COMMENT ÇA MARCHE */}
-            <Box
-              as="button"
-              w="12px"
-              h="12px"
-              borderRadius="full"
-              bg="rgba(255, 255, 255, 0.2)"
-              _hover={{ 
-                bg: "rgba(255, 255, 255, 0.5)",
-                transform: "scale(1.2)"
-              }}
-              transition="all 0.2s ease"
-              onClick={() => {
-                console.log('Navigating to comment-mobile');
-                document.getElementById('comment-mobile')?.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'start' 
-                });
-              }}
-            />
-
-            {/* TARIFS */}
-            <Box
-              as="button"
-              w="12px"
-              h="12px"
-              borderRadius="full"
-              bg="rgba(255, 255, 255, 0.2)"
-              _hover={{ 
-                bg: "rgba(255, 255, 255, 0.5)",
-                transform: "scale(1.2)"
-              }}
-              transition="all 0.2s ease"
-              onClick={() => {
-                console.log('Navigating to tarifs-mobile');
-                document.getElementById('tarifs-mobile')?.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'start' 
-                });
-              }}
-            />
-
-            {/* CONTACT */}
-            <Box
-              as="button"
-              w="12px"
-              h="12px"
-              borderRadius="full"
-              bg="rgba(255, 255, 255, 0.2)"
-              _hover={{ 
-                bg: "rgba(255, 255, 255, 0.5)",
-                transform: "scale(1.2)"
-              }}
-              transition="all 0.2s ease"
-              onClick={() => {
-                console.log('Navigating to contact-mobile');
-                document.getElementById('contact-mobile')?.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'start' 
-                });
-              }}
-            />
-          </HStack>
-        </Box>
-      </Box>
-    )
-  }
-
-  // 🖥️ VERSION DESKTOP (INCHANGÉE)
-  return (
-    <>
-    <Box bg="transparent" position="relative" minH="100vh">
-      {/* BOUTON CONNEXION FIXE EN HAUT À DROITE */}
-      <Box
-        position="fixed"
-        top={6}
-        right={6}
-        zIndex={1000}
-        pointerEvents="auto"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1 }}
-        >
-          <Button
-            variant="outline"
-            size="md"
-            bg="rgba(59, 130, 246, 0.15)"
-            backdropFilter="blur(20px)"
-            border="2px solid rgba(59, 130, 246, 0.4)"
-            color="white"
-            fontWeight="semibold"
-            boxShadow="0 4px 15px rgba(59, 130, 246, 0.2)"
-            _hover={{
-              bg: "rgba(59, 130, 246, 0.25)",
-              transform: "translateY(-2px)",
-              boxShadow: "0 8px 25px rgba(59, 130, 246, 0.3)",
-              borderColor: "rgba(59, 130, 246, 0.6)"
-            }}
-            transition="all 0.3s ease"
-            onClick={() => window.location.href = '/login'}
-          >
-            <HStack spacing={2}>
-              <Text fontSize="sm">Déjà client ?</Text>
-              <Box fontSize="xs">→</Box>
-            </HStack>
-          </Button>
-        </motion.div>
-      </Box>
-
-      {/* 🎯 BACKGROUND ADAPTATIF - WebGL OU CSS FALLBACK */}
-      <Box 
-        position="fixed" 
-        inset={0} 
-        zIndex={0}
-        w="100vw"
-        h="100vh"
-      >
-        <Silk
-          speed={2}           // ⚡ Animation très lente pour performance
-          scale={1.5}         // 🎨 Plus grand pour remplir l'écran
-          color="#1a1a2e"     // 🎨 Couleur sombre harmonieuse React Bits
-          noiseIntensity={0.5} // ⚡ Noise réduit pour performance
-          rotation={0.02}     // 🎨 Rotation très subtile
-        />
-      </Box>
-
-      {/* LOGO JARVIS DISCRET EN HAUT À GAUCHE */}
-      <Box
-        position="fixed"
-        top={6}
-        left={6}
-        zIndex={1000}
-        pointerEvents="auto"
-      >
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-        >
-          <Heading 
-            fontSize={{ base: "xl", md: "2xl" }}
-            color="white" 
-            fontWeight="semibold"
-            letterSpacing="0.05em"
-            pointerEvents="none"
-            fontFamily="system-ui, -apple-system, sans-serif"
-            opacity={0.8}
-            style={{
-              background: "linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #ffffff 100%)",
-              backgroundClip: "text",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent"
-            }}
-          >
-            JARVIS
-          </Heading>
-        </motion.div>
-      </Box>
-
-      {/* DOCK NAVIGATION - STYLE REACT BITS */}
-      <Box position="fixed" bottom={4} left="50%" transform="translateX(-50%)" zIndex={100}>
-        <Dock 
-          items={dockItems}
-          panelHeight={90}
-          baseItemSize={70}
-          magnification={100}
-          distance={200}
-        />
-      </Box>
-
-      {/* 1. HERO SECTION - LAYOUT CENTRÉ ÉLÉGANT */}
-      <Container id="hero" maxW="7xl" px={8} position="relative" zIndex={10} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
-        <VStack 
-          spacing={8}
-          justify="center"
-          minH="100vh"
-          textAlign="center"
-          pointerEvents="none"
-        >
-
-          {/* CONTENU PRINCIPAL HORIZONTAL - TEXTE + SPHÈRE */}
-          <Flex 
-            align="center" 
-            justify="space-between" 
-            w="full" 
-            maxW="7xl"
-            gap={16}
-            pointerEvents="none"
-          >
-            {/* CONTENU GAUCHE - TEXTE ET DÉTAILS */}
-            <VStack align="flex-start" spacing={8} flex="1" maxW="600px" pointerEvents="none">
-              {/* Titre principal */}
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-              >
-                <Heading 
-                  fontSize={{ base: "3xl", md: "4xl", lg: "5xl" }}
-                  color="white" 
-                  fontWeight="bold"
-                  lineHeight="1.2"
-                  textAlign="left"
-                  pointerEvents="none"
-                  className="hero-title"
-                >
-                  L'IA qui révolutionne{" "}
-                  <Text 
-                    as="span" 
-                    style={{
-                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 30%, #7c3aed 70%, #3b82f6 100%)",
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent"
-                    }}
-                  >
-                    l'expérience salle de sport
-                  </Text>
-                </Heading>
-              </motion.div>
-
-              {/* Description */}
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
-              >
-                <VStack spacing={4} align="flex-start">
-                <Text 
-                  fontSize={{ base: "lg", md: "xl" }}
-                  color="gray.300" 
-                  lineHeight="1.6"
-                  textAlign="left"
-                  pointerEvents="none"
-                >
-                  JARVIS transforme chaque interaction membre en expérience personnalisée 24/7. 
-                  </Text>
-                  <Text 
-                    fontSize={{ base: "lg", md: "xl" }}
-                    color="gray.300" 
-                    lineHeight="1.6"
-                    textAlign="left"
-                    pointerEvents="none"
-                  >
-                  <span className="text-reveal">Réduisez votre churn de 67% avec l'IA conversationnelle la plus avancée du fitness.</span>
-                </Text>
-                </VStack>
-              </motion.div>
-
-              {/* Points clés */}
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.7 }}
-              >
-                <VStack align="flex-start" spacing={4} pointerEvents="none">
-                  {[
-                    { icon: "💬", text: "IA conversationnelle : répond, conseille, montre des vidéos" },
-                    { icon: "📈", text: "Dashboard gérant : insights IA + recommandations automatiques" },
-                    { icon: "✨", text: "Interface immersive : miroir digital pour plus d'engagement" }
-                  ].map((point, index) => (
-                    <HStack key={index} spacing={3} pointerEvents="none">
-                      <Text fontSize="xl">{point.icon}</Text>
-                      <Text color="gray.300" fontSize="md" pointerEvents="none">
-                        {point.text}
-                      </Text>
-                    </HStack>
-                  ))}
-                </VStack>
-              </motion.div>
-
-              {/* CTA Principal */}
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.9 }}
-                style={{ pointerEvents: "auto" }}
-              >
-                <HStack spacing={4}>
-                  <Button 
-                    bg="#3b82f6"
-                    color="white"
-                    size="lg" 
-                    px={8}
-                    py={6}
-                    borderRadius="full"
-                    fontWeight="bold"
-                    fontSize="lg"
-                    pointerEvents="auto"
-                    _hover={{ 
-                      transform: 'translateY(-2px)',
-                      bg: "#2563eb",
-                      shadow: '0 10px 30px rgba(59, 130, 246, 0.4)'
-                    }}
-                    transition="all 0.2s"
-                    onClick={onVoiceOpen}
-                  >
-                    🗣️ Parler à JARVIS
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    borderColor="gray.600"
-                    color="gray.300"
-                    size="lg"
-                    px={8}
-                    py={6}
-                    borderRadius="full"
-                    fontWeight="bold"
-                    fontSize="lg"
-                    pointerEvents="auto"
-                    _hover={{ 
-                      borderColor: "gray.400",
-                      color: "white",
-                      transform: 'translateY(-2px)'
-                    }}
-                    transition="all 0.2s"
-                  >
-                    📖 En savoir plus
-                  </Button>
-                </HStack>
-                
-                {/* Bouton élégant pour clients existants */}
-              </motion.div>
-            </VStack>
-
-            {/* SPHÈRE JARVIS À DROITE */}
-            <Box flex="0 0 300px" h="400px" position="relative" pointerEvents="none" mr={8}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8, x: 50 }}
-                animate={{ opacity: 1, scale: 1, x: 0 }}
-                transition={{ duration: 1.0, delay: 0.5 }}
-                style={{ width: '100%', height: '100%' }}
-              >
-                <Avatar3D 
-                  status="contextual"
-                  currentSection={currentSection}
-                />
-                
-
-              </motion.div>
-            </Box>
-          </Flex>
-        </VStack>
-      </Container>
-
-      {/* 2. SECTION PROBLÈME - TILTEDCARDS STATS */}
-      <Container id="probleme" maxW="6xl" px={8} position="relative" zIndex={10} py={20} mt={16} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true, margin: "-100px" }}
-          style={{ pointerEvents: "none" }}
-        >
-          <VStack spacing={16} textAlign="center" pointerEvents="none">
-            {/* Titre principal - Étude de marché */}
-            <VStack spacing={4}>
-              <Text 
-                fontSize="4xl" 
-                fontWeight="900" 
-                color="white"
-                lineHeight="1.2"
-              >
-                Le fitness a un problème.
-              </Text>
-              <Text 
-                fontSize="4xl" 
-                fontWeight="900" 
-                color="#f59e0b"
-                lineHeight="1.2"
-                textShadow="0 0 20px rgba(245, 158, 11, 0.3)"
-              >
-                JARVIS a la solution.
-              </Text>
-              <Text 
-                fontSize="lg" 
-                color="gray.400" 
-                maxW="600px"
-                mt={4}
-              >
-                Les données du marché révèlent une opportunité majeure pour l'IA conversationnelle
-              </Text>
-            </VStack>
-
-            {/* Statistiques avec TiltedCards - PROBLÈMES + SOLUTION */}
-            <VStack spacing={8} w="full" maxW="1200px" pointerEvents="none">
-              {/* Titre des problèmes */}
-              <Text fontSize="xl" color="gray.400" textAlign="center">
-                Les défis du fitness traditionnel
-              </Text>
+            <div className="relative w-64 h-64 md:w-80 md:h-80 lg:w-96 lg:h-96">
+              <Avatar3D currentSection="hero" status="idle" />
               
-              {/* 3 Problèmes en ligne */}
-              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6} w="full" pointerEvents="none">
-              {/* Stat 1: Abandon */}
+              {/* Effet de lueur optimisé */}
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                viewport={{ once: true }}
-                style={{ pointerEvents: "auto" }}
-              >
-                <TiltedCard
-                  imageSrc="/images/stat-abandon-bg.svg"
-                  altText="Taux d'abandon critique"
-                  captionText=""
-                  containerHeight="260px"
-                  containerWidth="100%"
-                  imageHeight="260px"
-                  imageWidth="100%"
-                  rotateAmplitude={18}
-                  scaleOnHover={1.08}
-                  showMobileWarning={false}
-                  showTooltip={false}
-                  displayOverlayContent={true}
-                  overlayContent={
-                    <Box
-                      w="100%"
-                      h="100%"
-                      display="flex"
-                      flexDirection="column"
-                      alignItems="center"
-                      justifyContent="center"
-                      textAlign="center"
-                      p={6}
-                    >
-                      <Text fontSize="5xl" fontWeight="900" color="#ef4444" textShadow="0 0 20px rgba(239, 68, 68, 0.6)" mb={2}>
-                        81%
-                      </Text>
-                      <Text fontSize="xs" color="#fca5a5" textTransform="uppercase" letterSpacing="wider" mb={3}>
-                        Abandon
-                      </Text>
-                      <Text fontSize="lg" fontWeight="bold" color="white" mb={2}>
-                        Taux d'abandon critique
-                      </Text>
-                      <Text fontSize="sm" color="gray.300" lineHeight="1.5">
-                        des membres quittent leur salle dans les 6 premiers mois
-                      </Text>
-                    </Box>
-                  }
-                />
-              </motion.div>
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-green-500/20 blur-3xl"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  opacity: [0.3, 0.6, 0.3] 
+                }}
+                transition={{
+                  duration: 6, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
 
-              {/* Stat 2: Coût d'acquisition */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                viewport={{ once: true }}
-                style={{ pointerEvents: "auto" }}
-              >
-                <TiltedCard
-                  imageSrc="/images/stat-cost-bg.svg"
-                  altText="Coût d'acquisition élevé"
-                  captionText=""
-                  containerHeight="260px"
-                  containerWidth="100%"
-                  imageHeight="260px"
-                  imageWidth="100%"
-                  rotateAmplitude={20}
-                  scaleOnHover={1.09}
-                  showMobileWarning={false}
-                  showTooltip={false}
-                  displayOverlayContent={true}
-                  overlayContent={
-                    <Box
-                      w="100%"
-                      h="100%"
-                      display="flex"
-                      flexDirection="column"
-                      alignItems="center"
-                      justifyContent="center"
-                      textAlign="center"
-                      p={6}
-                    >
-                      <Text fontSize="5xl" fontWeight="900" color="#f97316" textShadow="0 0 20px rgba(249, 115, 22, 0.6)" mb={2}>
-                        247€
-                      </Text>
-                      <Text fontSize="xs" color="#fdba74" textTransform="uppercase" letterSpacing="wider" mb={3}>
-                        Coût d'acquisition
-                      </Text>
-                      <Text fontSize="lg" fontWeight="bold" color="white" mb={2}>
-                        Par nouveau membre
-                      </Text>
-                      <Text fontSize="sm" color="gray.300" lineHeight="1.5">
-                        marketing + onboarding traditionnel
-                      </Text>
-                    </Box>
-                  }
-                />
-              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-              {/* Stat 3: Temps d'attente */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                viewport={{ once: true }}
-                style={{ pointerEvents: "auto" }}
-              >
-                <TiltedCard
-                  imageSrc="/images/stat-wait-bg.svg"
-                  altText="Temps d'attente frustrant"
-                  captionText=""
-                  containerHeight="260px"
-                  containerWidth="100%"
-                  imageHeight="260px"
-                  imageWidth="100%"
-                  rotateAmplitude={22}
-                  scaleOnHover={1.10}
-                  showMobileWarning={false}
-                  showTooltip={false}
-                  displayOverlayContent={true}
-                  overlayContent={
-                    <Box
-                      w="100%"
-                      h="100%"
-                      display="flex"
-                      flexDirection="column"
-                      alignItems="center"
-                      justifyContent="center"
-                      textAlign="center"
-                      p={6}
-                    >
-                      <Text fontSize="5xl" fontWeight="900" color="#8b5cf6" textShadow="0 0 20px rgba(139, 92, 246, 0.6)" mb={2}>
-                        18min
-                      </Text>
-                      <Text fontSize="xs" color="#c4b5fd" textTransform="uppercase" letterSpacing="wider" mb={3}>
-                        Temps d'attente
-                      </Text>
-                      <Text fontSize="lg" fontWeight="bold" color="white" mb={2}>
-                        Moyenne d'attente
-                      </Text>
-                      <Text fontSize="sm" color="gray.300" lineHeight="1.5">
-                        pour obtenir des informations
-                      </Text>
-                    </Box>
-                  }
-                />
-              </motion.div>
-              </SimpleGrid>
-
-              {/* Transition vers solution */}
-              <Box position="relative" w="full">
-                <motion.div
-                  initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  transition={{ duration: 1.5, delay: 0.5 }}
-                  viewport={{ once: true }}
-                  style={{
-                    height: "2px",
-                    background: "linear-gradient(90deg, transparent, #ef4444, #f97316, #8b5cf6, #22c55e, transparent)",
-                    marginBottom: "1rem",
-                    transformOrigin: "center"
-                  }}
-                />
-                
-                <Text fontSize="lg" color="#22c55e" textAlign="center" fontWeight="bold">
-                  La solution JARVIS
-                </Text>
-              </Box>
-
-              {/* SOLUTIONS JARVIS - GRID HORIZONTAL */}
-              <SimpleGrid columns={{ base: 1, md: 3 }} gap={6} w="full">
-                {/* Solution 1: Réduction du churn */}
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
-                  viewport={{ once: true }}
-                  style={{ pointerEvents: "auto" }}
-                >
-                  <TiltedCard
-                    imageSrc="/images/stat-jarvis-bg.svg"
-                    altText="Réduction du churn avec JARVIS"
-                    captionText=""
-                    containerHeight="260px"
-                    containerWidth="100%"
-                    imageHeight="260px"
-                    imageWidth="100%"
-                    rotateAmplitude={25}
-                    scaleOnHover={1.12}
-                    showMobileWarning={false}
-                    showTooltip={false}
-                    displayOverlayContent={true}
-                    className="tilted-card-jarvis"
-                    overlayContent={
-                      <Box
-                        w="100%"
-                        h="100%"
-                        display="flex"
-                        flexDirection="column"
-                        alignItems="center"
-                        justifyContent="center"
-                        textAlign="center"
-                        p={6}
-                        position="relative"
-                      >
-                        {/* Badge "SOLUTION" */}
-                        <Box
-                          position="absolute"
-                          top={4}
-                          right={4}
-                          bg="rgba(34,197,94,0.9)"
-                          color="white"
-                          px={3}
-                          py={1}
-                          borderRadius="full"
-                          fontSize="xs"
-                          fontWeight="bold"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
-                          Solution
-                        </Box>
-                        
-                        <Text fontSize="6xl" fontWeight="900" color="#22c55e" textShadow="0 0 30px rgba(34, 197, 94, 0.8)" mb={2}>
-                          +67%
-                        </Text>
-                        <Text fontSize="sm" color="#4ade80" textTransform="uppercase" letterSpacing="wider" mb={3} fontWeight="bold">
-                          🚀 Amélioration JARVIS
-                        </Text>
-                        <Text fontSize="xl" fontWeight="black" color="white" mb={2} textShadow="0 0 10px rgba(255,255,255,0.3)">
-                          Réduction du churn
-                        </Text>
-                        <Text fontSize="sm" color="gray.200" lineHeight="1.5" fontWeight="medium">
-                          engagement 24/7 et support instantané
-                        </Text>
-                      </Box>
-                    }
-                  />
-                </motion.div>
-
-                {/* Solution 2: Réduction des coûts d'acquisition */}
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.6 }}
-                  viewport={{ once: true }}
-                  style={{ pointerEvents: "auto" }}
-                >
-                  <TiltedCard
-                    imageSrc="/images/stat-cost-bg.svg"
-                    altText="Réduction coût d'acquisition avec JARVIS"
-                    captionText=""
-                    containerHeight="260px"
-                    containerWidth="100%"
-                    imageHeight="260px"
-                    imageWidth="100%"
-                    rotateAmplitude={22}
-                    scaleOnHover={1.10}
-                    showMobileWarning={false}
-                    showTooltip={false}
-                    displayOverlayContent={true}
-                    overlayContent={
-                      <Box
-                        w="100%"
-                        h="100%"
-                        display="flex"
-                        flexDirection="column"
-                        alignItems="center"
-                        justifyContent="center"
-                        textAlign="center"
-                        p={6}
-                        position="relative"
-                      >
-                        {/* Badge "SOLUTION" */}
-                        <Box
-                          position="absolute"
-                          top={4}
-                          right={4}
-                          bg="rgba(249,115,22,0.9)"
-                          color="white"
-                          px={3}
-                          py={1}
-                          borderRadius="full"
-                          fontSize="xs"
-                          fontWeight="bold"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
-                          Solution
-                        </Box>
-                        
-                        <Text fontSize="6xl" fontWeight="900" color="#f97316" textShadow="0 0 30px rgba(249, 115, 22, 0.8)" mb={2}>
-                          -52%
-                        </Text>
-                        <Text fontSize="sm" color="#fdba74" textTransform="uppercase" letterSpacing="wider" mb={3} fontWeight="bold">
-                          💰 Économie JARVIS
-                        </Text>
-                        <Text fontSize="xl" fontWeight="black" color="white" mb={2} textShadow="0 0 10px rgba(255,255,255,0.3)">
-                          Coût d'acquisition
-                        </Text>
-                        <Text fontSize="sm" color="gray.200" lineHeight="1.5" fontWeight="medium">
-                          onboarding automatisé et engagement immédiat
-                        </Text>
-                      </Box>
-                    }
-                  />
-                </motion.div>
-
-                {/* Solution 3: Élimination des temps d'attente */}
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.8 }}
-                  viewport={{ once: true }}
-                  style={{ pointerEvents: "auto" }}
-                >
-                  <TiltedCard
-                    imageSrc="/images/stat-wait-bg.svg"
-                    altText="Élimination temps d'attente avec JARVIS"
-                    captionText=""
-                    containerHeight="260px"
-                    containerWidth="100%"
-                    imageHeight="260px"
-                    imageWidth="100%"
-                    rotateAmplitude={24}
-                    scaleOnHover={1.11}
-                    showMobileWarning={false}
-                    showTooltip={false}
-                    displayOverlayContent={true}
-                    overlayContent={
-                      <Box
-                        w="100%"
-                        h="100%"
-                        display="flex"
-                        flexDirection="column"
-                        alignItems="center"
-                        justifyContent="center"
-                        textAlign="center"
-                        p={6}
-                        position="relative"
-                      >
-                        {/* Badge "SOLUTION" */}
-                        <Box
-                          position="absolute"
-                          top={4}
-                          right={4}
-                          bg="rgba(139,92,246,0.9)"
-                          color="white"
-                          px={3}
-                          py={1}
-                          borderRadius="full"
-                          fontSize="xs"
-                          fontWeight="bold"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
-                          Solution
-                        </Box>
-                        
-                        <Text fontSize="6xl" fontWeight="900" color="#8b5cf6" textShadow="0 0 30px rgba(139, 92, 246, 0.8)" mb={2}>
-                          0sec
-                        </Text>
-                        <Text fontSize="sm" color="#c4b5fd" textTransform="uppercase" letterSpacing="wider" mb={3} fontWeight="bold">
-                          ⚡ Instantané JARVIS
-                        </Text>
-                        <Text fontSize="xl" fontWeight="black" color="white" mb={2} textShadow="0 0 10px rgba(255,255,255,0.3)">
-                          Temps d'attente
-                        </Text>
-                        <Text fontSize="sm" color="gray.200" lineHeight="1.5" fontWeight="medium">
-                          réponses immédiates 24h/24 et 7j/7
-                        </Text>
-                      </Box>
-                    }
-                  />
-                </motion.div>
-              </SimpleGrid>
-
-            </VStack>
-
-          </VStack>
-        </motion.div>
-      </Container>
-
-      {/* 3. SECTION COMMENT ÇA MARCHE - SOLUTION */}
-      <Container id="comment-ca-marche" maxW="6xl" px={8} py={20} mt={16} position="relative" zIndex={5} style={{ scrollMarginTop: '200px' }} className="section-container">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true, margin: "-100px" }}
-        >
-          <VStack spacing={16} textAlign="center">
-            <VStack spacing={6}>
-              <Heading 
-                fontSize={{ base: "3xl", md: "5xl" }}
-                color="white" 
-                fontWeight="bold"
-              >
-                Comment ça marche ?
-              </Heading>
-              <Text 
-                fontSize="xl" 
-                color="gray.300" 
-                maxW="2xl"
-              >
-                JARVIS transforme l'expérience d'accueil en 3 étapes simples
-              </Text>
-            </VStack>
-
-            {/* Étapes du processus */}
-            <Grid templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }} gap={8} w="full">
-              {[
-                { 
-                  step: "01", 
-                  title: "Le membre s'approche", 
-                  desc: "JARVIS détecte la présence et lance l'accueil vocal personnalisé", 
-                  icon: "👋",
-                  color: "#22c55e"
-                },
-                { 
-                  step: "02", 
-                  title: "Conversation naturelle", 
-                  desc: "Reconnaissance vocale avancée pour répondre aux questions en temps réel", 
-                  icon: "🎤",
-                  color: "#3b82f6"
-                },
-                { 
-                  step: "03", 
-                  title: "Actions personnalisées", 
-                  desc: "Informations planning, réservations, conseils adaptés au profil membre", 
-                  icon: "⚡",
-                  color: "#f59e0b"
-                }
-              ].map((step, index) => (
-                <GridItem key={index}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.2 }}
-                    viewport={{ once: true }}
-                    style={{ height: "100%" }}
-                  >
-                    <VStack spacing={6} h="full" justify="flex-start">
-                      {/* Numéro d'étape */}
-                      <Box
-                        w="80px"
-                        h="80px"
-                        borderRadius="50%"
-                        bg={`${step.color}20`}
-                        border="2px solid"
-                        borderColor={`${step.color}40`}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        position="relative"
-                        flexShrink={0}
-                      >
-                        <Text 
-                          fontSize="2xl" 
-                          fontWeight="black" 
-                          color={step.color}
-                        >
-                          {step.icon}
-                        </Text>
-                        
-                        {/* Numéro en arrière-plan */}
-                        <Text
-                          position="absolute"
-                          fontSize="6xl"
-                          fontWeight="900"
-                          color={`${step.color}10`}
-                          top="50%"
-                          left="50%"
-                          transform="translate(-50%, -50%)"
-                          zIndex={0}
-                        >
-                          {step.step}
-                        </Text>
-                      </Box>
-                      
-                      <VStack spacing={3} flex="1">
-                        <Heading 
-                          size="md" 
-                          color="white" 
-                          textAlign="center"
-                        >
-                          {step.title}
-                        </Heading>
-                        <Text 
-                          color="gray.300" 
-                          textAlign="center" 
-                          fontSize="sm"
-                          lineHeight="1.6"
-                        >
-                          {step.desc}
-                        </Text>
-                      </VStack>
-                    </VStack>
-                  </motion.div>
-                </GridItem>
-              ))}
-            </Grid>
-          </VStack>
-        </motion.div>
-      </Container>
-
-      {/* 4. SECTION DASHBOARD GÉRANT - AMÉLIORÉE AVEC CARDSWAP */}
-      <Container id="dashboard" maxW="6xl" px={8} position="relative" zIndex={10} py={20} mt={16} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
-        <Box w="full" pointerEvents="none">
+      {/* 🎯 SECTION 2: PROBLÈMES (Pain Points) */}
+      <section id="problems" className="relative py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            viewport={{ once: true, margin: "-100px" }}
-            style={{ pointerEvents: "none" }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
           >
-            <Flex align="center" justify="space-between" minH="650px" gap={16} w="full" pointerEvents="none">
-              {/* CONTENU GAUCHE - TEXTE DASHBOARD */}
-              <Box 
-                flex="1"
-                textAlign="left"
-                maxW="none"
-                pr={10}
-                pointerEvents="none"
-              >
-                {/* Titre principal */}
-                <Box mb={8}>
-                  <Heading 
-                    fontSize={{ base: "4xl", md: "5xl", lg: "6xl" }}
-                    color="white" 
-                    fontWeight="black"
-                    lineHeight="1.1"
-                    letterSpacing="-0.02em"
-                    mb={4}
-                  >
-                    <Text as="span">
-                      Dashboard{" "}
-                      <Text as="span" color="#3b82f6">
-                        Intelligence IA
-                      </Text>
-                    </Text>
-                  </Heading>
-                  <Text 
-                    fontSize={{ base: "lg", md: "xl" }}
-                    color="gray.300" 
-                    lineHeight="1.6"
-                    maxW="none"
-                    pr={20}
-                  >
-                    Pilotez votre salle avec des insights IA en temps réel, des recommandations automatiques 
-                    et une vue d'ensemble complète de l'engagement de vos membres.
-                  </Text>
-                </Box>
-
-
-                {/* CTA optimisé */}
-                <HStack spacing={4} pointerEvents="auto">
-                  <Button 
-                    bg="#3b82f6"
-                    color="white"
-                    size="lg" 
-                    px={8}
-                    py={6}
-                    borderRadius="full"
-                    fontWeight="bold"
-                    fontSize="lg"
-                    pointerEvents="auto"
-                    _hover={{ 
-                      transform: 'translateY(-2px)',
-                      bg: "#2563eb",
-                      shadow: '0 10px 30px rgba(59, 130, 246, 0.4)'
-                    }}
-                    transition="all 0.2s"
-                  >
-                    📊 Voir le dashboard
-                  </Button>
-                </HStack>
-              </Box>
-
-              {/* CARDSWAP À DROITE - SCREENSHOTS DASHBOARD */}
-              <Box 
-                flex="0 0 50%"
-                h="600px" 
-                position="relative"
-                display="flex" 
-                justifyContent="flex-end" 
-                alignItems="center"
-                overflow="visible"
-                pointerEvents="auto"
-              >
-                <Box 
-                  position="relative"
-                  transform="translateX(80px)"
-                  pointerEvents="auto"
-                >
-                 <CardSwap
-                   width={700}
-                   height={500}
-                   cardDistance={110}
-                   verticalDistance={90}
-                   delay={4500}
-                   pauseOnHover={false}
-                   skewAmount={8}
-                   easing="elastic"
-                 >
-                   {/* Card 1: Vue d'ensemble Dashboard */}
-                   <Card>
-                     <Box
-                       bg="#000000"
-                       border="1px solid #333333"
-                       borderRadius="12px"
-                       h="full"
-                       w="full"
-                       display="flex"
-                       flexDirection="column"
-                       position="relative"
-                       overflow="hidden"
-                     >
-                       {/* Header avec icône */}
-                       <HStack spacing={3} p={4}>
-                         <Box w="16px" h="16px" bg="white" borderRadius="2px" display="flex" alignItems="center" justifyContent="center">
-                           <Text fontSize="10px" color="black" fontWeight="bold">📊</Text>
-                         </Box>
-                         <Text fontSize="sm" color="white" fontWeight="medium">
-                           Vue d'ensemble
-                         </Text>
-                       </HStack>
-
-                       {/* Contenu visuel principal */}
-                       <Box 
-                         flex={1} 
-                         display="flex"
-                         alignItems="center"
-                         justifyContent="center"
-                         position="relative"
-                         bg="radial-gradient(ellipse at center, #1e3a8a 0%, #1e1b4b 50%, #0f172a 100%)"
-                         p={3}
-                       >
-                         <Box 
-                           position="relative" 
-                           w="85%" 
-                           h="85%" 
-                           borderRadius="8px" 
-                           overflow="hidden"
-                           border="1px solid rgba(59, 130, 246, 0.3)"
-                           boxShadow="0 0 25px rgba(59, 130, 246, 0.2)"
-                         >
-                           <Image 
-                             src="/images/dashboard-gerant.jpg"
-                             alt="Dashboard JARVIS - Vue d'ensemble"
-                             width={800}
-                             height={600}
-                             priority={false}
-                             loading="lazy"
-                             style={{
-                               width: '100%',
-                               height: '100%',
-                               objectFit: 'contain',
-                               filter: 'brightness(1.1) contrast(1.1)'
-                             }}
-                           />
-                           
-                           {/* Overlay avec effet glow */}
-                           <Box
-                             position="absolute"
-                             inset={0}
-                             bg="linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 50%, rgba(59, 130, 246, 0.05) 100%)"
-                             pointerEvents="none"
-                           />
-                         </Box>
-                         
-                         {/* Particules lumineuses */}
-                         <Box
-                           position="absolute"
-                           top="20%"
-                           right="15%"
-                           w="4px"
-                           h="4px"
-                           bg="#3b82f6"
-                           borderRadius="50%"
-                           boxShadow="0 0 12px rgba(59, 130, 246, 0.9)"
-                           zIndex={3}
-                         />
-                       </Box>
-                     </Box>
-                   </Card>
-
-                   {/* Card 2: Analytics Détaillés */}
-                   <Card>
-                     <Box
-                       bg="#000000"
-                       border="1px solid #333333"
-                       borderRadius="12px"
-                       h="full"
-                       w="full"
-                       display="flex"
-                       flexDirection="column"
-                       position="relative"
-                       overflow="hidden"
-                     >
-                       <HStack spacing={3} p={4}>
-                         <Box w="16px" h="16px" bg="white" borderRadius="2px" display="flex" alignItems="center" justifyContent="center">
-                           <Text fontSize="10px" color="black" fontWeight="bold">📈</Text>
-                         </Box>
-                         <Text fontSize="sm" color="white" fontWeight="medium">
-                           Analytics Avancés
-                         </Text>
-                       </HStack>
-
-                       <Box 
-                         flex={1} 
-                         position="relative"
-                         overflow="hidden"
-                         bg="radial-gradient(ellipse at center, #065f46 0%, #064e3b 30%, #0f172a 100%)"
-                         display="flex"
-                         flexDirection="column"
-                         alignItems="center"
-                         justifyContent="center"
-                         p={6}
-                       >
-                         <Text 
-                           fontSize="2xl" 
-                           fontWeight="900" 
-                           color="#22c55e" 
-                           textAlign="center"
-                           mb={4}
-                           textShadow="0 0 15px rgba(34, 197, 94, 0.4)"
-                         >
-                           Analytics IA
-                         </Text>
-                         
-                         <VStack spacing={4} align="stretch" w="100%" zIndex={2}>
-                           <HStack spacing={3} align="center">
-                             <Box
-                               w="30px"
-                               h="30px"
-                               bg="#22c55e"
-                               borderRadius="50%"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                               flexShrink={0}
-                             >
-                               <Text fontSize="sm" fontWeight="bold" color="black">📊</Text>
-                             </Box>
-                             <Text fontSize="sm" color="white" fontWeight="medium">
-                               Engagement temps réel
-                             </Text>
-                           </HStack>
-                           
-                           <HStack spacing={3} align="center">
-                             <Box
-                               w="30px"
-                               h="30px"
-                               bg="#3b82f6"
-                               borderRadius="50%"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                               flexShrink={0}
-                             >
-                               <Text fontSize="sm" fontWeight="bold" color="black">🎯</Text>
-                             </Box>
-                             <Text fontSize="sm" color="white" fontWeight="medium">
-                               Prédictions comportementales
-                             </Text>
-                           </HStack>
-                           
-                           <HStack spacing={3} align="center">
-                             <Box
-                               w="30px"
-                               h="30px"
-                               bg="#f59e0b"
-                               borderRadius="50%"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                               flexShrink={0}
-                             >
-                               <Text fontSize="sm" fontWeight="bold" color="black">⚡</Text>
-                             </Box>
-                             <Text fontSize="sm" color="white" fontWeight="medium">
-                               Alertes automatiques
-                             </Text>
-                           </HStack>
-                         </VStack>
-                         
-                         {/* Formes d'arrière-plan */}
-                         <Box
-                           position="absolute"
-                           top="15%"
-                           right="10%"
-                           w="60px"
-                           h="60px"
-                           bg="rgba(34, 197, 94, 0.1)"
-                           borderRadius="50%"
-                           filter="blur(15px)"
-                           zIndex={1}
-                         />
-                       </Box>
-                     </Box>
-                   </Card>
-
-                   {/* Card 3: Contrôle JARVIS */}
-                   <Card>
-                     <Box
-                       bg="#000000"
-                       border="1px solid #333333"
-                       borderRadius="12px"
-                       h="full"
-                       w="full"
-                       display="flex"
-                       flexDirection="column"
-                       position="relative"
-                       overflow="hidden"
-                     >
-                       <HStack spacing={3} p={4}>
-                         <Box w="16px" h="16px" bg="white" borderRadius="2px" display="flex" alignItems="center" justifyContent="center">
-                           <Text fontSize="10px" color="black" fontWeight="bold">🤖</Text>
-                         </Box>
-                         <Text fontSize="sm" color="white" fontWeight="medium">
-                           Contrôle JARVIS
-                         </Text>
-                       </HStack>
-
-                       <Box 
-                         flex={1} 
-                         position="relative"
-                         overflow="hidden"
-                         bg="radial-gradient(ellipse at center, #7c2d12 0%, #991b1b 30%, #0f172a 100%)"
-                         display="flex"
-                         flexDirection="column"
-                         alignItems="center"
-                         justifyContent="center"
-                         p={6}
-                       >
-                         <Text 
-                           fontSize="2xl" 
-                           fontWeight="900" 
-                           color="#f97316" 
-                           textAlign="center"
-                           mb={4}
-                           textShadow="0 0 15px rgba(249, 115, 22, 0.4)"
-                         >
-                           Actions IA
-                         </Text>
-                         
-                         <VStack spacing={4} align="stretch" w="100%" zIndex={2}>
-                           <HStack spacing={3} align="center">
-                             <Box
-                               w="30px"
-                               h="30px"
-                               bg="#f97316"
-                               borderRadius="50%"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                               flexShrink={0}
-                             >
-                               <Text fontSize="sm" fontWeight="bold" color="black">🎤</Text>
-                             </Box>
-                             <Text fontSize="sm" color="white" fontWeight="medium">
-                               Monitoring conversations
-                             </Text>
-                           </HStack>
-                           
-                           <HStack spacing={3} align="center">
-                             <Box
-                               w="30px"
-                               h="30px"
-                               bg="#22c55e"
-                               borderRadius="50%"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                               flexShrink={0}
-                             >
-                               <Text fontSize="sm" fontWeight="bold" color="black">⚙️</Text>
-                             </Box>
-                             <Text fontSize="sm" color="white" fontWeight="medium">
-                               Configuration IA
-                             </Text>
-                           </HStack>
-                           
-                           <HStack spacing={3} align="center">
-                             <Box
-                               w="30px"
-                               h="30px"
-                               bg="#a855f7"
-                               borderRadius="50%"
-                               display="flex"
-                               alignItems="center"
-                               justifyContent="center"
-                               flexShrink={0}
-                             >
-                               <Text fontSize="sm" fontWeight="bold" color="black">📋</Text>
-                             </Box>
-                             <Text fontSize="sm" color="white" fontWeight="medium">
-                               Logs et historiques
-                             </Text>
-                           </HStack>
-                         </VStack>
-                         
-                         {/* Particules subtiles */}
-                         <Box
-                           position="absolute"
-                           top="25%"
-                           left="20%"
-                           w="3px"
-                           h="3px"
-                           bg="#f97316"
-                           borderRadius="50%"
-                           boxShadow="0 0 8px rgba(249, 115, 22, 0.6)"
-                           zIndex={3}
-                         />
-                       </Box>
-                     </Box>
-                   </Card>
-                 </CardSwap>
-                </Box>
-              </Box>
-            </Flex>
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              Votre salle perd{" "}
+              <span className="text-red-400">30% de ses membres</span>
+              {" "}chaque année
+            </h2>
+            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+              Découvrez les 3 problèmes silencieux qui tuent votre business... et comment les résoudre.
+            </p>
           </motion.div>
-        </Box>
-      </Container>
 
-      {/* 5. SECTION TÉMOIGNAGE VIDÉO - MOINS RÉPÉTITIF */}
-      <Container maxW="6xl" px={8} position="relative" zIndex={10} py={20} mt={16} pointerEvents="none" style={{ scrollMarginTop: '200px' }} className="section-container">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true, margin: "-100px" }}
-          style={{ pointerEvents: "none" }}
-        >
-          <Flex align="center" justify="space-between" gap={16} w="full" pointerEvents="none">
-            {/* CONTENU GAUCHE - TÉMOIGNAGE VISUEL (INVERSÉ) */}
-            <Box flex="0 0 45%" position="relative" pointerEvents="none">
+          {/* Pain Points Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {painPoints.map((point, index) => (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, x: 50 }}
-                whileInView={{ opacity: 1, scale: 1, x: 0 }}
-                transition={{ duration: 1.0, delay: 0.4 }}
+                key={index}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: index * 0.2 }}
                 viewport={{ once: true }}
+                className="group"
               >
-                <Box
-                  position="relative"
-                  p={8}
-                  borderRadius="3xl"
-                  border="2px solid rgba(34, 197, 94, 0.3)"
-                  bg="rgba(0, 0, 0, 0.6)"
-                  backdropFilter="blur(30px)"
-                  overflow="hidden"
-                  _hover={{
-                    borderColor: "rgba(34, 197, 94, 0.6)",
-                    transform: "translateY(-8px)",
-                    boxShadow: "0 25px 50px rgba(34, 197, 94, 0.2)"
-                  }}
-                  transition="all 0.6s cubic-bezier(0.4, 0, 0.2, 1)"
-                  pointerEvents="auto"
-                >
-                  {/* Glow effect */}
+                <CardContainer className="inter-var">
+                  <CardBody className={`relative group/card hover:shadow-2xl hover:shadow-${point.color}-500/[0.1] bg-black border-white/[0.1] w-full h-auto rounded-xl p-8 border transition-all duration-500`}>
+                    {/* Icon */}
+                    <CardItem translateZ="50" className="mb-6">
+                      {point.icon}
+                    </CardItem>
+
+                    {/* Title */}
+                    <CardItem translateZ="100" className="text-2xl font-bold text-white mb-4">
+                      {point.title}
+                    </CardItem>
+
+                    {/* Description */}
+                    <CardItem translateZ="60" className="text-neutral-300 mb-6 leading-relaxed">
+                      {point.description}
+                    </CardItem>
+
+                    {/* Stat */}
+                    <CardItem translateZ="80" className={`text-lg font-bold text-${point.color}-400`}>
+                      {point.stat}
+                    </CardItem>
+                  </CardBody>
+                </CardContainer>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Transition CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            viewport={{ once: true }}
+            className="text-center mt-20"
+          >
+            <h3 className="text-3xl font-bold text-white mb-6">
+              Et si vous pouviez les voir venir ?
+            </h3>
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-4xl"
+            >
+              👇
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 🎯 SECTION 3: SOLUTION - DÉMONSTRATION INTERACTIVE */}
+      <section id="solution" className="relative py-32 bg-black">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Section Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              JARVIS : Votre{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                directeur commercial
+              </span>
+              {" "}virtuel
+            </h2>
+            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+              Découvrez notre MVP en action : conversation réelle → insights automatiques
+            </p>
+          </motion.div>
+
+          {/* Demo Interactive */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            
+            {/* Left: Conversation Simulation */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                    <span className="text-white font-bold">👤</span>
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold">Marc, 34 ans</div>
+                    <div className="text-neutral-400 text-sm">Membre depuis 8 mois</div>
+                  </div>
+                </div>
+                
+                {/* Chat Messages */}
+                <div className="space-y-4">
                   <motion.div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background: "linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1))",
-                      borderRadius: "24px"
-                    }}
-                    animate={{
-                      opacity: [0.1, 0.2, 0.1]
-                    }}
-                    transition={{
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  />
-
-                  <VStack spacing={6} position="relative" zIndex={2} pointerEvents="none">
-                    {/* Citation */}
-                    <Box textAlign="center" pointerEvents="none">
-                      <Text 
-                        fontSize="3xl" 
-                        color="#22c55e" 
-                        fontWeight="black"
-                        mb={4}
-                        pointerEvents="none"
-                      >
-                        "
-                      </Text>
-                      <Text 
-                        fontSize={{ base: "lg", md: "xl" }}
-                        fontWeight="bold"
-                        color="white"
-                        textAlign="center"
-                        lineHeight="1.6"
-                        pointerEvents="none"
-                      >
-                        JARVIS a transformé notre approche client. 
-                        L'engagement a explosé et nos membres sont ravis.
-                      </Text>
-                      <Text 
-                        fontSize="3xl" 
-                        color="#22c55e" 
-                        fontWeight="black"
-                        mt={4}
-                        pointerEvents="none"
-                      >
-                        "
-                      </Text>
-                    </Box>
-
-                    {/* Profil du témoignage */}
-                    <HStack spacing={4} pointerEvents="none">
-                      <Box
-                        w="60px"
-                        h="60px"
-                        borderRadius="50%"
-                        bg="linear-gradient(135deg, #22c55e, #16a34a)"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        pointerEvents="none"
-                      >
-                        <Text fontSize="2xl" color="white" fontWeight="bold">
-                          M
-                        </Text>
-                      </Box>
-                      <VStack align="flex-start" spacing={1} pointerEvents="none">
-                        <Text 
-                          fontSize="lg" 
-                          fontWeight="bold" 
-                          color="white"
-                          pointerEvents="none"
-                        >
-                          Marc Dubois
-                        </Text>
-                        <Text 
-                          fontSize="md"
-                          color="gray.400"
-                          pointerEvents="none"
-                        >
-                          Gérant - FitnessPro Lyon
-                        </Text>
-                      </VStack>
-                    </HStack>
-
-                    {/* Métriques de résultats */}
-                    <Grid templateColumns="repeat(2, 1fr)" gap={4} w="full" pointerEvents="none">
-                      <Box textAlign="center" pointerEvents="none">
-                        <Text fontSize="2xl" fontWeight="black" color="#22c55e" pointerEvents="none">
-                          +67%
-                        </Text>
-                        <Text fontSize="sm" color="gray.400" pointerEvents="none">
-                          Engagement
-                        </Text>
-                      </Box>
-                      <Box textAlign="center" pointerEvents="none">
-                        <Text fontSize="2xl" fontWeight="black" color="#3b82f6" pointerEvents="none">
-                          -45%
-                        </Text>
-                        <Text fontSize="sm" color="gray.400" pointerEvents="none">
-                          Churn
-                        </Text>
-                      </Box>
-                    </Grid>
-                  </VStack>
-                </Box>
-              </motion.div>
-            </Box>
-
-            {/* CONTENU DROITE - TEXTE (INVERSÉ) */}
-            <VStack align="flex-start" spacing={8} flex="1" maxW="600px" pointerEvents="none">
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                viewport={{ once: true }}
-              >
-                <Heading 
-                  fontSize={{ base: "3xl", md: "5xl" }}
-                  color="white" 
-                  fontWeight="black"
-                  lineHeight="1.2"
-                  textAlign="left"
-                  pointerEvents="none"
-                >
-                  L'innovation qui{" "}
-                  <Text 
-                    as="span" 
-                    style={{
-                      background: "linear-gradient(135deg, #22c55e 0%, #3b82f6 50%, #a855f7 100%)",
-                      backgroundClip: "text",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent"
-                    }}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    viewport={{ once: true }}
+                    className="bg-neutral-800 rounded-lg p-3 ml-8"
                   >
-                    transforme
-                  </Text>
-                </Heading>
-              </motion.div>
-
+                    <p className="text-white text-sm">"Salut JARVIS, j'ai mal au dos depuis 2 séances... je sais plus quoi faire"</p>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                    viewport={{ once: true }}
+                    className="bg-blue-600/20 border border-blue-500/30 rounded-lg p-3 mr-8"
+                  >
+                    <p className="text-white text-sm">"Je comprends Marc. Basé sur votre profil, je recommande de voir Sarah notre coach spécialisée. Voulez-vous que je vous réserve un créneau ?"</p>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.6 }}
+                    viewport={{ once: true }}
+                    className="bg-neutral-800 rounded-lg p-3 ml-8"
+                  >
+                    <p className="text-white text-sm">"Oui merci, et franchement la salle est devenue bruyante le soir..."</p>
+                  </motion.div>
+                </div>
+              </div>
+              
+              {/* Voice Indicator */}
               <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
                 viewport={{ once: true }}
+                className="flex items-center justify-center gap-2 text-neutral-400"
               >
-                <Text 
-                  fontSize={{ base: "lg", md: "xl" }}
-                  color="gray.300" 
-                  lineHeight="1.6"
-                  textAlign="left"
-                  pointerEvents="none"
-                >
-                  Découvrez comment JARVIS révolutionne l'expérience membre 
-                  dans les salles de sport les plus innovantes.
-                </Text>
-              </motion.div>
-
-              {/* Timeline des avantages */}
-              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
-                viewport={{ once: true }}
-              >
-                <VStack align="flex-start" spacing={6} pointerEvents="none">
-                  {[
-                    { 
-                      title: "Disponibilité 24/7", 
-                      desc: "Support IA continu sans interruption",
-                      color: "#22c55e"
-                    },
-                    { 
-                      title: "Conversations personnalisées", 
-                      desc: "Chaque interaction adaptée au profil membre",
-                      color: "#3b82f6"
-                    },
-                    { 
-                      title: "Évolution continue", 
-                      desc: "IA qui apprend et s'améliore constamment",
-                      color: "#f59e0b"
-                    }
-                  ].map((item, index) => (
+                <span className="text-sm">🎤 Conversation naturelle speech-to-speech</span>
+                <motion.div className="flex gap-1">
+                  {[...Array(4)].map((_, i) => (
                     <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: 30 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.6, delay: 0.8 + index * 0.2 }}
-                      viewport={{ once: true }}
-                    >
-                      <HStack spacing={4} align="flex-start" pointerEvents="none">
-                        <Box
-                          w="4px"
-                          h="60px"
-                          bg={item.color}
-                          borderRadius="full"
-                          position="relative"
-                          pointerEvents="none"
-                        >
-                          <Box
-                            w="12px"
-                            h="12px"
-                            bg={item.color}
-                            borderRadius="50%"
-                            position="absolute"
-                            top="0"
-                            left="50%"
-                            transform="translateX(-50%)"
-                            boxShadow={`0 0 10px ${item.color}`}
-                          />
-                        </Box>
-                        <VStack align="flex-start" spacing={2} pointerEvents="none">
-                          <Text 
-                            fontSize="lg" 
-                            fontWeight="bold" 
-                            color="white"
-                            pointerEvents="none"
-                          >
-                            {item.title}
-                          </Text>
-                          <Text 
-                            fontSize="md" 
-                            color="gray.400"
-                            pointerEvents="none"
-                            lineHeight="1.5"
-                          >
-                            {item.desc}
-                          </Text>
-                        </VStack>
-                      </HStack>
-                    </motion.div>
+                      key={i}
+                      className="w-1 bg-blue-400 rounded-full"
+                      animate={{ 
+                        height: [4, 12, 6, 16],
+                        opacity: [0.4, 1, 0.6, 1]
+                      }}
+                      transition={{ 
+                        duration: 1.5, 
+                        repeat: Infinity,
+                        delay: i * 0.1 
+                      }}
+                    />
                   ))}
-                </VStack>
+                </motion.div>
               </motion.div>
-            </VStack>
-          </Flex>
-        </motion.div>
-      </Container>
+            </motion.div>
 
-        {/* SECTION PRICING REDESIGNÉE */}
-        <PricingSection />
+            {/* Right: Dashboard Live */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-6">
+                <h3 className="text-xl font-bold text-white mb-4">📊 Insights Temps Réel</h3>
+                
+                {/* Alerts */}
+                <div className="space-y-4">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                    viewport={{ once: true }}
+                    className="bg-red-500/10 border border-red-500/30 rounded-lg p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-red-400 animate-pulse"></div>
+                      <div>
+                        <div className="text-red-400 font-semibold text-sm">🚨 Risque Churn Détecté</div>
+                        <div className="text-neutral-300 text-xs">Marc - Douleur + Insatisfaction bruit</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                    viewport={{ once: true }}
+                    className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                      <div>
+                        <div className="text-blue-400 font-semibold text-sm">📅 Action Suggérée</div>
+                        <div className="text-neutral-300 text-xs">RDV coach + enquête acoustique</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6, delay: 0.7 }}
+                    viewport={{ once: true }}
+                    className="bg-green-500/10 border border-green-500/30 rounded-lg p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                      <div>
+                        <div className="text-green-400 font-semibold text-sm">✅ Réservation Auto</div>
+                        <div className="text-neutral-300 text-xs">Marc → Sarah demain 19h</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+                
+                {/* Metrics */}
+                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-neutral-800">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-white">85%</div>
+                    <div className="text-xs text-neutral-400">Précision prédictive</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-white">60j</div>
+                    <div className="text-xs text-neutral-400">Anticipation moyenne</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
 
-      {/* SECTION CONTACT */}
-      <Container id="contact" maxW="6xl" px={8} py={32} mt={16} mb={32} position="relative" zIndex={5} style={{ scrollMarginTop: '200px' }} className="section-container">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true, margin: "-100px" }}
-        >
-          <VStack spacing={16} textAlign="center" justify="center" minH="60vh">
-            <VStack spacing={6}>
-              <Heading
-                fontSize={{ base: "3xl", md: "5xl" }}
-                color="white"
-                fontWeight="bold"
+          {/* Benefits Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.3 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-20"
+          >
+            {solutionBenefits.map((benefit, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="text-center p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300"
               >
-                Prêt à révolutionner votre salle ?
-              </Heading>
-              <Text
-                fontSize="xl"
-                color="gray.300"
-                maxW="2xl"
-              >
-                Contactez-nous pour découvrir comment JARVIS peut transformer l'expérience de vos membres
-              </Text>
-            </VStack>
+                <div className="mb-4 flex justify-center">
+                  {benefit.icon}
+                </div>
+                <h4 className="text-lg font-bold text-white mb-3">{benefit.title}</h4>
+                <p className="text-sm text-neutral-400 mb-4">{benefit.description}</p>
+                <div className="text-lg font-bold text-white">{benefit.metric}</div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
 
-            <HStack spacing={8} flexWrap="wrap" justify="center">
-              <Button 
-                bg="linear-gradient(135deg, #22c55e, #16a34a)"
-                color="white"
-                size="xl"
-                px={12}
-                py={8}
-                borderRadius="full"
-                fontWeight="bold"
-                fontSize="xl"
-                _hover={{ 
-                  transform: 'translateY(-4px) scale(1.05)',
-                  boxShadow: '0 20px 40px rgba(34, 197, 94, 0.4)'
-                }}
-                transition="all 0.3s"
-              >
-                📧 contact@jarvis-group.net
-              </Button>
-              <Button 
-                variant="outline"
-                borderColor="gray.600"
-                color="gray.300"
-                size="xl"
-                px={12}
-                py={8}
-                borderRadius="full"
-                fontWeight="bold"
-                fontSize="xl"
-                _hover={{ 
-                  borderColor: "gray.400",
-                  color: "white",
-                  transform: 'translateY(-4px)'
-                }}
-                transition="all 0.3s"
-              >
-                📞 +33 1 23 45 67 89
-              </Button>
-            </HStack>
-          </VStack>
-        </motion.div>
-      </Container>
-    </Box>
+      {/* 🎯 SECTION 4: PROCESS - 3 ÉTAPES */}
+      <section id="process" className="relative py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Section Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              De l'installation au{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                ROI en 3 étapes
+              </span>
+            </h2>
+            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+              Un processus simple et éprouvé pour transformer votre salle en 2 semaines
+            </p>
+          </motion.div>
 
-    {/* 🎤 INTERFACE VOCALE VITRINE - Modale globale */}
-    <VoiceVitrineInterface isOpen={isVoiceOpen} onClose={onVoiceClose} />
-  </>
-  )
+          {/* Process Timeline */}
+          <div className="relative">
+            {/* Connection Line */}
+            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -translate-y-1/2 hidden lg:block"></div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+              {processSteps.map((step, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: index * 0.2 }}
+                  viewport={{ once: true }}
+                  className="relative text-center"
+                >
+                  {/* Step Number */}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    transition={{ duration: 0.6, delay: index * 0.2 + 0.3, type: "spring" }}
+                    viewport={{ once: true }}
+                    className="relative mx-auto w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-6 z-10"
+                  >
+                    <span className="text-white font-bold text-xl">{step.number}</span>
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 opacity-20"
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  </motion.div>
+
+                  {/* Content */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: index * 0.2 + 0.5 }}
+                    viewport={{ once: true }}
+                    className="space-y-4"
+                  >
+                    <div className="text-6xl mb-4">{step.icon}</div>
+                    <h3 className="text-2xl font-bold text-white mb-3">{step.title}</h3>
+                    <p className="text-neutral-400 mb-4 leading-relaxed">{step.description}</p>
+                    <div className="inline-block px-4 py-2 bg-white/10 rounded-full">
+                      <span className="text-sm font-semibold text-white">{step.duration}</span>
+                    </div>
+                  </motion.div>
+
+                  {/* Decorative Elements */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 1, delay: index * 0.2 + 0.8 }}
+                    viewport={{ once: true }}
+                    className="absolute -top-4 -right-4 w-8 h-8 bg-blue-500/20 rounded-full"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 1, delay: index * 0.2 + 1 }}
+                    viewport={{ once: true }}
+                    className="absolute -bottom-4 -left-4 w-6 h-6 bg-purple-500/20 rounded-full"
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            viewport={{ once: true }}
+            className="text-center mt-20"
+          >
+            <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-8 max-w-2xl mx-auto">
+              <h3 className="text-2xl font-bold text-white mb-4">
+                Prêt à transformer votre salle ?
+              </h3>
+              <p className="text-neutral-400 mb-6">
+                Rejoignez les 12 salles qui ont déjà fait le choix de l'innovation
+              </p>
+              <motion.button
+                onClick={() => setIsVoiceModalOpen(true)}
+                className="px-8 py-4 bg-white text-black rounded-xl font-semibold text-lg hover:bg-neutral-100 transition-all duration-300 shadow-lg hover:shadow-xl"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Planifier une consultation
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 🎯 SECTION 5: PROGRAMME PILOTE MVP */}
+      <section id="results" className="relative py-32 bg-black">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Section Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              Rejoignez notre{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                programme pilote
+              </span>
+            </h2>
+            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+              Soyez parmi les premiers à tester JARVIS et co-construire l'avenir des salles de sport
+            </p>
+          </motion.div>
+
+          {/* MVP Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20"
+          >
+            {[
+              {
+                value: "MVP",
+                label: "Prêt à tester",
+                description: "Version fonctionnelle complète"
+              },
+              {
+                value: "5",
+                label: "Places pilotes",
+                description: "Sélection exclusive"
+              },
+              {
+                value: "0€",
+                label: "Coût de test",
+                description: "Partenariat gratuit"
+              }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: index * 0.2 }}
+                viewport={{ once: true }}
+                className="text-center p-8 bg-neutral-900/50 border border-white/10 rounded-xl"
+              >
+                <div className="text-5xl font-bold text-white mb-2">{stat.value}</div>
+                <div className="text-lg font-semibold text-neutral-300 mb-2">{stat.label}</div>
+                <div className="text-sm text-neutral-500">{stat.description}</div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Pilot Benefits */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-20">
+            {[
+              {
+                icon: "🚀",
+                title: "Test MVP gratuit pendant 3 mois",
+                description: "Installation complète, formation équipe, support dédié. Aucun coût pour vous, juste vos retours précieux.",
+                benefit: "Valeur : +15K€"
+              },
+              {
+                icon: "🤝",
+                title: "Co-création produit",
+                description: "Vos besoins orientent directement nos développements. Vous construisez avec nous la solution idéale pour votre métier.",
+                benefit: "Influence directe sur la roadmap"
+              }
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: index * 0.2 }}
+                viewport={{ once: true }}
+                className="bg-neutral-900/50 border border-white/10 rounded-xl p-8"
+              >
+                <div className="mb-6">
+                  <div className="text-4xl mb-4">{item.icon}</div>
+                  <h3 className="text-xl font-bold text-white mb-4">{item.title}</h3>
+                  <p className="text-neutral-300 text-lg leading-relaxed mb-6">
+                    {item.description}
+                  </p>
+                </div>
+                
+                <div className="text-right">
+                  <div className="text-green-400 font-bold text-lg">{item.benefit}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Expertise Credentials */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            viewport={{ once: true }}
+            className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-xl p-8"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-4">
+                  Pourquoi nous faire confiance ?
+                </h3>
+                <p className="text-neutral-300 mb-6 leading-relaxed">
+                  Expertise IA conversationnelle, architecture cloud scalable, et passion pour l'innovation fitness. 
+                  Notre MVP intègre déjà les dernières technologies OpenAI Realtime.
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="text-neutral-300">Stack technologique éprouvée</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    <span className="text-neutral-300">MVP fonctionnel speech-to-speech</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                    <span className="text-neutral-300">Approche data-driven validée</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="text-center p-6 bg-black/30 rounded-lg">
+                  <div className="text-3xl font-bold text-blue-400 mb-2">OpenAI</div>
+                  <div className="text-neutral-400 text-sm mb-2">Technologie</div>
+                  <div className="text-lg font-bold text-white">Realtime API</div>
+                </div>
+                <div className="text-center p-6 bg-black/30 rounded-lg">
+                  <div className="text-3xl font-bold text-green-400 mb-2">3 mois</div>
+                  <div className="text-neutral-400 text-sm mb-2">Développement</div>
+                  <div className="text-lg font-bold text-white">MVP Ready</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 🎯 SECTION 6: PRICING & CTA FINAL */}
+      <section id="contact" className="relative py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Section Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+              Candidatez au{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                programme pilote
+              </span>
+            </h2>
+            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+              5 places exclusives pour co-créer l'avenir des salles de sport connectées
+            </p>
+          </motion.div>
+
+          {/* Pricing Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            viewport={{ once: true }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-8 text-center">
+              <div className="mb-8">
+                <h3 className="text-3xl font-bold text-white mb-4">
+                  Programme Pilote Exclusif
+                </h3>
+                <p className="text-neutral-400 mb-6">
+                  Test MVP • Co-création • Feedback • Partenariat
+                </p>
+                <div className="text-5xl font-bold text-green-400 mb-2">GRATUIT</div>
+                <p className="text-neutral-500">3 mois de test complet • 5 places seulement</p>
+              </div>
+
+              {/* Included Features */}
+              <div className="space-y-4 mb-8">
+                {[
+                  "Installation MVP complète (matériel fourni)",
+                  "Formation équipe personnalisée (2 jours)",
+                  "Support dédié pendant 3 mois",
+                  "Co-création fonctionnalités sur mesure",
+                  "Accès prioritaire version finale",
+                  "Conditions préférentielles post-pilote"
+                ].map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="w-6 h-6 bg-green-500/20 border border-green-500/30 rounded-full flex items-center justify-center">
+                      <span className="text-green-400 text-xs font-bold">✓</span>
+                    </div>
+                    <span className="text-neutral-300">{feature}</span>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* CTAs */}
+              <div className="space-y-4">
+                <motion.button
+                  onClick={() => setIsVoiceModalOpen(true)}
+                  className="w-full px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-neutral-100 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Candidater au programme pilote
+                </motion.button>
+                
+                <motion.button
+                  onClick={() => setIsVoiceModalOpen(true)}
+                  className="w-full px-8 py-4 border border-white/20 text-white rounded-xl font-semibold text-lg hover:bg-white/5 transition-all duration-300"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Voir le MVP en démo (3 min)
+                </motion.button>
+              </div>
+
+              {/* Guarantee */}
+              <div className="mt-8 pt-8 border-t border-neutral-800">
+                <div className="flex items-center justify-center gap-2 text-neutral-400">
+                  <span className="text-xl">🚀</span>
+                  <span className="text-sm">Sélection sur dossier • Engagement 3 mois minimum</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Final Trust Signals */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            viewport={{ once: true }}
+            className="text-center mt-16"
+          >
+            <div className="flex flex-wrap justify-center items-center gap-8 text-neutral-500 text-sm">
+              <div className="flex items-center gap-2">
+                <span>🚀</span>
+                <span>MVP prêt à déployer</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🔒</span>
+                <span>Données sécurisées RGPD</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>🇫🇷</span>
+                <span>Support français dédié</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>📊</span>
+                <span>5 places exclusives</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Voice Interface Modal */}
+      <VoiceVitrineInterface 
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+      />
+    </div>
+  );
 }

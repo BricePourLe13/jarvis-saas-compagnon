@@ -17,3 +17,5 @@ export const ResponsiveProvider: React.FC<ResponsiveProviderProps> = ({ children
     </ResponsiveContext.Provider>
   )
 }
+
+

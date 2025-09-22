@@ -169,3 +169,5 @@ const MobilePricing: React.FC<MobilePricingProps> = ({ cards }) => {
 }
 
 export default MobilePricing
+
+

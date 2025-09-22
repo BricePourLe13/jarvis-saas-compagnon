@@ -160,3 +160,5 @@ const MobileCarousel: React.FC<MobileCarouselProps> = ({
 }
 
 export default MobileCarousel
+
+

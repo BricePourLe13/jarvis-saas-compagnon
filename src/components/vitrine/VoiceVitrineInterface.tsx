@@ -67,6 +67,7 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
     }
   }, [hasStarted, isConnected])
 
+  // Démarrer démo directement (plus de gate email)
   const handleStartDemo = useCallback(async () => {
     try {
       setHasStarted(true)
@@ -239,21 +240,22 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
                 <VStack spacing={4} textAlign="center">
                   <VStack spacing={2}>
                     <Heading size="lg" color="white">
-                      Essayez JARVIS maintenant !
+                      Prêt à commencer ?
                     </Heading>
                     <Text color="rgba(255,255,255,0.8)" maxW="400px">
-                      Parlez avec notre assistant IA pendant 2 minutes. 
-                      Posez-lui des questions sur nos solutions fitness !
+                      Parlez avec JARVIS pendant 2 minutes. 
+                      Posez-lui des questions sur nos solutions !
                     </Text>
                   </VStack>
                   
                   <Button
+                    onClick={handleStartDemo}
                     size="lg"
                     colorScheme="blue"
-                    onClick={handleStartDemo}
                     leftIcon={<FiMic />}
                     isLoading={status === 'connecting'}
                     loadingText="Connexion..."
+                    disabled={status === 'connecting'}
                     px={8}
                     py={6}
                     fontSize="lg"
@@ -266,7 +268,7 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
                     }}
                     transition="all 0.2s"
                   >
-                    Parler à JARVIS
+                    Lancer la conversation
                   </Button>
                 </VStack>
               ) : (

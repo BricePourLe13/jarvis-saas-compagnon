@@ -4,3 +4,5 @@ echo "📂 Répertoire: $(pwd)"
 echo "🎯 URL: http://localhost:3000/landing-client"
 echo ""
 npm run dev
+
+

@@ -92,3 +92,5 @@ const UniversalText = forwardRef<HTMLParagraphElement, UniversalTextProps>(({
 UniversalText.displayName = 'UniversalText'
 
 export default UniversalText
+
+

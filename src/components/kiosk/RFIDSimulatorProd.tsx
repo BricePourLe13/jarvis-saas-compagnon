@@ -193,3 +193,5 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
   )
 }
 
+
+

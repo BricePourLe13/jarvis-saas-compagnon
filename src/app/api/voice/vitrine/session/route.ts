@@ -1,71 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ratelimitVitrineVoice } from '@/lib/ratelimit-vitrine'
+import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
+import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting pour les démos vitrine
-    const clientIP = request.headers.get('x-forwarded-for') || 
+    // Récupération de l'IP et User-Agent
+    const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0] || 
                     request.headers.get('x-real-ip') || 
                     'unknown'
     
-    const rateLimitResult = await ratelimitVitrineVoice.limit(clientIP)
+    const userAgent = request.headers.get('user-agent') || 'unknown'
     
-    if (!rateLimitResult.success) {
+    // Vérification des limites par IP (plus robuste qu'email)
+    const limitResult = await vitrineIPLimiter.checkAndUpdateLimit(clientIP, userAgent)
+    
+    if (!limitResult.allowed) {
+      const errorMessage = limitResult.isBlocked 
+        ? 'Accès bloqué. Contactez-nous si vous pensez qu\'il s\'agit d\'une erreur.'
+        : limitResult.reason || 'Limite d\'utilisation atteinte'
+
       return NextResponse.json(
         { 
-          error: 'Trop de tentatives. Veuillez réessayer dans quelques minutes.',
-          retryAfter: rateLimitResult.reset 
+          error: errorMessage,
+          isBlocked: limitResult.isBlocked,
+          remainingSessions: limitResult.remainingSessions,
+          resetTime: limitResult.resetTime?.toISOString()
         },
-        { status: 429 }
+        { status: limitResult.isBlocked ? 403 : 429 }
       )
     }
 
-    // Créer une session OpenAI Realtime pour la démo (même format que kiosk)
+    // Créer une session OpenAI Realtime pour la démo (format BETA pur)
     const sessionConfig = {
-      model: 'gpt-4o-mini-realtime-preview-2024-12-17',
-      voice: 'nova',
-      instructions: `Tu es JARVIS, l'assistant IA de notre plateforme fitness révolutionnaire.
+      voice: "echo", // Voix enthousiaste et claire
+      instructions: `Tu es JARVIS de JARVIS-GROUP ! Expert technico-commercial de notre solution révolutionnaire.
 
-CONTEXTE DÉMO VITRINE:
-- C'est une démonstration de 2 minutes pour les visiteurs du site
-- Tu représentes notre solution complète pour les salles de sport
-- Sois enthousiaste mais concis
+🎯 TON RÔLE : Démontrer et vendre notre solution de miroirs digitaux IA pour salles de sport.
 
-PERSONNALITÉ:
-- Accueillant et énergique
-- Expert en fitness et technologie IA
-- Passionné par l'innovation dans le sport
+🚀 TON CARACTÈRE : ÉNERGIQUE, ENTHOUSIASTE, EXPERT et PASSIONNÉ ! Parle avec la conviction d'un vrai spécialiste !
 
-RÉPONSES:
-- Garde tes réponses courtes (15-30 secondes max)
-- Mets en avant les bénéfices concrets de notre solution
-- Invite à découvrir nos offres personnalisées
-- Utilise des exemples concrets et inspirants
+💡 NOTRE SOLUTION JARVIS :
+Tu représentes des miroirs digitaux avec IA conversationnelle installés dans les salles de sport. Les adhérents parlent aux miroirs (comme ils te parlent maintenant !), et tout est analysé pour aider les gérants.
 
-SUJETS À ABORDER SI PERTINENT:
-- Analyse personnalisée des performances
-- Recommandations d'entraînement intelligentes  
-- Motivation adaptative basée sur l'IA
-- Suivi de progression en temps réel
-- Interface vocale dans les salles de sport
+🔧 UTILISE TES OUTILS : Quand on te pose des questions spécifiques, utilise tes fonctions pour donner des réponses EXPERTES et PERSONNALISÉES !
 
-SALUTATION INITIALE:
-Commence par: "Bonjour ! Je suis JARVIS, votre futur compagnon d'entraînement IA. En quoi puis-je vous aider à découvrir notre solution révolutionnaire ?"
+📊 QUESTIONS INTELLIGENTES : Pose des questions pour qualifier le prospect (nombre d'adhérents, problèmes actuels, objectifs).
 
-IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
-      input_audio_format: 'pcm16',
-      output_audio_format: 'pcm16',
-      input_audio_transcription: {
-        model: 'whisper-1'
-      },
-      turn_detection: {
-        type: 'server_vad',
-        threshold: 0.5,
-        prefix_padding_ms: 300,
-        silence_duration_ms: 500
-      },
-      temperature: 0.8,
-      max_response_output_tokens: 4096
+💰 FOCUS ROI : Montre toujours la valeur business concrète et le retour sur investissement.
+
+PREMIÈRE PHRASE : "Bonjour ! Je suis JARVIS et je suis ravi de vous rencontrer ! Je suis l'expert de la solution qui révolutionne les salles de sport. Dites-moi, vous gérez combien d'adhérents actuellement ?"
+
+IMPORTANT : Tu es un VRAI expert, pas une IA générique ! Utilise tes connaissances approfondies !`,
+      tools: jarvisExpertFunctions,
+      tool_choice: "auto"
     }
 
     const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
@@ -73,6 +60,7 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
       headers: {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
+        'OpenAI-Beta': 'realtime=v1'
       },
       body: JSON.stringify(sessionConfig),
     })
@@ -96,20 +84,22 @@ IMPORTANT: Cette démo se termine automatiquement après 2 minutes.`,
 
     const sessionData = await response.json()
 
-    // Log pour monitoring (sans exposer les clés)
+    // Log pour monitoring (sans exposer les données sensibles)
     console.log('✅ Session vitrine créée:', {
       timestamp: new Date().toISOString(),
       clientIP: clientIP.substring(0, 8) + '...',
-      sessionId: sessionData.id?.substring(0, 10) + '...'
+      sessionId: sessionData.id?.substring(0, 10) + '...',
+      remainingSessions: limitResult.remainingSessions,
+      userAgent: userAgent.substring(0, 50) + '...'
     })
 
-    // Retourner le format attendu par le hook (compatible kiosk)
+    // Retourner le format attendu par le hook (format GA)
     return NextResponse.json({
       success: true,
       session: {
         session_id: sessionData.id,
-        client_secret: sessionData.client_secret,
-        model: sessionConfig.model,
+        client_secret: sessionData.client_secret, // Format BETA direct
+        model: "gpt-4o-realtime-preview-2024-12-17", // BETA model
         voice: sessionConfig.voice,
         expires_at: sessionData.expires_at
       }
