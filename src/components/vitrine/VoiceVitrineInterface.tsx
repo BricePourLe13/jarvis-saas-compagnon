@@ -81,28 +81,35 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
   }, [connect])
 
   const handleEndDemo = useCallback(async () => {
-    // Fermeture immédiate de l'interface AVANT tout traitement
-    onClose()
-    
     try {
-      // Réinitialiser les états en arrière-plan
+      // Déconnexion AVANT fermeture pour éviter les états incohérents
+      await disconnect()
+      
+      // Nettoyage immédiat des états
       setHasStarted(false)
       setTimeRemaining(120)
       setTranscript('')
       setStatus('idle')
+      setIsListening(false)
       
-      // Déconnexion en arrière-plan
-      setTimeout(async () => {
-        try {
-          await disconnect()
-        } catch (error) {
-          console.error('Erreur de déconnexion en arrière-plan:', error)
-        }
-      }, 100)
+      // Nettoyage du timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+      
     } catch (error) {
-      console.error('Erreur de fermeture:', error)
+      console.error('Erreur de déconnexion:', error)
+    } finally {
+      // Fermeture forcée même en cas d'erreur
+      onClose()
+      
+      // Double sécurité : forcer fermeture après délai minimal
+      setTimeout(() => {
+        onClose()
+      }, 50)
     }
-  }, [disconnect, onClose])
+  }, [onClose, disconnect])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -110,21 +117,9 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const getStatusText = () => {
-    switch (status) {
-      case 'connecting': return 'Connexion à JARVIS...'
-      case 'connected': return 'JARVIS vous écoute'
-      case 'listening': return 'Je vous écoute...'
-      case 'speaking': return 'JARVIS répond...'
-      case 'error': return 'Erreur de connexion'
-      default: return 'Prêt à démarrer'
-    }
-  }
-
   const getAvatarStatus = () => {
-    if (isAISpeaking) return 'speaking'
-    if (isListening || currentTranscript) return 'listening'
-    if (isConnected) return 'idle'
+    if (status === 'speaking' || isAISpeaking) return 'speaking'
+    if (status === 'listening' || isListening) return 'listening'
     if (status === 'connecting') return 'connecting'
     return 'idle'
   }
@@ -137,149 +132,101 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
       motionPreset="slideInBottom"
       closeOnEsc={true}
       closeOnOverlayClick={true}
+      blockScrollOnMount={true}
+      preserveScrollBarGap={true}
       isCentered
     >
       <ModalOverlay 
         bg="rgba(0, 0, 0, 0.95)" 
         backdropFilter="blur(10px)"
+        onClick={onClose}
       />
       <ModalContent 
         bg="transparent" 
-        boxShadow="none"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        position="relative"
-        zIndex={9999}
+        boxShadow="none" 
+        maxW="100vw" 
+        maxH="100vh"
+        m={0}
+        borderRadius={0}
       >
-        <ModalBody p={0} w="100%" h="100vh" display="flex" alignItems="center" justifyContent="center">
-          <VStack spacing={8} textAlign="center" color="white" maxW="600px" px={6}>
-            
-            {/* Header avec bouton fermer et timer */}
-            <HStack w="100%" justify="space-between" align="center">
-              <Box />
-              <VStack spacing={1}>
-                <Text fontSize="sm" color="rgba(255,255,255,0.7)">
+        <ModalBody p={0} display="flex" alignItems="center" justifyContent="center" minH="100vh">
+          <VStack spacing={8} maxW="lg" w="full" px={6}>
+            {/* Header avec timer et fermeture */}
+            <HStack w="full" justify="space-between" align="center">
+              <Box>
+                <Heading color="white" size="lg">
                   Démo JARVIS
-                </Text>
+                </Heading>
                 {hasStarted && (
-                  <Text fontSize="lg" fontWeight="bold" color={timeRemaining <= 30 ? "red.300" : "white"}>
+                  <Text color="red.400" fontSize="lg" fontWeight="bold">
                     {formatTime(timeRemaining)}
                   </Text>
                 )}
-              </VStack>
+              </Box>
               <Button
+                onClick={onClose}
                 variant="ghost"
-                color="white"
-                onClick={handleEndDemo}
-                leftIcon={<FiX />}
                 size="sm"
+                color="white"
+                _hover={{ bg: 'rgba(255,255,255,0.1)' }}
+                rightIcon={<FiX />}
               >
                 Fermer
               </Button>
             </HStack>
 
-            {/* Avatar JARVIS */}
-            <Box position="relative">
+            {/* Avatar 3D */}
+            <Box position="relative" w="300px" h="300px">
               <Avatar3D 
-                status={getAvatarStatus()} 
-                size={400}
-                currentSection="hero"
+                currentSection="vitrine" 
+                status={getAvatarStatus()}
               />
-              
-              {/* Indicateur d'état */}
-              <Box
-                position="absolute"
-                bottom="-20px"
-                left="50%"
-                transform="translateX(-50%)"
-                px={4}
-                py={2}
-                bg="rgba(0,0,0,0.7)"
-                borderRadius="full"
-                border="1px solid rgba(255,255,255,0.2)"
-                backdropFilter="blur(10px)"
-              >
-                <Text fontSize="sm" fontWeight="medium">
-                  {getStatusText()}
-                </Text>
-              </Box>
             </Box>
 
-            {/* Transcript en temps réel */}
-            <AnimatePresence>
-              {(transcript || currentTranscript) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  style={{ width: '100%' }}
-                >
-                  <Box
-                    p={4}
-                    bg="rgba(255,255,255,0.1)"
-                    borderRadius="lg"
-                    border="1px solid rgba(255,255,255,0.2)"
-                    backdropFilter="blur(10px)"
-                    minH="60px"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Text fontSize="md" textAlign="center" lineHeight="1.5">
-                      {currentTranscript || transcript}
-                    </Text>
-                  </Box>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Zone de transcription */}
+            <Box
+              w="full"
+              minH="120px"
+              p={4}
+              bg="rgba(255, 255, 255, 0.05)"
+              border="1px solid rgba(255, 255, 255, 0.1)"
+              borderRadius="lg"
+              backdropFilter="blur(10px)"
+            >
+              <Text color="white" textAlign="center" fontSize="md">
+                {transcript || 
+                 (status === 'connecting' ? 'Connexion en cours...' :
+                  status === 'connected' && !hasStarted ? 'Appuyez sur "Commencer" pour démarrer' :
+                  status === 'listening' ? '🎤 JARVIS vous écoute...' :
+                  status === 'speaking' ? '🗣️ JARVIS vous répond...' :
+                  'Prêt à discuter avec JARVIS')}
+              </Text>
+            </Box>
 
-            {/* Controls */}
-            <VStack spacing={4}>
+            {/* Contrôles */}
+            <VStack spacing={4} w="full">
               {!hasStarted ? (
-                <VStack spacing={4} textAlign="center">
-                  <VStack spacing={2}>
-                    <Heading size="lg" color="white">
-                      Prêt à commencer ?
-                    </Heading>
-                    <Text color="rgba(255,255,255,0.8)" maxW="400px">
-                      Parlez avec JARVIS pendant 2 minutes. 
-                      Posez-lui des questions sur nos solutions !
-                    </Text>
-                  </VStack>
-                  
-                  <Button
-                    onClick={handleStartDemo}
-                    size="lg"
-                    colorScheme="blue"
-                    leftIcon={<FiMic />}
-                    isLoading={status === 'connecting'}
-                    loadingText="Connexion..."
-                    disabled={status === 'connecting'}
-                    px={8}
-                    py={6}
-                    fontSize="lg"
-                    borderRadius="full"
-                    bg="linear-gradient(135deg, #3b82f6, #8b5cf6)"
-                    _hover={{
-                      bg: "linear-gradient(135deg, #2563eb, #7c3aed)",
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 10px 25px rgba(59, 130, 246, 0.4)"
-                    }}
-                    transition="all 0.2s"
-                  >
-                    Lancer la conversation
-                  </Button>
-                </VStack>
+                <Button
+                  onClick={handleStartDemo}
+                  size="lg"
+                  colorScheme="blue"
+                  isLoading={status === 'connecting'}
+                  loadingText="Connexion..."
+                  leftIcon={<FiMic />}
+                  borderRadius="full"
+                  w="full"
+                  maxW="300px"
+                >
+                  Voir JARVIS en action
+                </Button>
               ) : (
                 <HStack spacing={4}>
                   <Button
-                    size="lg"
-                    variant="outline"
-                    colorScheme="red"
                     onClick={handleEndDemo}
                     leftIcon={<FiMicOff />}
                     borderRadius="full"
+                    colorScheme="red"
+                    variant="outline"
                   >
                     Terminer
                   </Button>
