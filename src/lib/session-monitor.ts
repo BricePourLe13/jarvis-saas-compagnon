@@ -4,7 +4,8 @@
  */
 
 import { getSupabaseService } from './supabase-service'
-import { memberProfileCache } from './member-profile-cache'
+
+const supabase = getSupabaseService()
 
 export interface SessionStats {
   total_active: number
@@ -148,7 +149,11 @@ class SessionMonitor {
       
       for (const session of sessions) {
         const memberProfile = session.member_id 
-          ? await memberProfileCache.getMemberProfileById(session.member_id)
+          ? (await supabase
+              .from('gym_members')
+              .select('first_name, last_name')
+              .eq('id', session.member_id)
+              .single()).data
           : null
 
         const startTime = new Date(session.session_started_at)

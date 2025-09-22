@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
-import { memberProfileCache } from '@/lib/member-profile-cache'
 
 // Générer un ID de session unique
 function generateSessionId(): string {
@@ -33,8 +32,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 🚀 RÉCUPÉRATION PROFIL MEMBRE AVEC CACHE
-    const memberProfile = await memberProfileCache.getMemberProfile(badge_id, gymSlug)
+    // 🚀 RÉCUPÉRATION PROFIL MEMBRE 
+    const { data: gym } = await supabase
+      .from('gyms')
+      .select('id')
+      .eq('kiosk_config->>kiosk_url_slug', gymSlug)
+      .single()
+
+    if (!gym) {
+      return NextResponse.json({ error: 'Salle non trouvée' }, { status: 404 })
+    }
+
+    const { data: memberProfile } = await supabase
+      .from('gym_members')
+      .select('*')
+      .eq('badge_id', badge_id)
+      .eq('gym_id', gym.id)
+      .single()
     
     if (!memberProfile) {
       return NextResponse.json(
