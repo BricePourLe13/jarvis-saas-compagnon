@@ -56,6 +56,7 @@ export default function LandingClientOptimizedPage() {
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'>('idle');
   const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceTimeRemaining, setVoiceTimeRemaining] = useState(120);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
@@ -269,7 +270,7 @@ export default function LandingClientOptimizedPage() {
 
           {/* CTA Header */}
           <motion.a
-            href="/dashboard"
+            href="/login"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
@@ -1236,7 +1237,10 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* Voice Interface Modal */}
-      {/* Ancienne interface modale supprimée - Maintenant intégrée dans le hero */}
+      <VoiceVitrineInterface
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+      />
     </div>
   );
 }

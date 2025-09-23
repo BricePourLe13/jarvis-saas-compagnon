@@ -65,7 +65,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel.app *.supabase.co *.hcaptcha.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' *.supabase.co wss://api.openai.com *.vercel.app *.hcaptcha.com; font-src 'self' data:; frame-src *.hcaptcha.com;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel.app *.supabase.co *.hcaptcha.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' *.supabase.co wss://api.openai.com *.vercel.app *.hcaptcha.com *.sentry.io; font-src 'self' data:; frame-src *.hcaptcha.com;"
         },
         {
           "key": "Permissions-Policy",

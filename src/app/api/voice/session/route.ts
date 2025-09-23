@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 🚀 RÉCUPÉRATION PROFIL MEMBRE 
+    const supabase = getSupabaseService()
     const { data: gym } = await supabase
       .from('gyms')
       .select('id')
