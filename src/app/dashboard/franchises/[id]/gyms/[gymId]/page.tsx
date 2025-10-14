@@ -574,7 +574,6 @@ export default function GymDetailPage() {
             email,
             membership_type,
             last_visit,
-            total_sessions,
             is_active
           )
         `)
@@ -610,7 +609,7 @@ export default function GymDetailPage() {
         manager_name: gymData.manager_name,
         manager_email: gymData.manager_email,
         created_at: new Date(gymData.created_at),
-        is_active: gymData.is_active,
+        is_active: gymData.status === 'active',
         kiosk_config: gymData.kiosk_config || {}
       }
 
@@ -622,7 +621,7 @@ export default function GymDetailPage() {
         email: m.email,
         membership_type: m.membership_type || 'Standard',
         last_visit: m.last_visit ? new Date(m.last_visit) : undefined,
-        total_sessions: m.total_sessions || 0,
+        total_sessions: 0, // À calculer depuis les sessions
         status: m.is_active ? 'active' : 'inactive'
       }))
 

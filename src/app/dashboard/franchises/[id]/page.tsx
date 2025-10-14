@@ -430,7 +430,7 @@ export default function FranchiseDetailPage() {
           address,
           city,
           phone,
-          is_active,
+          status,
           kiosk_config,
           created_at,
           gym_members (id)
@@ -467,7 +467,7 @@ export default function FranchiseDetailPage() {
         kiosk_status: g.kiosk_config?.is_provisioned ? 'online' : 'offline',
         last_activity: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
         monthly_revenue: (g.gym_members || []).length * 29.99,
-        status: g.is_active ? 'active' : 'error'
+        status: g.status === 'active' ? 'active' : (g.status === 'maintenance' ? 'warning' : 'error')
       }))
 
       // Calculer les statistiques
