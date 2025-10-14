@@ -91,6 +91,7 @@ interface Gym {
   created_at: Date
   is_active: boolean
   kiosk_config: any
+  kiosk_slug?: string | null
 }
 
 interface GymStats {
@@ -610,7 +611,8 @@ export default function GymDetailPage() {
         manager_email: gymData.manager_email,
         created_at: new Date(gymData.created_at),
         is_active: gymData.status === 'active',
-        kiosk_config: gymData.kiosk_config || {}
+        kiosk_config: gymData.kiosk_config || {},
+        kiosk_slug: gymData.kiosk_config?.kiosk_url_slug || null
       }
 
       const enrichedMembers: Member[] = (gymData.gym_members || []).map((m: any) => ({
@@ -682,7 +684,15 @@ export default function GymDetailPage() {
         <Button
           leftIcon={<Monitor size={18} />}
           colorScheme="blue"
-          onClick={() => router.push(`/kiosk/${gym?.id}`)}
+          onClick={() => {
+            const slug = gym?.kiosk_slug
+            if (slug) {
+              router.push(`/kiosk/${slug}`)
+            } else {
+              alert('Ce kiosk n\'a pas encore été configuré avec un slug.')
+            }
+          }}
+          isDisabled={!gym?.kiosk_slug}
         >
           Accéder au Kiosk
         </Button>
@@ -746,7 +756,15 @@ export default function GymDetailPage() {
                     </Text>
                     <Button
                       colorScheme="blue"
-                      onClick={() => router.push(`/kiosk/${gym?.id}`)}
+                      onClick={() => {
+                        const slug = gym?.kiosk_slug
+                        if (slug) {
+                          router.push(`/kiosk/${slug}`)
+                        } else {
+                          alert('Ce kiosk n\'a pas encore été configuré avec un slug.')
+                        }
+                      }}
+                      isDisabled={!gym?.kiosk_slug}
                     >
                       Ouvrir le Kiosk
                     </Button>
