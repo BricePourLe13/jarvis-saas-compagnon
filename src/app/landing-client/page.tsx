@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 
@@ -87,6 +87,11 @@ export default function LandingClientOptimizedPage() {
   }, []);
   
   const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
   // 🎤 VOICE CHAT HOOK
@@ -288,6 +293,12 @@ export default function LandingClientOptimizedPage() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
+      
+      {/* 🎯 SCROLL PROGRESS BAR */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 origin-left z-50"
+        style={{ scaleX }}
+      />
       
       {/* 🎯 HEADER NAVIGATION */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
@@ -935,9 +946,9 @@ export default function LandingClientOptimizedPage() {
                   viewport={{ once: true }}
                   className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
                 >
-                  <div className="text-4xl font-bold text-green-400 mb-2">Jusqu'à 10K€</div>
-                  <div className="text-sm text-neutral-400">Revenus mensuels potentiels</div>
-                  <div className="text-xs text-neutral-500 mt-2">(5 marques × 2000€/mois)</div>
+                  <div className="text-3xl font-bold text-green-400 mb-2">Revenus passifs</div>
+                  <div className="text-sm text-neutral-400">Partenariats marques premium</div>
+                  <div className="text-xs text-neutral-500 mt-2">Potentiel significatif selon taille salle</div>
                 </motion.div>
                 
                 <motion.div
@@ -1067,120 +1078,251 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
-      {/* 👤 SECTION À PROPOS / ÉQUIPE */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-b from-neutral-950 to-black">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
+      {/* 👤 SECTION À PROPOS - TIMELINE VERTICALE INTERACTIVE (Structure unique) */}
+      <section className="relative py-32 bg-black overflow-hidden">
+        {/* Background animated gradient mesh */}
+        <div className="absolute inset-0 bg-gradient-radial from-blue-500/5 via-transparent to-transparent opacity-40 animate-pulse-slow" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/10 via-transparent to-transparent" />
+        
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 relative z-10">
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-20"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Qui sommes-nous ?
+            <h2 className="text-5xl md:text-7xl font-bold text-white mb-6">
+              L'équipe derrière{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                JARVIS
+              </span>
             </h2>
             <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
-              Une équipe passionnée par l'IA et le fitness, déterminée à transformer l'expérience adhérent
+              Une passion pour l'IA, l'automatisation et l'innovation dans le secteur du fitness
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Équipe / Founder */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="space-y-6"
-            >
-              <div className="bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 rounded-2xl p-8">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl font-bold">
-                    BL
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">Brice Lekamber</h3>
-                    <p className="text-neutral-400">Founder & Lead Developer</p>
-                  </div>
-                </div>
-                
-                <p className="text-neutral-300 leading-relaxed mb-4">
-                  Développeur Full-Stack spécialisé en IA et ingénierie des systèmes. Passionné par l'innovation technologique appliquée au secteur du fitness.
-                </p>
-                
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm text-blue-400">
-                    Next.js / React
-                  </span>
-                  <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-full text-sm text-purple-400">
-                    OpenAI / IA Conversationnelle
-                  </span>
-                  <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-full text-sm text-green-400">
-                    Cloud Architecture
-                  </span>
-                </div>
-              </div>
+          {/* Profile Card Principal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="max-w-5xl mx-auto mb-24"
+          >
+            <div className="relative bg-gradient-to-br from-neutral-900/80 via-neutral-950/60 to-black/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 overflow-hidden">
+              {/* Glow effect */}
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow" />
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
-                  <div className="text-3xl font-bold text-white mb-1">3 mois</div>
-                  <div className="text-sm text-neutral-400">Développement MVP</div>
-                </div>
-                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
-                  <div className="text-3xl font-bold text-white mb-1">100%</div>
-                  <div className="text-sm text-neutral-400">Focus produit</div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Mission & Vision */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="space-y-6"
-            >
-              <div className="bg-neutral-900/30 border border-neutral-800 rounded-2xl p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <VscTarget className="w-6 h-6 text-blue-400" />
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-8">
+                {/* Avatar avec effet glassmorphism */}
+                <motion.div
+                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="flex-shrink-0"
+                >
+                  <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1">
+                    <div className="w-full h-full rounded-2xl bg-black flex items-center justify-center">
+                      <span className="text-5xl font-bold bg-gradient-to-br from-blue-400 to-purple-600 bg-clip-text text-transparent">BP</span>
+                    </div>
                   </div>
-                  <h4 className="text-xl font-bold text-white">Notre Mission</h4>
-                </div>
-                <p className="text-neutral-300 leading-relaxed">
-                  Aider les entreprises à migrer vers l'IA en créant des solutions IA dédiées. JARVIS pour les salles de sport est notre première solution concrète, conçue pour résoudre un problème réel : le churn.
-                </p>
-              </div>
-
-              <div className="bg-neutral-900/30 border border-neutral-800 rounded-2xl p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-purple-500/20 rounded-lg">
-                    <VscRocket className="w-6 h-6 text-purple-400" />
+                </motion.div>
+                
+                {/* Info principale */}
+                <div className="flex-1">
+                  <h3 className="text-3xl md:text-4xl font-bold text-white mb-2">Brice PRADET</h3>
+                  <p className="text-xl text-blue-400 font-semibold mb-4">Expert en Ingénierie des Systèmes d'Information</p>
+                  <p className="text-neutral-300 leading-relaxed mb-6">
+                    Expert junior en ingénierie des SI, je me distingue par ma passion pour <strong className="text-white">l'automatisation</strong> et la <strong className="text-white">résilience des systèmes</strong>. 
+                    Mes 2 années d'alternance et mon expérience entrepreneuriale m'ont permis de renforcer mes compétences techniques et mes aptitudes en planification et gestion de projets.
+                  </p>
+                  
+                  {/* Quick stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <motion.div
+                      whileHover={{ y: -5 }}
+                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
+                    >
+                      <div className="text-2xl font-bold text-blue-400 mb-1">2020-2025</div>
+                      <div className="text-xs text-neutral-400">Groupe ESIEA</div>
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ y: -5 }}
+                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
+                    >
+                      <div className="text-2xl font-bold text-purple-400 mb-1">TOEIC 810</div>
+                      <div className="text-xs text-neutral-400">Anglais B2</div>
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ y: -5 }}
+                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
+                    >
+                      <div className="text-2xl font-bold text-green-400 mb-1">4 CCNA</div>
+                      <div className="text-xs text-neutral-400">Certifications</div>
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ y: -5 }}
+                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
+                    >
+                      <div className="text-2xl font-bold text-cyan-400 mb-1">2 ans</div>
+                      <div className="text-xs text-neutral-400">Alternance</div>
+                    </motion.div>
                   </div>
-                  <h4 className="text-xl font-bold text-white">Pourquoi maintenant ?</h4>
-                </div>
-                <p className="text-neutral-300 leading-relaxed mb-4">
-                  Avec l'arrivée d'<strong className="text-white">OpenAI Realtime API</strong>, nous pouvons enfin créer des conversations vocales <strong className="text-white">vraiment naturelles</strong> en temps réel. C'est LE moment d'innover.
-                </p>
-                <div className="flex items-center gap-2 text-sm text-neutral-400">
-                  <VscCheck className="w-5 h-5 text-green-400" />
-                  <span>Stack technique moderne & éprouvée</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-neutral-400 mt-2">
-                  <VscCheck className="w-5 h-5 text-green-400" />
-                  <span>Approche data-driven & itérative</span>
                 </div>
               </div>
+            </div>
+          </motion.div>
 
-              <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-xl p-6">
-                <p className="text-white font-semibold text-center">
-                  🎯 Nous cherchons <span className="text-blue-400">5 salles pilotes</span> pour co-construire la meilleure solution du marché
-                </p>
-              </div>
-            </motion.div>
+          {/* Timeline Expériences - Alternance Gauche/Droite */}
+          <div className="relative max-w-6xl mx-auto">
+            {/* Line centrale animée qui se remplit au scroll */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500/20 via-purple-500/20 to-transparent hidden md:block" />
+            
+            {[
+              {
+                year: "2023-2024",
+                title: "AdminSys · Zoomalia",
+                type: "Alternance",
+                description: "5ème année en alternance en tant qu'AdminSys",
+                skills: ["Administration Système", "Réseaux", "Infrastructure"],
+                color: "blue"
+              },
+              {
+                year: "2023",
+                title: "Stage CCI · OWASP Zap",
+                type: "Stage",
+                description: "Solution basée sur OWASP Zap pour automatiser analyses de vulnérabilités et génération de rapports pour 400 applications web",
+                skills: ["Sécurité", "OWASP", "Automatisation"],
+                color: "purple"
+              },
+              {
+                year: "2022",
+                title: "DHEALTH · Centre Hospitalier de Dax",
+                type: "Projet",
+                description: "Création d'un système de supervisions d'une infrastructure informatique pour le Centre Hospitalier",
+                skills: ["Monitoring", "Infrastructure", "Supervision"],
+                color: "cyan"
+              },
+              {
+                year: "2022",
+                title: "C-A-NOUS · Migration Docker",
+                type: "Projet",
+                description: "Migration des logiciels de gestion et de production vers solution Docker",
+                skills: ["Docker", "DevOps", "Migration"],
+                color: "green"
+              }
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: index % 2 === 0 ? -100 : 100 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6, delay: index * 0.15 }}
+                className={`relative flex items-center gap-8 mb-16 ${
+                  index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
+                } flex-col`}
+              >
+                {/* Content card */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="w-full md:w-5/12 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 md:p-8 hover:bg-white/10 transition-colors"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`px-3 py-1 bg-${item.color}-500/20 border border-${item.color}-500/30 rounded-full text-xs font-bold text-${item.color}-400`}>
+                      {item.type}
+                    </span>
+                    <span className="text-sm text-neutral-500">{item.year}</span>
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-3">{item.title}</h4>
+                  <p className="text-neutral-300 text-sm leading-relaxed mb-4">{item.description}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {item.skills.map((skill, i) => (
+                      <span key={i} className="px-2 py-1 bg-neutral-800/50 border border-neutral-700 rounded-md text-xs text-neutral-400">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+                
+                {/* Dot animé au centre */}
+                <motion.div
+                  className="flex-shrink-0 relative z-10"
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ type: "spring", stiffness: 300, delay: index * 0.15 + 0.3 }}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-${item.color}-500 relative`}>
+                    <div className={`absolute inset-0 rounded-full bg-${item.color}-500/50 animate-ping`} style={{ animationDelay: `${index * 0.3}s` }} />
+                  </div>
+                </motion.div>
+                
+                {/* Espace vide pour l'autre côté (desktop) */}
+                <div className="w-full md:w-5/12 hidden md:block" />
+              </motion.div>
+            ))}
           </div>
+
+          {/* Tech Stack */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="mt-24 max-w-5xl mx-auto"
+          >
+            <h3 className="text-3xl font-bold text-white text-center mb-12">Stack Technique</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {[
+                { name: "Python", color: "yellow" },
+                { name: "Bash", color: "green" },
+                { name: "Docker", color: "blue" },
+                { name: "Ansible", color: "red" },
+                { name: "Linux", color: "orange" },
+                { name: "CCNA", color: "cyan" },
+                { name: "SCRUM", color: "purple" },
+                { name: "OSINT", color: "pink" },
+                { name: "Next.js", color: "white" },
+                { name: "OpenAI", color: "green" },
+                { name: "CrewAI", color: "blue" },
+                { name: "Zabbix", color: "red" }
+              ].map((tech, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center hover:bg-white/10 transition-all"
+                >
+                  <span className="text-sm font-semibold text-white">{tech.name}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* CTA Final */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="mt-20 text-center"
+          >
+            <div className="inline-block bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-2xl p-8">
+              <p className="text-2xl font-bold text-white mb-2">
+                🎯 Cherche <span className="text-blue-400">5 salles pilotes</span>
+              </p>
+              <p className="text-neutral-400">
+                pour co-construire la meilleure solution IA du marché fitness
+              </p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
