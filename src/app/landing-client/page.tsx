@@ -43,7 +43,10 @@ import {
   VscGear,
   VscWarning,
   VscChromeMinimize,
-  VscCheckAll
+  VscCheckAll,
+  VscTarget,
+  VscRocket,
+  VscCheck
 } from 'react-icons/vsc';
 
 // 🎯 CUSTOM HOOK FOR PERFORMANCE
@@ -544,15 +547,15 @@ export default function LandingClientOptimizedPage() {
                       />
                       </div>
                       
-                      {/* ✅ Effet de lueur MONOCHROME SOBRE (blanc/gris) */}
+                      {/* ✅ Effet de lueur PASTEL (style JARVIS Kiosk) - PLUS VISIBLE */}
                       <motion.div
-                        className="absolute inset-0 rounded-full bg-gradient-to-r from-white/15 via-neutral-300/15 to-neutral-400/15 blur-3xl"
+                        className="absolute inset-0 rounded-full bg-gradient-to-r from-sky-200/40 via-cyan-200/40 to-blue-200/40 blur-3xl"
                         animate={{
-                          scale: [1, 1.1, 1],
-                          opacity: [0.2, 0.5, 0.2] 
+                          scale: [1, 1.15, 1],
+                          opacity: [0.4, 0.8, 0.4] 
                         }}
                         transition={{
-                          duration: 6, 
+                          duration: 3, 
                           repeat: Infinity,
                           ease: "easeInOut"
                         }}
@@ -897,6 +900,81 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
+      {/* 💰 SECTION REVENUS PUBLICITAIRES */}
+      <section className="relative py-16 md:py-24 bg-gradient-to-b from-black to-neutral-950">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="bg-gradient-to-br from-green-900/20 via-emerald-900/10 to-green-950/20 border border-green-500/20 rounded-3xl p-8 md:p-12 relative overflow-hidden"
+          >
+            {/* Background glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-green-500/20 rounded-xl">
+                  <VscGraph className="w-8 h-8 text-green-400" />
+                </div>
+                <h3 className="text-3xl md:text-4xl font-bold text-white">
+                  JARVIS génère des revenus <span className="text-green-400">passifs</span> pour votre salle
+                </h3>
+              </div>
+              
+              <p className="text-xl text-neutral-300 mb-8 leading-relaxed">
+                Grâce aux <strong className="text-white">partenariats publicitaires contextuels</strong>, JARVIS propose subtilement des produits pertinents (nutrition, équipement) à vos adhérents lors des conversations. Vous touchez une part des revenus publicitaires.
+              </p>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true }}
+                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
+                >
+                  <div className="text-4xl font-bold text-green-400 mb-2">Jusqu'à 10K€</div>
+                  <div className="text-sm text-neutral-400">Revenus mensuels potentiels</div>
+                  <div className="text-xs text-neutral-500 mt-2">(5 marques × 2000€/mois)</div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
+                >
+                  <div className="text-4xl font-bold text-green-400 mb-2">100%</div>
+                  <div className="text-sm text-neutral-400">Pub contextuelle</div>
+                  <div className="text-xs text-neutral-500 mt-2">Pertinente selon profil adhérent</div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
+                >
+                  <div className="text-4xl font-bold text-green-400 mb-2">ROI négatif</div>
+                  <div className="text-sm text-neutral-400">JARVIS peut devenir gratuit</div>
+                  <div className="text-xs text-neutral-500 mt-2">Amortissement complet possible</div>
+                </motion.div>
+              </div>
+              
+              <div className="mt-8 p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl">
+                <p className="text-sm text-neutral-400 text-center">
+                  💡 <strong className="text-white">Différenciateur clé</strong> : JARVIS ne coûte pas, il <span className="text-green-400">rapporte</span>
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* 🎯 SECTION 4: PROCESS - 3 ÉTAPES */}
       <section id="process" className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
@@ -986,6 +1064,123 @@ export default function LandingClientOptimizedPage() {
             </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* 👤 SECTION À PROPOS / ÉQUIPE */}
+      <section className="relative py-16 md:py-24 bg-gradient-to-b from-neutral-950 to-black">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              Qui sommes-nous ?
+            </h2>
+            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+              Une équipe passionnée par l'IA et le fitness, déterminée à transformer l'expérience adhérent
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Équipe / Founder */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <div className="bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 rounded-2xl p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl font-bold">
+                    BL
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Brice Lekamber</h3>
+                    <p className="text-neutral-400">Founder & Lead Developer</p>
+                  </div>
+                </div>
+                
+                <p className="text-neutral-300 leading-relaxed mb-4">
+                  Développeur Full-Stack spécialisé en IA et ingénierie des systèmes. Passionné par l'innovation technologique appliquée au secteur du fitness.
+                </p>
+                
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-blue-500/10 border border-blue-500/30 rounded-full text-sm text-blue-400">
+                    Next.js / React
+                  </span>
+                  <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/30 rounded-full text-sm text-purple-400">
+                    OpenAI / IA Conversationnelle
+                  </span>
+                  <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-full text-sm text-green-400">
+                    Cloud Architecture
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
+                  <div className="text-3xl font-bold text-white mb-1">3 mois</div>
+                  <div className="text-sm text-neutral-400">Développement MVP</div>
+                </div>
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4 text-center">
+                  <div className="text-3xl font-bold text-white mb-1">100%</div>
+                  <div className="text-sm text-neutral-400">Focus produit</div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Mission & Vision */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="space-y-6"
+            >
+              <div className="bg-neutral-900/30 border border-neutral-800 rounded-2xl p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <VscTarget className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white">Notre Mission</h4>
+                </div>
+                <p className="text-neutral-300 leading-relaxed">
+                  Aider les entreprises à migrer vers l'IA en créant des solutions IA dédiées. JARVIS pour les salles de sport est notre première solution concrète, conçue pour résoudre un problème réel : le churn.
+                </p>
+              </div>
+
+              <div className="bg-neutral-900/30 border border-neutral-800 rounded-2xl p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <VscRocket className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white">Pourquoi maintenant ?</h4>
+                </div>
+                <p className="text-neutral-300 leading-relaxed mb-4">
+                  Avec l'arrivée d'<strong className="text-white">OpenAI Realtime API</strong>, nous pouvons enfin créer des conversations vocales <strong className="text-white">vraiment naturelles</strong> en temps réel. C'est LE moment d'innover.
+                </p>
+                <div className="flex items-center gap-2 text-sm text-neutral-400">
+                  <VscCheck className="w-5 h-5 text-green-400" />
+                  <span>Stack technique moderne & éprouvée</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-neutral-400 mt-2">
+                  <VscCheck className="w-5 h-5 text-green-400" />
+                  <span>Approche data-driven & itérative</span>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-xl p-6">
+                <p className="text-white font-semibold text-center">
+                  🎯 Nous cherchons <span className="text-blue-400">5 salles pilotes</span> pour co-construire la meilleure solution du marché
+                </p>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -1101,24 +1296,28 @@ export default function LandingClientOptimizedPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
               <div>
                 <h3 className="text-2xl font-bold text-white mb-4">
-                  Pourquoi nous faire confiance ?
+                  Un MVP prêt, transparent et ambitieux
                 </h3>
                 <p className="text-neutral-300 mb-6 leading-relaxed">
-                  Expertise IA conversationnelle, architecture cloud scalable, et passion pour l'innovation fitness. 
-                  Notre MVP intègre déjà les dernières technologies OpenAI Realtime.
+                  <strong className="text-white">Soyons honnêtes</strong> : nous sommes au stade MVP. Pas encore de clients en production, mais un produit <strong className="text-white">fonctionnel</strong> développé avec les dernières technologies (OpenAI Realtime API). 
+                  C'est pourquoi nous cherchons des <strong className="text-blue-400">partenaires pilotes</strong> pour co-construire ensemble.
                 </p>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="text-neutral-300">Stack technologique éprouvée</span>
+                    <VscCheck className="w-5 h-5 text-green-400" />
+                    <span className="text-neutral-300"><strong className="text-white">Speech-to-speech fonctionnel</strong> (testez-le ci-dessus !)</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                    <span className="text-neutral-300">MVP fonctionnel speech-to-speech</span>
+                    <VscCheck className="w-5 h-5 text-blue-400" />
+                    <span className="text-neutral-300"><strong className="text-white">Stack pro</strong> : Next.js, OpenAI Realtime, Supabase</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                    <span className="text-neutral-300">Approche data-driven validée</span>
+                    <VscCheck className="w-5 h-5 text-purple-400" />
+                    <span className="text-neutral-300"><strong className="text-white">Métriques basées</strong> sur études sectorielles reconnues</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <VscWarning className="w-5 h-5 text-yellow-400" />
+                    <span className="text-neutral-300"><strong className="text-white">Pas encore testé en condition réelle</strong> → C'est votre rôle !</span>
                   </div>
                 </div>
               </div>

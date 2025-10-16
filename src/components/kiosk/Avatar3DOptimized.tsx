@@ -31,19 +31,19 @@ export default function Avatar3DOptimized({
     );
   }
 
-  // ✅ Couleurs MONOCHROMES SOBRES (blanc/gris/noir) avec intensités variées selon status
+  // ✅ Couleurs PASTEL DOUCES (style JARVIS Kiosk prod) - Blanc → Bleu ciel très clair
   const getColors = () => {
     switch (status) {
       case 'listening': 
-        return { primary: '#f5f5f5', secondary: '#d4d4d4', accent: '#a3a3a3' }; // Blanc → gris clair
+        return { primary: '#e0f2fe', secondary: '#bae6fd', accent: '#7dd3fc' }; // Sky blue pastel
       case 'speaking': 
-        return { primary: '#ffffff', secondary: '#e5e5e5', accent: '#bfbfbf' }; // Blanc pur → gris moyen
+        return { primary: '#f0f9ff', secondary: '#e0f2fe', accent: '#bae6fd' }; // Blanc → cyan très clair
       case 'thinking': 
-        return { primary: '#d4d4d4', secondary: '#a3a3a3', accent: '#737373' }; // Gris clair → moyen
+        return { primary: '#dbeafe', secondary: '#bfdbfe', accent: '#93c5fd' }; // Bleu pastel doux
       case 'connecting': 
-        return { primary: '#e5e5e5', secondary: '#bfbfbf', accent: '#8c8c8c' }; // Gris très clair → moyen
+        return { primary: '#f0f9ff', secondary: '#dbeafe', accent: '#bae6fd' }; // Blanc → bleu clair
       default: 
-        return { primary: '#f5f5f5', secondary: '#d4d4d4', accent: '#a3a3a3' }; // Blanc cassé par défaut
+        return { primary: '#f0f9ff', secondary: '#e0f2fe', accent: '#bae6fd' }; // Blanc → cyan pastel
     }
   };
 
