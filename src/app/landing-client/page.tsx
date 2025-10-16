@@ -544,12 +544,12 @@ export default function LandingClientOptimizedPage() {
                       />
                       </div>
                       
-                      {/* ✅ FIX : Effet de lueur MONOCHROME (cyan/bleu) */}
+                      {/* ✅ Effet de lueur MONOCHROME SOBRE (blanc/gris) */}
                       <motion.div
-                        className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-600/20 blur-3xl"
+                        className="absolute inset-0 rounded-full bg-gradient-to-r from-white/15 via-neutral-300/15 to-neutral-400/15 blur-3xl"
                         animate={{
                           scale: [1, 1.1, 1],
-                          opacity: [0.3, 0.6, 0.3] 
+                          opacity: [0.2, 0.5, 0.2] 
                         }}
                         transition={{
                           duration: 6, 

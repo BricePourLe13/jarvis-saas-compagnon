@@ -31,19 +31,19 @@ export default function Avatar3DOptimized({
     );
   }
 
-  // ✅ FIX : Couleurs MONOCHROMES (cyan/bleu) avec intensités variées selon status
+  // ✅ Couleurs MONOCHROMES SOBRES (blanc/gris/noir) avec intensités variées selon status
   const getColors = () => {
     switch (status) {
       case 'listening': 
-        return { primary: '#06b6d4', secondary: '#0891b2', accent: '#0e7490' }; // Cyan vif → foncé
+        return { primary: '#f5f5f5', secondary: '#d4d4d4', accent: '#a3a3a3' }; // Blanc → gris clair
       case 'speaking': 
-        return { primary: '#0ea5e9', secondary: '#0284c7', accent: '#0369a1' }; // Bleu ciel → foncé
+        return { primary: '#ffffff', secondary: '#e5e5e5', accent: '#bfbfbf' }; // Blanc pur → gris moyen
       case 'thinking': 
-        return { primary: '#3b82f6', secondary: '#2563eb', accent: '#1d4ed8' }; // Bleu classique → foncé
+        return { primary: '#d4d4d4', secondary: '#a3a3a3', accent: '#737373' }; // Gris clair → moyen
       case 'connecting': 
-        return { primary: '#8b5cf6', secondary: '#7c3aed', accent: '#6d28d9' }; // Violet-bleu → foncé
+        return { primary: '#e5e5e5', secondary: '#bfbfbf', accent: '#8c8c8c' }; // Gris très clair → moyen
       default: 
-        return { primary: '#06b6d4', secondary: '#0284c7', accent: '#0369a1' }; // Cyan par défaut
+        return { primary: '#f5f5f5', secondary: '#d4d4d4', accent: '#a3a3a3' }; // Blanc cassé par défaut
     }
   };
 
