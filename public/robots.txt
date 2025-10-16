@@ -1,0 +1,16 @@
+# Robots.txt pour JARVIS SaaS
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /kiosk/
+
+# Sitemap
+Sitemap: https://jarvis-group.net/sitemap.xml
+
+# Crawl-delay pour éviter la surcharge
+Crawl-delay: 1
+
+
+

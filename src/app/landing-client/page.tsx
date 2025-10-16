@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 
 // 🎯 ACETERNITY UI COMPONENTS (Optimisés)
 import { ShootingStars } from "@/components/ui/shooting-stars";
@@ -11,9 +12,23 @@ import { FlipWords } from "@/components/ui/flip-words";
 import { FloatingDock } from "@/components/ui/floating-dock";
 import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
 
-// 🎯 BUSINESS COMPONENTS
-import Avatar3D from "@/components/kiosk/Avatar3D";
-import VoiceVitrineInterface from "@/components/vitrine/VoiceVitrineInterface";
+// 🎯 LAZY LOADED COMPONENTS (Chargés à la demande)
+const VoiceVitrineInterface = dynamic(
+  () => import("@/components/vitrine/VoiceVitrineInterface"),
+  { ssr: false }
+);
+
+const Avatar3D = dynamic(
+  () => import("@/components/kiosk/Avatar3DOptimized"),
+  { ssr: false }
+);
+
+const ContactForm = dynamic(
+  () => import("@/components/vitrine/ContactForm"),
+  { ssr: false }
+);
+
+// 🎯 HOOKS
 import { useVoiceVitrineChat } from "@/hooks/useVoiceVitrineChat";
 
 // 🎯 ICONS
@@ -58,6 +73,16 @@ export default function LandingClientOptimizedPage() {
   const [voiceTimeRemaining, setVoiceTimeRemaining] = useState(120);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
+  // 🎯 DEVICE DETECTION
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
@@ -86,7 +111,9 @@ export default function LandingClientOptimizedPage() {
     try {
       setIsVoiceActive(true);
       setVoiceStatus('connecting');
-      await connectVoice();
+      
+      const result = await connectVoice();
+      
       setVoiceStatus('connected');
       
       // Timer de démo
@@ -102,9 +129,13 @@ export default function LandingClientOptimizedPage() {
       
       // Stocker le timer pour le nettoyer
       (window as any).voiceTimer = timer;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur connexion vocale:', error);
       setVoiceStatus('error');
+      setIsVoiceActive(false);
+      
+      // ✅ FIX : Afficher l'erreur de limitation visuellement
+      // L'erreur sera affichée via voiceError qui est déjà dans le hook
     }
   };
 
@@ -285,24 +316,28 @@ export default function LandingClientOptimizedPage() {
         </div>
       </header>
 
-      {/* 🎯 BACKGROUND EFFECTS */}
-      <ShootingStars 
-        minSpeed={8}
-        maxSpeed={20}
-        minDelay={4000}
-        maxDelay={10000}
-        starColor="#FFFFFF"
-        trailColor="#CCCCCC"
-        starWidth={6}
-        starHeight={1}
-      />
-      <StarsBackground 
-        starDensity={0.0001}
-        allStarsTwinkle={true}
-        twinkleProbability={0.6}
-        minTwinkleSpeed={0.8}
-        maxTwinkleSpeed={2}
-      />
+      {/* 🎯 BACKGROUND EFFECTS - Désactivé sur mobile pour performance */}
+      {!isMobile && (
+        <>
+          <ShootingStars 
+            minSpeed={8}
+            maxSpeed={20}
+            minDelay={4000}
+            maxDelay={10000}
+            starColor="#FFFFFF"
+            trailColor="#CCCCCC"
+            starWidth={6}
+            starHeight={1}
+          />
+          <StarsBackground 
+            starDensity={0.0001}
+            allStarsTwinkle={true}
+            twinkleProbability={0.6}
+            minTwinkleSpeed={0.8}
+            maxTwinkleSpeed={2}
+          />
+        </>
+      )}
 
       {/* 🎯 FLOATING NAVIGATION */}
       {/* Desktop: FloatingDock normal */}
@@ -335,7 +370,7 @@ export default function LandingClientOptimizedPage() {
 
       {/* 🎯 SECTION 1: HERO IMPACT */}
       <section id="hero" className="relative min-h-screen lg:min-h-screen flex items-center pt-20 pb-20 lg:pb-0">
-        <div className="w-full max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-24 lg:gap-12 items-center">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 lg:gap-12 items-center">
           
           {/* Hero Content */}
           <motion.div
@@ -466,6 +501,29 @@ export default function LandingClientOptimizedPage() {
                       </div>
                     </motion.div>
                   )}
+
+                  {/* ✅ NOUVEAU : Message d'erreur de limitation */}
+                  {voiceError && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="max-w-md mx-auto"
+                    >
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 backdrop-blur-sm">
+                        <div className="text-center">
+                          <div className="text-red-400 text-lg font-bold mb-2">
+                            ⚠️ {voiceError}
+                          </div>
+                          <div className="text-red-300/80 text-sm">
+                            Pour un accès illimité, contactez-nous :<br />
+                            <a href="mailto:contact@jarvis-group.net" className="text-cyan-400 hover:text-cyan-300 underline">
+                              contact@jarvis-group.net
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                   
                   {/* SPHÈRE JARVIS - Container parfaitement centré */}
                   <motion.div 
@@ -486,9 +544,9 @@ export default function LandingClientOptimizedPage() {
                       />
                       </div>
                       
-                      {/* Effet de lueur parfaitement centré */}
+                      {/* ✅ FIX : Effet de lueur MONOCHROME (cyan/bleu) */}
                       <motion.div
-                        className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-green-500/20 blur-3xl"
+                        className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-cyan-600/20 blur-3xl"
                         animate={{
                           scale: [1, 1.1, 1],
                           opacity: [0.3, 0.6, 0.3] 
@@ -545,8 +603,8 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 2: PROBLÈMES (Pain Points) */}
-      <section id="problems" className="relative py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="problems" className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -566,7 +624,7 @@ export default function LandingClientOptimizedPage() {
           </motion.div>
 
           {/* Pain Points Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
             {painPoints.map((point, index) => (
               <motion.div
                 key={index}
@@ -609,7 +667,7 @@ export default function LandingClientOptimizedPage() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
             viewport={{ once: true }}
-            className="text-center mt-20"
+            className="text-center mt-12 md:mt-16 lg:mt-20"
           >
             <h3 className="text-3xl font-bold text-white mb-6">
               Et si vous pouviez les voir venir ?
@@ -626,8 +684,8 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 3: SOLUTION - DÉMONSTRATION INTERACTIVE */}
-      <section id="solution" className="relative py-32 bg-black">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="solution" className="relative py-16 md:py-24 lg:py-32 bg-black">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -816,7 +874,7 @@ export default function LandingClientOptimizedPage() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-20"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-12 md:mt-16 lg:mt-20"
           >
             {solutionBenefits.map((benefit, index) => (
               <motion.div
@@ -840,8 +898,8 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 4: PROCESS - 3 ÉTAPES */}
-      <section id="process" className="relative py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="process" className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -866,7 +924,7 @@ export default function LandingClientOptimizedPage() {
             {/* Connection Line */}
             <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -translate-y-1/2 hidden lg:block"></div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10 lg:gap-12">
               {processSteps.map((step, index) => (
                 <motion.div
                   key={index}
@@ -900,7 +958,7 @@ export default function LandingClientOptimizedPage() {
                     viewport={{ once: true }}
                     className="space-y-4"
                   >
-                    <div className="text-6xl mb-4">{step.icon}</div>
+                    <div className="flex justify-center items-center text-6xl mb-4">{step.icon}</div>
                     <h3 className="text-2xl font-bold text-white mb-3">{step.title}</h3>
                     <p className="text-neutral-400 mb-4 leading-relaxed">{step.description}</p>
                     <div className="inline-block px-4 py-2 bg-white/10 rounded-full">
@@ -928,37 +986,12 @@ export default function LandingClientOptimizedPage() {
             </div>
           </div>
 
-          {/* CTA Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            viewport={{ once: true }}
-            className="text-center mt-20"
-          >
-            <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-8 max-w-2xl mx-auto">
-              <h3 className="text-2xl font-bold text-white mb-4">
-                Prêt à transformer votre salle ?
-              </h3>
-              <p className="text-neutral-400 mb-6">
-                Rejoignez les 12 salles qui ont déjà fait le choix de l'innovation
-              </p>
-              <motion.button
-                onClick={() => setIsVoiceModalOpen(true)}
-                className="px-8 py-4 bg-white text-black rounded-xl font-semibold text-lg hover:bg-neutral-100 transition-all duration-300 shadow-lg hover:shadow-xl"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                Planifier une consultation
-              </motion.button>
-            </div>
-          </motion.div>
         </div>
       </section>
 
       {/* 🎯 SECTION 5: PROGRAMME PILOTE MVP */}
-      <section id="results" className="relative py-32 bg-black">
-        <div className="max-w-7xl mx-auto px-6">
+      <section id="results" className="relative py-16 md:py-24 lg:py-32 bg-black">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -984,7 +1017,7 @@ export default function LandingClientOptimizedPage() {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20"
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 mb-12 md:mb-16 lg:mb-20"
           >
             {[
               {
@@ -1019,7 +1052,7 @@ export default function LandingClientOptimizedPage() {
           </motion.div>
 
           {/* Pilot Benefits */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8 mb-12 md:mb-16 lg:mb-20">
             {[
               {
                 icon: "🚀",
@@ -1104,132 +1137,46 @@ export default function LandingClientOptimizedPage() {
               </div>
             </div>
           </motion.div>
-        </div>
-      </section>
 
-      {/* 🎯 SECTION 6: PRICING & CTA FINAL */}
-      <section id="contact" className="relative py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Section Header */}
+          {/* 🎯 FORMULAIRE DE CONTACT */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-20"
-          >
-            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Candidatez au{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                programme pilote
-              </span>
-            </h2>
-            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
-              5 places exclusives pour co-créer l'avenir des salles de sport connectées
-            </p>
-          </motion.div>
-
-          {/* Pricing Card */}
-          <motion.div
+            id="contact"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
             viewport={{ once: true }}
-            className="max-w-2xl mx-auto"
+            className="mt-12 md:mt-16 lg:mt-20"
           >
-            <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-8 text-center">
-              <div className="mb-8">
-                <h3 className="text-3xl font-bold text-white mb-4">
-                  Programme Pilote Exclusif
+            <div className="max-w-3xl mx-auto">
+              {/* Header formulaire */}
+              <div className="text-center mb-8">
+                <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  Prêt à rejoindre l'aventure ?
                 </h3>
-                <p className="text-neutral-400 mb-6">
-                  Test MVP • Co-création • Feedback • Partenariat
+                <p className="text-lg text-neutral-400">
+                  Remplissez le formulaire ci-dessous et recevez une réponse sous 24h
                 </p>
-                <div className="text-5xl font-bold text-green-400 mb-2">GRATUIT</div>
-                <p className="text-neutral-500">3 mois de test complet • 5 places seulement</p>
               </div>
 
-              {/* Included Features */}
-              <div className="space-y-4 mb-8">
-                {[
-                  "Installation MVP complète (matériel fourni)",
-                  "Formation équipe personnalisée (2 jours)",
-                  "Support dédié pendant 3 mois",
-                  "Co-création fonctionnalités sur mesure",
-                  "Accès prioritaire version finale",
-                  "Conditions préférentielles post-pilote"
-                ].map((feature, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    viewport={{ once: true }}
-                    className="flex items-center gap-3"
-                  >
-                    <div className="w-6 h-6 bg-green-500/20 border border-green-500/30 rounded-full flex items-center justify-center">
-                      <span className="text-green-400 text-xs font-bold">✓</span>
-                    </div>
-                    <span className="text-neutral-300">{feature}</span>
-                  </motion.div>
-                ))}
+              {/* Formulaire */}
+              <div className="bg-neutral-900/30 border border-white/10 rounded-2xl p-6 md:p-8">
+                <ContactForm leadType="pilot" />
               </div>
 
-              {/* CTAs */}
-              <div className="space-y-4">
-                <motion.button
-                  onClick={() => setIsVoiceModalOpen(true)}
-                  className="w-full px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-neutral-100 transition-all duration-300 shadow-lg hover:shadow-xl"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Candidater au programme pilote
-                </motion.button>
-                
-                <motion.button
-                  onClick={() => setIsVoiceModalOpen(true)}
-                  className="w-full px-8 py-4 border border-white/20 text-white rounded-xl font-semibold text-lg hover:bg-white/5 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Voir le MVP en démo (3 min)
-                </motion.button>
-              </div>
-
-              {/* Guarantee */}
-              <div className="mt-8 pt-8 border-t border-neutral-800">
-                <div className="flex items-center justify-center gap-2 text-neutral-400">
-                  <span className="text-xl">🚀</span>
-                  <span className="text-sm">Sélection sur dossier • Engagement 3 mois minimum</span>
+              {/* Trust signals */}
+              <div className="flex flex-wrap justify-center items-center gap-6 mt-8 text-neutral-500 text-sm">
+                <div className="flex items-center gap-2">
+                  <span>⚡</span>
+                  <span>Réponse sous 24h</span>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Final Trust Signals */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            viewport={{ once: true }}
-            className="text-center mt-16"
-          >
-            <div className="flex flex-wrap justify-center items-center gap-8 text-neutral-500 text-sm">
-              <div className="flex items-center gap-2">
-                <span>🚀</span>
-                <span>MVP prêt à déployer</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>🔒</span>
-                <span>Données sécurisées RGPD</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>🇫🇷</span>
-                <span>Support français dédié</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>📊</span>
-                <span>5 places exclusives</span>
+                <div className="flex items-center gap-2">
+                  <span>🔒</span>
+                  <span>Données sécurisées RGPD</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>🎯</span>
+                  <span>5 places exclusives</span>
+                </div>
               </div>
             </div>
           </motion.div>

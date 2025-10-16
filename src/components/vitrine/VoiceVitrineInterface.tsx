@@ -18,6 +18,8 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
   const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'>('idle')
   const [timeRemaining, setTimeRemaining] = useState(120) // 2 minutes démo
   const [hasStarted, setHasStarted] = useState(false)
+  const [remainingCredits, setRemainingCredits] = useState<number | null>(null) // 🔒 NOUVEAU : Crédits restants
+  const [limitError, setLimitError] = useState<string | null>(null) // 🔒 NOUVEAU : Erreur de limitation
   
   // Réinitialiser tous les états quand la modale se ferme
   useEffect(() => {
@@ -70,13 +72,33 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
   // Démarrer démo directement (plus de gate email)
   const handleStartDemo = useCallback(async () => {
     try {
+      setLimitError(null) // Reset erreur
       setHasStarted(true)
       setStatus('connecting')
-      await connect()
+      
+      const result = await connect()
+      
+      // 🔒 NOUVEAU : Récupérer les crédits restants
+      if (result && 'remainingCredits' in result) {
+        setRemainingCredits(result.remainingCredits)
+        console.log(`💳 Crédits restants: ${result.remainingCredits} minutes`)
+      }
+      
       setStatus('connected')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur de connexion:', error)
+      
+      // 🔒 NOUVEAU : Gérer les erreurs de limitation
+      if (error.hasActiveSession) {
+        setLimitError('⚠️ Session déjà active. Fermez les autres onglets.')
+      } else if (error.remainingCredits === 0) {
+        setLimitError('⏰ Temps de démo épuisé. Revenez demain ou contactez-nous.')
+      } else if (error.message) {
+        setLimitError(error.message)
+      }
+      
       setStatus('error')
+      setHasStarted(false)
     }
   }, [connect])
 
@@ -162,6 +184,12 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
                     {formatTime(timeRemaining)}
                   </Text>
                 )}
+                {/* 🔒 NOUVEAU : Afficher crédits restants */}
+                {remainingCredits !== null && (
+                  <Text color="cyan.400" fontSize="sm" mt={1}>
+                    💳 {remainingCredits} minute{remainingCredits > 1 ? 's' : ''} restante{remainingCredits > 1 ? 's' : ''}
+                  </Text>
+                )}
               </Box>
               <Button
                 onClick={onClose}
@@ -174,6 +202,24 @@ export default function VoiceVitrineInterface({ isOpen, onClose }: VoiceVitrineI
                 Fermer
               </Button>
             </HStack>
+
+            {/* 🔒 NOUVEAU : Message d'erreur de limitation */}
+            {limitError && (
+              <Box
+                w="full"
+                p={4}
+                bg="rgba(255, 0, 0, 0.1)"
+                border="1px solid rgba(255, 0, 0, 0.3)"
+                borderRadius="lg"
+              >
+                <Text color="red.400" textAlign="center" fontSize="md" fontWeight="medium">
+                  {limitError}
+                </Text>
+                <Text color="red.300" textAlign="center" fontSize="sm" mt={2}>
+                  Contactez-nous pour un accès complet : contact@jarvis-group.net
+                </Text>
+              </Box>
+            )}
 
             {/* Avatar 3D */}
             <Box position="relative" w="300px" h="300px">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
 import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
+import { getStrictContext } from '@/lib/jarvis-knowledge-base'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,42 +16,80 @@ export async function POST(request: NextRequest) {
     const limitResult = await vitrineIPLimiter.checkAndUpdateLimit(clientIP, userAgent)
     
     if (!limitResult.allowed) {
-      const errorMessage = limitResult.isBlocked 
-        ? 'Accès bloqué. Contactez-nous si vous pensez qu\'il s\'agit d\'une erreur.'
-        : limitResult.reason || 'Limite d\'utilisation atteinte'
+      const errorMessage = limitResult.hasActiveSession
+        ? 'Session déjà active. Fermez les autres onglets.'
+        : limitResult.isBlocked 
+          ? 'Accès bloqué. Contactez-nous si vous pensez qu\'il s\'agit d\'une erreur.'
+          : limitResult.reason || 'Limite d\'utilisation atteinte'
 
       return NextResponse.json(
         { 
           error: errorMessage,
           isBlocked: limitResult.isBlocked,
-          remainingSessions: limitResult.remainingSessions,
+          hasActiveSession: limitResult.hasActiveSession,
+          remainingCredits: limitResult.remainingCredits, // Crédits (minutes) au lieu de sessions
           resetTime: limitResult.resetTime?.toISOString()
         },
-        { status: limitResult.isBlocked ? 403 : 429 }
+        { status: limitResult.isBlocked ? 403 : limitResult.hasActiveSession ? 409 : 429 }
       )
     }
 
+    // 📚 Récupérer le contexte strict de la knowledge base
+    const strictContext = getStrictContext();
+
     // Créer une session OpenAI Realtime pour la démo (format BETA pur)
     const sessionConfig = {
-      voice: "echo", // Voix enthousiaste et claire
-      instructions: `Tu es JARVIS de JARVIS-GROUP ! Expert technico-commercial de notre solution révolutionnaire.
+      voice: "alloy", // 🎙️ TEST : Voix masculine dynamique et énergique (alternatives : ballad, coral, sage, verse)
+      turn_detection: {
+        type: "server_vad",
+        threshold: 0.5,
+        prefix_padding_ms: 300,
+        silence_duration_ms: 1200,
+        interrupt_response: true,
+        create_response: true
+      },
+      instructions: `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
 
-🎯 TON RÔLE : Démontrer et vendre notre solution de miroirs digitaux IA pour salles de sport.
+${strictContext}
 
-🚀 TON CARACTÈRE : ÉNERGIQUE, ENTHOUSIASTE, EXPERT et PASSIONNÉ ! Parle avec la conviction d'un vrai spécialiste !
+🎯 RÈGLES ABSOLUES ANTI-HALLUCINATION
 
-💡 NOTRE SOLUTION JARVIS :
-Tu représentes des miroirs digitaux avec IA conversationnelle installés dans les salles de sport. Les adhérents parlent aux miroirs (comme ils te parlent maintenant !), et tout est analysé pour aider les gérants.
+1️⃣ TU NE PEUX PARLER QUE DE CE QUI EST DANS LA KNOWLEDGE BASE CI-DESSUS
+2️⃣ Si une info N'EST PAS dans la KB → Tu dis : "Je ne dispose pas de cette information précise. Contacte notre équipe à contact@jarvis-group.net"
+3️⃣ JAMAIS inventer de chiffres, JAMAIS estimer, JAMAIS approximer
+4️⃣ Utilise UNIQUEMENT les métriques vérifiées :
+   - Churn : EXACTEMENT -30%
+   - Satisfaction : EXACTEMENT +40%
+   - Automatisation : EXACTEMENT 70%
+   - Détection : EXACTEMENT 60 jours avant
 
-🔧 UTILISE TES OUTILS : Quand on te pose des questions spécifiques, utilise tes fonctions pour donner des réponses EXPERTES et PERSONNALISÉES !
+💬 STYLE DE CONVERSATION
 
-📊 QUESTIONS INTELLIGENTES : Pose des questions pour qualifier le prospect (nombre d'adhérents, problèmes actuels, objectifs).
+✅ TON ÉNERGIQUE ET RAPIDE (pas monotone !)
+✅ Phrases COURTES et PERCUTANTES
+✅ Parle comme un VRAI commercial passionné
+✅ VARIE ton intonation pour montrer ton enthousiasme
 
-💰 FOCUS ROI : Montre toujours la valeur business concrète et le retour sur investissement.
+❌ JAMAIS de listes : "1, 2, 3..." ou "premièrement, deuxièmement..."
+❌ JAMAIS de ton plat ou robotique
+❌ JAMAIS ralentir ou traîner
 
-PREMIÈRE PHRASE : "Bonjour ! Je suis JARVIS et je suis ravi de vous rencontrer ! Je suis l'expert de la solution qui révolutionne les salles de sport. Dites-moi, vous gérez combien d'adhérents actuellement ?"
+🎯 EXEMPLE PARFAIT
 
-IMPORTANT : Tu es un VRAI expert, pas une IA générique ! Utilise tes connaissances approfondies !`,
+BIEN ✅ : "Écoute, JARVIS c'est ultra simple ! Tu installes des miroirs digitaux dans ta salle. Tes adhérents leur parlent comme ils me parlent là ! Et boom, tu réduis ton churn de trente pour cent. C'est prouvé sur nos clients."
+
+MAL ❌ : "Alors... euh... JARVIS propose plusieurs fonctionnalités. Premièrement, des miroirs digitaux. Deuxièmement, une intelligence artificielle. Troisièmement..."
+
+🔧 UTILISE TES OUTILS
+
+Quand on te demande du ROI précis, un plan d'implémentation, ou des cas clients → APPELLE tes fonctions !
+Ne réponds JAMAIS de mémoire pour ces sujets.
+
+📞 PREMIÈRE PHRASE
+
+"Salut ! Je suis JARVIS ! Dis-moi, tu gères une salle de sport ?"
+
+RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`,
       tools: jarvisExpertFunctions,
       tool_choice: "auto"
     }
@@ -89,7 +128,7 @@ IMPORTANT : Tu es un VRAI expert, pas une IA générique ! Utilise tes connaissa
       timestamp: new Date().toISOString(),
       clientIP: clientIP.substring(0, 8) + '...',
       sessionId: sessionData.id?.substring(0, 10) + '...',
-      remainingSessions: limitResult.remainingSessions,
+      remainingCredits: limitResult.remainingCredits, // Minutes restantes
       userAgent: userAgent.substring(0, 50) + '...'
     })
 
@@ -102,7 +141,8 @@ IMPORTANT : Tu es un VRAI expert, pas une IA générique ! Utilise tes connaissa
         model: "gpt-4o-realtime-preview-2024-12-17", // BETA model
         voice: sessionConfig.voice,
         expires_at: sessionData.expires_at
-      }
+      },
+      remainingCredits: limitResult.remainingCredits // Informer le client des crédits restants
     })
 
   } catch (error) {

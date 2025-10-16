@@ -6,25 +6,28 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 export interface VitrineLimiterConfig {
-  maxDailySessions: number
-  maxTotalSessions: number
-  sessionDurationLimitMinutes: number
+  maxDailyCredits: number        // Crédits quotidiens (1 crédit = 1 minute)
+  maxTotalCredits: number        // Crédits totaux (lifetime)
+  creditValue: number            // Valeur d'un crédit en minutes
   blockAfterExcessive: boolean
+  allowOnError: boolean          // ❌ FAIL SAFE : Bloquer en cas d'erreur (false)
 }
 
 const DEFAULT_CONFIG: VitrineLimiterConfig = {
-  maxDailySessions: 3,           // 3 sessions par jour max
-  maxTotalSessions: 10,          // 10 sessions au total max
-  sessionDurationLimitMinutes: 3, // 3 minutes max par session
-  blockAfterExcessive: true      // Bloquer après usage excessif
+  maxDailyCredits: 5,            // ✅ 5 minutes par jour (augmenté de 3)
+  maxTotalCredits: 15,           // ✅ 15 minutes au total (augmenté de 10)
+  creditValue: 1,                // 1 crédit = 1 minute
+  blockAfterExcessive: true,
+  allowOnError: false            // 🔒 FAIL SAFE : Bloquer en cas d'erreur
 }
 
 export interface VitrineLimiterResult {
   allowed: boolean
   reason?: string
-  remainingSessions: number
+  remainingCredits: number       // Crédits restants (en minutes)
   resetTime?: Date
   isBlocked: boolean
+  hasActiveSession?: boolean     // Session déjà active
 }
 
 export class VitrineIPLimiter {
@@ -50,7 +53,13 @@ export class VitrineIPLimiter {
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = pas de résultat
         console.error('❌ Erreur Supabase vitrine limiter:', error)
-        return { allowed: true, remainingSessions: 999, isBlocked: false } // Fail open
+        // 🔒 FAIL SAFE : Bloquer en cas d'erreur au lieu d'autoriser
+        return { 
+          allowed: this.config.allowOnError, 
+          reason: 'Erreur système, veuillez réessayer',
+          remainingCredits: 0, 
+          isBlocked: false 
+        }
       }
 
       const now = new Date()
@@ -64,19 +73,27 @@ export class VitrineIPLimiter {
             session_count: 1,
             daily_session_count: 1,
             daily_reset_date: today,
-            user_agent,
+            user_agent: userAgent,
             first_session_at: now.toISOString(),
-            last_session_at: now.toISOString()
+            last_session_at: now.toISOString(),
+            total_duration_seconds: 0,
+            is_session_active: true // ✅ Initialiser comme active
           })
 
         if (insertError) {
           console.error('❌ Erreur insertion vitrine session:', insertError)
-          return { allowed: true, remainingSessions: 999, isBlocked: false }
+          // 🔒 FAIL SAFE : Bloquer en cas d'erreur
+          return { 
+            allowed: this.config.allowOnError,
+            reason: 'Erreur création session',
+            remainingCredits: 0, 
+            isBlocked: false 
+          }
         }
 
         return {
           allowed: true,
-          remainingSessions: this.config.maxDailySessions - 1,
+          remainingCredits: this.config.maxDailyCredits - 1,
           isBlocked: false
         }
       }
@@ -86,86 +103,164 @@ export class VitrineIPLimiter {
         return {
           allowed: false,
           reason: sessionData.blocked_reason || 'IP bloquée pour usage excessif',
-          remainingSessions: 0,
+          remainingCredits: 0,
           isBlocked: true
         }
       }
 
-      // 3. Reset quotidien si nécessaire
-      let dailyCount = sessionData.daily_session_count
-      if (sessionData.daily_reset_date !== today) {
-        dailyCount = 0 // Reset du compteur quotidien
+      // 3. 🔒 NOUVEAU : Vérifier si une session est déjà active (anti multi-onglets)
+      if (sessionData.is_session_active) {
+        const lastSession = new Date(sessionData.last_session_at)
+        const timeSinceLastSession = (now.getTime() - lastSession.getTime()) / 1000 // secondes
+        
+        // ✅ FIX : Réduire timeout à 30s (au lieu de 5 min) pour permettre reconnexion rapide
+        // + Vérifier flag is_session_active
+        if (timeSinceLastSession < 30) {
+          return {
+            allowed: false,
+            reason: 'Session déjà active. Fermez les autres onglets.',
+            remainingCredits: 0,
+            isBlocked: false,
+            hasActiveSession: true
+          }
+        } else {
+          // Timeout dépassé : réinitialiser le flag
+          await supabase
+            .from('vitrine_demo_sessions')
+            .update({ is_session_active: false })
+            .eq('ip_address', ipAddress)
+        }
       }
 
-      // 4. Vérifier les limites
-      const totalSessions = sessionData.session_count
+      // 4. Reset quotidien si nécessaire
+      let dailyDurationSeconds = sessionData.total_duration_seconds || 0
+      if (sessionData.daily_reset_date !== today) {
+        dailyDurationSeconds = 0 // Reset du compteur quotidien
+      }
+
+      // Convertir en crédits (1 crédit = 60 secondes)
+      const dailyCreditsUsed = Math.ceil(dailyDurationSeconds / 60)
+      const totalCreditsUsed = Math.ceil((sessionData.total_duration_seconds || 0) / 60)
+      
+      // 5. Vérifier les limites de crédits
       
       // Limite quotidienne
-      if (dailyCount >= this.config.maxDailySessions) {
+      if (dailyCreditsUsed >= this.config.maxDailyCredits) {
         const resetTime = new Date()
         resetTime.setDate(resetTime.getDate() + 1)
         resetTime.setHours(0, 0, 0, 0)
         
         return {
           allowed: false,
-          reason: `Limite quotidienne atteinte (${this.config.maxDailySessions}/jour)`,
-          remainingSessions: 0,
+          reason: `Limite quotidienne atteinte (${this.config.maxDailyCredits} minutes/jour)`,
+          remainingCredits: 0,
           resetTime,
           isBlocked: false
         }
       }
 
       // Limite totale
-      if (totalSessions >= this.config.maxTotalSessions) {
+      if (totalCreditsUsed >= this.config.maxTotalCredits) {
         // Bloquer définitivement si configuré
         if (this.config.blockAfterExcessive) {
           await supabase
             .from('vitrine_demo_sessions')
             .update({
               blocked: true,
-              blocked_reason: `Dépassement limite totale (${this.config.maxTotalSessions} sessions)`
+              blocked_reason: `Dépassement limite totale (${this.config.maxTotalCredits} minutes)`
             })
             .eq('ip_address', ipAddress)
         }
 
         return {
           allowed: false,
-          reason: `Limite totale atteinte (${this.config.maxTotalSessions} sessions)`,
-          remainingSessions: 0,
+          reason: `Limite totale atteinte (${this.config.maxTotalCredits} minutes)`,
+          remainingCredits: 0,
           isBlocked: this.config.blockAfterExcessive
         }
       }
 
-      // 5. Mettre à jour les compteurs
-      const newDailyCount = dailyCount + 1
-      const newTotalCount = totalSessions + 1
+      // 6. Mettre à jour pour marquer session active
+      const newTotalCount = (sessionData.session_count || 0) + 1
 
       const { error: updateError } = await supabase
         .from('vitrine_demo_sessions')
         .update({
           session_count: newTotalCount,
-          daily_session_count: newDailyCount,
+          daily_session_count: (sessionData.daily_session_count || 0) + 1,
           daily_reset_date: today,
           last_session_at: now.toISOString(),
-          user_agent, // Update user agent au cas où
+          is_session_active: true, // ✅ FIX : Marquer comme active
+          user_agent: userAgent,
           updated_at: now.toISOString()
         })
         .eq('ip_address', ipAddress)
 
       if (updateError) {
         console.error('❌ Erreur mise à jour vitrine session:', updateError)
+        // 🔒 FAIL SAFE
+        return { 
+          allowed: this.config.allowOnError,
+          reason: 'Erreur mise à jour session',
+          remainingCredits: 0, 
+          isBlocked: false 
+        }
       }
 
       return {
         allowed: true,
-        remainingSessions: this.config.maxDailySessions - newDailyCount,
+        remainingCredits: this.config.maxDailyCredits - dailyCreditsUsed,
         isBlocked: false
       }
 
     } catch (error) {
       console.error('❌ Erreur vitrine IP limiter:', error)
-      // En cas d'erreur, on autorise (fail open)
-      return { allowed: true, remainingSessions: 999, isBlocked: false }
+      // 🔒 FAIL SAFE : En cas d'erreur, on BLOQUE (sécurité)
+      return { 
+        allowed: this.config.allowOnError, 
+        reason: 'Erreur système, veuillez réessayer dans quelques instants',
+        remainingCredits: 0, 
+        isBlocked: false 
+      }
+    }
+  }
+
+  /**
+   * 🔒 NOUVEAU : Marquer la fin d'une session et comptabiliser le temps utilisé
+   */
+  async endSession(ipAddress: string, durationSeconds: number): Promise<boolean> {
+    try {
+      const { data: sessionData } = await supabase
+        .from('vitrine_demo_sessions')
+        .select('total_duration_seconds')
+        .eq('ip_address', ipAddress)
+        .single()
+
+      if (!sessionData) return false
+
+      const newTotalDuration = (sessionData.total_duration_seconds || 0) + durationSeconds
+
+      const { error } = await supabase
+        .from('vitrine_demo_sessions')
+        .update({
+          total_duration_seconds: newTotalDuration,
+          is_session_active: false, // ✅ FIX : Marquer comme inactive pour permettre nouvelle session
+          updated_at: new Date().toISOString()
+        })
+        .eq('ip_address', ipAddress)
+
+      if (error) {
+        console.error('❌ Erreur fin de session:', error)
+        return false
+      }
+
+      console.log(`✅ Session terminée: ${durationSeconds}s utilisées (total: ${newTotalDuration}s)`)
+      console.log(`🔓 Session marquée comme inactive - nouvelle connexion possible`)
+      return true
+
+    } catch (error) {
+      console.error('❌ Erreur endSession:', error)
+      return false
     }
   }
 

@@ -3,6 +3,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 🎯 OPTIMISATIONS PERFORMANCE SCROLL */
+* {
+  /* Améliore le rendu des animations */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimisation scroll fluide */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Optimisation animations Framer Motion */
+.motion-safe {
+  will-change: transform, opacity;
+  contain: layout style paint;
+}
+
+/* Sections avec animations - Optimisation GPU */
+section {
+  contain: layout style;
+  content-visibility: auto;
+}
+
+/* Images optimisées */
+img {
+  content-visibility: auto;
+}
+
 /* === ACETERNITY AURORA KEYFRAMES === */
 @keyframes aurora {
   from {

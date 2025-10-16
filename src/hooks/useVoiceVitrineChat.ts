@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { executeJarvisFunction } from '@/lib/jarvis-expert-functions'
 
 interface VoiceVitrineConfig {
   onStatusChange?: (status: 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error') => void
@@ -40,6 +41,60 @@ export function useVoiceVitrineChat({
     onTranscriptUpdate?.(transcript)
   }, [onTranscriptUpdate])
 
+  // 🎯 Handler pour les function calls (ROI, success stories, etc.)
+  const handleFunctionCall = useCallback(async (message: any, dataChannel: RTCDataChannel) => {
+    try {
+      const { call_id, name, arguments: argsString } = message
+      console.log(`🔧 Exécution function: ${name}`)
+      console.log(`📊 Arguments:`, argsString)
+      
+      // Parser les arguments
+      const args = JSON.parse(argsString)
+      
+      // Exécuter la fonction experte
+      const result = await executeJarvisFunction(name, args)
+      console.log(`✅ Résultat function ${name}:`, result)
+      
+      // Renvoyer le résultat à l'IA
+      dataChannel.send(JSON.stringify({
+        type: 'conversation.item.create',
+        item: {
+          type: 'function_call_output',
+          call_id: call_id,
+          output: JSON.stringify(result)
+        }
+      }))
+      
+      // Demander à l'IA de répondre avec ce résultat
+      dataChannel.send(JSON.stringify({
+        type: 'response.create'
+      }))
+      
+      console.log('📤 Résultat envoyé à JARVIS pour formulation')
+      
+    } catch (error) {
+      console.error('❌ Erreur exécution function call:', error)
+      
+      // En cas d'erreur, informer l'IA
+      if (message.call_id) {
+        dataChannel.send(JSON.stringify({
+          type: 'conversation.item.create',
+          item: {
+            type: 'function_call_output',
+            call_id: message.call_id,
+            output: JSON.stringify({ 
+              error: 'Erreur lors du calcul, je vais vous donner une estimation générale.' 
+            })
+          }
+        }))
+        
+        dataChannel.send(JSON.stringify({
+          type: 'response.create'
+        }))
+      }
+    }
+  }, [])
+
   // Créer une session éphémère pour la démo
   const createDemoSession = useCallback(async () => {
     // L'API attend maintenant directement la config sans wrapper "session"
@@ -52,13 +107,28 @@ export function useVoiceVitrineChat({
     })
 
     if (!response.ok) {
-      throw new Error(`Erreur session: ${response.status}`)
+      // 🔒 NOUVEAU : Gérer les erreurs de limitation
+      const errorData = await response.json().catch(() => ({}))
+      
+      const error: any = new Error(errorData.error || `Erreur session: ${response.status}`)
+      error.statusCode = response.status
+      error.hasActiveSession = errorData.hasActiveSession
+      error.remainingCredits = errorData.remainingCredits
+      error.isBlocked = errorData.isBlocked
+      
+      throw error
     }
 
     const sessionData = await response.json()
     console.log('✅ Session créée:', sessionData)
     console.log('🔍 Structure session:', JSON.stringify(sessionData.session, null, 2))
     console.log('🔍 client_secret:', sessionData.session?.client_secret)
+    
+    // 💳 Retourner aussi les crédits restants
+    if (sessionData.remainingCredits !== undefined) {
+      console.log(`💳 Crédits restants: ${sessionData.remainingCredits} minutes`)
+    }
+    
     return sessionData
   }, [])
 
@@ -128,14 +198,10 @@ export function useVoiceVitrineChat({
         updateStatus('connected')
         sessionStartTimeRef.current = Date.now()
         
-        // Configuration de session (format BETA comme le kiosk)
-        dc.send(JSON.stringify({
-          type: 'session.update',
-          session: {
-            voice: "echo",
-            instructions: "Tu es JARVIS, l'assistant IA commercial expert. Garde tes réponses courtes et vendeuses pour le programme pilote."
-          }
-        }))
+        // ✅ CORRECTION : Ne pas écraser le prompt serveur !
+        // Le prompt commercial expert est déjà configuré dans /api/voice/vitrine/session
+        // avec toutes les instructions détaillées, function calling, etc.
+        console.log('🎯 Utilisation du prompt commercial serveur (expert JARVIS-GROUP)')
       }
 
       dc.onmessage = (event) => {
@@ -175,6 +241,25 @@ export function useVoiceVitrineChat({
               
             case 'response.output_text.delta':
               // Text chunks from GA API
+              break
+            
+            // 🎯 NOUVEAU : Function calling pour JARVIS VITRINE (commercial expert)
+            case 'response.function_call_arguments.delta':
+              // Arguments de fonction reçus progressivement
+              console.log('🔧 Function call arguments delta:', message)
+              break
+            
+            case 'response.function_call_arguments.done':
+              // Function call complet - EXÉCUTER
+              console.log('🎯 Function call complet:', message)
+              handleFunctionCall(message, dc)
+              break
+            
+            case 'response.output_item.done':
+              // Item terminé (peut contenir un function call)
+              if (message.item?.type === 'function_call') {
+                console.log('✅ Function call item done:', message.item.name)
+              }
               break
               
             case 'error':
@@ -226,6 +311,9 @@ export function useVoiceVitrineChat({
 
       console.log('✅ WebRTC initialisé avec succès')
       
+      // 💳 Retourner les données de session
+      return sessionResponse
+      
     } catch (error: any) {
       console.error('❌ Erreur WebRTC:', error)
       
@@ -259,7 +347,9 @@ export function useVoiceVitrineChat({
     updateStatus('connecting')
     
     try {
-      await initializeWebRTC()
+      const sessionData = await initializeWebRTC()
+      // 💳 Retourner les données de session (incluant remainingCredits)
+      return sessionData
     } catch (error) {
       console.error('Erreur de connexion:', error)
       // Réinitialiser l'état en cas d'erreur pour éviter la boucle
@@ -272,6 +362,27 @@ export function useVoiceVitrineChat({
   // Déconnexion
   const disconnect = useCallback(async () => {
     try {
+      // 🔒 NOUVEAU : Comptabiliser le temps de session
+      if (sessionStartTimeRef.current) {
+        const durationSeconds = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000)
+        console.log(`⏱️ Durée session: ${durationSeconds}s (${Math.ceil(durationSeconds / 60)} crédits)`)
+        
+        // Appeler l'API pour enregistrer la durée
+        try {
+          const response = await fetch('/api/voice/vitrine/end-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ durationSeconds })
+          })
+          
+          if (response.ok) {
+            console.log('✅ Durée session enregistrée')
+          }
+        } catch (error) {
+          console.error('❌ Erreur enregistrement durée:', error)
+        }
+      }
+      
       // Fermer data channel
       if (dataChannelRef.current) {
         dataChannelRef.current.close()
