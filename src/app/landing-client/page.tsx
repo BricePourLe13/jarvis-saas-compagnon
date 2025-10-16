@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 import dynamic from "next/dynamic";
 
@@ -87,11 +87,6 @@ export default function LandingClientOptimizedPage() {
   }, []);
   
   const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001
-  });
   const y = useTransform(scrollYProgress, [0, 1], [0, -50]);
 
   // 🎤 VOICE CHAT HOOK
@@ -293,12 +288,6 @@ export default function LandingClientOptimizedPage() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-x-hidden">
-      
-      {/* 🎯 SCROLL PROGRESS BAR */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 origin-left z-50"
-        style={{ scaleX }}
-      />
       
       {/* 🎯 HEADER NAVIGATION */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
