@@ -31,19 +31,19 @@ export default function Avatar3DOptimized({
     );
   }
 
-  // ✅ Couleurs SOMBRES & SUBTILES (moins lumineuses)
+  // ✅ Couleurs MONOCHROME blanc/gris/noir avec teinte bleue ULTRA-SUBTILE
   const getColors = () => {
     switch (status) {
       case 'listening': 
-        return { primary: '#0ea5e9', secondary: '#0284c7', accent: '#0369a1' }; // Sky blue sombre
+        return { primary: '#e2e8f0', secondary: '#cbd5e1', accent: '#94a3b8' }; // Gris clair → moyen (écoute active)
       case 'speaking': 
-        return { primary: '#06b6d4', secondary: '#0891b2', accent: '#0e7490' }; // Cyan sombre
+        return { primary: '#f1f5f9', secondary: '#e2e8f0', accent: '#cbd5e1' }; // Presque blanc → gris clair (parle)
       case 'thinking': 
-        return { primary: '#3b82f6', secondary: '#2563eb', accent: '#1d4ed8' }; // Bleu sombre
+        return { primary: '#cbd5e1', secondary: '#94a3b8', accent: '#64748b' }; // Gris moyen → foncé (réfléchit)
       case 'connecting': 
-        return { primary: '#0284c7', secondary: '#0369a1', accent: '#075985' }; // Bleu foncé
+        return { primary: '#94a3b8', secondary: '#64748b', accent: '#475569' }; // Gris foncé (connexion)
       default: 
-        return { primary: '#0891b2', secondary: '#0e7490', accent: '#155e75' }; // Cyan foncé par défaut
+        return { primary: '#e2e8f0', secondary: '#cbd5e1', accent: '#94a3b8' }; // Gris clair par défaut
     }
   };
 

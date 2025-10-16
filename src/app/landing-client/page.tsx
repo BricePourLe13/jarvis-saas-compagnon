@@ -547,12 +547,12 @@ export default function LandingClientOptimizedPage() {
                       />
                       </div>
                       
-                      {/* ✅ Effet de lueur PASTEL (style JARVIS Kiosk) - PLUS VISIBLE */}
+                      {/* ✅ Effet de lueur MONOCHROME subtil */}
                       <motion.div
-                        className="absolute inset-0 rounded-full bg-gradient-to-r from-sky-200/40 via-cyan-200/40 to-blue-200/40 blur-3xl"
+                        className="absolute inset-0 rounded-full bg-gradient-to-r from-slate-200/30 via-neutral-100/35 to-slate-300/25 blur-3xl"
                         animate={{
                           scale: [1, 1.15, 1],
-                          opacity: [0.4, 0.8, 0.4] 
+                          opacity: [0.3, 0.6, 0.3] 
                         }}
                         transition={{
                           duration: 3, 
