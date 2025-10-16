@@ -900,81 +900,6 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
-      {/* 💰 SECTION REVENUS PUBLICITAIRES */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-b from-black to-neutral-950">
-        <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-br from-green-900/20 via-emerald-900/10 to-green-950/20 border border-green-500/20 rounded-3xl p-8 md:p-12 relative overflow-hidden"
-          >
-            {/* Background glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-green-500/20 rounded-xl">
-                  <VscGraph className="w-8 h-8 text-green-400" />
-                </div>
-                <h3 className="text-3xl md:text-4xl font-bold text-white">
-                  JARVIS génère des revenus <span className="text-green-400">passifs</span> pour votre salle
-                </h3>
-              </div>
-              
-              <p className="text-xl text-neutral-300 mb-8 leading-relaxed">
-                Grâce aux <strong className="text-white">partenariats publicitaires contextuels</strong>, JARVIS propose subtilement des produits pertinents (nutrition, équipement) à vos adhérents lors des conversations. Vous touchez une part des revenus publicitaires.
-              </p>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  viewport={{ once: true }}
-                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
-                >
-                  <div className="text-3xl font-bold text-green-400 mb-2">Revenus passifs</div>
-                  <div className="text-sm text-neutral-400">Partenariats marques premium</div>
-                  <div className="text-xs text-neutral-500 mt-2">Potentiel significatif selon taille salle</div>
-                </motion.div>
-                
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  viewport={{ once: true }}
-                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
-                >
-                  <div className="text-4xl font-bold text-green-400 mb-2">100%</div>
-                  <div className="text-sm text-neutral-400">Pub contextuelle</div>
-                  <div className="text-xs text-neutral-500 mt-2">Pertinente selon profil adhérent</div>
-                </motion.div>
-                
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  viewport={{ once: true }}
-                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
-                >
-                  <div className="text-4xl font-bold text-green-400 mb-2">ROI négatif</div>
-                  <div className="text-sm text-neutral-400">JARVIS peut devenir gratuit</div>
-                  <div className="text-xs text-neutral-500 mt-2">Amortissement complet possible</div>
-                </motion.div>
-              </div>
-              
-              <div className="mt-8 p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl">
-                <p className="text-sm text-neutral-400 text-center">
-                  💡 <strong className="text-white">Différenciateur clé</strong> : JARVIS ne coûte pas, il <span className="text-green-400">rapporte</span>
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* 🎯 SECTION 4: PROCESS - 3 ÉTAPES */}
       <section id="process" className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
@@ -1067,76 +992,169 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
-      {/* 👤 SECTION À PROPOS - STYLE SOBRE (Inspiré Apple/Stripe) */}
-      <section className="relative py-24 md:py-32 bg-black">
-        <div className="max-w-4xl mx-auto px-6 md:px-8">
+      {/* 👤 SECTION À PROPOS - AMÉLIORÉE */}
+      <section className="relative py-24 md:py-32 bg-gradient-to-b from-black via-neutral-950/50 to-black">
+        {/* Background subtil */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/5 via-transparent to-transparent"></div>
+        
+        <div className="max-w-5xl mx-auto px-6 md:px-8 relative z-10">
           
-          {/* Header sobre */}
+          {/* Header avec ligne décorative */}
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-              À propos de JARVIS-GROUP
-            </h2>
-            <p className="text-xl text-neutral-400 leading-relaxed">
+            <div className="inline-block mb-6">
+              <div className="h-1 w-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-4"></div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+                À propos de JARVIS-GROUP
+              </h2>
+            </div>
+            <p className="text-xl text-neutral-400 leading-relaxed max-w-3xl mx-auto">
               Nous aidons les salles de sport à réduire leur churn grâce à l'IA conversationnelle.
             </p>
           </div>
 
-          {/* Mission - Texte principal */}
-          <div className="mb-16">
-            <p className="text-lg text-neutral-300 leading-relaxed mb-6">
+          {/* Mission - Texte justifié avec background */}
+          <div className="bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-2xl p-8 md:p-10 mb-12">
+            <p className="text-lg text-neutral-300 leading-relaxed mb-6 text-justify">
               <strong className="text-white">Notre mission :</strong> Créer une IA qui écoute vraiment les adhérents, 
               détecte leurs insatisfactions <strong className="text-white">60 jours avant qu'ils partent</strong>, 
               et transforme ces insights en actions concrètes pour les gérants.
             </p>
-            <p className="text-lg text-neutral-300 leading-relaxed">
+            <p className="text-lg text-neutral-300 leading-relaxed text-justify">
               JARVIS n'est pas un chatbot. C'est un miroir digital avec <strong className="text-white">IA vocale en temps réel</strong> (OpenAI Realtime). 
               Les adhérents parlent naturellement, l'IA analyse tout et génère des rapports actionnables automatiquement.
             </p>
           </div>
 
-          {/* Stats clés - Grid simple */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-white mb-2">-30%</div>
-              <div className="text-sm text-neutral-400">Réduction du churn</div>
+          {/* Stats clés - Cards améliorées */}
+          <div className="grid md:grid-cols-3 gap-6 mb-16">
+            <div className="bg-gradient-to-br from-blue-900/10 to-blue-950/5 border border-blue-500/20 rounded-xl p-6 text-center backdrop-blur-sm">
+              <div className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent mb-3">-30%</div>
+              <div className="text-sm font-semibold text-white mb-1">Réduction du churn</div>
+              <div className="text-xs text-neutral-500">Détection prédictive 60j avant</div>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-white mb-2">+40%</div>
-              <div className="text-sm text-neutral-400">Satisfaction adhérents</div>
+            <div className="bg-gradient-to-br from-purple-900/10 to-purple-950/5 border border-purple-500/20 rounded-xl p-6 text-center backdrop-blur-sm">
+              <div className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent mb-3">+40%</div>
+              <div className="text-sm font-semibold text-white mb-1">Satisfaction adhérents</div>
+              <div className="text-xs text-neutral-500">Assistance 24/7 naturelle</div>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold text-white mb-2">70%</div>
-              <div className="text-sm text-neutral-400">Questions automatisées</div>
+            <div className="bg-gradient-to-br from-cyan-900/10 to-cyan-950/5 border border-cyan-500/20 rounded-xl p-6 text-center backdrop-blur-sm">
+              <div className="text-5xl font-bold bg-gradient-to-r from-cyan-400 to-cyan-600 bg-clip-text text-transparent mb-3">70%</div>
+              <div className="text-sm font-semibold text-white mb-1">Questions automatisées</div>
+              <div className="text-xs text-neutral-500">Personnel libéré pour coaching</div>
             </div>
           </div>
 
-          {/* Founder brief - Minimal */}
-          <div className="border-t border-neutral-800 pt-12">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                <span className="text-2xl font-bold text-white">BP</span>
+          {/* Founder brief - Card améliorée */}
+          <div className="bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-2xl p-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+                <span className="text-3xl font-bold text-white">BP</span>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Brice PRADET</h3>
-                <p className="text-sm text-neutral-400">Founder · Expert IA & Systèmes</p>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-1">Brice PRADET</h3>
+                <p className="text-sm text-blue-400 font-semibold mb-4">Founder · Expert IA & Systèmes</p>
+                <p className="text-neutral-300 leading-relaxed text-justify">
+                  Ingénieur passionné par l'automatisation et l'IA. Convaincu que l'IA conversationnelle 
+                  peut révolutionner l'expérience fitness et résoudre le problème du churn. Diplômé du Groupe ESIEA, 
+                  2 ans d'alternance en administration système et sécurité.
+                </p>
               </div>
             </div>
-            <p className="text-neutral-300 leading-relaxed">
-              Ingénieur passionné par l'automatisation et l'IA. Convaincu que l'IA conversationnelle 
-              peut révolutionner l'expérience fitness et résoudre le problème du churn.
-            </p>
           </div>
 
-          {/* CTA simple */}
-          <div className="text-center mt-16">
-            <p className="text-neutral-400 mb-4">
-              Nous cherchons <strong className="text-white">5 salles pilotes</strong> pour co-construire la solution.
-            </p>
-            <p className="text-sm text-neutral-500">
-              Next.js · OpenAI Realtime API · Supabase · CrewAI
-            </p>
+          {/* Tech Stack - Badge line */}
+          <div className="mt-12 text-center">
+            <div className="inline-flex flex-wrap gap-3 justify-center">
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-neutral-400">
+                Next.js
+              </span>
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-neutral-400">
+                OpenAI Realtime API
+              </span>
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-neutral-400">
+                Supabase
+              </span>
+              <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-neutral-400">
+                CrewAI
+              </span>
+            </div>
           </div>
 
+        </div>
+      </section>
+
+      {/* 💰 SECTION REVENUS PUBLICITAIRES (Déplacée après À propos) */}
+      <section className="relative py-16 md:py-24 bg-gradient-to-b from-black to-neutral-950">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="bg-gradient-to-br from-green-900/20 via-emerald-900/10 to-green-950/20 border border-green-500/20 rounded-3xl p-8 md:p-12 relative overflow-hidden"
+          >
+            {/* Background glow */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-green-500/20 rounded-xl">
+                  <VscGraph className="w-8 h-8 text-green-400" />
+                </div>
+                <h3 className="text-3xl md:text-4xl font-bold text-white">
+                  JARVIS génère des revenus <span className="text-green-400">passifs</span> pour votre salle
+                </h3>
+              </div>
+              
+              <p className="text-xl text-neutral-300 mb-8 leading-relaxed">
+                Grâce aux <strong className="text-white">partenariats publicitaires contextuels</strong>, JARVIS propose subtilement des produits pertinents (nutrition, équipement) à vos adhérents lors des conversations. Vous touchez une part des revenus publicitaires.
+              </p>
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true }}
+                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
+                >
+                  <div className="text-3xl font-bold text-green-400 mb-2">Revenus passifs</div>
+                  <div className="text-sm text-neutral-400">Partenariats marques premium</div>
+                  <div className="text-xs text-neutral-500 mt-2">Potentiel significatif selon taille salle</div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
+                >
+                  <div className="text-4xl font-bold text-green-400 mb-2">100%</div>
+                  <div className="text-sm text-neutral-400">Pub contextuelle</div>
+                  <div className="text-xs text-neutral-500 mt-2">Pertinente selon profil adhérent</div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
+                >
+                  <div className="text-4xl font-bold text-green-400 mb-2">ROI négatif</div>
+                  <div className="text-sm text-neutral-400">JARVIS peut devenir gratuit</div>
+                  <div className="text-xs text-neutral-500 mt-2">Amortissement complet possible</div>
+                </motion.div>
+              </div>
+              
+              <div className="mt-8 p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl">
+                <p className="text-sm text-neutral-400 text-center">
+                  💡 <strong className="text-white">Différenciateur clé</strong> : JARVIS ne coûte pas, il <span className="text-green-400">rapporte</span>
+                </p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
