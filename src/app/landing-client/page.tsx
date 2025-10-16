@@ -992,221 +992,125 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
-      {/* 👤 SECTION JARVIS-GROUP - REFONTE PREMIUM */}
-      <section className="relative py-32 bg-gradient-to-b from-black via-neutral-950 to-black overflow-hidden">
-        {/* Grid background subtil */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+      {/* 👤 SECTION À PROPOS JARVIS-GROUP - VISION & MISSION */}
+      <section className="relative py-24 md:py-32 bg-gradient-to-b from-black via-neutral-950/50 to-black">
+        {/* Subtle background */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/3 via-transparent to-transparent"></div>
         
-        <div className="max-w-7xl mx-auto px-6 md:px-8 relative z-10">
+        <div className="max-w-4xl mx-auto px-6 md:px-8 relative z-10">
           
-          {/* Header Premium */}
-          <div className="text-center mb-20">
+          {/* Header */}
+          <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span className="text-sm text-blue-400 font-medium">Le système complet</span>
+              <span className="text-sm text-blue-400 font-medium">À propos</span>
             </div>
-            <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              Bien plus qu'un chatbot
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+              JARVIS-GROUP
             </h2>
-            <p className="text-xl text-neutral-400 max-w-3xl mx-auto leading-relaxed">
-              JARVIS est un <strong className="text-white">écosystème complet</strong> : IA conversationnelle, 
-              analytics prédictifs, dashboard actionnable et agents IA autonomes.
+            <p className="text-xl text-neutral-400 leading-relaxed">
+              Aider les entreprises à migrer vers l'IA en créant des solutions dédiées
             </p>
           </div>
 
-          {/* Grid 2 colonnes : Fonctionnalités + Dashboard Preview */}
-          <div className="grid lg:grid-cols-2 gap-12 mb-20">
-            
-            {/* Colonne gauche : Capacités clés */}
-            <div className="space-y-6">
-              <h3 className="text-2xl font-bold text-white mb-8">Capacités du système</h3>
-              
-              {/* Feature cards (liste variée) */}
-              <div className="space-y-4">
-                <div className="group bg-gradient-to-r from-blue-500/5 to-transparent border-l-2 border-blue-500 p-4 rounded-r-lg hover:from-blue-500/10 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-white font-semibold mb-1">Détection churn prédictive</h4>
-                      <p className="text-sm text-neutral-400">Analyse émotions & tonalité pour détecter insatisfactions <strong className="text-white">60 jours avant</strong> le départ</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group bg-gradient-to-r from-purple-500/5 to-transparent border-l-2 border-purple-500 p-4 rounded-r-lg hover:from-purple-500/10 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-white font-semibold mb-1">Dashboard temps réel</h4>
-                      <p className="text-sm text-neutral-400">Heatmaps horaires, alertes critiques, top sujets mentionnés, objectifs IA auto-générés</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group bg-gradient-to-r from-cyan-500/5 to-transparent border-l-2 border-cyan-500 p-4 rounded-r-lg hover:from-cyan-500/10 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-white font-semibold mb-1">Fiches adhérents enrichies</h4>
-                      <p className="text-sm text-neutral-400">Timeline interactions, tags auto-générés (intentions, émotions), scores (fidélité, satisfaction, churn)</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group bg-gradient-to-r from-green-500/5 to-transparent border-l-2 border-green-500 p-4 rounded-r-lg hover:from-green-500/10 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-white font-semibold mb-1">Missions vocales automatisées</h4>
-                      <p className="text-sm text-neutral-400">Diffuser messages ciblés via l'IA (promo, événement, rappel), suivi statistiques</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group bg-gradient-to-r from-orange-500/5 to-transparent border-l-2 border-orange-500 p-4 rounded-r-lg hover:from-orange-500/10 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-white font-semibold mb-1">Signalement incidents auto</h4>
-                      <p className="text-sm text-neutral-400">Équipements HS, propreté, sécurité → tickets ouverts automatiquement, priorisation intelligente</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="group bg-gradient-to-r from-pink-500/5 to-transparent border-l-2 border-pink-500 p-4 rounded-r-lg hover:from-pink-500/10 transition-all">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-white font-semibold mb-1">Multi-langues & accessibilité</h4>
-                      <p className="text-sm text-neutral-400">Interface vocale adaptée (seniors, PMR, déficients visuels), support multi-langues pour internationaux</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Mission principale */}
+          <div className="mb-16">
+            <div className="bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-2xl p-8 md:p-10">
+              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <span className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  🎯
+                </span>
+                Notre mission
+              </h3>
+              <p className="text-lg text-neutral-300 leading-relaxed text-justify mb-6">
+                JARVIS-GROUP aide les entreprises à <strong className="text-white">migrer vers l'IA</strong> en créant des 
+                solutions IA dédiées ou en proposant du consulting. Notre conviction : l'IA conversationnelle peut révolutionner 
+                l'expérience client dans de nombreux secteurs.
+              </p>
+              <p className="text-lg text-neutral-300 leading-relaxed text-justify">
+                <strong className="text-white">JARVIS pour les salles de sport</strong> est notre première solution concrète, 
+                conçue pour résoudre un problème réel et coûteux : le churn. Mais notre ambition ne s'arrête pas là.
+              </p>
             </div>
+          </div>
 
-            {/* Colonne droite : Dashboard Preview */}
-            <div className="space-y-6">
-              <h3 className="text-2xl font-bold text-white mb-8">Dashboard gérant</h3>
-              
-              {/* Mock dashboard UI */}
-              <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6 backdrop-blur-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-semibold text-white">Vue d'ensemble</h4>
-                  <span className="text-xs text-green-400 flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                    Temps réel
-                  </span>
+          {/* Roadmap vision */}
+          <div className="mb-16">
+            <h3 className="text-2xl font-bold text-white mb-8 text-center">Notre feuille de route</h3>
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 bg-white/[0.02] border border-blue-500/30 rounded-xl p-6">
+                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-blue-500">
+                  <span className="text-lg font-bold text-blue-400">1</span>
                 </div>
-                
-                {/* Mini stats */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-blue-400">8</div>
-                    <div className="text-xs text-neutral-400">Alertes actives</div>
-                  </div>
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-red-400">3</div>
-                    <div className="text-xs text-neutral-400">Profils à risque</div>
-                  </div>
-                </div>
-
-                {/* Suggestion IA */}
-                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 mb-4">
-                  <div className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <div>
-                      <div className="text-sm font-semibold text-white mb-1">Suggestion IA</div>
-                      <p className="text-xs text-neutral-300">
-                        <strong className="text-purple-400">Marie D.</strong> mentionne tapis défaillant 3x. Prioriser maintenance zone cardio.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Top sujets */}
-                <div className="space-y-2">
-                  <div className="text-xs font-semibold text-neutral-400 uppercase mb-2">Top sujets mentionnés</div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-300">Équipements cardio</span>
-                    <span className="text-xs px-2 py-1 bg-orange-500/20 text-orange-400 rounded-full">42 mentions</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-300">Horaires cours yoga</span>
-                    <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full">28 mentions</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-neutral-300">Vestiaires</span>
-                    <span className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded-full">19 mentions</span>
-                  </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                    Fitness & Salles de sport 
+                    <span className="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-400">En cours</span>
+                  </h4>
+                  <p className="text-sm text-neutral-400">
+                    Résoudre le churn avec une IA conversationnelle miroir digital. MVP fonctionnel en test.
+                  </p>
                 </div>
               </div>
 
-              {/* Quick stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">-30%</div>
-                  <div className="text-xs text-neutral-500">Churn</div>
+              <div className="flex items-start gap-4 bg-white/[0.02] border border-white/5 rounded-xl p-6 opacity-60">
+                <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 border-2 border-purple-500/50">
+                  <span className="text-lg font-bold text-purple-400">2</span>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">+40%</div>
-                  <div className="text-xs text-neutral-500">Satisfaction</div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                    Musées & Culture
+                    <span className="px-2 py-1 bg-neutral-700 border border-neutral-600 rounded-full text-xs text-neutral-400">À venir</span>
+                  </h4>
+                  <p className="text-sm text-neutral-400">
+                    Remplacer les longs pavés explicatifs par des conversations multilingues hyper engageantes.
+                  </p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">24/7</div>
-                  <div className="text-xs text-neutral-500">Assistance</div>
+              </div>
+
+              <div className="flex items-start gap-4 bg-white/[0.02] border border-white/5 rounded-xl p-6 opacity-40">
+                <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30">
+                  <span className="text-lg font-bold text-cyan-400">3</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                    Retail, Hôtellerie, et au-delà
+                    <span className="px-2 py-1 bg-neutral-700 border border-neutral-600 rounded-full text-xs text-neutral-400">Vision</span>
+                  </h4>
+                  <p className="text-sm text-neutral-400">
+                    Étendre la technologie à toute industrie où expérience client et rétention sont critiques.
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Founder + Tech Stack (inline) */}
-          <div className="border-t border-neutral-800 pt-12">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-              {/* Founder */}
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl font-bold text-white">BP</span>
-                </div>
-                <div>
-                  <div className="text-white font-semibold">Brice PRADET</div>
-                  <div className="text-sm text-neutral-400">Founder · Expert IA & Systèmes</div>
-                </div>
+          {/* Founder */}
+          <div className="bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-2xl p-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+                <span className="text-3xl font-bold text-white">BP</span>
               </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-1">Brice PRADET</h3>
+                <p className="text-sm text-blue-400 font-semibold mb-4">Founder · Expert IA & Systèmes d'Information</p>
+                <p className="text-neutral-300 leading-relaxed text-justify">
+                  Ingénieur spécialisé en IA et automatisation, passionné par la création de solutions concrètes 
+                  qui résolvent de vrais problèmes business. Diplômé du Groupe ESIEA avec 2 ans d'expérience en 
+                  administration système et sécurité.
+                </p>
+              </div>
+            </div>
+          </div>
 
-              {/* Tech badges */}
-              <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Next.js</span>
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">OpenAI Realtime</span>
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Supabase</span>
-                <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">CrewAI</span>
-              </div>
+          {/* Tech Stack */}
+          <div className="mt-12 text-center">
+            <p className="text-sm text-neutral-500 mb-4">Technologies utilisées</p>
+            <div className="inline-flex flex-wrap gap-2 justify-center">
+              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Next.js</span>
+              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">OpenAI Realtime API</span>
+              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Supabase</span>
+              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">CrewAI</span>
+              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Docker</span>
             </div>
           </div>
 
