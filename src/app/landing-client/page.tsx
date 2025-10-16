@@ -1078,7 +1078,7 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
-      {/* 👤 SECTION À PROPOS - TIMELINE VERTICALE INTERACTIVE (Structure unique) */}
+      {/* 👤 SECTION VISION JARVIS-GROUP - TIMELINE INTERACTIVE (Structure unique) */}
       <section className="relative py-32 bg-black overflow-hidden">
         {/* Background animated gradient mesh */}
         <div className="absolute inset-0 bg-gradient-radial from-blue-500/5 via-transparent to-transparent opacity-40 animate-pulse-slow" />
@@ -1094,125 +1094,100 @@ export default function LandingClientOptimizedPage() {
             className="text-center mb-20"
           >
             <h2 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              L'équipe derrière{" "}
+              La vision{" "}
               <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                JARVIS
+                JARVIS-GROUP
               </span>
             </h2>
             <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
-              Une passion pour l'IA, l'automatisation et l'innovation dans le secteur du fitness
+              Transformer l'expérience fitness grâce à l'IA conversationnelle et l'automatisation intelligente
             </p>
           </motion.div>
 
-          {/* Profile Card Principal */}
+          {/* Founder Brief */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="max-w-5xl mx-auto mb-24"
+            className="max-w-4xl mx-auto mb-24"
           >
-            <div className="relative bg-gradient-to-br from-neutral-900/80 via-neutral-950/60 to-black/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 overflow-hidden">
+            <div className="relative bg-gradient-to-br from-neutral-900/80 via-neutral-950/60 to-black/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-10 overflow-hidden">
               {/* Glow effect */}
               <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow" />
-              <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
               
-              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-8">
-                {/* Avatar avec effet glassmorphism */}
+              <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
+                {/* Avatar compact */}
                 <motion.div
                   whileHover={{ scale: 1.05, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 300 }}
                   className="flex-shrink-0"
                 >
-                  <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1">
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1">
                     <div className="w-full h-full rounded-2xl bg-black flex items-center justify-center">
-                      <span className="text-5xl font-bold bg-gradient-to-br from-blue-400 to-purple-600 bg-clip-text text-transparent">BP</span>
+                      <span className="text-4xl font-bold bg-gradient-to-br from-blue-400 to-purple-600 bg-clip-text text-transparent">BP</span>
                     </div>
                   </div>
                 </motion.div>
                 
-                {/* Info principale */}
+                {/* Info concise */}
                 <div className="flex-1">
-                  <h3 className="text-3xl md:text-4xl font-bold text-white mb-2">Brice PRADET</h3>
-                  <p className="text-xl text-blue-400 font-semibold mb-4">Expert en Ingénierie des Systèmes d'Information</p>
-                  <p className="text-neutral-300 leading-relaxed mb-6">
-                    Expert junior en ingénierie des SI, je me distingue par ma passion pour <strong className="text-white">l'automatisation</strong> et la <strong className="text-white">résilience des systèmes</strong>. 
-                    Mes 2 années d'alternance et mon expérience entrepreneuriale m'ont permis de renforcer mes compétences techniques et mes aptitudes en planification et gestion de projets.
+                  <h3 className="text-2xl font-bold text-white mb-1">Brice PRADET</h3>
+                  <p className="text-blue-400 font-semibold mb-3">Founder · Expert IA & Systèmes</p>
+                  <p className="text-neutral-300 leading-relaxed text-sm">
+                    Ingénieur passionné par <strong className="text-white">l'automatisation intelligente</strong> et les <strong className="text-white">systèmes résilients</strong>. 
+                    Convaincu que l'IA conversationnelle peut révolutionner la relation entre les salles de sport et leurs adhérents.
                   </p>
-                  
-                  {/* Quick stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <motion.div
-                      whileHover={{ y: -5 }}
-                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
-                    >
-                      <div className="text-2xl font-bold text-blue-400 mb-1">2020-2025</div>
-                      <div className="text-xs text-neutral-400">Groupe ESIEA</div>
-                    </motion.div>
-                    <motion.div
-                      whileHover={{ y: -5 }}
-                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
-                    >
-                      <div className="text-2xl font-bold text-purple-400 mb-1">TOEIC 810</div>
-                      <div className="text-xs text-neutral-400">Anglais B2</div>
-                    </motion.div>
-                    <motion.div
-                      whileHover={{ y: -5 }}
-                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
-                    >
-                      <div className="text-2xl font-bold text-green-400 mb-1">4 CCNA</div>
-                      <div className="text-xs text-neutral-400">Certifications</div>
-                    </motion.div>
-                    <motion.div
-                      whileHover={{ y: -5 }}
-                      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center"
-                    >
-                      <div className="text-2xl font-bold text-cyan-400 mb-1">2 ans</div>
-                      <div className="text-xs text-neutral-400">Alternance</div>
-                    </motion.div>
-                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Timeline Expériences - Alternance Gauche/Droite */}
+          {/* Timeline Vision JARVIS-GROUP - Alternance Gauche/Droite */}
           <div className="relative max-w-6xl mx-auto">
-            {/* Line centrale animée qui se remplit au scroll */}
+            {/* Line centrale animée */}
             <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500/20 via-purple-500/20 to-transparent hidden md:block" />
             
             {[
               {
-                year: "2023-2024",
-                title: "AdminSys · Zoomalia",
-                type: "Alternance",
-                description: "5ème année en alternance en tant qu'AdminSys",
-                skills: ["Administration Système", "Réseaux", "Infrastructure"],
+                icon: "💡",
+                title: "Le constat",
+                type: "Problème",
+                description: "Les salles de sport perdent 30% de leurs adhérents chaque année sans comprendre pourquoi. Les gérants n'ont aucune donnée comportementale exploitable. Le churn coûte des millions au secteur.",
+                highlight: "30% de churn = millions perdus",
+                color: "red"
+              },
+              {
+                icon: "🎯",
+                title: "La mission",
+                type: "Vision",
+                description: "Créer une IA conversationnelle qui écoute vraiment les adhérents, détecte leurs insatisfactions 60 jours avant qu'ils partent, et transforme ces insights en actions concrètes pour les gérants.",
+                highlight: "Prédire le churn avant qu'il arrive",
                 color: "blue"
               },
               {
-                year: "2023",
-                title: "Stage CCI · OWASP Zap",
-                type: "Stage",
-                description: "Solution basée sur OWASP Zap pour automatiser analyses de vulnérabilités et génération de rapports pour 400 applications web",
-                skills: ["Sécurité", "OWASP", "Automatisation"],
+                icon: "🚀",
+                title: "L'innovation",
+                type: "Différenciation",
+                description: "JARVIS n'est pas un chatbot. C'est un miroir digital avec IA vocale en temps réel (OpenAI Realtime). Les adhérents parlent naturellement, JARVIS analyse tout, génère des rapports automatiques et des recommandations actionnables.",
+                highlight: "Speech-to-speech naturel + Analytics IA",
                 color: "purple"
               },
               {
-                year: "2022",
-                title: "DHEALTH · Centre Hospitalier de Dax",
-                type: "Projet",
-                description: "Création d'un système de supervisions d'une infrastructure informatique pour le Centre Hospitalier",
-                skills: ["Monitoring", "Infrastructure", "Supervision"],
-                color: "cyan"
+                icon: "💰",
+                title: "Le modèle disruptif",
+                type: "Business Model",
+                description: "JARVIS ne coûte pas, il rapporte. Grâce aux partenariats publicitaires contextuels, les salles peuvent générer des revenus passifs tout en améliorant l'expérience adhérent. Win-win total.",
+                highlight: "ROI négatif = JARVIS devient gratuit",
+                color: "green"
               },
               {
-                year: "2022",
-                title: "C-A-NOUS · Migration Docker",
-                type: "Projet",
-                description: "Migration des logiciels de gestion et de production vers solution Docker",
-                skills: ["Docker", "DevOps", "Migration"],
-                color: "green"
+                icon: "🌍",
+                title: "L'ambition",
+                type: "Impact",
+                description: "Devenir le standard de l'IA conversationnelle dans le fitness. Puis étendre la technologie aux musées, retail, hôtels. Toute industrie où l'expérience client et la rétention sont critiques.",
+                highlight: "Fitness → Musées → Retail → ∞",
+                color: "cyan"
               }
             ].map((item, index) => (
               <motion.div
@@ -1221,7 +1196,7 @@ export default function LandingClientOptimizedPage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.6, delay: index * 0.15 }}
-                className={`relative flex items-center gap-8 mb-16 ${
+                className={`relative flex items-center gap-8 mb-20 ${
                   index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
                 } flex-col`}
               >
@@ -1229,22 +1204,20 @@ export default function LandingClientOptimizedPage() {
                 <motion.div
                   whileHover={{ scale: 1.02, y: -5 }}
                   transition={{ type: "spring", stiffness: 300 }}
-                  className="w-full md:w-5/12 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-6 md:p-8 hover:bg-white/10 transition-colors"
+                  className="w-full md:w-5/12 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors group"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className={`px-3 py-1 bg-${item.color}-500/20 border border-${item.color}-500/30 rounded-full text-xs font-bold text-${item.color}-400`}>
-                      {item.type}
-                    </span>
-                    <span className="text-sm text-neutral-500">{item.year}</span>
-                  </div>
-                  <h4 className="text-xl font-bold text-white mb-3">{item.title}</h4>
-                  <p className="text-neutral-300 text-sm leading-relaxed mb-4">{item.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {item.skills.map((skill, i) => (
-                      <span key={i} className="px-2 py-1 bg-neutral-800/50 border border-neutral-700 rounded-md text-xs text-neutral-400">
-                        {skill}
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="text-4xl">{item.icon}</span>
+                    <div>
+                      <span className={`px-3 py-1 bg-${item.color}-500/20 border border-${item.color}-500/30 rounded-full text-xs font-bold text-${item.color}-400`}>
+                        {item.type}
                       </span>
-                    ))}
+                    </div>
+                  </div>
+                  <h4 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-400 transition-colors">{item.title}</h4>
+                  <p className="text-neutral-300 leading-relaxed mb-4">{item.description}</p>
+                  <div className={`p-3 bg-${item.color}-500/10 border border-${item.color}-500/30 rounded-xl`}>
+                    <p className="text-sm font-bold text-white">💡 {item.highlight}</p>
                   </div>
                 </motion.div>
                 
@@ -1256,7 +1229,7 @@ export default function LandingClientOptimizedPage() {
                   viewport={{ once: true }}
                   transition={{ type: "spring", stiffness: 300, delay: index * 0.15 + 0.3 }}
                 >
-                  <div className={`w-5 h-5 rounded-full bg-${item.color}-500 relative`}>
+                  <div className={`w-6 h-6 rounded-full bg-${item.color}-500 relative`}>
                     <div className={`absolute inset-0 rounded-full bg-${item.color}-500/50 animate-ping`} style={{ animationDelay: `${index * 0.3}s` }} />
                   </div>
                 </motion.div>
@@ -1267,7 +1240,7 @@ export default function LandingClientOptimizedPage() {
             ))}
           </div>
 
-          {/* Tech Stack */}
+          {/* Valeurs & Tech Stack (compact) */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1275,35 +1248,28 @@ export default function LandingClientOptimizedPage() {
             viewport={{ once: true }}
             className="mt-24 max-w-5xl mx-auto"
           >
-            <h3 className="text-3xl font-bold text-white text-center mb-12">Stack Technique</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <h3 className="text-3xl font-bold text-white text-center mb-8">Nos Valeurs</h3>
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
               {[
-                { name: "Python", color: "yellow" },
-                { name: "Bash", color: "green" },
-                { name: "Docker", color: "blue" },
-                { name: "Ansible", color: "red" },
-                { name: "Linux", color: "orange" },
-                { name: "CCNA", color: "cyan" },
-                { name: "SCRUM", color: "purple" },
-                { name: "OSINT", color: "pink" },
-                { name: "Next.js", color: "white" },
-                { name: "OpenAI", color: "green" },
-                { name: "CrewAI", color: "blue" },
-                { name: "Zabbix", color: "red" }
-              ].map((tech, index) => (
+                { icon: "⚡", title: "Innovation", desc: "Toujours à la pointe de la tech IA" },
+                { icon: "🎯", title: "Impact", desc: "Résoudre de vrais problèmes business" },
+                { icon: "🤝", title: "Transparence", desc: "Honnêteté totale sur le stade MVP" }
+              ].map((value, i) => (
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center hover:bg-white/10 transition-all"
+                  key={i}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center"
                 >
-                  <span className="text-sm font-semibold text-white">{tech.name}</span>
+                  <div className="text-4xl mb-3">{value.icon}</div>
+                  <h4 className="text-lg font-bold text-white mb-2">{value.title}</h4>
+                  <p className="text-sm text-neutral-400">{value.desc}</p>
                 </motion.div>
               ))}
             </div>
+
+            <p className="text-center text-neutral-400 text-sm">
+              <strong className="text-white">Stack</strong> : Next.js · OpenAI Realtime API · Supabase · CrewAI · Docker
+            </p>
           </motion.div>
 
           {/* CTA Final */}
