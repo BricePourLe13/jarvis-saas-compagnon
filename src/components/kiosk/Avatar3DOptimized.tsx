@@ -31,19 +31,19 @@ export default function Avatar3DOptimized({
     );
   }
 
-  // ✅ Couleurs PASTEL DOUCES (style JARVIS Kiosk prod) - Blanc → Bleu ciel très clair
+  // ✅ Couleurs SOMBRES & SUBTILES (moins lumineuses)
   const getColors = () => {
     switch (status) {
       case 'listening': 
-        return { primary: '#e0f2fe', secondary: '#bae6fd', accent: '#7dd3fc' }; // Sky blue pastel
+        return { primary: '#0ea5e9', secondary: '#0284c7', accent: '#0369a1' }; // Sky blue sombre
       case 'speaking': 
-        return { primary: '#f0f9ff', secondary: '#e0f2fe', accent: '#bae6fd' }; // Blanc → cyan très clair
+        return { primary: '#06b6d4', secondary: '#0891b2', accent: '#0e7490' }; // Cyan sombre
       case 'thinking': 
-        return { primary: '#dbeafe', secondary: '#bfdbfe', accent: '#93c5fd' }; // Bleu pastel doux
+        return { primary: '#3b82f6', secondary: '#2563eb', accent: '#1d4ed8' }; // Bleu sombre
       case 'connecting': 
-        return { primary: '#f0f9ff', secondary: '#dbeafe', accent: '#bae6fd' }; // Blanc → bleu clair
+        return { primary: '#0284c7', secondary: '#0369a1', accent: '#075985' }; // Bleu foncé
       default: 
-        return { primary: '#f0f9ff', secondary: '#e0f2fe', accent: '#bae6fd' }; // Blanc → cyan pastel
+        return { primary: '#0891b2', secondary: '#0e7490', accent: '#155e75' }; // Cyan foncé par défaut
     }
   };
 
@@ -123,19 +123,19 @@ export default function Avatar3DOptimized({
             <stop offset="100%" stopColor={colors.accent} stopOpacity="0.5" />
           </radialGradient>
 
-          {/* Filtre de lueur */}
+          {/* Filtre de lueur (RÉDUIT) */}
           <filter id="glow">
-            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feGaussianBlur stdDeviation="3" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
 
-          {/* Reflet brillant */}
+          {/* Reflet brillant (RÉDUIT) */}
           <radialGradient id="shine">
-            <stop offset="0%" stopColor="white" stopOpacity="0.8" />
-            <stop offset="50%" stopColor="white" stopOpacity="0.3" />
+            <stop offset="0%" stopColor="white" stopOpacity="0.15" />
+            <stop offset="50%" stopColor="white" stopOpacity="0.08" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </radialGradient>
         </defs>
