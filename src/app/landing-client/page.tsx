@@ -167,32 +167,32 @@ export default function LandingClientOptimizedPage() {
   const dockItemsDesktop = [
     {
       title: "Accueil",
-      icon: <VscHome className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscHome className="h-full w-full text-white" />,
       href: "#hero",
     },
     {
       title: "Problème",
-      icon: <VscWarning className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscWarning className="h-full w-full text-white" />,
       href: "#problems",
     },
     {
       title: "Solution",
-      icon: <VscRobot className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscRobot className="h-full w-full text-white" />,
       href: "#solution",
     },
     {
       title: "Process",
-      icon: <VscGear className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscGear className="h-full w-full text-white" />,
       href: "#process",
     },
     {
       title: "Résultats",
-      icon: <VscGraph className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscGraph className="h-full w-full text-white" />,
       href: "#results",
     },
     {
       title: "Contact",
-      icon: <VscMail className="h-full w-full text-neutral-700 dark:text-neutral-300" />,
+      icon: <VscMail className="h-full w-full text-white" />,
       href: "#contact",
     }
   ];
@@ -206,7 +206,7 @@ export default function LandingClientOptimizedPage() {
   ];
 
   // Hero words pour FlipWords
-  const heroWords = ["révolutionnaire", "conversationnelle", "prédictive", "personnalisée"];
+  const heroWords = ["révolutionne", "transforme", "réinvente", "optimise"];
 
   // Pain points des gérants
   const painPoints = [
@@ -394,18 +394,39 @@ export default function LandingClientOptimizedPage() {
               </motion.div>
               
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
-                Une IA{" "}
+                L'IA qui{" "}
                 <FlipWords words={heroWords} className="text-white" duration={3000} />
                 <br />
-                <span className="text-white">qui garde vos membres</span>{" "}
-                <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                  40% plus longtemps
-                </span>
+                <span className="text-white">l'expérience salle de sport</span>
               </h1>
               
-              <p className="text-lg md:text-xl lg:text-2xl text-neutral-300 leading-relaxed max-w-2xl">
-                JARVIS détecte les membres qui vont partir <span className="text-white font-semibold">avant qu'ils ne partent</span>. Plus de churn surprise.
-              </p>
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.6 }}
+                className="text-xl md:text-2xl lg:text-3xl font-semibold text-neutral-200 mt-4"
+              >
+                JARVIS engage vos adhérents comme jamais auparavant
+              </motion.h2>
+              
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5, duration: 0.8 }}
+                className="flex flex-wrap items-center justify-center gap-4 mt-6"
+              >
+                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-neutral-300">
+                  Conversations naturelles
+                </span>
+                <span className="text-white/50">•</span>
+                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-neutral-300">
+                  Actions concrètes
+                </span>
+                <span className="text-white/50">•</span>
+                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-neutral-300">
+                  Résultats mesurables
+                </span>
+              </motion.div>
             </div>
 
             {/* Social Proof */}

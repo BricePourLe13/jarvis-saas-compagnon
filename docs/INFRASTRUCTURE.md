@@ -1,209 +1,172 @@
-# Infrastructure - JARVIS SaaS
+# Infrastructure JARVIS-GROUP
+
+> **Version :** 3.0 (Architecture V3.0 Validée)  
+> **Date :** 19 octobre 2025  
+> **Auteur :** Brice PRADET - JARVIS-GROUP  
+> **Stack :** Groq + Chatterbox + Analytics MVP Crédible
 
 ## Vue d'ensemble
 
-L'infrastructure JARVIS SaaS repose sur 3 piliers cloud :
-- **Vercel** : Hosting frontend + API serverless
-- **Supabase** : Database PostgreSQL + Auth
-- **GitHub** : Source control + CI/CD
+L'infrastructure JARVIS-GROUP supporte le déploiement de **JARVIS Voice Engine V3.0**, notre agent vocal IA pour salles de sport. Architecture optimisée pour performance, coût et scalabilité.
 
-## Vercel
+## Stack Technologique V3.0 (Validée)
 
-### Configuration
-- **Projet:** jarvis-saas-compagnon
-- **Framework:** Next.js 15
-- **Region:** Auto (Edge Network global)
-- **Build Command:** `npm run build`
-- **Dev Port:** 3001
+### Frontend
+- **Next.js 15** - Framework React
+- **Tailwind CSS** - Styling
+- **Framer Motion** - Animations
+- **Vercel** - Hosting et CDN
 
-### Déploiement
-- **Production:** Branch `main` → Auto-deploy
-- **Preview:** Toute PR → Preview URL temporaire
-- **Durée build:** ~2-3 minutes
+### Backend Voice Engine
+- **FastAPI** - API Gateway + WebSocket
+- **Groq API** - STT (Whisper Large V3) + LLM (LLaMA 3.3 70B)
+- **Chatterbox TTS** - Voice synthesis + emotions (RunPod GPU)
+- **Supabase** - Base-de-données + Auth + Storage
+- **Redis** - Cache + Sessions
 
-### Variables d'environnement
-```
-NEXT_PUBLIC_SUPABASE_URL=https://vurnokaxnvittopqteno.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGc... (secret)
-OPENAI_API_KEY=sk-proj-... (secret)
-```
+### Analytics & ML
+- **Celery + RabbitMQ** - Task queue asynchrone
+- **scikit-learn** - Churn prediction (XGBoost)
+- **transformers** - Sentiment analysis (CamemBERT)
+- **Supabase** - Data warehouse
 
-### Limites
-- Fonctions serverless : 10s timeout
-- Bande passante : 100GB/mois (plan actuel)
-- Builds : Illimités
-
-## Supabase
-
-### Projet
-- **Nom:** JARVIS SaaS Production
-- **Project ID:** vurnokaxnvittopqteno
-- **Region:** Europe (eu-central-1)
-- **Plan:** Free (upgrade prévu)
-
-### Database
-- **Type:** PostgreSQL 15
-- **Taille:** 500MB (plan actuel)
-- **Backups:** Quotidiens automatiques
-- **Extensions activées:** uuid-ossp, pgcrypto, vector
-
-### Tables
-- 16 tables principales
-- ~40 lignes de données actuellement
-- RLS activé sur toutes les tables sensibles
-
-### Auth
-- **Provider:** Email + Password
-- **MFA:** Activé pour admins
-- **Session:** 7 jours par défaut
-- **JWT:** RS256
-
-### Storage
-- **Buckets:** Aucun configuré (futur : avatars, exports)
-- **CDN:** Global via Supabase CDN
-
-### Limites actuelles
-- Database : 500MB
-- API requests : 50k/mois
-- Storage : 1GB
-- Bandwidth : 2GB/mois
-
-## GitHub
-
-### Repository
-- **Nom:** jarvis-saas-compagnon
-- **Visibilité:** Private
-- **Branch principale:** main
-- **Collaborateurs:** 1 (Brice)
-
-### Workflow CI/CD
-```
-Commit → Push main → Vercel détecte → Build → Deploy production
-  ↓
-Tests (futur)
-  ↓
-Déploiement
-```
-
-### Branches
-- `main` : Production
-- `develop` : Développement (à créer si besoin)
-- Feature branches : Nommage `feature/nom-fonctionnalite`
-
-## OpenAI
-
-### API Key
-- **Type:** Project key
-- **Model:** gpt-4o-mini-realtime-preview-2024-12-17
-- **Usage:** ~$5-10/mois actuellement
-- **Limites:** 100 sessions simultanées (hard limit OpenAI)
+### Infrastructure
+- **Vercel** - Hosting frontend + API Gateway
+- **RunPod** - GPU pour Chatterbox TTS (RTX 3060 12GB)
+- **Supabase Cloud** - Base-de-données + Auth
+- **GitHub** - Version control + CI/CD
 
 ### Monitoring
-- Dashboard OpenAI : Coûts temps réel
-- Logs Supabase : Tracking sessions
-- Alertes : Si dépassement budget
+- **Prometheus + Grafana** - Métriques système
+- **Sentry** - Error tracking
+- **Vercel Analytics** - Métriques frontend
 
-## Networking
+## Architecture de Déploiement
 
-### Domaine
-- **Production:** jarvis-group.net
-- **Preview:** [branch]-jarvis-saas.vercel.app
-- **SSL:** Automatique (Vercel)
+### Production (15 kiosques)
 
-### DNS
-- **Provider:** (à documenter selon config)
-- **Records:**
-  - A/AAAA : Vercel IPs
-  - CNAME : www → jarvis-group.net
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (Vercel Edge)                              │
+│                            jarvis-group.net                                 │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌───────────────────────────┐  │
+│  │  Landing Page   │  │ Dashboard Gérant │  │  Kiosk Interface (React)  │  │
+│  │  (Marketing)    │  │  (Analytics UI)  │  │  (WebSocket Audio Stream) │  │
+│  └─────────────────┘  └──────────────────┘  └───────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                              HTTPS REST + WebSocket
+                                      │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    API GATEWAY (FastAPI - Vercel Edge Functions)             │
+│                         Cloudflare CDN + DDoS Protection                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+            ┌─────────────────────────┼─────────────────────────┐
+            │                         │                         │
+            ▼                         ▼                         ▼
+┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
+│  LAYER 1: INIT      │   │  LAYER 2: AGENT     │   │  LAYER 3: ANALYTICS │
+│  (Context Loading)  │   │  (Real-Time Voice)  │   │  (Post-Processing)  │
+│                     │   │                     │   │                     │
+│  1.5-3 secondes     │   │  <400ms latency     │   │  Asynchrone         │
+└─────────────────────┘   └─────────────────────┘   └─────────────────────┘
+                                      │
+                              ┌───────┼───────┐
+                              │       │       │
+                              ▼       ▼       ▼
+┌─────────────────────┐   ┌─────────────────────┐   ┌─────────────────────┐
+│  GROQ API (FREE)    │   │  CHATTERBOX TTS     │   │  SUPABASE + REDIS   │
+│  STT + LLM          │   │  RunPod RTX 3060    │   │  Data + Cache       │
+│  <400ms latency     │   │  €180/mois          │   │  €0/mois            │
+└─────────────────────┘   └─────────────────────┘   └─────────────────────┘
+```
 
-## Monitoring & Logs
+### Coûts Infrastructure (15 kiosques)
 
-### Sentry
-- **Organisation:** JARVIS Group
-- **Projet:** jarvis-saas-compagnon
-- **DSN:** (configuré dans env vars)
-- **Alertes:** Email sur erreurs critiques
+| Service | Coût Mensuel | Notes |
+|---------|--------------|-------|
+| **Vercel** | €0 | Hobby Plan (gratuit) |
+| **Groq API** | €0 | FREE tier (1M STT + 14.4k LLM/jour) |
+| **Chatterbox TTS** | €180 | RunPod RTX 3060 12GB |
+| **Supabase** | €0 | FREE tier (< 500MB) |
+| **Redis** | €0 | Inclus dans RunPod |
+| **Total** | **€180/mois** | **€12/kiosque/mois** |
 
-### Vercel Analytics
-- **Speed Insights:** Activé
-- **Web Vitals:** Tracking automatique
-- **Logs:** Retention 7 jours
+## Sécurité et Performance
 
-### Supabase Logs
-- **API Logs:** Queries SQL, latence
-- **Auth Logs:** Connexions, échecs
-- **Retention:** 7 jours (plan free)
+### Sécurité
+- **HTTPS** - Chiffrement end-to-end
+- **JWT Tokens** - Authentification sécurisée
+- **RLS (Row Level Security)** - Isolation données par salle
+- **API Rate Limiting** - Protection contre abus
+- **DDoS Protection** - Cloudflare
 
-## Sauvegardes
+### Performance
+- **Latence end-to-end** - <400ms p95
+- **Uptime** - >99.5% (SLA)
+- **Scalabilité** - 200+ kiosques simultanés
+- **Cache Redis** - <5ms response time
+- **CDN** - Vercel Edge Network
 
-### Database
-- **Automatique:** Quotidienne (Supabase)
-- **Manuelle:** Via Supabase Dashboard
-- **Restoration:** Point-in-time recovery (plan paid)
+## Monitoring et Observabilité
 
-### Code
-- **Git:** Historique complet
-- **Vercel:** Builds archivés 30 jours
-- **Local:** Recommandé backup régulier
+### Métriques Business
+- **Sessions actives** - Kiosques connectés
+- **Taux de satisfaction** - Sentiment analysis
+- **Churn risk** - Prédictions ML
+- **Tools usage** - Actions exécutées
 
-## Coûts Mensuels
+### Métriques Techniques
+- **Latence pipeline** - STT + LLM + TTS
+- **Erreur rate** - <1% target
+- **Throughput** - Sessions/minute
+- **GPU utilization** - Chatterbox TTS
 
-### Estimations actuelles
-- Vercel : $0 (plan hobby)
-- Supabase : $0 (plan free)
-- OpenAI : ~$10-20/mois
-- Domaine : ~$15/an
-- **Total : ~$10-20/mois**
+### Alertes
+- **Churn risk élevé** - >70% pour un membre
+- **Latence élevée** - >500ms
+- **Erreurs API** - >5% sur 5 minutes
+- **GPU saturation** - >90% utilisation
 
-### Limites à surveiller
-- Supabase : 500MB database
-- OpenAI : Budget à définir
-- Vercel : Bandwidth 100GB
+## Déploiement et CI/CD
 
-## Sécurité Infrastructure
+### Pipeline de Déploiement
+1. **Development** - Branches feature
+2. **Staging** - Tests automatiques
+3. **Production** - Déploiement automatique
 
-### Secrets
-- Stockés dans Vercel Environment Variables
-- Jamais commités dans Git
-- Rotation recommandée tous les 6 mois
+### Environnements
+- **Production** - jarvis-group.net
+- **Staging** - staging.jarvis-group.net
+- **Development** - dev.jarvis-group.net
 
-### Accès
-- GitHub : 2FA obligatoire
-- Supabase : 2FA activé
-- Vercel : 2FA activé
+### Backup et Recovery
+- **Base de données** - Backup quotidien Supabase
+- **Code** - Git repository GitHub
+- **Configuration** - Environment variables Vercel
+- **RTO** - <15 minutes (Recovery Time Objective)
 
-### Backups
-- Database : Automatique quotidien
-- Code : Git + GitHub
-- Environnement : Vercel project settings exportés
+## Évolutivité
 
-## Mise à l'échelle
+### Phase 1 : MVP (0-50 kiosques)
+- Architecture actuelle
+- Coût : €12/kiosque/mois
+- Latence : <400ms
 
-### Prochaines étapes (quand nécessaire)
-1. **Supabase Pro** : $25/mois
-   - 8GB database
-   - 500k API requests
-   - Daily backups + PITR
-   
-2. **Vercel Pro** : $20/mois
-   - Analytics avancées
-   - Temps fonction 60s
-   - 1TB bandwidth
+### Phase 2 : Scale (50-200 kiosques)
+- Ajout TimescaleDB pour time series
+- Load balancing multi-région
+- Coût : €8/kiosque/mois
 
-3. **CDN** : Cloudflare (si gros trafic)
+### Phase 3 : Enterprise (200+ kiosques)
+- Data Lake complet
+- ML Ops (MLflow)
+- Analytics prédictifs avancés
+- Coût : €6/kiosque/mois
 
-## Points de contact
+---
 
-### Support
-- Vercel : support@vercel.com
-- Supabase : support@supabase.io
-- OpenAI : help.openai.com
-
-### Urgences
-- Vercel Status : vercel-status.com
-- Supabase Status : status.supabase.com
-- OpenAI Status : status.openai.com
-
-
-
+**Dernière mise à jour :** 19 Octobre 2025  
+**Validé par :** Architecture Team - JARVIS-GROUP  
+**Contact :** tech@jarvis-group.net
