@@ -372,15 +372,15 @@ export default function LandingClientOptimizedPage() {
       </div>
 
       {/* 🎯 SECTION 1: HERO IMPACT */}
-      <section id="hero" className="relative min-h-screen lg:min-h-screen flex items-center pt-16 pb-12 md:pt-16 md:pb-16 lg:pb-0">
-        <div className="w-full max-w-7xl mx-auto px-6 sm:px-6 md:px-8 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+      <section id="hero" className="relative min-h-screen flex items-start lg:items-center pt-20 pb-24 md:pt-24 lg:pt-16 lg:pb-0">
+        <div className="w-full max-w-7xl mx-auto px-6 sm:px-6 md:px-8 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 lg:gap-16 items-center">
           
           {/* Hero Content */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="space-y-6"
+            className="space-y-6 text-center lg:text-left"
           >
             {/* Headline */}
             <div className="space-y-4">
@@ -430,7 +430,7 @@ export default function LandingClientOptimizedPage() {
               transition={{ duration: 0.8, delay: 1 }}
               className="pt-4 border-t border-neutral-800/50"
             >
-              <p className="text-xs sm:text-sm text-neutral-400 text-center sm:text-left">
+              <p className="text-xs sm:text-sm text-neutral-400 text-center lg:text-left">
                 <span className="text-white font-bold">-40% churn</span> · 
                 <span className="text-white font-bold"> 70% automatisé</span> · 
                 <span className="text-white font-bold"> ROI en 1 mois</span>
@@ -440,7 +440,7 @@ export default function LandingClientOptimizedPage() {
 
           {/* Hero Visual */}
           {/* CONTAINER PROPRE SANS TRANSFORMS PARASITES */}
-          <div className="relative flex justify-center order-last lg:order-last pt-8 lg:pt-0">
+          <div className="relative flex justify-center order-2 lg:order-last mt-16 lg:mt-0">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -559,20 +559,67 @@ export default function LandingClientOptimizedPage() {
                     </div>
                   </motion.div>
                   
-                  {/* CTA MOBILE SIMPLE (remplace sphère sur mobile) */}
-                  {!isVoiceActive && (
-                    <motion.button
-                      onClick={handleStartVoice}
-                      className="lg:hidden px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base rounded-full hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-300"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
-                    >
-                      🎤 Parler à JARVIS
-                    </motion.button>
-                  )}
+                  {/* SPHÈRE MOBILE (petite taille) */}
+                  <motion.div 
+                    className="relative cursor-pointer lg:hidden"
+                    onClick={!isVoiceActive ? handleStartVoice : undefined}
+                  >
+                    {/* Container de la sphère mobile - petite taille */}
+                    <div className="w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center relative">
+                      {/* Glow effect subtil */}
+                      <motion.div
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full pointer-events-none"
+                        style={{
+                          background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 45%, rgba(0,0,0,0) 70%)',
+                          filter: 'blur(4px)'
+                        }}
+                        animate={{ 
+                          opacity: [0.6, 0.8, 0.6], 
+                          scale: [1, 1.02, 1] 
+                        }}
+                        transition={{ 
+                          duration: 6, 
+                          repeat: Infinity, 
+                          ease: "easeInOut" 
+                        }}
+                      />
+                      
+                      {/* Avatar JARVIS mobile */}
+                      <motion.div
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="relative z-10"
+                      >
+                        <Avatar3D 
+                          size={200}
+                          currentSection="hero" 
+                          status={voiceStatus === 'speaking' ? 'speaking' : 
+                                 voiceStatus === 'listening' ? 'listening' : 
+                                 voiceStatus === 'connecting' ? 'connecting' : 'idle'}
+                          eyeScale={1}
+                        />
+                      </motion.div>
+                    </div>
+                    
+                    {/* Texte d'instruction mobile (en dessous de la sphère) */}
+                    {!isVoiceActive && (
+                      <motion.p 
+                        className="text-white/70 text-sm font-light tracking-wide text-center mt-4"
+                        animate={{ 
+                          opacity: [0.5, 0.8, 0.5]
+                        }}
+                        transition={{ 
+                          duration: 4, 
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        Parler avec JARVIS
+                      </motion.p>
+                    )}
+                  </motion.div>
 
                   {/* Status et contrôles (en dessous, parfaitement centrés) */}
                   {isVoiceActive && (
