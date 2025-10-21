@@ -19,7 +19,7 @@ const VoiceVitrineInterface = dynamic(
 );
 
 const Avatar3D = dynamic(
-  () => import("@/components/kiosk/Avatar3DOptimized"),
+  () => import("@/components/kiosk/Avatar3D"),
   { ssr: false }
 );
 
@@ -517,38 +517,46 @@ export default function LandingClientOptimizedPage() {
                     </motion.div>
                   )}
                   
-                  {/* SPHÈRE JARVIS - Desktop uniquement */}
+                  {/* SPHÈRE JARVIS - Desktop uniquement (Style Kiosk) */}
                   <motion.div 
                     className="relative cursor-pointer hidden lg:block"
                     onClick={!isVoiceActive ? handleStartVoice : undefined}
-                    whileHover={!isVoiceActive ? { scale: 1.02 } : {}}
-                    whileTap={!isVoiceActive ? { scale: 0.98 } : {}}
                   >
                     {/* Container de la sphère avec dimensions responsives */}
-                    <div className="w-96 h-96 xl:w-[480px] xl:h-[480px] flex items-center justify-center relative mx-auto">
-                      <div className="scale-100">
-                        <Avatar3D 
-                          size={480} // Taille originale, container responsive gère le sizing
-                        currentSection="hero" 
-                        status={voiceStatus === 'speaking' ? 'speaking' : 
-                               voiceStatus === 'listening' ? 'listening' : 
-                               voiceStatus === 'connecting' ? 'connecting' : 'idle'} 
-                      />
-                      </div>
-                      
-                      {/* ✅ Effet de lueur MONOCHROME subtil */}
+                    <div className="w-96 h-96 xl:w-[480px] xl:h-[480px] flex items-center justify-center relative">
+                      {/* Glow effect du kiosk - Radial gradient animé */}
                       <motion.div
-                        className="absolute inset-0 rounded-full bg-gradient-to-r from-slate-200/30 via-neutral-100/35 to-slate-300/25 blur-3xl"
-                        animate={{
-                          scale: [1, 1.15, 1],
-                          opacity: [0.3, 0.6, 0.3] 
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full pointer-events-none"
+                        style={{
+                          background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 45%, rgba(0,0,0,0) 70%)',
+                          filter: 'blur(6px)'
                         }}
-                        transition={{
-                          duration: 3, 
-                          repeat: Infinity,
-                          ease: "easeInOut"
+                        animate={{ 
+                          opacity: [0.7, 0.9, 0.7], 
+                          scale: [1, 1.02, 1] 
+                        }}
+                        transition={{ 
+                          duration: 6, 
+                          repeat: Infinity, 
+                          ease: "easeInOut" 
                         }}
                       />
+                      
+                      {/* Avatar JARVIS */}
+                      <motion.div
+                        whileHover={!isVoiceActive ? { scale: 1.03 } : {}}
+                        whileTap={!isVoiceActive ? { scale: 0.97 } : {}}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      >
+                        <Avatar3D 
+                          size={420}
+                          currentSection="hero" 
+                          status={voiceStatus === 'speaking' ? 'speaking' : 
+                                 voiceStatus === 'listening' ? 'listening' : 
+                                 voiceStatus === 'connecting' ? 'connecting' : 'idle'}
+                          eyeScale={1}
+                        />
+                      </motion.div>
                     </div>
                   </motion.div>
                   
