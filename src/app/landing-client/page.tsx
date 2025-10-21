@@ -372,8 +372,8 @@ export default function LandingClientOptimizedPage() {
       </div>
 
       {/* 🎯 SECTION 1: HERO IMPACT */}
-      <section id="hero" className="relative min-h-screen flex items-start lg:items-center pt-20 pb-24 md:pt-24 lg:pt-16 lg:pb-0">
-        <div className="w-full max-w-7xl mx-auto px-6 sm:px-6 md:px-8 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 lg:gap-16 items-center">
+      <section id="hero" className="relative min-h-screen flex items-start lg:items-center pt-24 pb-32 md:pt-32 lg:pt-16 lg:pb-0">
+        <div className="w-full max-w-7xl mx-auto px-6 sm:px-6 md:px-8 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-20 md:gap-24 lg:gap-16 items-center">
           
           {/* Hero Content */}
           <motion.div
@@ -440,7 +440,7 @@ export default function LandingClientOptimizedPage() {
 
           {/* Hero Visual */}
           {/* CONTAINER PROPRE SANS TRANSFORMS PARASITES */}
-          <div className="relative flex justify-center order-2 lg:order-last mt-16 lg:mt-0">
+          <div className="relative flex justify-center order-2 lg:order-last mt-24 lg:mt-0">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
