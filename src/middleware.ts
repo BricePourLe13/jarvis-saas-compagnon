@@ -12,6 +12,12 @@ export function middleware(request: NextRequest) {
   // 🚦 Rate limiting pour les routes sensibles
   const clientId = getClientIdentifier(request)
   
+  // ⚠️ EXCEPTION : Skip rate limiting for webhooks (trusted external services)
+  if (pathname.startsWith('/api/webhooks/')) {
+    logger.debug(`Webhook request bypassing rate limit`, { pathname }, { component: 'Middleware' })
+    return NextResponse.next()
+  }
+  
   if (pathname.startsWith('/api/voice/')) {
     const { allowed, remaining, resetTime } = voiceRateLimiter.isAllowed(clientId)
     if (!allowed) {
