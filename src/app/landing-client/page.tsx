@@ -459,21 +459,20 @@ export default function LandingClientOptimizedPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="text-center hidden lg:block"
+                      className="text-center hidden lg:block mb-8"
                     >
                       <motion.p 
-                        className="text-white/90 text-lg font-medium px-6 py-3 bg-white/5 backdrop-blur-sm rounded-full border border-white/10"
+                        className="text-white/80 text-base font-light tracking-wide"
                         animate={{ 
-                          opacity: [0.8, 1, 0.8],
-                          scale: [1, 1.02, 1]
+                          opacity: [0.6, 0.85, 0.6]
                         }}
                         transition={{ 
-                          duration: 3, 
+                          duration: 4, 
                           repeat: Infinity,
                           ease: "easeInOut"
                         }}
                       >
-                        👇 Cliquez pour parler à JARVIS
+                        Parler avec JARVIS
                       </motion.p>
                     </motion.div>
                   )}
@@ -522,11 +521,11 @@ export default function LandingClientOptimizedPage() {
                     className="relative cursor-pointer hidden lg:block"
                     onClick={!isVoiceActive ? handleStartVoice : undefined}
                   >
-                    {/* Container de la sphère avec dimensions responsives */}
-                    <div className="w-96 h-96 xl:w-[480px] xl:h-[480px] flex items-center justify-center relative">
+                    {/* Container de la sphère avec dimensions optimisées */}
+                    <div className="w-80 h-80 2xl:w-[360px] 2xl:h-[360px] flex items-center justify-center relative">
                       {/* Glow effect du kiosk - Radial gradient animé */}
                       <motion.div
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full pointer-events-none"
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full pointer-events-none"
                         style={{
                           background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 45%, rgba(0,0,0,0) 70%)',
                           filter: 'blur(6px)'
@@ -549,7 +548,7 @@ export default function LandingClientOptimizedPage() {
                         transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       >
                         <Avatar3D 
-                          size={420}
+                          size={320}
                           currentSection="hero" 
                           status={voiceStatus === 'speaking' ? 'speaking' : 
                                  voiceStatus === 'listening' ? 'listening' : 
