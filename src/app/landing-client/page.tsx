@@ -218,7 +218,7 @@ export default function LandingClientOptimizedPage() {
       color: "red"
     },
     {
-      icon: <VscChromeMinimize className="w-8 h-8 text-orange-400" />,
+      icon: <VscGear className="w-8 h-8 text-orange-400" />,
       title: "Staff débordé",
       description: "Vos coachs passent 60% de leur temps sur des questions répétitives basiques.",
       stat: "60% du temps perdu",
@@ -233,31 +233,31 @@ export default function LandingClientOptimizedPage() {
     }
   ];
 
-  // Solution benefits
-  const solutionBenefits = [
+  // Solution pilliers (architecture ouverte et évolutive)
+  const solutionPillars = [
     {
-      icon: <VscGraph className="w-8 h-8 text-green-400" />,
-      title: "Détection churn 60 jours avant",
-      description: "JARVIS analyse chaque conversation et vous alerte sur les membres à risque",
-      metric: "85% de précision"
+      icon: "🎯",
+      title: "Intelligence contextuelle",
+      description: "JARVIS comprend votre salle, vos membres, votre équipe. Chaque conversation est personnalisée selon le contexte complet.",
+      examples: "Conseils nutrition adaptés au profil · Tutoriels vidéo selon l'objectif · Recommandations coach selon disponibilité",
+      color: "from-blue-500/10 to-blue-600/5",
+      borderColor: "border-blue-500/20 hover:border-blue-500/40"
     },
     {
-      icon: <VscHeart className="w-8 h-8 text-blue-400" />, 
-      title: "+40% satisfaction membre",
-      description: "Réponses instantanées 24/7, personnalisées selon le profil de chaque adhérent",
-      metric: "24/7 disponible"
+      icon: "⚡",
+      title: "Actions automatiques",
+      description: "JARVIS agit pour vous : réserve, inscrit, notifie, gère. Tout workflow répétitif devient automatique sans limite.",
+      examples: "Réservation RDV coach · Inscription cours collectifs · Rappels SMS/Email · Gestion réclamations · Alertes équipe",
+      color: "from-purple-500/10 to-purple-600/5",
+      borderColor: "border-purple-500/20 hover:border-purple-500/40"
     },
     {
-      icon: <VscRobot className="w-8 h-8 text-purple-400" />,
-      title: "70% des questions automatisées",
-      description: "Vos coachs se concentrent sur l'accompagnement à haute valeur ajoutée",
-      metric: "70% d'automatisation"
-    },
-    {
-      icon: <VscGraph className="w-8 h-8 text-green-400" />,
-      title: "ROI moyen +25% dès 6 mois",
-      description: "Rétention améliorée + revenus publicitaires partagés",
-      metric: "ROI garanti"
+      icon: "📊",
+      title: "Analytics prédictifs",
+      description: "JARVIS analyse, prédit, recommande. Détection churn avancée, opportunités business, rapports automatiques.",
+      examples: "Prédiction churn 60j avant · Sentiment analysis · Trends fréquentation · Opportunités upsell · ROI mesurable",
+      color: "from-green-500/10 to-green-600/5",
+      borderColor: "border-green-500/20 hover:border-green-500/40"
     }
   ];
 
@@ -352,7 +352,7 @@ export default function LandingClientOptimizedPage() {
       </div>
       
       {/* Mobile: Dock horizontal compact */}
-      <div className="lg:hidden fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
+      <div className="lg:hidden fixed bottom-6 sm:bottom-4 left-1/2 transform -translate-x-1/2 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center space-x-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-full px-4 py-2">
           {dockItemsMobile.map((item) => (
             <motion.button
@@ -372,15 +372,15 @@ export default function LandingClientOptimizedPage() {
       </div>
 
       {/* 🎯 SECTION 1: HERO IMPACT */}
-      <section id="hero" className="relative min-h-screen lg:min-h-screen flex items-center pt-20 pb-20 lg:pb-0">
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 lg:gap-12 items-center">
+      <section id="hero" className="relative min-h-screen lg:min-h-screen flex items-center pt-16 pb-12 md:pt-16 md:pb-16 lg:pb-0">
+        <div className="w-full max-w-7xl mx-auto px-6 sm:px-6 md:px-8 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
           
           {/* Hero Content */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="space-y-8"
+            className="space-y-6"
           >
             {/* Headline */}
             <div className="space-y-4">
@@ -393,80 +393,48 @@ export default function LandingClientOptimizedPage() {
                 🚀 Révolution IA pour salles de sport
               </motion.div>
               
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-white">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
                 L'IA qui{" "}
-                <FlipWords words={heroWords} className="text-white" duration={3000} />
+                <span className="inline-block min-w-[160px] sm:min-w-[220px] md:min-w-[280px]">
+                  <FlipWords words={heroWords} className="text-white" duration={3000} />
+                </span>
                 <br />
-                <span className="text-white">l'expérience salle de sport</span>
+                <span className="text-white">l'expérience client</span>
               </h1>
               
               <motion.h2 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8, duration: 0.6 }}
-                className="text-xl md:text-2xl lg:text-3xl font-semibold text-neutral-200 mt-4"
+                className="text-base md:text-lg lg:text-xl font-semibold text-neutral-200 mt-3"
               >
                 JARVIS engage vos adhérents comme jamais auparavant
               </motion.h2>
               
-              <motion.div
+              <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5, duration: 0.8 }}
-                className="flex flex-wrap items-center justify-center gap-4 mt-6"
+                className="text-xs sm:text-sm text-neutral-400 leading-relaxed mt-4"
               >
-                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-neutral-300">
-                  Conversations naturelles
-                </span>
-                <span className="text-white/50">•</span>
-                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-neutral-300">
-                  Actions concrètes
-                </span>
-                <span className="text-white/50">•</span>
-                <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-neutral-300">
-                  Résultats mesurables
-                </span>
-              </motion.div>
+                Conversations naturelles · Actions concrètes · Résultats mesurables
+              </motion.p>
             </div>
-
-            {/* Social Proof */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex items-center gap-4 text-neutral-400"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">🚀</span>
-                </div>
-                <span className="text-sm">MVP prêt à tester</span>
-              </div>
-              <div className="w-px h-6 bg-neutral-600" />
-              <span className="text-sm font-medium text-white">Recherche partenaires pilotes</span>
-            </motion.div>
 
             {/* CTA supprimé - Interface vocale maintenant intégrée à la sphère */}
 
-            {/* Proof Points Subtils */}
+            {/* Proof Points Simplifiés (1 ligne) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 1 }}
-              className="flex justify-center sm:justify-start items-center gap-8 pt-6 border-t border-neutral-800/50"
+              className="pt-4 border-t border-neutral-800/50"
             >
-              <div className="text-center">
-                <div className="text-lg font-bold text-white">-40%</div>
-                <div className="text-xs text-neutral-500">churn</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-white">1 mois</div>
-                <div className="text-xs text-neutral-500">ROI</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-white">24/7</div>
-                <div className="text-xs text-neutral-500">actif</div>
-              </div>
+              <p className="text-xs sm:text-sm text-neutral-400 text-center sm:text-left">
+                <span className="text-white font-bold">-40% churn</span> · 
+                <span className="text-white font-bold"> 70% automatisé</span> · 
+                <span className="text-white font-bold"> ROI en 1 mois</span>
+              </p>
             </motion.div>
           </motion.div>
 
@@ -485,13 +453,13 @@ export default function LandingClientOptimizedPage() {
                 {/* Container principal centré */}
                 <div className="flex flex-col items-center justify-center space-y-8">
                   
-                  {/* Texte d'instruction (au dessus) */}
+                  {/* Texte d'instruction (au dessus) - Desktop uniquement */}
                   {!isVoiceActive && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="text-center"
+                      className="text-center hidden lg:block"
                     >
                       <motion.p 
                         className="text-white/90 text-lg font-medium px-6 py-3 bg-white/5 backdrop-blur-sm rounded-full border border-white/10"
@@ -549,18 +517,18 @@ export default function LandingClientOptimizedPage() {
                     </motion.div>
                   )}
                   
-                  {/* SPHÈRE JARVIS - Container parfaitement centré */}
+                  {/* SPHÈRE JARVIS - Desktop uniquement */}
                   <motion.div 
-                    className="relative cursor-pointer"
+                    className="relative cursor-pointer hidden lg:block"
                     onClick={!isVoiceActive ? handleStartVoice : undefined}
                     whileHover={!isVoiceActive ? { scale: 1.02 } : {}}
                     whileTap={!isVoiceActive ? { scale: 0.98 } : {}}
                   >
                     {/* Container de la sphère avec dimensions responsives */}
-                    <div className="w-72 h-72 md:w-[480px] md:h-[480px] flex items-center justify-center relative">
-                      <div className="scale-75 md:scale-100">
+                    <div className="w-96 h-96 xl:w-[480px] xl:h-[480px] flex items-center justify-center relative mx-auto">
+                      <div className="scale-100">
                         <Avatar3D 
-                          size={480} // Taille originale, scale CSS pour mobile
+                          size={480} // Taille originale, container responsive gère le sizing
                         currentSection="hero" 
                         status={voiceStatus === 'speaking' ? 'speaking' : 
                                voiceStatus === 'listening' ? 'listening' : 
@@ -583,6 +551,21 @@ export default function LandingClientOptimizedPage() {
                       />
                     </div>
                   </motion.div>
+                  
+                  {/* CTA MOBILE SIMPLE (remplace sphère sur mobile) */}
+                  {!isVoiceActive && (
+                    <motion.button
+                      onClick={handleStartVoice}
+                      className="lg:hidden px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base rounded-full hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-300"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      🎤 Parler à JARVIS
+                    </motion.button>
+                  )}
 
                   {/* Status et contrôles (en dessous, parfaitement centrés) */}
                   {isVoiceActive && (
@@ -626,29 +609,30 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
-      {/* 🎯 SECTION 2: PROBLÈMES (Pain Points) */}
-      <section id="problems" className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+
+      {/* 🎯 SECTION 3: PROBLÈMES (Pain Points) */}
+      <section id="problems" className="relative py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="text-center mb-20"
+            className="text-center mb-12 sm:mb-16 md:mb-20"
           >
-            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 md:mb-4">
               Votre salle perd{" "}
               <span className="text-red-400">30% de ses membres</span>
               {" "}chaque année
             </h2>
-            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+            <p className="text-sm md:text-base text-neutral-400 max-w-3xl mx-auto">
               Découvrez les 3 problèmes silencieux qui tuent votre business... et comment les résoudre.
             </p>
           </motion.div>
 
           {/* Pain Points Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
             {painPoints.map((point, index) => (
               <motion.div
                 key={index}
@@ -659,9 +643,9 @@ export default function LandingClientOptimizedPage() {
                 className="group"
               >
                 <CardContainer className="inter-var">
-                  <CardBody className={`relative group/card hover:shadow-2xl hover:shadow-${point.color}-500/[0.1] bg-black border-white/[0.1] w-full h-auto rounded-xl p-8 border transition-all duration-500`}>
+                  <CardBody className={`relative group/card hover:shadow-2xl hover:shadow-${point.color}-500/[0.1] bg-black border-white/[0.1] w-full h-auto rounded-xl p-4 md:p-6 border transition-all duration-500`}>
                     {/* Icon */}
-                    <CardItem translateZ="50" className="mb-6">
+                    <CardItem translateZ="50" className="mb-4 md:mb-6">
                       {point.icon}
                     </CardItem>
 
@@ -708,8 +692,8 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 3: SOLUTION - DÉMONSTRATION INTERACTIVE */}
-      <section id="solution" className="relative py-16 md:py-24 lg:py-32 bg-black">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+      <section id="solution" className="relative py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-black">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -718,20 +702,20 @@ export default function LandingClientOptimizedPage() {
             viewport={{ once: true }}
             className="text-center mb-20"
           >
-            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
               JARVIS : Votre{" "}
               <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-                directeur commercial
+                IA sur-mesure
               </span>
-              {" "}virtuel
+              {" "}qui s'adapte à votre salle
             </h2>
-            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
-              Découvrez notre MVP en action : conversation réelle → insights automatiques
+            <p className="text-sm md:text-base text-neutral-400 max-w-3xl mx-auto">
+              Une plateforme extensible qui évolue avec vos besoins, pas une solution figée
             </p>
           </motion.div>
 
           {/* Demo Interactive */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 lg:gap-12 items-stretch">
             
             {/* Left: Conversation Simulation */}
             <motion.div
@@ -739,7 +723,7 @@ export default function LandingClientOptimizedPage() {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 1 }}
               viewport={{ once: true }}
-              className="space-y-6"
+              className="space-y-6 flex flex-col"
             >
               <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
@@ -821,7 +805,7 @@ export default function LandingClientOptimizedPage() {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 1 }}
               viewport={{ once: true }}
-              className="space-y-6"
+              className="space-y-6 flex flex-col"
             >
               <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-6">
                 <h3 className="text-xl font-bold text-white mb-4">📊 Insights Temps Réel</h3>
@@ -876,54 +860,99 @@ export default function LandingClientOptimizedPage() {
                     </div>
                   </motion.div>
                 </div>
-                
-                {/* Metrics */}
-                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-neutral-800">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">85%</div>
-                    <div className="text-xs text-neutral-400">Précision prédictive</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">60j</div>
-                    <div className="text-xs text-neutral-400">Anticipation moyenne</div>
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
 
-          {/* Benefits Grid */}
+          {/* 🎯 3 PILLIERS : Architecture ouverte et évolutive */}
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-12 md:mt-16 lg:mt-20"
+            className="mt-16 md:mt-20 lg:mt-24"
           >
-            {solutionBenefits.map((benefit, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all duration-300"
-              >
-                <div className="mb-4 flex justify-center">
-                  {benefit.icon}
-                </div>
-                <h4 className="text-lg font-bold text-white mb-3">{benefit.title}</h4>
-                <p className="text-sm text-neutral-400 mb-4">{benefit.description}</p>
-                <div className="text-lg font-bold text-white">{benefit.metric}</div>
-              </motion.div>
-            ))}
+            <div className="text-center mb-12">
+              <h3 className="text-xl md:text-3xl font-bold text-white mb-3">
+                3 Pilliers{" "}
+                <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+                  infiniment extensibles
+                </span>
+              </h3>
+              <p className="text-sm md:text-base text-neutral-400 max-w-3xl mx-auto">
+                Une architecture modulaire qui s'adapte à vos besoins spécifiques, sans limite
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+              {solutionPillars.map((pillar, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="text-center"
+                >
+                  {/* Icon */}
+                  <div className="text-5xl mb-4">{pillar.icon}</div>
+                  
+                  {/* Title */}
+                  <h4 className="text-lg font-bold text-white mb-2">{pillar.title}</h4>
+                  
+                  {/* Description (1 ligne uniquement) */}
+                  <p className="text-sm text-neutral-400">
+                    {pillar.examples}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
+
+          {/* 💡 BLOC EXTENSIBILITÉ + CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.5 }}
+            viewport={{ once: true }}
+            className="mt-16 md:mt-20"
+          >
+            <div className="max-w-4xl mx-auto bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 rounded-2xl p-8 md:p-12 text-center">
+              <div className="text-6xl mb-6">💡</div>
+              <h3 className="text-xl md:text-3xl font-bold text-white mb-4">
+                Votre salle a des besoins uniques ?
+              </h3>
+              <p className="text-sm md:text-base text-neutral-300 leading-relaxed mb-4">
+                JARVIS est construit sur une <strong className="text-white">architecture extensible (MCP)</strong>.<br />
+                <span className="text-cyan-400 font-semibold">25+ outils disponibles immédiatement</span>, création illimitée d'outils sur-mesure.
+              </p>
+              <p className="text-xs md:text-sm text-neutral-400 mb-6">
+                Nutrition, kiné, partenaires locaux, événements, challenges, intégrations tierces ?<br />
+                <strong className="text-white">Vos besoins spécifiques deviennent de nouveaux outils JARVIS.</strong>
+              </p>
+              
+              {/* CTA */}
+              <motion.a
+                href="#contact"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-block px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg rounded-full hover:shadow-2xl hover:shadow-blue-500/50 transition-all duration-300"
+              >
+                Discutons de vos besoins →
+              </motion.a>
+              
+              <div className="mt-6 text-sm text-neutral-500">
+                Réponse sous 24h · Consultation gratuite · 5 places pilotes disponibles
+              </div>
+            </div>
+          </motion.div>
+
         </div>
       </section>
 
       {/* 🎯 SECTION 4: PROCESS - 3 ÉTAPES */}
-      <section id="process" className="relative py-16 md:py-24 lg:py-32 bg-gradient-to-b from-black via-neutral-950/30 to-black">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+      <section id="process" className="relative py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -932,13 +961,13 @@ export default function LandingClientOptimizedPage() {
             viewport={{ once: true }}
             className="text-center mb-20"
           >
-            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
               De l'installation au{" "}
               <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
                 ROI en 3 étapes
               </span>
             </h2>
-            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+            <p className="text-sm md:text-base text-neutral-400 max-w-3xl mx-auto">
               Un processus simple et éprouvé pour transformer votre salle en 2 semaines
             </p>
           </motion.div>
@@ -964,9 +993,9 @@ export default function LandingClientOptimizedPage() {
                     whileInView={{ scale: 1 }}
                     transition={{ duration: 0.6, delay: index * 0.2 + 0.3, type: "spring" }}
                     viewport={{ once: true }}
-                    className="relative mx-auto w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-6 z-10"
+                    className="relative mx-auto w-16 h-16 md:w-20 md:h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-6 z-10"
                   >
-                    <span className="text-white font-bold text-xl">{step.number}</span>
+                    <span className="text-white font-bold text-lg md:text-xl">{step.number}</span>
                     <motion.div
                       className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 opacity-20"
                       animate={{ scale: [1, 1.3, 1] }}
@@ -1013,398 +1042,131 @@ export default function LandingClientOptimizedPage() {
         </div>
       </section>
 
-      {/* 👤 SECTION À PROPOS JARVIS-GROUP - VISION & MISSION */}
-      <section className="relative py-24 md:py-32 bg-gradient-to-b from-black via-neutral-950/50 to-black">
-        {/* Subtle background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/3 via-transparent to-transparent"></div>
-        
-        <div className="max-w-4xl mx-auto px-6 md:px-8 relative z-10">
-          
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full mb-6">
-              <span className="text-sm text-blue-400 font-medium">À propos</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-              JARVIS-GROUP
-            </h2>
-            <p className="text-xl text-neutral-400 leading-relaxed">
-              Aider les entreprises à migrer vers l'IA en créant des solutions dédiées
-            </p>
-          </div>
 
-          {/* Mission principale */}
-          <div className="mb-16">
-            <div className="bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-2xl p-8 md:p-10">
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                <span className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  🎯
-                </span>
-                Notre mission
-              </h3>
-              <p className="text-lg text-neutral-300 leading-relaxed text-justify mb-6">
-                JARVIS-GROUP aide les entreprises à <strong className="text-white">migrer vers l'IA</strong> en créant des 
-                solutions IA dédiées ou en proposant du consulting. Notre conviction : l'IA conversationnelle peut révolutionner 
-                l'expérience client dans de nombreux secteurs.
-              </p>
-              <p className="text-lg text-neutral-300 leading-relaxed text-justify">
-                <strong className="text-white">JARVIS pour les salles de sport</strong> est notre première solution concrète, 
-                conçue pour résoudre un problème réel et coûteux : le churn. Mais notre ambition ne s'arrête pas là.
-              </p>
-            </div>
-          </div>
-
-          {/* Roadmap vision */}
-          <div className="mb-16">
-            <h3 className="text-2xl font-bold text-white mb-8 text-center">Notre feuille de route</h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 bg-white/[0.02] border border-blue-500/30 rounded-xl p-6">
-                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-blue-500">
-                  <span className="text-lg font-bold text-blue-400">1</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-                    Fitness & Salles de sport 
-                    <span className="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-400">En cours</span>
-                  </h4>
-                  <p className="text-sm text-neutral-400">
-                    Résoudre le churn avec une IA conversationnelle miroir digital. MVP fonctionnel en test.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 bg-white/[0.02] border border-white/5 rounded-xl p-6 opacity-60">
-                <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0 border-2 border-purple-500/50">
-                  <span className="text-lg font-bold text-purple-400">2</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-                    Musées & Culture
-                    <span className="px-2 py-1 bg-neutral-700 border border-neutral-600 rounded-full text-xs text-neutral-400">À venir</span>
-                  </h4>
-                  <p className="text-sm text-neutral-400">
-                    Remplacer les longs pavés explicatifs par des conversations multilingues hyper engageantes.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4 bg-white/[0.02] border border-white/5 rounded-xl p-6 opacity-40">
-                <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30">
-                  <span className="text-lg font-bold text-cyan-400">3</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-                    Retail, Hôtellerie, et au-delà
-                    <span className="px-2 py-1 bg-neutral-700 border border-neutral-600 rounded-full text-xs text-neutral-400">Vision</span>
-                  </h4>
-                  <p className="text-sm text-neutral-400">
-                    Étendre la technologie à toute industrie où expérience client et rétention sont critiques.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Founder */}
-          <div className="bg-white/[0.02] backdrop-blur-sm border border-white/5 rounded-2xl p-8">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
-                <span className="text-3xl font-bold text-white">BP</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-white mb-1">Brice PRADET</h3>
-                <p className="text-sm text-blue-400 font-semibold mb-4">Founder · Expert IA & Systèmes d'Information</p>
-                <p className="text-neutral-300 leading-relaxed text-justify">
-                  Ingénieur spécialisé en IA et automatisation, passionné par la création de solutions concrètes 
-                  qui résolvent de vrais problèmes business. Diplômé du Groupe ESIEA avec 2 ans d'expérience en 
-                  administration système et sécurité.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Tech Stack */}
-          <div className="mt-12 text-center">
-            <p className="text-sm text-neutral-500 mb-4">Technologies utilisées</p>
-            <div className="inline-flex flex-wrap gap-2 justify-center">
-              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Next.js</span>
-              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">OpenAI Realtime API</span>
-              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Supabase</span>
-              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">CrewAI</span>
-              <span className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-neutral-400">Docker</span>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 💰 SECTION REVENUS PUBLICITAIRES (Déplacée après À propos) */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-b from-black to-neutral-950">
-        <div className="max-w-5xl mx-auto px-4 md:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-br from-green-900/20 via-emerald-900/10 to-green-950/20 border border-green-500/20 rounded-3xl p-8 md:p-12 relative overflow-hidden"
-          >
-            {/* Background glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-green-500/20 rounded-xl">
-                  <VscGraph className="w-8 h-8 text-green-400" />
-                </div>
-                <h3 className="text-3xl md:text-4xl font-bold text-white">
-                  JARVIS génère des revenus <span className="text-green-400">passifs</span> pour votre salle
-                </h3>
-              </div>
-              
-              <p className="text-xl text-neutral-300 mb-8 leading-relaxed">
-                Grâce aux <strong className="text-white">partenariats publicitaires contextuels</strong>, JARVIS propose subtilement des produits pertinents (nutrition, équipement) à vos adhérents lors des conversations. Vous touchez une part des revenus publicitaires.
-              </p>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                  viewport={{ once: true }}
-                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
-                >
-                  <div className="text-3xl font-bold text-green-400 mb-2">Revenus passifs</div>
-                  <div className="text-sm text-neutral-400">Partenariats marques premium</div>
-                  <div className="text-xs text-neutral-500 mt-2">Potentiel significatif selon taille salle</div>
-                </motion.div>
-                
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  viewport={{ once: true }}
-                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
-                >
-                  <div className="text-4xl font-bold text-green-400 mb-2">100%</div>
-                  <div className="text-sm text-neutral-400">Pub contextuelle</div>
-                  <div className="text-xs text-neutral-500 mt-2">Pertinente selon profil adhérent</div>
-                </motion.div>
-                
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                  viewport={{ once: true }}
-                  className="bg-neutral-900/50 border border-green-500/30 rounded-xl p-6 text-center"
-                >
-                  <div className="text-4xl font-bold text-green-400 mb-2">ROI négatif</div>
-                  <div className="text-sm text-neutral-400">JARVIS peut devenir gratuit</div>
-                  <div className="text-xs text-neutral-500 mt-2">Amortissement complet possible</div>
-                </motion.div>
-              </div>
-              
-              <div className="mt-8 p-4 bg-neutral-900/50 border border-neutral-700 rounded-xl">
-                <p className="text-sm text-neutral-400 text-center">
-                  💡 <strong className="text-white">Différenciateur clé</strong> : JARVIS ne coûte pas, il <span className="text-green-400">rapporte</span>
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* 🎯 SECTION 5: PROGRAMME PILOTE MVP */}
-      <section id="results" className="relative py-16 md:py-24 lg:py-32 bg-black">
+      {/* 🎯 SECTION 5: PROGRAMME PILOTE + À PROPOS + CONTACT (FUSIONNÉE) */}
+      <section id="results" className="relative py-12 md:py-16 lg:py-20 bg-black">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
-          {/* Section Header */}
+          
+          {/* SOUS-SECTION 1: Programme Pilote */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="text-center mb-20"
+            className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
               Rejoignez notre{" "}
               <span className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
                 programme pilote
               </span>
             </h2>
-            <p className="text-xl text-neutral-400 max-w-3xl mx-auto">
+            <p className="text-sm md:text-base text-neutral-400 max-w-3xl mx-auto">
               Soyez parmi les premiers à tester JARVIS et co-construire l'avenir des salles de sport
             </p>
           </motion.div>
 
-          {/* MVP Stats */}
+          {/* MVP Stats (Simplifié - inline) */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 mb-12 md:mb-16 lg:mb-20"
+            className="flex flex-wrap justify-center items-center gap-4 md:gap-8 mb-12 text-center"
           >
-            {[
-              {
-                value: "MVP",
-                label: "Prêt à tester",
-                description: "Version fonctionnelle complète"
-              },
-              {
-                value: "5",
-                label: "Places pilotes",
-                description: "Sélection exclusive"
-              },
-              {
-                value: "0€",
-                label: "Coût de test",
-                description: "Partenariat gratuit"
-              }
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                viewport={{ once: true }}
-                className="text-center p-8 bg-neutral-900/50 border border-white/10 rounded-xl"
-              >
-                <div className="text-5xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-lg font-semibold text-neutral-300 mb-2">{stat.label}</div>
-                <div className="text-sm text-neutral-500">{stat.description}</div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Pilot Benefits */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8 mb-12 md:mb-16 lg:mb-20">
-            {[
-              {
-                icon: "🚀",
-                title: "Test MVP gratuit pendant 3 mois",
-                description: "Installation complète, formation équipe, support dédié. Aucun coût pour vous, juste vos retours précieux.",
-                benefit: "Valeur : +15K€"
-              },
-              {
-                icon: "🤝",
-                title: "Co-création produit",
-                description: "Vos besoins orientent directement nos développements. Vous construisez avec nous la solution idéale pour votre métier.",
-                benefit: "Influence directe sur la roadmap"
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: index * 0.2 }}
-                viewport={{ once: true }}
-                className="bg-neutral-900/50 border border-white/10 rounded-xl p-8"
-              >
-                <div className="mb-6">
-                  <div className="text-4xl mb-4">{item.icon}</div>
-                  <h3 className="text-xl font-bold text-white mb-4">{item.title}</h3>
-                  <p className="text-neutral-300 text-lg leading-relaxed mb-6">
-                    {item.description}
-                  </p>
-                </div>
-                
-                <div className="text-right">
-                  <div className="text-green-400 font-bold text-lg">{item.benefit}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Expertise Credentials */}
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            viewport={{ once: true }}
-            className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-xl p-8"
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-4">
-                  Un MVP prêt, transparent et ambitieux
-                </h3>
-                <p className="text-neutral-300 mb-6 leading-relaxed">
-                  <strong className="text-white">Soyons honnêtes</strong> : nous sommes au stade MVP. Pas encore de clients en production, mais un produit <strong className="text-white">fonctionnel</strong> développé avec les dernières technologies (OpenAI Realtime API). 
-                  C'est pourquoi nous cherchons des <strong className="text-blue-400">partenaires pilotes</strong> pour co-construire ensemble.
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <VscCheck className="w-5 h-5 text-green-400" />
-                    <span className="text-neutral-300"><strong className="text-white">Speech-to-speech fonctionnel</strong> (testez-le ci-dessus !)</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <VscCheck className="w-5 h-5 text-blue-400" />
-                    <span className="text-neutral-300"><strong className="text-white">Stack pro</strong> : Next.js, OpenAI Realtime, Supabase</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <VscCheck className="w-5 h-5 text-purple-400" />
-                    <span className="text-neutral-300"><strong className="text-white">Métriques basées</strong> sur études sectorielles reconnues</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <VscWarning className="w-5 h-5 text-yellow-400" />
-                    <span className="text-neutral-300"><strong className="text-white">Pas encore testé en condition réelle</strong> → C'est votre rôle !</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-6">
-                <div className="text-center p-6 bg-black/30 rounded-lg">
-                  <div className="text-3xl font-bold text-blue-400 mb-2">OpenAI</div>
-                  <div className="text-neutral-400 text-sm mb-2">Technologie</div>
-                  <div className="text-lg font-bold text-white">Realtime API</div>
-                </div>
-                <div className="text-center p-6 bg-black/30 rounded-lg">
-                  <div className="text-3xl font-bold text-green-400 mb-2">3 mois</div>
-                  <div className="text-neutral-400 text-sm mb-2">Développement</div>
-                  <div className="text-lg font-bold text-white">MVP Ready</div>
-                </div>
-              </div>
+            <div>
+              <span className="text-2xl md:text-3xl font-bold text-white">MVP</span>
+              <span className="text-sm text-neutral-400 ml-2">prêt à tester</span>
+            </div>
+            <span className="text-neutral-600 hidden md:inline">·</span>
+            <div>
+              <span className="text-2xl md:text-3xl font-bold text-white">5</span>
+              <span className="text-sm text-neutral-400 ml-2">places pilotes</span>
+            </div>
+            <span className="text-neutral-600 hidden md:inline">·</span>
+            <div>
+              <span className="text-2xl md:text-3xl font-bold text-white">0€</span>
+              <span className="text-sm text-neutral-400 ml-2">coût de test</span>
             </div>
           </motion.div>
 
-          {/* 🎯 FORMULAIRE DE CONTACT */}
+          {/* Pilot Benefits - ULTRA SIMPLIFIÉ */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="max-w-3xl mx-auto text-center mb-16"
+          >
+            <div className="text-4xl mb-4">🚀</div>
+            <h3 className="text-lg md:text-xl font-bold text-white mb-2">
+              Test MVP gratuit · 3 mois · 0€
+            </h3>
+            <p className="text-sm text-neutral-400 mb-6">
+              Installation 2 jours · Formation incluse · Support 24/7
+            </p>
+          </motion.div>
+
+          {/* DIVIDER */}
+          <div className="max-w-xs mx-auto border-t border-neutral-800 mb-16"></div>
+
+          {/* SOUS-SECTION 2: À Propos (ultra compact) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="max-w-2xl mx-auto text-center mb-16"
+          >
+            <div className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-xs font-medium mb-4">
+              À propos
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-3">
+              L'IA qui augmente l'humain
+            </h2>
+            <p className="text-sm text-neutral-300 leading-relaxed mb-4">
+              Créer des systèmes d'IA conversationnelle qui <strong className="text-white">augmentent l'humain</strong> au lieu de le remplacer. 
+              Premier terrain : les salles de sport. Demain : musées, retail, hôtellerie.
+            </p>
+            <p className="text-xs text-blue-400">
+              Fondé en octobre 2024 · Brice PRADET, Ingénieur IA
+            </p>
+          </motion.div>
+
+          {/* DIVIDER */}
+          <div className="max-w-xs mx-auto border-t border-neutral-800 mb-16"></div>
+
+          {/* SOUS-SECTION 3: FORMULAIRE DE CONTACT */}
           <motion.div
             id="contact"
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="mt-12 md:mt-16 lg:mt-20"
           >
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-2xl mx-auto">
               {/* Header formulaire */}
-              <div className="text-center mb-8">
-                <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              <div className="text-center mb-6">
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
                   Prêt à rejoindre l'aventure ?
                 </h3>
-                <p className="text-lg text-neutral-400">
-                  Remplissez le formulaire ci-dessous et recevez une réponse sous 24h
+                <p className="text-xs md:text-sm text-neutral-400">
+                  Réponse sous 24h · 5 places exclusives
                 </p>
               </div>
 
               {/* Formulaire */}
-              <div className="bg-neutral-900/30 border border-white/10 rounded-2xl p-6 md:p-8">
+              <div className="bg-neutral-900/30 border border-white/10 rounded-2xl p-4 md:p-6">
                 <ContactForm leadType="pilot" />
               </div>
 
-              {/* Trust signals */}
-              <div className="flex flex-wrap justify-center items-center gap-6 mt-8 text-neutral-500 text-sm">
-                <div className="flex items-center gap-2">
-                  <span>⚡</span>
-                  <span>Réponse sous 24h</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>🔒</span>
-                  <span>Données sécurisées RGPD</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>🎯</span>
-                  <span>5 places exclusives</span>
-                </div>
+              {/* Trust signals (simplifié) */}
+              <div className="flex flex-wrap justify-center items-center gap-4 mt-6 text-neutral-500 text-xs">
+                <span>⚡ Réponse 24h</span>
+                <span>·</span>
+                <span>🔒 RGPD</span>
+                <span>·</span>
+                <span>🎯 5 places</span>
               </div>
             </div>
           </motion.div>
