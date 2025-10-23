@@ -317,7 +317,7 @@ export default function LoginPage() {
     
     try {
       // Vérifier que le CAPTCHA est résolu
-      if (!captchaToken && process.env.NODE_ENV === 'production') {
+      if (!captchaToken) {
         setError('Veuillez compléter le CAPTCHA')
         setLoading(false)
         return
@@ -326,19 +326,12 @@ export default function LoginPage() {
 
 
       const supabase = await loadSupabaseClient()
-      
-      // Construire les options conditionnellement
-      const signInOptions: any = {}
-      
-      // N'envoyer captchaToken QUE en production
-      if (process.env.NODE_ENV === 'production' && captchaToken) {
-        signInOptions.captchaToken = captchaToken
-      }
-      
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password,
-        ...(Object.keys(signInOptions).length > 0 && { options: signInOptions })
+        options: {
+          captchaToken: captchaToken
+        }
       })
       
       if (error) { 
@@ -547,47 +540,30 @@ export default function LoginPage() {
                     />
                   </FormControl>
 
-                  {/* hCaptcha - Désactivé en développement (localhost) */}
-                  {process.env.NODE_ENV === 'production' && (
-                    <Box display="flex" justifyContent="center" w="full">
-                      <HCaptcha
-                        ref={captchaRef}
-                        sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "59b4e250-bc3c-4940-bf1c-38b0883a1a14"}
-                        onVerify={(token) => {
-                          // Log supprimé pour production
-                          setCaptchaToken(token)
-                        }}
-                        onError={(err) => {
-                          // Log supprimé pour production
-                          setCaptchaToken(null)
-                        }}
-                        onExpire={() => {
-                          // Log supprimé pour production
-                          setCaptchaToken(null)
-                        }}
-                        onLoad={() => {
-                          // Log supprimé pour production
-                        }}
-                        theme="light"
-                        size="normal"
-                      />
-                    </Box>
-                  )}
-                  
-                  {/* Message dev */}
-                  {process.env.NODE_ENV !== 'production' && (
-                    <Box 
-                      bg="blue.50" 
-                      p={3} 
-                      borderRadius="md" 
-                      border="1px solid" 
-                      borderColor="blue.200"
-                    >
-                      <Text fontSize="sm" color="blue.800" textAlign="center">
-                        🔧 Mode développement : CAPTCHA désactivé
-                      </Text>
-                    </Box>
-                  )}
+                  {/* hCaptcha */}
+                  <Box display="flex" justifyContent="center" w="full">
+                    <HCaptcha
+                      ref={captchaRef}
+                      sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "59b4e250-bc3c-4940-bf1c-38b0883a1a14"}
+                      onVerify={(token) => {
+                        // Log supprimé pour production
+                        setCaptchaToken(token)
+                      }}
+                      onError={(err) => {
+                        // Log supprimé pour production
+                        setCaptchaToken(null)
+                      }}
+                      onExpire={() => {
+                        // Log supprimé pour production
+                        setCaptchaToken(null)
+                      }}
+                      onLoad={() => {
+                        // Log supprimé pour production
+                      }}
+                      theme="light"
+                      size="normal"
+                    />
+                  </Box>
                   
 
 
