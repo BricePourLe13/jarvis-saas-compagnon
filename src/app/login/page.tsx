@@ -540,30 +540,47 @@ export default function LoginPage() {
                     />
                   </FormControl>
 
-                  {/* hCaptcha */}
-                  <Box display="flex" justifyContent="center" w="full">
-                    <HCaptcha
-                      ref={captchaRef}
-                      sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "59b4e250-bc3c-4940-bf1c-38b0883a1a14"}
-                      onVerify={(token) => {
-                        // Log supprimé pour production
-                        setCaptchaToken(token)
-                      }}
-                      onError={(err) => {
-                        // Log supprimé pour production
-                        setCaptchaToken(null)
-                      }}
-                      onExpire={() => {
-                        // Log supprimé pour production
-                        setCaptchaToken(null)
-                      }}
-                      onLoad={() => {
-                        // Log supprimé pour production
-                      }}
-                      theme="light"
-                      size="normal"
-                    />
-                  </Box>
+                  {/* hCaptcha - Désactivé en développement (localhost) */}
+                  {process.env.NODE_ENV === 'production' && (
+                    <Box display="flex" justifyContent="center" w="full">
+                      <HCaptcha
+                        ref={captchaRef}
+                        sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "59b4e250-bc3c-4940-bf1c-38b0883a1a14"}
+                        onVerify={(token) => {
+                          // Log supprimé pour production
+                          setCaptchaToken(token)
+                        }}
+                        onError={(err) => {
+                          // Log supprimé pour production
+                          setCaptchaToken(null)
+                        }}
+                        onExpire={() => {
+                          // Log supprimé pour production
+                          setCaptchaToken(null)
+                        }}
+                        onLoad={() => {
+                          // Log supprimé pour production
+                        }}
+                        theme="light"
+                        size="normal"
+                      />
+                    </Box>
+                  )}
+                  
+                  {/* Message dev */}
+                  {process.env.NODE_ENV !== 'production' && (
+                    <Box 
+                      bg="blue.50" 
+                      p={3} 
+                      borderRadius="md" 
+                      border="1px solid" 
+                      borderColor="blue.200"
+                    >
+                      <Text fontSize="sm" color="blue.800" textAlign="center">
+                        🔧 Mode développement : CAPTCHA désactivé
+                      </Text>
+                    </Box>
+                  )}
                   
 
 
