@@ -326,12 +326,19 @@ export default function LoginPage() {
 
 
       const supabase = await loadSupabaseClient()
+      
+      // Construire les options conditionnellement
+      const signInOptions: any = {}
+      
+      // N'envoyer captchaToken QUE en production
+      if (process.env.NODE_ENV === 'production' && captchaToken) {
+        signInOptions.captchaToken = captchaToken
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email, 
         password,
-        options: {
-          captchaToken: captchaToken
-        }
+        ...(Object.keys(signInOptions).length > 0 && { options: signInOptions })
       })
       
       if (error) { 
