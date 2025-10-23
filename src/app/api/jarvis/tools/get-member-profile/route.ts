@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // 🚀 RÉCUPÉRATION PROFIL SIMPLE D'ABORD
     const { data: member, error: memberError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select('id, first_name, last_name, badge_id, is_active')
       .eq('id', member_id)
       .eq('is_active', true)

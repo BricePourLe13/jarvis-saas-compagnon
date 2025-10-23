@@ -37,7 +37,7 @@ interface LiveSessionCardProps {
     end_reason?: string
     session_state: string
     last_activity_at: string
-    gym_members: {
+    gym_members_v2: {
       first_name: string
       last_name: string
       badge_id: string
@@ -120,10 +120,10 @@ export default function LiveSessionCard({ session, realtimeEvents = [] }: LiveSe
               <Text fontSize="lg">👤</Text>
               <VStack align="start" spacing={0}>
                 <Text fontWeight="bold" fontSize="lg">
-                  {session.gym_members?.first_name} {session.gym_members?.last_name}
+                  {session.gym_members_v2?.first_name} {session.gym_members_v2?.last_name}
                 </Text>
                 <Text fontSize="sm" color="gray.600">
-                  {session.gym_members?.badge_id} • {session.gyms?.name}
+                  {session.gym_members_v2?.badge_id} • {session.gyms?.name}
                 </Text>
               </VStack>
             </HStack>

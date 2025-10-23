@@ -150,7 +150,7 @@ class SessionMonitor {
       for (const session of sessions) {
         const memberProfile = session.member_id 
           ? (await supabase
-              .from('gym_members')
+              .from('gym_members_v2')
               .select('first_name, last_name')
               .eq('id', session.member_id)
               .single()).data

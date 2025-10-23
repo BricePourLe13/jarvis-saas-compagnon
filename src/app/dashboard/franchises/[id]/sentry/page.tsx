@@ -657,7 +657,7 @@ export default function FranchiseSentryPage({ params }: { params: { id: string }
 
       // 3. Charger membres
       const { data: membersData } = await supabase
-        .from('gym_members')
+        .from('gym_members_v2')
         .select('id, gym_id')
         .eq('is_active', true)
 
@@ -667,7 +667,7 @@ export default function FranchiseSentryPage({ params }: { params: { id: string }
         // .from('openai_realtime_sessions')
         // .select('id, gym_id')
         // .is('session_end', null)
-        .from('gym_members')
+        .from('gym_members_v2')
         .select('id')
         .limit(0) // Requête vide pour éviter les erreurs
 

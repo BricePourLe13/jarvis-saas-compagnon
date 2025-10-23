@@ -51,7 +51,7 @@ export async function GET(
 
     // 3. Chercher le membre par badge dans cette salle
     const { data: member, error: memberError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select(`
         id,
         badge_id,
@@ -174,7 +174,7 @@ export async function POST(
 
     // Créer le nouveau membre
     const { data: newMember, error: createError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .insert({
         gym_id: gym.id,
         badge_id: badgeId,

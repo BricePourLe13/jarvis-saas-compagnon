@@ -308,11 +308,11 @@ function SetupContent() {
       // Redirection selon le rôle
       setTimeout(() => {
         if (userInfo?.role === 'super_admin' || userInfo?.role === 'franchise_owner') {
-          router.push('/admin')
+          router.push('/dashboard')
         } else if (userInfo?.role === 'gym_manager' || userInfo?.role === 'gym_staff') {
           router.push('/franchise')
         } else {
-          router.push('/admin') // Fallback vers admin
+          router.push('/dashboard') // Fallback vers dashboard
         }
       }, 2000)
 

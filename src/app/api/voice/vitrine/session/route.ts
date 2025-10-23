@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
 import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
 import { getStrictContext } from '@/lib/jarvis-knowledge-base'
+import { getConfigForContext, OPENAI_CONFIG } from '@/lib/openai-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,16 +39,9 @@ export async function POST(request: NextRequest) {
     const strictContext = getStrictContext();
 
     // Créer une session OpenAI Realtime pour la démo (format BETA pur)
+    const baseConfig = getConfigForContext('vitrine')
     const sessionConfig = {
-      voice: "alloy", // 🎙️ TEST : Voix masculine dynamique et énergique (alternatives : ballad, coral, sage, verse)
-      turn_detection: {
-        type: "server_vad",
-        threshold: 0.5,
-        prefix_padding_ms: 300,
-        silence_duration_ms: 1200,
-        interrupt_response: true,
-        create_response: true
-      },
+      ...baseConfig,
       instructions: `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
 
 ${strictContext}
@@ -91,7 +85,7 @@ Ne réponds JAMAIS de mémoire pour ces sujets.
 
 RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`,
       tools: jarvisExpertFunctions,
-      tool_choice: "auto"
+      tool_choice: "auto",
     }
 
     const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
@@ -138,8 +132,8 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
       session: {
         session_id: sessionData.id,
         client_secret: sessionData.client_secret, // Format BETA direct
-        model: "gpt-4o-realtime-preview-2024-12-17", // BETA model
-        voice: sessionConfig.voice,
+        model: OPENAI_CONFIG.models.vitrine,
+        voice: OPENAI_CONFIG.voices.vitrine,
         expires_at: sessionData.expires_at
       },
       remainingCredits: limitResult.remainingCredits // Informer le client des crédits restants

@@ -42,7 +42,7 @@ export async function GET(
 
     // Récupérer les détails du membre
     const { data: member, error: memberError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select(`
         *,
         gyms!inner(

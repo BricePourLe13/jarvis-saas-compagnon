@@ -396,7 +396,7 @@ export default function LiveSessionsPage() {
         .from('openai_realtime_sessions')
         .select(`
           *,
-          gym_members (
+          gym_members_v2 (
             badge_id,
             first_name,
             last_name
@@ -449,10 +449,10 @@ export default function LiveSessionsPage() {
       const enrichedSessions: LiveSession[] = (sessionsData || []).map(s => ({
         id: s.id,
         session_id: s.session_id,
-        member_name: s.gym_members 
-          ? `${s.gym_members.first_name} ${s.gym_members.last_name}`
+        member_name: s.gym_members_v2 
+          ? `${s.gym_members_v2.first_name} ${s.gym_members_v2.last_name}`
           : 'Membre inconnu',
-        member_badge_id: s.gym_members?.badge_id || 'N/A',
+        member_badge_id: s.gym_members_v2?.badge_id || 'N/A',
         gym_name: s.gyms?.name || 'Salle inconnue',
         franchise_name: s.gyms?.franchises?.name,
         started_at: new Date(s.session_start),

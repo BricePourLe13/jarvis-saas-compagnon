@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // 🔒 FIX CRITIQUE: Filtrer par gym_id pour isolation stricte
     const { data: members, error: membersError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select(`
         id,
         badge_id,

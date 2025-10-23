@@ -5,6 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
+import { getConfigForContext } from '@/lib/openai-config'
+import { getConversationContext } from '@/lib/rag-context'
+import { getMemberFacts, formatFactsForPrompt } from '@/lib/member-facts'
 
 // Générer un ID de session unique
 function generateSessionId(): string {
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 🚀 RÉCUPÉRATION PROFIL MEMBRE 
+    // 🚀 RÉCUPÉRATION PROFIL MEMBRE (v2 avec modules)
     const supabase = getSupabaseService()
     const { data: gym } = await supabase
       .from('gyms')
@@ -44,11 +47,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Salle non trouvée' }, { status: 404 })
     }
 
+    // Récupérer membre complet (core + fitness + preferences)
     const { data: memberProfile } = await supabase
-      .from('gym_members')
-      .select('*')
+      .from('gym_members_v2')
+      .select(`
+        *,
+        fitness_profile:member_fitness_profile(*),
+        preferences:member_preferences(*)
+      `)
       .eq('badge_id', badge_id)
       .eq('gym_id', gym.id)
+      .eq('is_active', true)
       .single()
     
     if (!memberProfile) {
@@ -62,6 +71,25 @@ export async function POST(request: NextRequest) {
 
     // Générer l'ID de session
     const sessionId = generateSessionId()
+
+    // 🧠 RÉCUPÉRER CONTEXTE ENRICHI (RAG + Facts)
+    console.log(`🧠 [SESSION] Récupération contexte enrichi pour ${memberProfile.id}`)
+    
+    // 1. Facts persistants (goals, injuries, preferences)
+    const memberFacts = await getMemberFacts(memberProfile.id, {
+      categories: ['goal', 'injury', 'preference', 'progress'],
+      limit: 10
+    })
+    const factsPrompt = formatFactsForPrompt(memberFacts)
+    console.log(`✅ [SESSION] ${memberFacts.length} facts récupérés`)
+
+    // 2. Contexte conversations précédentes (RAG)
+    const conversationContext = await getConversationContext(
+      memberProfile.id,
+      'résumé général pour nouvelle session',
+      { matchThreshold: 0.7, matchCount: 3 }
+    )
+    console.log(`✅ [SESSION] Contexte RAG récupéré (${conversationContext ? 'oui' : 'non'})`)
 
     // 🎭 PERSONNALISATION JARVIS VIA TOOLS UNIQUEMENT
     // Plus de données hardcodées - tout via tools dynamiques
@@ -193,26 +221,13 @@ export async function POST(request: NextRequest) {
       }
     ]
 
-    // 🎙️ CONFIGURATION AUDIO OPTIMISÉE AVEC TOOLS
+    // 🎙️ CONFIGURATION AUDIO OPTIMISÉE AVEC TOOLS + CONTEXTE ENRICHI
+    const baseConfig = getConfigForContext('production')
     const sessionConfig = {
-      model: 'gpt-4o-mini-realtime-preview-2024-12-17',
-      voice: 'verse', // Optimisé pour le français
-      instructions: generateToolsAwareInstructions(memberProfile, gymSlug),
-      input_audio_format: 'pcm16',
-      output_audio_format: 'pcm16',
-      input_audio_transcription: {
-        model: 'whisper-1'
-      },
-      turn_detection: {
-        type: 'server_vad',
-        threshold: 0.5,
-        prefix_padding_ms: 300,
-        silence_duration_ms: 500
-      },
+      ...baseConfig,
+      instructions: generateEnrichedInstructions(memberProfile, gymSlug, factsPrompt, conversationContext),
       tools: jarvisTools,
       tool_choice: 'auto',
-      temperature: 0.8,
-      max_response_output_tokens: 4096
     }
 
     // 📡 CRÉER SESSION OPENAI
@@ -450,23 +465,49 @@ RESTE NATUREL, BIENVEILLANT ET ADAPTÉ À ${first_name} !`
 }
 
 /**
- * Générer des instructions adaptées aux tools pour personnalisation dynamique
+ * Générer des instructions enrichies avec RAG + facts pour personnalisation maximale
  */
-function generateToolsAwareInstructions(profile: any, gymSlug: string): string {
-  const { first_name } = profile
+function generateEnrichedInstructions(
+  profile: any, 
+  gymSlug: string, 
+  factsPrompt: string, 
+  conversationContext: string
+): string {
+  const { first_name, fitness_profile, preferences } = profile
+
+  const fitnessLevel = fitness_profile?.fitness_level || 'débutant'
+  const goals = fitness_profile?.primary_goals?.join(', ') || 'remise en forme'
+  const communicationStyle = preferences?.communication_style || 'friendly'
+  const feedbackStyle = preferences?.feedback_style || 'motivating'
 
   const instructions = `# Role & Objective
 Tu es JARVIS, l'assistant vocal intelligent de ${gymSlug}.
 Ton objectif : Être un compagnon de sport bienveillant qui motive et soutient ${first_name}.
 
+# Context Membre : ${first_name}
+## Profil
+- Niveau fitness : ${fitnessLevel}
+- Objectifs : ${goals}
+- Style communication préféré : ${communicationStyle}
+- Style feedback : ${feedbackStyle}
+
+${factsPrompt}
+
+${conversationContext}
+
 # Personality & Tone
 ## Personality
 - Compagnon de sport bienveillant, PAS un coach expert technique
+- Adapte-toi au style ${communicationStyle} de ${first_name}
 - Utilise les tools disponibles pour personnaliser l'expérience
+- RETIENS les nouveaux faits importants (blessures, objectifs, progrès)
 
 ## Tone
 - Naturel avec quelques "alors", "bon", "euh"
-- Encourage et motive selon le profil du membre
+- ${feedbackStyle === 'motivating' ? 'Encourage et motive constamment' : ''}
+- ${feedbackStyle === 'technical' ? 'Donne des conseils techniques précis' : ''}
+- ${feedbackStyle === 'gentle' ? 'Reste doux et bienveillant' : ''}
+- ${feedbackStyle === 'challenging' ? 'Propose des défis stimulants' : ''}
 
 ## Length
 - 2-3 phrases par tour maximum
@@ -551,7 +592,13 @@ Tu as accès à des tools pour :
 - JAMAIS terminer sur "bon", "alors", "ok", "merci" seuls
 - TOUJOURS passer par le tool pour les au revoir
 
-UTILISE LES TOOLS INTELLIGEMMENT POUR CRÉER UNE EXPÉRIENCE ULTRA-PERSONNALISÉE !`
+## IMPORTANT : Utilisation de la mémoire
+- Si ${first_name} mentionne une blessure/douleur → RETIENS-LE pour toujours
+- Si ${first_name} partage un objectif → RETIENS-LE et encourage le progrès
+- Si ${first_name} exprime une préférence → ADAPTE tes futures réponses
+- Utilise le contexte des conversations précédentes pour créer continuité
+
+UTILISE LES TOOLS + CONTEXTE POUR CRÉER UNE EXPÉRIENCE ULTRA-PERSONNALISÉE !`
 
   return instructions
 }

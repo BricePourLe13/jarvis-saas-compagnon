@@ -50,8 +50,8 @@ export function ContextualNav({
   const pathname = usePathname()
 
   const isActivePath = (href: string) => {
-    if (href === '/admin') {
-      return pathname === '/admin'
+    if (href === '/dashboard') {
+      return pathname === '/dashboard'
     }
     return pathname.startsWith(href)
   }
@@ -61,9 +61,9 @@ export function ContextualNav({
     const baseItems: NavItem[] = [
       {
         label: 'Dashboard',
-        href: '/admin',
+        href: '/dashboard',
         icon: Home,
-        active: isActivePath('/admin') && pathname === '/admin',
+        active: isActivePath('/dashboard') && pathname === '/dashboard',
         level: 'global'
       }
     ]
@@ -73,23 +73,23 @@ export function ContextualNav({
         ...baseItems,
         {
           label: 'Franchises',
-          href: '/admin/franchises',
+          href: '/dashboard/franchises',
           icon: Building2,
-          active: isActivePath('/admin/franchises'),
+          active: isActivePath('/dashboard/franchises'),
           level: 'global'
         },
         {
           label: 'Alertes',
-          href: '/admin/alerts',
+          href: '/dashboard/alerts',
           icon: AlertTriangle,
           badge: 3,
           level: 'global'
         },
         {
           label: 'Équipe',
-          href: '/admin/team',
+          href: '/dashboard/team',
           icon: Users,
-          active: isActivePath('/admin/team'),
+          active: isActivePath('/dashboard/team'),
           level: 'global'
         }
       ]
@@ -100,29 +100,29 @@ export function ContextualNav({
         ...baseItems,
         {
           label: 'Toutes les franchises',
-          href: '/admin/franchises',
+          href: '/dashboard/franchises',
           icon: Building2,
           level: 'global'
         },
         {
           label: franchiseName || 'Franchise',
-          href: `/admin/franchises/${franchiseId}/gyms`,
+          href: `/dashboard/franchises/${franchiseId}/gyms`,
           icon: Building2,
-          active: isActivePath(`/admin/franchises/${franchiseId}/gyms`),
+          active: isActivePath(`/dashboard/franchises/${franchiseId}/gyms`),
           level: 'franchise'
         },
         {
           label: 'Salles',
-          href: `/admin/franchises/${franchiseId}/gyms`,
+          href: `/dashboard/franchises/${franchiseId}/gyms`,
           icon: Dumbbell,
-          active: isActivePath(`/admin/franchises/${franchiseId}/gyms`),
+          active: isActivePath(`/dashboard/franchises/${franchiseId}/gyms`),
           level: 'franchise'
         },
         {
           label: 'Monitoring',
-          href: `/admin/franchises/${franchiseId}/monitoring`,
+          href: `/dashboard/franchises/${franchiseId}/monitoring`,
           icon: AlertTriangle,
-          active: isActivePath(`/admin/franchises/${franchiseId}/monitoring`),
+          active: isActivePath(`/dashboard/franchises/${franchiseId}/monitoring`),
           level: 'franchise'
         }
       ]
@@ -133,26 +133,26 @@ export function ContextualNav({
         ...baseItems,
         {
           label: franchiseName || 'Franchise',
-          href: `/admin/franchises/${franchiseId}/gyms`,
+          href: `/dashboard/franchises/${franchiseId}/gyms`,
           icon: Building2,
           level: 'franchise'
         },
         {
           label: 'Toutes les salles',
-          href: `/admin/franchises/${franchiseId}/gyms`,
+          href: `/dashboard/franchises/${franchiseId}/gyms`,
           icon: Dumbbell,
           level: 'franchise'
         },
         {
           label: gymName || 'Salle',
-          href: `/admin/franchises/${franchiseId}/gyms/${gymId}`,
+          href: `/dashboard/franchises/${franchiseId}/gyms/${gymId}`,
           icon: Dumbbell,
-          active: isActivePath(`/admin/franchises/${franchiseId}/gyms/${gymId}`),
+          active: isActivePath(`/dashboard/franchises/${franchiseId}/gyms/${gymId}`),
           level: 'gym'
         },
         {
           label: 'Configuration',
-          href: `/admin/franchises/${franchiseId}/gyms/${gymId}/settings`,
+          href: `/dashboard/franchises/${franchiseId}/gyms/${gymId}/settings`,
           icon: Settings,
           level: 'gym'
         }

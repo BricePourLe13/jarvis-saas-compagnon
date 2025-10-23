@@ -94,7 +94,7 @@ interface KioskConfig {
   speaking_pace: 'slow' | 'normal' | 'fast'
   opening_preset: 'standard' | 'energetic' | 'casual' | 'deadpool_clean'
   strict_end_rule: boolean
-  model: 'gpt-4o-realtime-preview-2024-12-17' | 'gpt-4o-mini-realtime-preview-2024-12-17'
+  model: 'gpt-realtime-2025-08-28' | 'gpt-realtime-mini-2025-10-06' | 'gpt-audio-2025-08-28'
   voice: 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse'
   
   // Configuration UI
@@ -177,7 +177,7 @@ export default function KioskPage({ params }: KioskPageProps) {
         speaking_pace: kioskConfig?.speaking_pace || 'normal',
         opening_preset: kioskConfig?.opening_preset || 'standard',
         strict_end_rule: kioskConfig?.strict_end_rule ?? true,
-        model: kioskConfig?.model || 'gpt-4o-mini-realtime-preview-2024-12-17',
+        model: kioskConfig?.model || 'gpt-realtime-mini-2025-10-06',
         voice: kioskConfig?.voice || 'verse',
         
         // Configuration UI
@@ -456,8 +456,9 @@ export default function KioskPage({ params }: KioskPageProps) {
                         value={kioskConfig?.model}
                         onChange={(e) => setKioskConfig(prev => prev ? {...prev, model: e.target.value as any} : null)}
                       >
-                        <option value="gpt-4o-mini-realtime-preview-2024-12-17">GPT-4o Mini Realtime</option>
-                        <option value="gpt-4o-realtime-preview-2024-12-17">GPT-4o Realtime</option>
+                        <option value="gpt-realtime-mini-2025-10-06">GPT Realtime Mini (2025) - Optimisé coût</option>
+                        <option value="gpt-realtime-2025-08-28">GPT Realtime Full (2025) - Haute qualité</option>
+                        <option value="gpt-audio-2025-08-28">GPT Audio (2025) - Spécialisé audio</option>
                       </Select>
                     </FormControl>
 

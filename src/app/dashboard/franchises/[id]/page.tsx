@@ -433,7 +433,7 @@ export default function FranchiseDetailPage() {
           status,
           kiosk_config,
           created_at,
-          gym_members (id)
+          gym_members_v2 (id)
         `)
         .eq('franchise_id', franchiseId)
         .order('created_at', { ascending: false })
@@ -462,11 +462,11 @@ export default function FranchiseDetailPage() {
         city: g.city || 'Ville non renseignée',
         phone: g.phone,
         email: g.email,
-        members_count: (g.gym_members || []).length,
+        members_count: (g.gym_members_v2 || []).length,
         active_sessions: Math.floor(Math.random() * 3), // Simulé
         kiosk_status: g.kiosk_config?.is_provisioned ? 'online' : 'offline',
         last_activity: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-        monthly_revenue: (g.gym_members || []).length * 29.99,
+        monthly_revenue: (g.gym_members_v2 || []).length * 29.99,
         status: g.status === 'active' ? 'active' : (g.status === 'maintenance' ? 'warning' : 'error')
       }))
 

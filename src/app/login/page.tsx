@@ -380,7 +380,7 @@ export default function LoginPage() {
 
         // Redirection standard
         setTimeout(() => {
-          router.push(isAdmin ? '/admin' : '/dashboard')
+          router.push('/dashboard')
         }, 800)
       }
     } catch {

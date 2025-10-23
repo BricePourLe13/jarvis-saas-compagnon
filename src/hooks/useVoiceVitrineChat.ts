@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { executeJarvisFunction } from '@/lib/jarvis-expert-functions'
+import { getRealtimeURL } from '@/lib/openai-config'
 
 interface VoiceVitrineConfig {
   onStatusChange?: (status: 'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error') => void
@@ -292,7 +293,8 @@ export function useVoiceVitrineChat({
       // Envoyer à OpenAI (format BETA comme le kiosk)
       const ephemeralKey = session.client_secret.value
       console.log('🔑 Token utilisé:', ephemeralKey?.substring(0, 20) + '...')
-      const realtimeResponse = await fetch(`https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`, {
+      // 🎯 Vitrine utilise le modèle full pour meilleure qualité démo
+      const realtimeResponse = await fetch(getRealtimeURL('vitrine'), {
         method: 'POST',
         body: offer.sdp,
         headers: {

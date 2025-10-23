@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // 🔍 VÉRIFIER EXISTENCE MEMBRE
     const { data: member, error: memberError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select('id, first_name, last_name, member_preferences, member_notes')
       .eq('id', member_id)
       .eq('is_active', true)
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔄 [TOOL] Données à mettre à jour:`, JSON.stringify(updateData, null, 2))
     
     const { error: updateError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .update(updateData)
       .eq('id', member_id)
     

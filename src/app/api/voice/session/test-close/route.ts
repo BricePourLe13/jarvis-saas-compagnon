@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseSingleton } from '@/lib/supabase-singleton'
+import { OPENAI_CONFIG } from '@/lib/openai-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,8 +20,8 @@ export async function POST(request: NextRequest) {
         session_id: testSessionId,
         gym_id: '00000000-0000-0000-0000-000000000000', // UUID test
         kiosk_slug: 'test-kiosk',
-        ai_model: 'gpt-4o-mini-realtime-preview-2024-12-17',
-        voice_model: 'verse',
+        ai_model: OPENAI_CONFIG.models.production,
+        voice_model: OPENAI_CONFIG.voices.production,
         connection_type: 'webrtc',
         turn_detection_type: 'server_vad',
         member_badge_id: 'test-badge',

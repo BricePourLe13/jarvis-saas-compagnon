@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       
       // Compter les gym_members avec gym_id invalide
       const { data: invalidMembers, error: fkError } = await supabase
-        .from('gym_members')
+        .from('gym_members_v2')
         .select('id, gym_id, first_name')
         .limit(1000) // Limite pour éviter timeout
 

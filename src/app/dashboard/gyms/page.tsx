@@ -71,7 +71,7 @@ export default function AllGymsPage() {
           city,
           address,
           status,
-          gym_members (id)
+          gym_members_v2 (id)
         `)
         .order('created_at', { ascending: false })
 
@@ -85,7 +85,7 @@ export default function AllGymsPage() {
         city: g.city || 'Ville non renseignée',
         address: g.address || 'Adresse non renseignée',
         status: g.status || 'active',
-        members_count: (g.gym_members || []).length
+        members_count: (g.gym_members_v2 || []).length
       }))
 
       setGyms(enrichedGyms)

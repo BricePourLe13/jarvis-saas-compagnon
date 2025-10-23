@@ -44,7 +44,7 @@ export async function GET(
     }
 
     let query = supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select('id,badge_id,first_name,last_name,email,membership_type,total_visits,last_visit,member_preferences')
       .eq('gym_id', gym.id)
       .order('last_visit', { ascending: false })

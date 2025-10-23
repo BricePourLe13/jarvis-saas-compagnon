@@ -13,6 +13,22 @@ const nextConfig = {
     optimizePackageImports: ['@chakra-ui/react', 'framer-motion', 'lucide-react']
   },
   
+  // 🔀 REDIRECTS 301 : /admin → /dashboard (fusion complète)
+  async redirects() {
+    return [
+      {
+        source: '/admin',
+        destination: '/dashboard',
+        permanent: true,
+      },
+      {
+        source: '/admin/:path*',
+        destination: '/dashboard/:path*',
+        permanent: true,
+      },
+    ]
+  },
+  
   // 🎯 CHUNK SPLITTING INTELLIGENT
   webpack: (config, { isServer, dev }) => {
     if (!isServer && !dev) {

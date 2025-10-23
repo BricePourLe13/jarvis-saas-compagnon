@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { AudioState } from '@/types/kiosk'
 import { kioskLogger } from '@/lib/kiosk-logger'
 import { realtimeClientInjector } from '@/lib/realtime-client-injector'
+import { getRealtimeURL } from '@/lib/openai-config'
 
 interface VoiceChatConfig {
   gymSlug: string
@@ -241,7 +242,9 @@ export function useVoiceChat(config: VoiceChatConfig) {
       await pc.setLocalDescription(offer)
 
       const ephemeralKey = session.client_secret.value
-      const realtimeResponse = await fetch(`https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`, {
+      // 🔧 FIX: Utiliser le modèle production (mini) au lieu du full
+      // Cohérence avec la session créée côté serveur
+      const realtimeResponse = await fetch(getRealtimeURL('production'), {
         method: 'POST',
         body: offer.sdp,
         headers: {

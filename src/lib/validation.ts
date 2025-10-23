@@ -30,8 +30,9 @@ export const voiceSchema = z.enum([
 ])
 
 export const modelSchema = z.enum([
-  'gpt-4o-realtime-preview-2024-12-17',
-  'gpt-4o-mini-realtime-preview-2024-12-17'
+  'gpt-realtime-2025-08-28',           // Full - haute qualité
+  'gpt-realtime-mini-2025-10-06',      // Mini - optimisé coût
+  'gpt-audio-2025-08-28',              // Audio spécialisé
 ])
 
 // 👤 User Role Validation
@@ -83,7 +84,7 @@ export const jarvisSettingsSchema = z.object({
   speaking_pace: z.enum(['slow', 'normal', 'fast']).default('normal'),
   opening_preset: z.enum(['standard', 'energetic', 'casual', 'deadpool_clean']).default('standard'),
   strict_end_rule: z.boolean().default(true),
-  model: modelSchema.default('gpt-4o-mini-realtime-preview-2024-12-17'),
+  model: modelSchema.default('gpt-realtime-mini-2025-10-06'),
   voice: voiceSchema.default('verse')
 })
 

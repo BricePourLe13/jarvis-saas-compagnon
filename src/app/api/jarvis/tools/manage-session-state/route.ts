@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // 🔍 RÉCUPÉRER INFOS SESSION ET MEMBRE
     const { data: member, error: memberError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select(`
         id, 
         first_name, 

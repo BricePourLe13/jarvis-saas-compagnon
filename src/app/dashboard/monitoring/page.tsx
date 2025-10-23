@@ -168,7 +168,7 @@ export default function MonitoringPage() {
     {
       level: 'global' as const,
       name: 'Dashboard Global',
-      href: '/admin'
+      href: '/dashboard'
     }
   ]
 

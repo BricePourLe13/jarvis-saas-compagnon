@@ -450,7 +450,7 @@ export default function SentryDashboardPage() {
       ] = await Promise.all([
         supabase.from('franchises').select('id').eq('is_active', true),
         supabase.from('gyms').select('id, name, franchise_id'),
-        supabase.from('gym_members').select('id, gym_id').eq('is_active', true),
+        supabase.from('gym_members_v2').select('id, gym_id').eq('is_active', true),
         // Désactivé temporairement pour éviter les erreurs 400
         // supabase.from('openai_realtime_sessions').select(`
         //   id, session_id, member_id, gym_id, session_start
@@ -460,7 +460,7 @@ export default function SentryDashboardPage() {
 
       // 2. Enrichir sessions avec noms
       const { data: membersWithNames } = await supabase
-        .from('gym_members')
+        .from('gym_members_v2')
         .select('id, first_name, last_name, gym_id')
         .eq('is_active', true)
 

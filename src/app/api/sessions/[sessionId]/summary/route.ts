@@ -29,7 +29,7 @@ export async function GET(
         ai_model,
         voice_model,
         gyms(name),
-        gym_members(first_name, last_name, badge_id)
+        gym_members_v2(first_name, last_name, badge_id)
       `)
       .eq('session_id', sessionId)
       .single()
@@ -106,8 +106,8 @@ export async function GET(
       session: {
         session_id: sessionId,
         member: {
-          name: `${sessionInfo.gym_members?.first_name} ${sessionInfo.gym_members?.last_name}`,
-          badge_id: sessionInfo.gym_members?.badge_id
+          name: `${sessionInfo.gym_members_v2?.first_name} ${sessionInfo.gym_members_v2?.last_name}`,
+          badge_id: sessionInfo.gym_members_v2?.badge_id
         },
         gym: {
           name: sessionInfo.gyms?.name

@@ -42,7 +42,7 @@ export default function TeamPage() {
                   <AlertDescription>
                     Pour une gestion complète de l'équipe, veuillez utiliser la page d'administration.
                   </AlertDescription>
-                  <SafeLink href="/admin/team">
+                  <SafeLink href="/dashboard/team">
                     <Button
                       colorScheme="blue"
                       size="sm"

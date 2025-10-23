@@ -35,11 +35,11 @@ export default function MFAEnrollPage() {
         .single()
 
       if (!profile?.mfa_required) {
-        router.push('/admin')
+        router.push('/dashboard')
         return
       }
       if (profile?.mfa_enrolled) {
-        router.push('/admin')
+        router.push('/dashboard')
         return
       }
 
@@ -120,7 +120,7 @@ export default function MFAEnrollPage() {
         .update({ mfa_enrolled: true, mfa_verified_at: new Date().toISOString() })
         .eq('id', user.id)
 
-      router.push('/admin')
+      router.push('/dashboard')
     } catch (e:any) {
       setError('Vérification impossible pour le moment')
     }

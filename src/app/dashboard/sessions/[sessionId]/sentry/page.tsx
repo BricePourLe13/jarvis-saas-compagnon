@@ -798,7 +798,7 @@ export default function SessionSentryPage({ params }: { params: { sessionId: str
 
       // 2. Charger membre
       const { data: memberData } = await supabase
-        .from('gym_members')
+        .from('gym_members_v2')
         .select('id, badge_id, first_name, last_name, gym_id')
         .eq('id', sessionData.member_id)
         .single()

@@ -567,7 +567,7 @@ export default function GymDetailPage() {
         .select(`
           *,
           franchises (name),
-          gym_members (
+          gym_members_v2 (
             id,
             badge_id,
             first_name,
@@ -588,7 +588,7 @@ export default function GymDetailPage() {
         .from('openai_realtime_sessions')
         .select(`
           *,
-          gym_members (
+          gym_members_v2 (
             badge_id,
             first_name,
             last_name
@@ -615,7 +615,7 @@ export default function GymDetailPage() {
         kiosk_slug: gymData.kiosk_config?.kiosk_url_slug || null
       }
 
-      const enrichedMembers: Member[] = (gymData.gym_members || []).map((m: any) => ({
+      const enrichedMembers: Member[] = (gymData.gym_members_v2 || []).map((m: any) => ({
         id: m.id,
         badge_id: m.badge_id,
         first_name: m.first_name,
@@ -630,8 +630,8 @@ export default function GymDetailPage() {
       const enrichedSessions: LiveSession[] = (sessionsData || []).map((s: any) => ({
         id: s.id,
         session_id: s.session_id,
-        member_name: `${s.gym_members?.first_name} ${s.gym_members?.last_name}`,
-        member_badge_id: s.gym_members?.badge_id || 'N/A',
+        member_name: `${s.gym_members_v2?.first_name} ${s.gym_members_v2?.last_name}`,
+        member_badge_id: s.gym_members_v2?.badge_id || 'N/A',
         started_at: new Date(s.session_start),
         duration_minutes: Math.floor((Date.now() - new Date(s.session_start).getTime()) / 60000),
         status: 'active',

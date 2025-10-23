@@ -55,12 +55,12 @@ export async function GET(request: NextRequest) {
 
     // 3. Audit gym_members
     const { data: members, error: membError } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select('*')
       .limit(50)
 
     if (!membError) {
-      audit.tables.gym_members = {
+      audit.tables.gym_members_v2 = {
         total_count: members?.length || 0,
         active_members: members?.filter(m => m.is_active).length || 0,
         can_use_jarvis: members?.filter(m => m.can_use_jarvis).length || 0,

@@ -151,7 +151,7 @@ export default function SentrySidebar({ currentPath, userRole, userId }: SentryS
 
       // 4. Charger membres pour les noms
       const { data: membersData } = await supabase
-        .from('gym_members')
+        .from('gym_members_v2')
         .select('id, first_name, last_name, gym_id')
         .eq('is_active', true)
 
@@ -212,7 +212,7 @@ export default function SentrySidebar({ currentPath, userRole, userId }: SentryS
           id: '3',
           type: 'warning',
           title: 'DB Timeout',
-          description: 'Requête gym_members lente (2.3s)',
+          description: 'Requête gym_members_v2 lente (2.3s)',
           timestamp: new Date(Date.now() - 30 * 60 * 1000),
           resolved: false
         }

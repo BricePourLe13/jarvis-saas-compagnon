@@ -145,7 +145,7 @@ export async function GET(
 
     // Récupérer les infos du membre
     const { data: member } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select('first_name, last_name, badge_id')
       .eq('id', memberId)
       .single()

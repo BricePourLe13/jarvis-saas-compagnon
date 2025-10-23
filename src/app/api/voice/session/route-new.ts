@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getConfigForContext } from '@/lib/openai-config'
 import { getSupabaseService } from '@/lib/supabase-service'
 
 // Générer un ID de session unique
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: memberProfile } = await supabase
-      .from('gym_members')
+      .from('gym_members_v2')
       .select('*')
       .eq('badge_id', badge_id)
       .eq('gym_id', gym.id)
@@ -66,25 +67,12 @@ export async function POST(request: NextRequest) {
     const personalizedInstructions = generatePersonalizedInstructions(memberProfile, gymSlug)
 
     // 🎙️ CONFIGURATION AUDIO OPTIMISÉE
+    const baseConfig = getConfigForContext('production')
     const sessionConfig = {
-      model: 'gpt-4o-mini-realtime-preview-2024-12-17',
-      voice: 'verse', // Optimisé pour le français
+      ...baseConfig,
       instructions: personalizedInstructions,
-      input_audio_format: 'pcm16',
-      output_audio_format: 'pcm16',
-      input_audio_transcription: {
-        model: 'whisper-1'
-      },
-      turn_detection: {
-        type: 'server_vad',
-        threshold: 0.5,
-        prefix_padding_ms: 300,
-        silence_duration_ms: 500
-      },
       tools: [],
       tool_choice: 'none',
-      temperature: 0.8,
-      max_response_output_tokens: 4096
     }
 
     // 📡 CRÉER SESSION OPENAI

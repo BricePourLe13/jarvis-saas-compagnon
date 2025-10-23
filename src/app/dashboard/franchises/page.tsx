@@ -342,7 +342,7 @@ export default function FranchisesPage() {
 
       // 3. Charger les membres
       const { data: membersData, error: membersError } = await supabase
-        .from('gym_members')
+        .from('gym_members_v2')
         .select('id, gym_id')
         .eq('is_active', true)
 
