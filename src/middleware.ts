@@ -1,15 +1,113 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/production-logger'
 import { apiRateLimiter, voiceRateLimiter, getClientIdentifier } from '@/lib/rate-limiter-simple'
+import { 
+  verifyAuthMiddleware, 
+  getUserProfile, 
+  canAccessRoute, 
+  getDefaultRedirectForRole 
+} from '@/lib/auth-helpers'
 
-// ✅ SOLUTION 3: Advanced Browser Permissions Middleware + Fallback Strategies
-export function middleware(request: NextRequest) {
+// ============================================================================
+// MIDDLEWARE PRINCIPAL - Auth + Rate limiting + Permissions
+// ============================================================================
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const userAgent = request.headers.get('user-agent') || ''
   
   logger.debug(`MIDDLEWARE ${pathname}`, { userAgent: userAgent.substring(0, 50) }, { component: 'Middleware' })
 
-  // 🚦 Rate limiting pour les routes sensibles
+  // ============================================================================
+  // 🔐 PROTECTION AUTH : /dashboard et /admin
+  // ============================================================================
+  
+  const protectedPaths = ['/dashboard', '/admin']
+  const isProtectedRoute = protectedPaths.some(path => pathname.startsWith(path))
+
+  if (isProtectedRoute) {
+    try {
+      // 1. Vérifier l'authentification
+      const { supabase, response, authUser, error } = await verifyAuthMiddleware(request)
+
+      // 2. Si pas authentifié → redirect /login
+      if (error || !authUser) {
+        logger.warn('🔒 [AUTH] Utilisateur non authentifié', { pathname }, { component: 'Middleware' })
+        const loginUrl = new URL('/login', request.url)
+        loginUrl.searchParams.set('redirect', pathname)
+        return NextResponse.redirect(loginUrl)
+      }
+
+      // 3. Récupérer le profil complet
+      const userProfile = await getUserProfile(supabase, authUser.id)
+
+      // 4. Si profil invalide ou inactif → redirect /login
+      if (!userProfile || !userProfile.is_active) {
+        logger.warn('🔒 [AUTH] Compte inactif ou invalide', { userId: authUser.id }, { component: 'Middleware' })
+        const loginUrl = new URL('/login', request.url)
+        loginUrl.searchParams.set('error', 'account_inactive')
+        return NextResponse.redirect(loginUrl)
+      }
+
+      // 5. Vérifier les permissions pour cette route
+      const { allowed, redirectTo } = canAccessRoute(userProfile, pathname)
+
+      if (!allowed && redirectTo) {
+        logger.warn(
+          '🔒 [AUTH] Accès refusé', 
+          { userId: userProfile.id, role: userProfile.role, pathname, redirectTo }, 
+          { component: 'Middleware' }
+        )
+        return NextResponse.redirect(new URL(redirectTo, request.url))
+      }
+
+      // 6. Redirection racine dashboard selon rôle
+      if (pathname === '/dashboard' || pathname === '/dashboard/') {
+        const defaultRoute = getDefaultRedirectForRole(userProfile)
+        if (defaultRoute !== '/dashboard') {
+          logger.debug(
+            '🎯 [AUTH] Redirection selon rôle', 
+            { role: userProfile.role, redirectTo: defaultRoute }, 
+            { component: 'Middleware' }
+          )
+          return NextResponse.redirect(new URL(defaultRoute, request.url))
+        }
+      }
+
+      // 7. Auth OK → ajouter headers user pour les API routes
+      response.headers.set('X-User-Id', userProfile.id)
+      response.headers.set('X-User-Role', userProfile.role)
+      if (userProfile.gym_id) {
+        response.headers.set('X-User-Gym-Id', userProfile.gym_id)
+      }
+      if (userProfile.franchise_id) {
+        response.headers.set('X-User-Franchise-Id', userProfile.franchise_id)
+      }
+
+      logger.debug(
+        '✅ [AUTH] Accès autorisé', 
+        { userId: userProfile.id, role: userProfile.role, pathname }, 
+        { component: 'Middleware' }
+      )
+
+      return response
+    } catch (authError) {
+      logger.error(
+        '❌ [AUTH] Erreur middleware auth', 
+        { error: authError, pathname }, 
+        { component: 'Middleware' }
+      )
+      // En cas d'erreur auth → redirect login
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('error', 'auth_error')
+      return NextResponse.redirect(loginUrl)
+    }
+  }
+
+  // ============================================================================
+  // 🚦 RATE LIMITING
+  // ============================================================================
+  
   const clientId = getClientIdentifier(request)
   
   // ⚠️ EXCEPTION : Skip rate limiting for webhooks (trusted external services)
@@ -234,13 +332,21 @@ function setCORSHeaders(response: NextResponse) {
   )
 }
 
-// ✅ Apply to kiosk routes and APIs
+// ============================================================================
+// CONFIGURATION MATCHER
+// ============================================================================
+
 export const config = {
   matcher: [
+    // Auth protection
+    '/dashboard/:path*',
+    '/admin/:path*',
+    // Kiosk & landing
     '/kiosk/:path*',
     '/landing-client/:path*',
+    // API routes (rate limiting)
     '/api/voice/:path*',
     '/api/conversations/:path*',
-    '/api/jarvis/:path*'
+    '/api/jarvis/:path*',
   ]
 }
