@@ -31,11 +31,10 @@ export interface DashboardShellProps {
 }
 
 const navigation = [
-  { name: 'Vue d\'ensemble', href: '/dashboard', icon: Home },
-  { name: 'Franchises', href: '/dashboard/franchises', icon: Building2 },
-  { name: 'Membres', href: '/dashboard/members', icon: Users },
-  { name: 'Sessions', href: '/dashboard/sessions/live', icon: MessageSquare },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Vue d\'ensemble', href: '/dashboard/overview', icon: Home },
+  { name: 'Membres', href: '/dashboard/members-v2', icon: Users },
+  { name: 'Sessions', href: '/dashboard/sessions-v2', icon: MessageSquare },
+  { name: 'Analytics', href: '/dashboard/analytics-v2', icon: BarChart3 },
   { name: 'Paramètres', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -46,7 +45,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
   const router = useRouter()
   
   const isActive = (href: string) => {
-    if (href === '/dashboard') return pathname === '/dashboard'
+    if (href === '/dashboard/overview') return pathname === '/dashboard/overview' || pathname === '/dashboard'
     return pathname.startsWith(href)
   }
   
@@ -145,7 +144,14 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
         >
           <nav className="p-4 space-y-1">
             {navigation.map((item) => {
+              if (!item || !item.icon) {
+                console.error('❌ Navigation item invalide:', item)
+                return null
+              }
+              
               const active = isActive(item.href)
+              const Icon = item.icon
+              
               return (
                 <a
                   key={item.href}
@@ -158,7 +164,7 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
                     }
                   `}
                 >
-                  <item.icon size={20} />
+                  <Icon size={20} />
                   {item.name}
                 </a>
               )
