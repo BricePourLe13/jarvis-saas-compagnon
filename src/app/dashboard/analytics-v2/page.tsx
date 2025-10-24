@@ -2,216 +2,342 @@
 
 import { DashboardShell } from '@/components/dashboard-v2/DashboardShell'
 import { MetricCard } from '@/components/dashboard-v2/MetricCard'
-import { Users, Activity, TrendingUp, Clock } from 'lucide-react'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { PageLoader } from '@/components/dashboard-v2/PageLoader'
+import { Users, Activity, TrendingUp, MessageSquare } from 'lucide-react'
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { useEffect, useState } from 'react'
 
 /**
- * PAGE ANALYTICS - Graphiques et insights
+ * PAGE ANALYTICS-V2 - Graphiques et insights avec vraies données
  */
 
-export default function AnalyticsPage() {
-  // Données mock pour les graphiques
-  const sessionsData = [
-    { day: 'Lun', sessions: 42, membres: 35 },
-    { day: 'Mar', sessions: 38, membres: 32 },
-    { day: 'Mer', sessions: 51, membres: 41 },
-    { day: 'Jeu', sessions: 48, membres: 39 },
-    { day: 'Ven', sessions: 68, membres: 52 },
-    { day: 'Sam', sessions: 72, membres: 58 },
-    { day: 'Dim', sessions: 45, membres: 38 },
-  ]
+interface AnalyticsData {
+  period: string
+  visitsTrend: Array<{ date: string; visits: number }>
+  sessionsPerDay: Array<{ date: string; sessions: number }>
+  topMembers: Array<{ name: string; sessions: number }>
+  sentimentDistribution: { positive: number; neutral: number; negative: number }
+  topicsDistribution: Array<{ topic: string; count: number }>
+}
+
+export default function AnalyticsV2Page() {
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('7d')
+
+  useEffect(() => {
+    async function loadAnalytics() {
+      try {
+        setLoading(true)
+        
+        const res = await fetch(`/api/dashboard/analytics-v2?period=${period}`)
+        
+        if (!res.ok) {
+          throw new Error('Erreur chargement analytics')
+        }
+
+        const data: AnalyticsData = await res.json()
+        setAnalytics(data)
+      } catch (err) {
+        console.error('Erreur:', err)
+        setError('Impossible de charger les analytics')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAnalytics()
+  }, [period])
+
+  if (loading) {
+    return (
+      <DashboardShell>
+        <PageLoader message="Chargement des analytics..." />
+      </DashboardShell>
+    )
+  }
+
+  if (error || !analytics) {
+    return (
+      <DashboardShell>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <p className="text-red-800">{error || 'Erreur de chargement'}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </DashboardShell>
+    )
+  }
+
+  // Préparer les données pour les graphiques
+  const totalSessions = analytics.sessionsPerDay.reduce((acc, item) => acc + item.sessions, 0)
+  const avgSessionsPerDay = analytics.sessionsPerDay.length > 0 
+    ? Math.round(totalSessions / analytics.sessionsPerDay.length) 
+    : 0
+
+  const totalVisits = analytics.visitsTrend.reduce((acc, item) => acc + item.visits, 0)
   
-  const sentimentData = [
-    { sentiment: 'Positif', count: 245 },
-    { sentiment: 'Neutre', count: 89 },
-    { sentiment: 'Négatif', count: 23 },
-  ]
+  const totalSentiment = analytics.sentimentDistribution.positive + 
+                         analytics.sentimentDistribution.neutral + 
+                         analytics.sentimentDistribution.negative
   
-  const topicsData = [
-    { topic: 'Perte de poids', count: 156 },
-    { topic: 'Prise de muscle', count: 134 },
-    { topic: 'Nutrition', count: 98 },
-    { topic: 'Cardio', count: 87 },
-    { topic: 'Programme', count: 76 },
-  ]
-  
+  const satisfactionRate = totalSentiment > 0
+    ? Math.round((analytics.sentimentDistribution.positive / totalSentiment) * 100)
+    : 0
+
   const metrics = [
     {
-      label: 'Durée moyenne',
-      value: '3min 24s',
-      icon: Clock,
+      label: 'Total sessions',
+      value: totalSessions.toString(),
+      icon: Activity,
       iconColor: 'primary' as const,
-      trend: { value: '+15s', direction: 'up' as const, isPositive: true },
+    },
+    {
+      label: 'Sessions/jour (moy.)',
+      value: avgSessionsPerDay.toString(),
+      icon: MessageSquare,
+      iconColor: 'info' as const,
     },
     {
       label: 'Taux satisfaction',
-      value: '92%',
+      value: `${satisfactionRate}%`,
       icon: TrendingUp,
-      iconColor: 'success' as const,
-      trend: { value: '+3%', direction: 'up' as const, isPositive: true },
+      iconColor: satisfactionRate >= 80 ? 'success' as const : 'warning' as const,
     },
     {
-      label: 'Sessions/jour',
-      value: '52',
-      icon: Activity,
-      iconColor: 'info' as const,
-      trend: { value: '+8', direction: 'up' as const, isPositive: true },
-    },
-    {
-      label: 'Utilisateurs uniques',
-      value: '245',
+      label: 'Total visites',
+      value: totalVisits.toString(),
       icon: Users,
       iconColor: 'primary' as const,
-      trend: { value: '+12', direction: 'up' as const, isPositive: true },
     },
   ]
-  
+
+  // Données pour le pie chart sentiment
+  const sentimentData = [
+    { name: 'Positif', value: analytics.sentimentDistribution.positive, color: '#10b981' },
+    { name: 'Neutre', value: analytics.sentimentDistribution.neutral, color: '#6b7280' },
+    { name: 'Négatif', value: analytics.sentimentDistribution.negative, color: '#ef4444' },
+  ].filter(item => item.value > 0)
+
+  // Formater les dates pour affichage
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return `${date.getDate()}/${date.getMonth() + 1}`
+  }
+
+  const sessionsChartData = analytics.sessionsPerDay.map(item => ({
+    date: formatDate(item.date),
+    sessions: item.sessions
+  }))
+
+  const visitsChartData = analytics.visitsTrend.map(item => ({
+    date: formatDate(item.date),
+    visits: item.visits
+  }))
+
   return (
     <DashboardShell>
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics</h1>
-        <p className="text-gray-600">Performance JARVIS - Derniers 7 jours</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics</h1>
+          <p className="text-gray-600">Performance JARVIS détaillée</p>
+        </div>
+
+        {/* Period Selector */}
+        <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as any)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="7d">7 derniers jours</option>
+          <option value="30d">30 derniers jours</option>
+          <option value="90d">90 derniers jours</option>
+          <option value="1y">1 année</option>
+        </select>
       </div>
-      
+
       {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {metrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} />
         ))}
       </div>
-      
+
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Sessions Chart */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Sessions par jour</h3>
-            <select className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500">
-              <option>7 derniers jours</option>
-              <option>30 derniers jours</option>
-              <option>90 derniers jours</option>
-            </select>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Sessions par jour</h3>
           
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={sessionsData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis 
-                dataKey="day" 
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-              />
-              <YAxis 
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="sessions" 
-                stroke="rgb(37, 99, 235)"
-                strokeWidth={2}
-                dot={{ r: 4, fill: 'rgb(37, 99, 235)' }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-          
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-            <div>
-              <p className="text-sm text-gray-500">Moyenne</p>
-              <p className="text-lg font-semibold text-gray-900">52 sessions/jour</p>
+          {sessionsChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={sessionsChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#6b7280" 
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="sessions" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
+              Aucune donnée
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Pic</p>
-              <p className="text-lg font-semibold text-gray-900">72 (Samedi)</p>
-            </div>
-          </div>
+          )}
         </div>
-        
+
+        {/* Visits Chart */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Visites par jour</h3>
+          
+          {visitsChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={visitsChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#6b7280" 
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="visits" 
+                  stroke="#10b981" 
+                  strokeWidth={3}
+                  dot={{ fill: '#10b981', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
+              Aucune donnée
+            </div>
+          )}
+        </div>
+
         {/* Sentiment Chart */}
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Sentiment conversations</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Distribution sentiment</h3>
           
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={sentimentData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis 
-                dataKey="sentiment" 
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-              />
-              <YAxis 
-                stroke="#6b7280"
-                style={{ fontSize: '12px' }}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-              />
-              <Bar 
-                dataKey="count" 
-                fill="rgb(37, 99, 235)"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-          
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-sm text-gray-500 mb-2">Taux de satisfaction global</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-gray-200 rounded-full h-3">
-                <div 
-                  className="bg-green-500 h-3 rounded-full transition-all duration-500"
-                  style={{ width: '92%' }}
-                />
-              </div>
-              <span className="text-lg font-semibold text-green-600">92%</span>
+          {sentimentData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={sentimentData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {sentimentData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
+              Aucune donnée
             </div>
+          )}
+        </div>
+
+        {/* Top Topics */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Topics les plus discutés</h3>
+          
+          {analytics.topicsDistribution.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={analytics.topicsDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="topic" 
+                  stroke="#6b7280" 
+                  style={{ fontSize: '10px' }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                />
+                <Bar dataKey="count" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
+              Aucune donnée
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Top Members */}
+      {analytics.topMembers.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Top 5 membres actifs</h3>
+          
+          <div className="space-y-3">
+            {analytics.topMembers.map((member, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                    index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-orange-600' : 'bg-blue-500'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <span className="font-medium text-gray-900">{member.name}</span>
+                </div>
+                <span className="text-sm text-gray-600">{member.sessions} sessions</span>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-      
-      {/* Topics Table */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Sujets les plus discutés</h3>
-        
-        <div className="space-y-3">
-          {topicsData.map((topic, index) => (
-            <div key={topic.topic} className="flex items-center gap-4">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-semibold text-blue-600">
-                {index + 1}
-              </div>
-              
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-900">{topic.topic}</span>
-                  <span className="text-sm font-semibold text-gray-600">{topic.count} fois</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${(topic.count / topicsData[0].count) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      )}
     </DashboardShell>
   )
 }
-
