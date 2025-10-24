@@ -1,231 +1,278 @@
 'use client'
 
-import { DashboardShell } from '@/components/dashboard-v2/DashboardShell'
-import { SessionCard } from '@/components/dashboard-v2/SessionCard'
-import { EmptyState } from '@/components/dashboard-v2/EmptyState'
-import { PageLoader } from '@/components/dashboard-v2/PageLoader'
-import { MessageSquare } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  Card,
+  Title,
+  Text,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeaderCell,
+  TableBody,
+  TableCell,
+  Badge,
+  Button,
+  TextInput,
+  Select,
+  SelectItem,
+  Flex,
+  Metric
+} from '@tremor/react'
+import {
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  ChatBubbleLeftRightIcon,
+  ClockIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/outline'
 
 /**
- * PAGE SESSIONS-V2 - Liste sessions JARVIS avec vraies données
+ * 💬 DASHBOARD SESSIONS - Version Tremor Enterprise
+ * Liste des conversations JARVIS avec sentiment et topics
  */
 
 interface Session {
   id: string
-  date: string
-  duration: number
   member: {
-    name: string
-    badge: string
-  } | null
+    firstName: string
+    lastName: string
+    badgeId: string
+  }
+  duration: number
   sentiment: 'positive' | 'neutral' | 'negative'
+  createdAt: Date
   topics: string[]
-  summary: string | null
-  cost: number
+  messagesCount: number
 }
 
-interface SessionsResponse {
-  sessions: Session[]
-  total: number
-  limit: number
-  offset: number
-}
-
-export default function SessionsV2Page() {
+export default function SessionsPage() {
+  const router = useRouter()
   const [sessions, setSessions] = useState<Session[]>([])
-  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  const [filter, setFilter] = useState<'all' | 'today' | 'week' | 'month'>('week')
-  const [offset, setOffset] = useState(0)
-  const limit = 20
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterSentiment, setFilterSentiment] = useState('all')
 
   useEffect(() => {
-    async function loadSessions() {
+    async function fetchSessions() {
+      setLoading(true)
+      setError(null)
+      
       try {
-        setLoading(true)
+        const response = await fetch(
+          `/api/dashboard/sessions-v2?search=${searchQuery}&sentiment=${filterSentiment}`
+        )
         
-        const params = new URLSearchParams({
-          filter,
-          limit: limit.toString(),
-          offset: offset.toString()
-        })
-
-        const res = await fetch(`/api/dashboard/sessions-v2?${params}`)
-        
-        if (!res.ok) {
-          throw new Error('Erreur chargement sessions')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
-
-        const data: SessionsResponse = await res.json()
-        setSessions(data.sessions)
-        setTotal(data.total)
-      } catch (err) {
-        console.error('Erreur:', err)
-        setError('Impossible de charger les sessions')
+        
+        const data = await response.json()
+        setSessions(data.sessions.map((s: any) => ({
+          ...s,
+          createdAt: new Date(s.createdAt)
+        })))
+      } catch (e: any) {
+        setError(e.message)
       } finally {
         setLoading(false)
       }
     }
+    
+    fetchSessions()
+  }, [searchQuery, filterSentiment])
 
-    loadSessions()
-  }, [filter, offset])
+  const getSentimentBadge = (sentiment: string) => {
+    switch (sentiment) {
+      case 'positive':
+        return <Badge color="emerald">Positif</Badge>
+      case 'negative':
+        return <Badge color="rose">Négatif</Badge>
+      default:
+        return <Badge color="gray">Neutre</Badge>
+    }
+  }
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date)
+  }
 
   if (loading) {
     return (
-      <DashboardShell>
-        <PageLoader message="Chargement des sessions..." />
-      </DashboardShell>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <Text>Chargement des sessions...</Text>
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <DashboardShell>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-800">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
+      <div className="min-h-screen bg-gray-50 p-6">
+        <Card>
+          <Flex alignItems="center" className="space-x-3">
+            <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
+            <div>
+              <Title>Erreur de chargement</Title>
+              <Text>{error}</Text>
+            </div>
+          </Flex>
+          <Button className="mt-4" onClick={() => window.location.reload()}>
             Réessayer
-          </button>
-        </div>
-      </DashboardShell>
+          </Button>
+        </Card>
+      </div>
     )
   }
 
   return (
-    <DashboardShell>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Sessions JARVIS</h1>
-        <p className="text-gray-600">{total} conversation{total > 1 ? 's' : ''} au total</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <Title>Sessions JARVIS</Title>
+          <Text>{sessions.length} conversations enregistrées</Text>
+        </div>
 
-      {/* Filters */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => { setFilter('all'); setOffset(0) }}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filter === 'all'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          Toutes
-        </button>
-        <button
-          onClick={() => { setFilter('today'); setOffset(0) }}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filter === 'today'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          Aujourd'hui
-        </button>
-        <button
-          onClick={() => { setFilter('week'); setOffset(0) }}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filter === 'week'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          7 derniers jours
-        </button>
-        <button
-          onClick={() => { setFilter('month'); setOffset(0) }}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filter === 'month'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-          }`}
-        >
-          Ce mois
-        </button>
-      </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card decoration="top" decorationColor="blue">
+            <Flex alignItems="center" className="space-x-2">
+              <ChatBubbleLeftRightIcon className="h-6 w-6 text-blue-600" />
+              <Text>Total sessions</Text>
+            </Flex>
+            <Metric className="mt-2">{sessions.length}</Metric>
+          </Card>
 
-      {/* Sessions List */}
-      {sessions.length === 0 ? (
-        <EmptyState
-          icon={MessageSquare}
-          title="Aucune session"
-          description="Aucune conversation JARVIS pour cette période"
-          action={{
-            label: "Voir toutes les sessions",
-            onClick: () => {
-              setFilter('all')
-              setOffset(0)
-            }
-          }}
-        />
-      ) : (
-        <>
-          <div className="space-y-4">
-            {sessions.map((session) => (
-              <SessionCard
-                key={session.id}
-                memberName={session.member?.name || 'Membre inconnu'}
-                date={new Date(session.date)}
-                duration={session.duration}
-                sentiment={session.sentiment}
-                topics={session.topics}
-                summary={session.summary}
-                onClick={() => console.log('TODO: Ouvrir détails', session.id)}
-              />
-            ))}
-          </div>
+          <Card decoration="top" decorationColor="emerald">
+            <Flex alignItems="center" className="space-x-2">
+              <ClockIcon className="h-6 w-6 text-emerald-600" />
+              <Text>Durée moyenne</Text>
+            </Flex>
+            <Metric className="mt-2">
+              {sessions.length > 0
+                ? formatDuration(Math.round(sessions.reduce((acc, s) => acc + s.duration, 0) / sessions.length))
+                : '0:00'}
+            </Metric>
+          </Card>
 
-          {/* Pagination */}
-          {total > limit && (
-            <div className="mt-8 flex justify-center gap-2">
-              <button
-                onClick={() => setOffset(Math.max(0, offset - limit))}
-                disabled={offset === 0}
-                className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Précédent
-              </button>
-              <span className="px-4 py-2 text-gray-700">
-                {Math.floor(offset / limit) + 1} / {Math.ceil(total / limit)}
-              </span>
-              <button
-                onClick={() => setOffset(offset + limit)}
-                disabled={offset + limit >= total}
-                className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Suivant
-              </button>
+          <Card decoration="top" decorationColor="rose">
+            <Flex alignItems="center" className="space-x-2">
+              <ExclamationTriangleIcon className="h-6 w-6 text-rose-600" />
+              <Text>Sessions négatives</Text>
+            </Flex>
+            <Metric className="mt-2">
+              {sessions.filter(s => s.sentiment === 'negative').length}
+            </Metric>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <Card>
+          <Flex className="space-x-2">
+            <TextInput
+              icon={MagnifyingGlassIcon}
+              placeholder="Rechercher par nom de membre..."
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              className="flex-1 max-w-md"
+            />
+            
+            <Select
+              icon={FunnelIcon}
+              value={filterSentiment}
+              onValueChange={setFilterSentiment}
+              className="max-w-xs"
+            >
+              <SelectItem value="all">Tous les sentiments</SelectItem>
+              <SelectItem value="positive">Positif</SelectItem>
+              <SelectItem value="neutral">Neutre</SelectItem>
+              <SelectItem value="negative">Négatif</SelectItem>
+            </Select>
+          </Flex>
+        </Card>
+
+        {/* Sessions Table */}
+        <Card>
+          {sessions.length === 0 ? (
+            <div className="text-center py-12">
+              <Text className="text-gray-500">Aucune session trouvée</Text>
             </div>
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeaderCell>Membre</TableHeaderCell>
+                  <TableHeaderCell>Date</TableHeaderCell>
+                  <TableHeaderCell>Durée</TableHeaderCell>
+                  <TableHeaderCell>Messages</TableHeaderCell>
+                  <TableHeaderCell>Sentiment</TableHeaderCell>
+                  <TableHeaderCell>Sujets</TableHeaderCell>
+                  <TableHeaderCell>Actions</TableHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sessions.map((session) => (
+                  <TableRow key={session.id}>
+                    <TableCell>
+                      <Text className="font-medium">
+                        {session.member.firstName} {session.member.lastName}
+                      </Text>
+                      <Text className="text-xs text-gray-500">{session.member.badgeId}</Text>
+                    </TableCell>
+                    <TableCell>
+                      <Text>{formatDate(session.createdAt)}</Text>
+                    </TableCell>
+                    <TableCell>
+                      <Badge color="gray">{formatDuration(session.duration)}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Text>{session.messagesCount}</Text>
+                    </TableCell>
+                    <TableCell>
+                      {getSentimentBadge(session.sentiment)}
+                    </TableCell>
+                    <TableCell>
+                      <Flex className="space-x-1">
+                        {session.topics.slice(0, 3).map((topic, idx) => (
+                          <Badge key={idx} color="blue" size="xs">{topic}</Badge>
+                        ))}
+                        {session.topics.length > 3 && (
+                          <Badge color="gray" size="xs">+{session.topics.length - 3}</Badge>
+                        )}
+                      </Flex>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        onClick={() => router.push(`/dashboard/sessions/${session.id}`)}
+                      >
+                        Détails
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-
-          {/* Stats Footer */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-blue-600 mb-1">Total sessions</p>
-                <p className="text-2xl font-bold text-blue-900">{total}</p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-600 mb-1">Durée totale</p>
-                <p className="text-2xl font-bold text-blue-900">
-                  {Math.round(sessions.reduce((acc, s) => acc + s.duration, 0) / 60)} min
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-600 mb-1">Coût total</p>
-                <p className="text-2xl font-bold text-blue-900">
-                  ${sessions.reduce((acc, s) => acc + s.cost, 0).toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </DashboardShell>
+        </Card>
+      </div>
+    </div>
   )
 }

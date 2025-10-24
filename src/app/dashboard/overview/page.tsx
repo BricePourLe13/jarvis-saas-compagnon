@@ -1,11 +1,32 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Users, Activity, DollarSign, TrendingUp } from 'lucide-react'
+import { 
+  Card, 
+  Metric, 
+  Text, 
+  BadgeDelta, 
+  Grid,
+  Flex,
+  Icon,
+  Title,
+  Bold,
+  Button,
+  Callout
+} from '@tremor/react'
+import { 
+  UsersIcon, 
+  ChartBarIcon, 
+  CurrencyEuroIcon, 
+  ArrowTrendingUpIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon
+} from '@heroicons/react/24/outline'
+import { useRouter } from 'next/navigation'
 
 /**
- * 🚨 VERSION ULTRA-SIMPLIFIÉE - SANS ERROR BOUNDARY
- * Version minimaliste pour isoler le problème
+ * 🏠 DASHBOARD OVERVIEW - Version Tremor Enterprise
+ * Vue d'ensemble avec vraies données API
  */
 
 interface Stats {
@@ -13,98 +34,264 @@ interface Stats {
   sessions_mensuelles: number
   revenus_mensuels: number
   taux_retention: number
+  trends: {
+    membres: number
+    sessions: number
+    revenus: number
+    retention: number
+  }
 }
 
-export default function OverviewPageSimple() {
+interface Alert {
+  id: string
+  type: 'urgent' | 'warning' | 'info'
+  priority: 'high' | 'medium' | 'low'
+  title: string
+  description: string
+  action?: {
+    label: string
+    href: string
+  }
+}
+
+export default function OverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    fetch('/api/dashboard/overview/stats')
-      .then(res => res.json())
-      .then(data => {
-        setStats(data)
+    async function loadData() {
+      try {
+        setLoading(true)
+        
+        const [statsRes, alertsRes] = await Promise.all([
+          fetch('/api/dashboard/overview/stats'),
+          fetch('/api/dashboard/overview/alerts')
+        ])
+
+        if (!statsRes.ok || !alertsRes.ok) {
+          throw new Error('Erreur chargement données')
+        }
+
+        const statsData = await statsRes.json()
+        const alertsData = await alertsRes.json()
+
+        setStats(statsData)
+        setAlerts(alertsData.alerts || [])
+      } catch (err) {
+        console.error('[OVERVIEW] Erreur:', err)
+        setError(err instanceof Error ? err.message : 'Erreur de chargement')
+      } finally {
         setLoading(false)
-      })
-      .catch(() => setLoading(false))
+      }
+    }
+
+    loadData()
   }, [])
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
+          <Text>Chargement des métriques...</Text>
         </div>
       </div>
     )
   }
 
-  if (!stats) {
+  if (error || !stats) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <p className="text-red-800">Erreur de chargement</p>
-        </div>
+        <Callout
+          title="Erreur de chargement"
+          icon={ExclamationTriangleIcon}
+          color="red"
+        >
+          {error || 'Impossible de charger les données'}
+        </Callout>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Vue d'ensemble</h1>
-
-        {/* Grid simplifié */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          {/* Carte 1 : Membres actifs */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 text-blue-600 mb-4">
-              <Users size={20} />
-            </div>
-            <div className="text-4xl font-bold text-gray-900 mb-2">
-              {stats.membres_actifs}
-            </div>
-            <div className="text-sm text-gray-600">Membres actifs</div>
-          </div>
-
-          {/* Carte 2 : Sessions */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50 text-green-600 mb-4">
-              <Activity size={20} />
-            </div>
-            <div className="text-4xl font-bold text-gray-900 mb-2">
-              {stats.sessions_mensuelles}
-            </div>
-            <div className="text-sm text-gray-600">Sessions ce mois</div>
-          </div>
-
-          {/* Carte 3 : Revenus */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50 text-green-600 mb-4">
-              <DollarSign size={20} />
-            </div>
-            <div className="text-4xl font-bold text-gray-900 mb-2">
-              {stats.revenus_mensuels.toLocaleString('fr-FR')}€
-            </div>
-            <div className="text-sm text-gray-600">Revenus mensuels</div>
-          </div>
-
-          {/* Carte 4 : Rétention */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-green-50 text-green-600 mb-4">
-              <TrendingUp size={20} />
-            </div>
-            <div className="text-4xl font-bold text-gray-900 mb-2">
-              {stats.taux_retention}%
-            </div>
-            <div className="text-sm text-gray-600">Taux de rétention</div>
-          </div>
-
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <Title>Vue d'ensemble</Title>
+          <Text>Performance temps réel de votre salle</Text>
         </div>
+
+        {/* KPIs Grid */}
+        <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-6">
+          {/* Membres actifs */}
+          <Card decoration="top" decorationColor="blue">
+            <Flex justifyContent="start" className="space-x-4">
+              <Icon
+                icon={UsersIcon}
+                variant="light"
+                size="xl"
+                color="blue"
+              />
+              <div className="truncate">
+                <Text>Membres actifs</Text>
+                <Metric>{stats.membres_actifs}</Metric>
+              </div>
+            </Flex>
+            {stats.trends.membres !== 0 && (
+              <Flex className="mt-4">
+                <BadgeDelta
+                  deltaType={stats.trends.membres > 0 ? 'increase' : 'decrease'}
+                >
+                  {stats.trends.membres > 0 ? '+' : ''}{stats.trends.membres}%
+                </BadgeDelta>
+                <Text className="text-xs text-gray-500">vs mois dernier</Text>
+              </Flex>
+            )}
+          </Card>
+
+          {/* Sessions mensuelles */}
+          <Card decoration="top" decorationColor="emerald">
+            <Flex justifyContent="start" className="space-x-4">
+              <Icon
+                icon={ChartBarIcon}
+                variant="light"
+                size="xl"
+                color="emerald"
+              />
+              <div className="truncate">
+                <Text>Sessions ce mois</Text>
+                <Metric>{stats.sessions_mensuelles}</Metric>
+              </div>
+            </Flex>
+            {stats.trends.sessions !== 0 && (
+              <Flex className="mt-4">
+                <BadgeDelta
+                  deltaType={stats.trends.sessions > 0 ? 'increase' : 'decrease'}
+                >
+                  {stats.trends.sessions > 0 ? '+' : ''}{stats.trends.sessions}%
+                </BadgeDelta>
+                <Text className="text-xs text-gray-500">vs mois dernier</Text>
+              </Flex>
+            )}
+          </Card>
+
+          {/* Revenus mensuels */}
+          <Card decoration="top" decorationColor="emerald">
+            <Flex justifyContent="start" className="space-x-4">
+              <Icon
+                icon={CurrencyEuroIcon}
+                variant="light"
+                size="xl"
+                color="emerald"
+              />
+              <div className="truncate">
+                <Text>Revenus mensuels</Text>
+                <Metric>{stats.revenus_mensuels.toLocaleString('fr-FR')}€</Metric>
+              </div>
+            </Flex>
+            {stats.trends.revenus !== 0 && (
+              <Flex className="mt-4">
+                <BadgeDelta
+                  deltaType={stats.trends.revenus > 0 ? 'increase' : 'decrease'}
+                >
+                  {stats.trends.revenus > 0 ? '+' : ''}{stats.trends.revenus}%
+                </BadgeDelta>
+                <Text className="text-xs text-gray-500">vs mois dernier</Text>
+              </Flex>
+            )}
+          </Card>
+
+          {/* Taux de rétention */}
+          <Card 
+            decoration="top" 
+            decorationColor={stats.taux_retention >= 90 ? 'emerald' : stats.taux_retention >= 70 ? 'amber' : 'rose'}
+          >
+            <Flex justifyContent="start" className="space-x-4">
+              <Icon
+                icon={ArrowTrendingUpIcon}
+                variant="light"
+                size="xl"
+                color={stats.taux_retention >= 90 ? 'emerald' : stats.taux_retention >= 70 ? 'amber' : 'rose'}
+              />
+              <div className="truncate">
+                <Text>Taux de rétention</Text>
+                <Metric>{stats.taux_retention}%</Metric>
+              </div>
+            </Flex>
+            {stats.taux_retention < 80 && (
+              <Flex className="mt-4">
+                <BadgeDelta deltaType="moderateDecrease">
+                  Attention
+                </BadgeDelta>
+              </Flex>
+            )}
+          </Card>
+        </Grid>
+
+        {/* Alertes prioritaires */}
+        {alerts.length > 0 && (
+          <div className="space-y-4">
+            <Title>Alertes prioritaires</Title>
+            {alerts.map((alert) => (
+              <Callout
+                key={alert.id}
+                title={alert.title}
+                icon={alert.priority === 'high' ? ExclamationTriangleIcon : InformationCircleIcon}
+                color={
+                  alert.priority === 'high' ? 'rose' :
+                  alert.priority === 'medium' ? 'amber' :
+                  'blue'
+                }
+              >
+                <div className="mt-2">
+                  <Text>{alert.description}</Text>
+                  {alert.action && (
+                    <Button
+                      size="xs"
+                      variant="light"
+                      className="mt-3"
+                      onClick={() => router.push(alert.action!.href)}
+                    >
+                      {alert.action.label}
+                    </Button>
+                  )}
+                </div>
+              </Callout>
+            ))}
+          </div>
+        )}
+
+        {/* Actions rapides */}
+        <Card>
+          <Title>Actions rapides</Title>
+          <Flex className="mt-4 space-x-2">
+            <Button
+              size="sm"
+              onClick={() => router.push('/dashboard/members-v2')}
+            >
+              Voir tous les membres
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => router.push('/dashboard/sessions-v2')}
+            >
+              Sessions JARVIS
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => router.push('/dashboard/analytics-v2')}
+            >
+              Analytics détaillés
+            </Button>
+          </Flex>
+        </Card>
       </div>
     </div>
   )
 }
-

@@ -1,15 +1,35 @@
 'use client'
 
-import { DashboardShell } from '@/components/dashboard-v2/DashboardShell'
-import { MemberCard } from '@/components/dashboard-v2/MemberCard'
-import { EmptyState } from '@/components/dashboard-v2/EmptyState'
-import { PageLoader } from '@/components/dashboard-v2/PageLoader'
-import { Search, Filter, UserPlus, Users } from 'lucide-react'
 import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
+import {
+  Card,
+  Title,
+  Text,
+  Table,
+  TableHead,
+  TableRow,
+  TableHeaderCell,
+  TableBody,
+  TableCell,
+  Badge,
+  Button,
+  TextInput,
+  Select,
+  SelectItem,
+  Flex,
+  CalloutText
+} from '@tremor/react'
+import {
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  UserPlusIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/outline'
 
 /**
- * PAGE MEMBERS-V2 - Liste membres avec vraies données
+ * 👥 DASHBOARD MEMBERS - Version Tremor Enterprise
+ * Liste complète des membres avec search, filters et pagination
  */
 
 interface Member {
@@ -17,242 +37,262 @@ interface Member {
   badge_id: string
   first_name: string
   last_name: string
-  email?: string
-  phone?: string
-  membership_type?: string
+  email: string | null
+  phone: string | null
+  membership_type: string | null
   is_active: boolean
-  last_visit?: string
+  last_visit: string | null
   total_visits: number
   member_since: string
-  membership_expires?: string
+  membership_expires: string | null
   gym_name: string
-  churnRisk: 'low' | 'medium' | 'high'
-}
-
-interface MembersResponse {
-  members: Member[]
-  total: number
-  limit: number
-  offset: number
+  churnRisk: 'high' | 'medium' | 'low'
 }
 
 function MembersV2Content() {
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const initialFilter = searchParams.get('filter') || 'all'
   
   const [members, setMembers] = useState<Member[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'churn-risk'>(initialFilter as any)
-  const [search, setSearch] = useState('')
-  const [offset, setOffset] = useState(0)
-  const limit = 20
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
+  const [filterChurn, setFilterChurn] = useState(searchParams.get('filter') || 'all')
+  const [currentPage, setCurrentPage] = useState(1)
+  
+  const membersPerPage = 10
 
   useEffect(() => {
-    async function loadMembers() {
+    async function fetchMembers() {
+      setLoading(true)
+      setError(null)
+      
       try {
-        setLoading(true)
+        const response = await fetch(
+          `/api/dashboard/members-v2?search=${searchQuery}&filter=${filterChurn}&limit=${membersPerPage}&offset=${(currentPage - 1) * membersPerPage}`
+        )
         
-        // Construire l'URL avec paramètres
-        const params = new URLSearchParams({
-          filter,
-          limit: limit.toString(),
-          offset: offset.toString()
-        })
-        
-        if (search.trim()) {
-          params.set('search', search.trim())
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
-
-        const res = await fetch(`/api/dashboard/members-v2?${params}`)
         
-        if (!res.ok) {
-          throw new Error('Erreur chargement membres')
-        }
-
-        const data: MembersResponse = await res.json()
+        const data = await response.json()
         setMembers(data.members)
         setTotal(data.total)
-      } catch (err) {
-        console.error('Erreur:', err)
-        setError('Impossible de charger les membres')
+      } catch (e: any) {
+        setError(e.message)
       } finally {
         setLoading(false)
       }
     }
+    
+    fetchMembers()
+  }, [searchQuery, filterChurn, currentPage, membersPerPage])
 
-    loadMembers()
-  }, [filter, search, offset])
+  const totalPages = Math.ceil(total / membersPerPage)
 
-  // Mapping pour MemberCard
-  const getMemberStatus = (member: Member): 'active' | 'inactive' | 'churning' => {
-    if (!member.is_active) return 'inactive'
-    if (member.churnRisk === 'high' || member.churnRisk === 'medium') return 'churning'
-    return 'active'
+  const handleSearch = (value: string) => {
+    setSearchQuery(value)
+    setCurrentPage(1)
+  }
+
+  const handleFilter = (value: string) => {
+    setFilterChurn(value)
+    setCurrentPage(1)
+  }
+
+  const getChurnBadge = (risk: string) => {
+    switch (risk) {
+      case 'high':
+        return <Badge color="red">Risque élevé</Badge>
+      case 'medium':
+        return <Badge color="amber">Risque moyen</Badge>
+      default:
+        return <Badge color="emerald">Actif</Badge>
+    }
+  }
+
+  const formatDate = (date: string | null) => {
+    if (!date) return 'N/A'
+    return new Date(date).toLocaleDateString('fr-FR')
   }
 
   if (loading) {
     return (
-      <DashboardShell>
-        <PageLoader message="Chargement des membres..." />
-      </DashboardShell>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <Text>Chargement des membres...</Text>
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <DashboardShell>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-800">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
+      <div className="min-h-screen bg-gray-50 p-6">
+        <Card>
+          <Flex alignItems="center" className="space-x-3">
+            <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
+            <div>
+              <Title>Erreur de chargement</Title>
+              <Text>{error}</Text>
+            </div>
+          </Flex>
+          <Button className="mt-4" onClick={() => window.location.reload()}>
             Réessayer
-          </button>
-        </div>
-      </DashboardShell>
+          </Button>
+        </Card>
+      </div>
     )
   }
 
   return (
-    <DashboardShell>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Membres</h1>
-        <p className="text-gray-600">{total} membre{total > 1 ? 's' : ''} au total</p>
-      </div>
-
-      {/* Filters & Search */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        {/* Search Bar */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Rechercher par nom, email ou badge..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setOffset(0) // Reset pagination
-            }}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <Title>Membres</Title>
+          <Text>Gérez vos {total} membres actifs</Text>
         </div>
 
-        {/* Filter Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setFilter('all'); setOffset(0) }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Tous
-          </button>
-          <button
-            onClick={() => { setFilter('active'); setOffset(0) }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filter === 'active'
-                ? 'bg-green-600 text-white'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Actifs
-          </button>
-          <button
-            onClick={() => { setFilter('inactive'); setOffset(0) }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filter === 'inactive'
-                ? 'bg-orange-600 text-white'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Inactifs
-          </button>
-          <button
-            onClick={() => { setFilter('churn-risk'); setOffset(0) }}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filter === 'churn-risk'
-                ? 'bg-red-600 text-white'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Risque churn
-          </button>
-        </div>
-      </div>
-
-      {/* Members List */}
-      {members.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Aucun membre trouvé"
-          description={search ? "Essayez de modifier vos critères de recherche" : "Aucun membre ne correspond à ce filtre"}
-          action={{
-            label: "Réinitialiser filtres",
-            onClick: () => {
-              setFilter('all')
-              setSearch('')
-              setOffset(0)
-            }
-          }}
-        />
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {members.map((member) => (
-              <MemberCard
-                key={member.id}
-                name={`${member.first_name} ${member.last_name}`}
-                email={member.email || 'N/A'}
-                status={getMemberStatus(member)}
-                memberSince={member.member_since}
-                lastVisit={member.last_visit || null}
-                sessionsCount={member.total_visits}
-                onClick={() => console.log('TODO: Ouvrir profil', member.id)}
+        {/* Filters & Search */}
+        <Card>
+          <Flex justifyContent="between" className="space-x-4">
+            <Flex className="space-x-2 flex-1">
+              <TextInput
+                icon={MagnifyingGlassIcon}
+                placeholder="Rechercher par nom, prénom ou badge..."
+                value={searchQuery}
+                onValueChange={handleSearch}
+                className="max-w-md"
               />
-            ))}
-          </div>
+              
+              <Select
+                icon={FunnelIcon}
+                value={filterChurn}
+                onValueChange={handleFilter}
+                className="max-w-xs"
+              >
+                <SelectItem value="all">Tous les membres</SelectItem>
+                <SelectItem value="active">Actifs récents</SelectItem>
+                <SelectItem value="inactive">Risque churn (14j+)</SelectItem>
+                <SelectItem value="no-jarvis">Jamais utilisé JARVIS</SelectItem>
+              </Select>
+            </Flex>
 
-          {/* Pagination */}
-          {total > limit && (
-            <div className="mt-8 flex justify-center gap-2">
-              <button
-                onClick={() => setOffset(Math.max(0, offset - limit))}
-                disabled={offset === 0}
-                className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Précédent
-              </button>
-              <span className="px-4 py-2 text-gray-700">
-                {Math.floor(offset / limit) + 1} / {Math.ceil(total / limit)}
-              </span>
-              <button
-                onClick={() => setOffset(offset + limit)}
-                disabled={offset + limit >= total}
-                className="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-              >
-                Suivant
-              </button>
+            <Button
+              icon={UserPlusIcon}
+              variant="primary"
+              onClick={() => router.push('/dashboard/members-v2/new')}
+            >
+              Nouveau membre
+            </Button>
+          </Flex>
+        </Card>
+
+        {/* Members Table */}
+        <Card>
+          {members.length === 0 ? (
+            <div className="text-center py-12">
+              <Text className="text-gray-500">Aucun membre trouvé</Text>
             </div>
+          ) : (
+            <>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeaderCell>Membre</TableHeaderCell>
+                    <TableHeaderCell>Badge</TableHeaderCell>
+                    <TableHeaderCell>Salle</TableHeaderCell>
+                    <TableHeaderCell>Dernière visite</TableHeaderCell>
+                    <TableHeaderCell>Visites totales</TableHeaderCell>
+                    <TableHeaderCell>Statut</TableHeaderCell>
+                    <TableHeaderCell>Actions</TableHeaderCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {members.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <Text className="font-medium">
+                          {member.first_name} {member.last_name}
+                        </Text>
+                        {member.email && (
+                          <Text className="text-xs text-gray-500">{member.email}</Text>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge color="gray">{member.badge_id}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Text>{member.gym_name}</Text>
+                      </TableCell>
+                      <TableCell>
+                        <Text>{formatDate(member.last_visit)}</Text>
+                      </TableCell>
+                      <TableCell>
+                        <Text className="font-medium">{member.total_visits}</Text>
+                      </TableCell>
+                      <TableCell>
+                        {getChurnBadge(member.churnRisk)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          onClick={() => router.push(`/dashboard/members-v2/${member.id}`)}
+                        >
+                          Détails
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Flex justifyContent="between" className="mt-6">
+                  <Text className="text-gray-600">
+                    Page {currentPage} sur {totalPages} ({total} membres)
+                  </Text>
+                  <Flex className="space-x-2">
+                    <Button
+                      size="xs"
+                      variant="secondary"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                    >
+                      Précédent
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="secondary"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                    >
+                      Suivant
+                    </Button>
+                  </Flex>
+                </Flex>
+              )}
+            </>
           )}
-        </>
-      )}
-    </DashboardShell>
+        </Card>
+      </div>
+    </div>
   )
 }
 
 export default function MembersV2Page() {
   return (
     <Suspense fallback={
-      <DashboardShell>
-        <PageLoader message="Chargement de la page..." />
-      </DashboardShell>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     }>
       <MembersV2Content />
     </Suspense>
