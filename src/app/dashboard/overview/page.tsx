@@ -5,7 +5,7 @@ import { MetricCard } from '@/components/dashboard-v2/MetricCard'
 import { AlertCard } from '@/components/dashboard-v2/AlertCard'
 import { PageLoader } from '@/components/dashboard-v2/PageLoader'
 import { Users, Activity, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 
 /**
  * PAGE OVERVIEW - Dashboard principal
@@ -118,65 +118,70 @@ export default function OverviewPage() {
     )
   }
 
-  // Valeurs par défaut pour éviter les erreurs
-  const safeStats = {
-    membres_actifs: stats?.membres_actifs ?? 0,
-    sessions_mensuelles: stats?.sessions_mensuelles ?? 0,
-    revenus_mensuels: stats?.revenus_mensuels ?? 0,
-    taux_retention: stats?.taux_retention ?? 0,
-    trends: {
-      membres: stats?.trends?.membres ?? 0,
-      sessions: stats?.trends?.sessions ?? 0,
-      revenus: stats?.trends?.revenus ?? 0,
-      retention: stats?.trends?.retention ?? 0
+  // Mémoïser les métriques pour éviter les re-calculs à chaque re-render
+  const metrics = useMemo(() => {
+    if (!stats) return []
+
+    // Valeurs par défaut pour éviter les erreurs
+    const safeStats = {
+      membres_actifs: stats.membres_actifs ?? 0,
+      sessions_mensuelles: stats.sessions_mensuelles ?? 0,
+      revenus_mensuels: stats.revenus_mensuels ?? 0,
+      taux_retention: stats.taux_retention ?? 0,
+      trends: {
+        membres: stats.trends?.membres ?? 0,
+        sessions: stats.trends?.sessions ?? 0,
+        revenus: stats.trends?.revenus ?? 0,
+        retention: stats.trends?.retention ?? 0
+      }
     }
-  }
 
-  // Formater les métriques pour les cards
-  const metrics = [
-    {
-      label: 'Membres actifs',
-      value: safeStats.membres_actifs.toString(),
-      icon: Users,
-      iconColor: 'primary' as const,
-      trend: safeStats.trends.membres !== 0 ? {
-        value: `${safeStats.trends.membres > 0 ? '+' : ''}${safeStats.trends.membres}%`,
-        direction: (safeStats.trends.membres > 0 ? 'up' : 'down') as const,
-        isPositive: safeStats.trends.membres > 0
-      } : undefined,
-    },
-    {
-      label: 'Sessions ce mois',
-      value: safeStats.sessions_mensuelles.toString(),
-      icon: Activity,
-      iconColor: 'success' as const,
-      trend: safeStats.trends.sessions !== 0 ? {
-        value: `${safeStats.trends.sessions > 0 ? '+' : ''}${safeStats.trends.sessions}%`,
-        direction: (safeStats.trends.sessions > 0 ? 'up' : 'down') as const,
-        isPositive: safeStats.trends.sessions > 0
-      } : undefined,
-    },
-    {
-      label: 'Revenus mensuels',
-      value: `${safeStats.revenus_mensuels.toLocaleString('fr-FR')}€`,
-      icon: DollarSign,
-      iconColor: 'success' as const,
-      trend: safeStats.trends.revenus !== 0 ? {
-        value: `${safeStats.trends.revenus > 0 ? '+' : ''}${safeStats.trends.revenus}%`,
-        direction: (safeStats.trends.revenus > 0 ? 'up' : 'down') as const,
-        isPositive: safeStats.trends.revenus > 0
-      } : undefined,
-    },
-    {
-      label: 'Taux de rétention',
-      value: `${safeStats.taux_retention}%`,
-      icon: TrendingUp,
-      iconColor: safeStats.taux_retention >= 90 ? 'success' as const : 'warning' as const,
-      badge: safeStats.taux_retention < 80 ? { label: 'Attention', variant: 'warning' as const } : undefined,
-    },
-  ].filter(Boolean) // Supprimer les éléments undefined
+    const metricsArray = [
+      {
+        label: 'Membres actifs',
+        value: safeStats.membres_actifs.toString(),
+        icon: Users,
+        iconColor: 'primary' as const,
+        trend: safeStats.trends.membres !== 0 ? {
+          value: `${safeStats.trends.membres > 0 ? '+' : ''}${safeStats.trends.membres}%`,
+          direction: (safeStats.trends.membres > 0 ? 'up' : 'down') as const,
+          isPositive: safeStats.trends.membres > 0
+        } : undefined,
+      },
+      {
+        label: 'Sessions ce mois',
+        value: safeStats.sessions_mensuelles.toString(),
+        icon: Activity,
+        iconColor: 'success' as const,
+        trend: safeStats.trends.sessions !== 0 ? {
+          value: `${safeStats.trends.sessions > 0 ? '+' : ''}${safeStats.trends.sessions}%`,
+          direction: (safeStats.trends.sessions > 0 ? 'up' : 'down') as const,
+          isPositive: safeStats.trends.sessions > 0
+        } : undefined,
+      },
+      {
+        label: 'Revenus mensuels',
+        value: `${safeStats.revenus_mensuels.toLocaleString('fr-FR')}€`,
+        icon: DollarSign,
+        iconColor: 'success' as const,
+        trend: safeStats.trends.revenus !== 0 ? {
+          value: `${safeStats.trends.revenus > 0 ? '+' : ''}${safeStats.trends.revenus}%`,
+          direction: (safeStats.trends.revenus > 0 ? 'up' : 'down') as const,
+          isPositive: safeStats.trends.revenus > 0
+        } : undefined,
+      },
+      {
+        label: 'Taux de rétention',
+        value: `${safeStats.taux_retention}%`,
+        icon: TrendingUp,
+        iconColor: safeStats.taux_retention >= 90 ? 'success' as const : 'warning' as const,
+        badge: safeStats.taux_retention < 80 ? { label: 'Attention', variant: 'warning' as const } : undefined,
+      },
+    ]
 
-  console.log('📊 [OVERVIEW] Metrics construites:', metrics.length, metrics)
+    console.log('📊 [OVERVIEW] Metrics mémoïsées:', metricsArray.length, metricsArray)
+    return metricsArray
+  }, [stats]) // Recalculer uniquement quand stats change
 
   return (
     <DashboardShell>
