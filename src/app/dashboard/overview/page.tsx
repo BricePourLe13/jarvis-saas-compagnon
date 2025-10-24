@@ -98,47 +98,61 @@ export default function OverviewPage() {
     )
   }
 
+  // Valeurs par défaut pour éviter les erreurs
+  const safeStats = {
+    membres_actifs: stats?.membres_actifs ?? 0,
+    sessions_mensuelles: stats?.sessions_mensuelles ?? 0,
+    revenus_mensuels: stats?.revenus_mensuels ?? 0,
+    taux_retention: stats?.taux_retention ?? 0,
+    trends: {
+      membres: stats?.trends?.membres ?? 0,
+      sessions: stats?.trends?.sessions ?? 0,
+      revenus: stats?.trends?.revenus ?? 0,
+      retention: stats?.trends?.retention ?? 0
+    }
+  }
+
   // Formater les métriques pour les cards
   const metrics = [
     {
       label: 'Membres actifs',
-      value: stats.membres_actifs.toString(),
+      value: safeStats.membres_actifs.toString(),
       icon: Users,
       iconColor: 'primary' as const,
-      trend: stats.trends.membres !== 0 ? {
-        value: `${stats.trends.membres > 0 ? '+' : ''}${stats.trends.membres}%`,
-        direction: (stats.trends.membres > 0 ? 'up' : 'down') as const,
-        isPositive: stats.trends.membres > 0
+      trend: safeStats.trends.membres !== 0 ? {
+        value: `${safeStats.trends.membres > 0 ? '+' : ''}${safeStats.trends.membres}%`,
+        direction: (safeStats.trends.membres > 0 ? 'up' : 'down') as const,
+        isPositive: safeStats.trends.membres > 0
       } : undefined,
     },
     {
       label: 'Sessions ce mois',
-      value: stats.sessions_mensuelles.toString(),
+      value: safeStats.sessions_mensuelles.toString(),
       icon: Activity,
       iconColor: 'success' as const,
-      trend: stats.trends.sessions !== 0 ? {
-        value: `${stats.trends.sessions > 0 ? '+' : ''}${stats.trends.sessions}%`,
-        direction: (stats.trends.sessions > 0 ? 'up' : 'down') as const,
-        isPositive: stats.trends.sessions > 0
+      trend: safeStats.trends.sessions !== 0 ? {
+        value: `${safeStats.trends.sessions > 0 ? '+' : ''}${safeStats.trends.sessions}%`,
+        direction: (safeStats.trends.sessions > 0 ? 'up' : 'down') as const,
+        isPositive: safeStats.trends.sessions > 0
       } : undefined,
     },
     {
       label: 'Revenus mensuels',
-      value: `${stats.revenus_mensuels.toLocaleString('fr-FR')}€`,
+      value: `${safeStats.revenus_mensuels.toLocaleString('fr-FR')}€`,
       icon: DollarSign,
       iconColor: 'success' as const,
-      trend: stats.trends.revenus !== 0 ? {
-        value: `${stats.trends.revenus > 0 ? '+' : ''}${stats.trends.revenus}%`,
-        direction: (stats.trends.revenus > 0 ? 'up' : 'down') as const,
-        isPositive: stats.trends.revenus > 0
+      trend: safeStats.trends.revenus !== 0 ? {
+        value: `${safeStats.trends.revenus > 0 ? '+' : ''}${safeStats.trends.revenus}%`,
+        direction: (safeStats.trends.revenus > 0 ? 'up' : 'down') as const,
+        isPositive: safeStats.trends.revenus > 0
       } : undefined,
     },
     {
       label: 'Taux de rétention',
-      value: `${stats.taux_retention}%`,
+      value: `${safeStats.taux_retention}%`,
       icon: TrendingUp,
-      iconColor: stats.taux_retention >= 90 ? 'success' as const : 'warning' as const,
-      badge: stats.taux_retention < 80 ? { label: 'Attention', variant: 'warning' as const } : undefined,
+      iconColor: safeStats.taux_retention >= 90 ? 'success' as const : 'warning' as const,
+      badge: safeStats.taux_retention < 80 ? { label: 'Attention', variant: 'warning' as const } : undefined,
     },
   ]
 
