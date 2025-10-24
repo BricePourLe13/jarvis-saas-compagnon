@@ -47,6 +47,7 @@ export default function OverviewPage() {
     async function loadData() {
       try {
         setLoading(true)
+        console.log('🔄 [OVERVIEW] Chargement des données...')
         
         // Charger stats et alertes en parallèle
         const [statsRes, alertsRes] = await Promise.all([
@@ -54,18 +55,37 @@ export default function OverviewPage() {
           fetch('/api/dashboard/overview/alerts')
         ])
 
-        if (!statsRes.ok || !alertsRes.ok) {
-          throw new Error('Erreur chargement données')
+        console.log('📊 [OVERVIEW] Stats response:', statsRes.status, statsRes.ok)
+        console.log('🚨 [OVERVIEW] Alerts response:', alertsRes.status, alertsRes.ok)
+
+        if (!statsRes.ok) {
+          const errorData = await statsRes.text()
+          console.error('❌ [OVERVIEW] Stats error:', errorData)
+          throw new Error(`Erreur stats API: ${statsRes.status} - ${errorData}`)
+        }
+
+        if (!alertsRes.ok) {
+          const errorData = await alertsRes.text()
+          console.error('❌ [OVERVIEW] Alerts error:', errorData)
+          throw new Error(`Erreur alerts API: ${alertsRes.status} - ${errorData}`)
         }
 
         const statsData = await statsRes.json()
         const alertsData = await alertsRes.json()
 
+        console.log('✅ [OVERVIEW] Stats data:', statsData)
+        console.log('✅ [OVERVIEW] Alerts data:', alertsData)
+
+        // Vérifier que statsData a la bonne structure
+        if (!statsData || typeof statsData !== 'object') {
+          throw new Error('Stats data invalide')
+        }
+
         setStats(statsData)
         setAlerts(alertsData.alerts || [])
       } catch (err) {
-        console.error('Erreur:', err)
-        setError('Impossible de charger les données')
+        console.error('❌ [OVERVIEW] Erreur globale:', err)
+        setError(err instanceof Error ? err.message : 'Impossible de charger les données')
       } finally {
         setLoading(false)
       }
@@ -154,7 +174,9 @@ export default function OverviewPage() {
       iconColor: safeStats.taux_retention >= 90 ? 'success' as const : 'warning' as const,
       badge: safeStats.taux_retention < 80 ? { label: 'Attention', variant: 'warning' as const } : undefined,
     },
-  ]
+  ].filter(Boolean) // Supprimer les éléments undefined
+
+  console.log('📊 [OVERVIEW] Metrics construites:', metrics.length, metrics)
 
   return (
     <DashboardShell>
