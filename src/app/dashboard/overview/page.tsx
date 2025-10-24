@@ -136,7 +136,16 @@ export default function OverviewPage() {
     }
   } : null
 
+  // DIAGNOSTIC : Vérifier que les icônes sont bien importées
   console.log('🔵 [OVERVIEW] Avant render, stats:', !!stats, 'alerts:', alerts?.length)
+  console.log('🎨 [OVERVIEW] Icônes importées:', {
+    Users: typeof Users,
+    Activity: typeof Activity,
+    DollarSign: typeof DollarSign,
+    TrendingUp: typeof TrendingUp,
+    UsersValue: Users,
+    ActivityValue: Activity
+  })
   
   return (
     <div className="min-h-screen bg-gray-50 p-6">

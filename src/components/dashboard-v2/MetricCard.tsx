@@ -72,6 +72,18 @@ export function MetricCard({
 }: MetricCardProps) {
   const isClickable = !!onClick
   
+  // GUARD : Vérifier que Icon est défini
+  if (!Icon) {
+    console.error('❌ [MetricCard] Icon undefined pour:', label)
+    return (
+      <div className="bg-white border border-red-200 rounded-xl p-5">
+        <div className="text-red-600 text-sm mb-2">Erreur d'icône</div>
+        <div className="text-4xl font-bold text-gray-900 mb-2">{value}</div>
+        <div className="text-sm text-gray-600">{label}</div>
+      </div>
+    )
+  }
+  
   if (loading) {
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-5 animate-pulse">
