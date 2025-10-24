@@ -5,7 +5,7 @@ import { MemberCard } from '@/components/dashboard-v2/MemberCard'
 import { EmptyState } from '@/components/dashboard-v2/EmptyState'
 import { PageLoader } from '@/components/dashboard-v2/PageLoader'
 import { Search, Filter, UserPlus, Users } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 /**
@@ -36,7 +36,7 @@ interface MembersResponse {
   offset: number
 }
 
-export default function MembersV2Page() {
+function MembersV2Content() {
   const searchParams = useSearchParams()
   const initialFilter = searchParams.get('filter') || 'all'
   
@@ -244,5 +244,17 @@ export default function MembersV2Page() {
         </>
       )}
     </DashboardShell>
+  )
+}
+
+export default function MembersV2Page() {
+  return (
+    <Suspense fallback={
+      <DashboardShell>
+        <PageLoader message="Chargement de la page..." />
+      </DashboardShell>
+    }>
+      <MembersV2Content />
+    </Suspense>
   )
 }
