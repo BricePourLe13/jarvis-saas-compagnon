@@ -1,10 +1,8 @@
 'use client'
 
-import { DashboardShell } from '@/components/dashboard-v2/DashboardShell'
 import { MetricCard } from '@/components/dashboard-v2/MetricCard'
 import { AlertCard } from '@/components/dashboard-v2/AlertCard'
-import { PageLoader } from '@/components/dashboard-v2/PageLoader'
-import { Users, Activity, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Users, Activity, DollarSign, TrendingUp } from 'lucide-react'
 import { useEffect, useState, useMemo } from 'react'
 
 /**
@@ -96,16 +94,19 @@ export default function OverviewPage() {
 
   if (loading) {
     return (
-      <DashboardShell>
-        <PageLoader message="Chargement des métriques..." />
-      </DashboardShell>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des métriques...</p>
+        </div>
+      </div>
     )
   }
 
   if (error || !stats) {
     return (
-      <DashboardShell>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md">
           <p className="text-red-800">{error || 'Erreur de chargement'}</p>
           <button 
             onClick={() => window.location.reload()}
@@ -114,7 +115,7 @@ export default function OverviewPage() {
             Réessayer
           </button>
         </div>
-      </DashboardShell>
+      </div>
     )
   }
 
@@ -183,70 +184,97 @@ export default function OverviewPage() {
     return metricsArray
   }, [stats]) // Recalculer uniquement quand stats change
 
+  console.log('🔵 [OVERVIEW] Avant render, metrics:', metrics?.length, 'alerts:', alerts?.length)
+  
   return (
-    <DashboardShell>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Vue d'ensemble</h1>
-        <p className="text-gray-600">Performance temps réel de votre salle</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Vue d'ensemble</h1>
+          <p className="text-gray-600">Performance temps réel de votre salle</p>
+        </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.label} {...metric} />
-        ))}
-      </div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {metrics && metrics.length > 0 ? (
+            metrics.map((metric, index) => {
+              console.log(`🔵 [OVERVIEW] Rendering metric ${index}:`, metric?.label, 'icon:', !!metric?.icon)
+              
+              if (!metric || !metric.icon) {
+                console.error('❌ [OVERVIEW] Métrique invalide à l\'index', index, metric)
+                return null
+              }
+              
+              return (
+                <MetricCard 
+                  key={`metric-${index}-${metric.label}`} 
+                  label={metric.label}
+                  value={metric.value}
+                  icon={metric.icon}
+                  iconColor={metric.iconColor}
+                  trend={metric.trend}
+                  badge={metric.badge}
+                />
+              )
+            })
+          ) : (
+            <div className="col-span-4 text-center text-gray-500">
+              Aucune métrique disponible
+            </div>
+          )}
+        </div>
 
-      {/* Alerts Section */}
-      {alerts.length > 0 && (
-        <>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Alertes prioritaires</h2>
-          <div className="space-y-4 mb-8">
-            {alerts.map((alert) => (
-              <AlertCard
-                key={alert.id}
-                priority={alert.priority}
-                title={alert.title}
-                description={alert.description}
-                timestamp={new Date()}
-                actions={alert.action ? [
-                  {
-                    label: alert.action.label,
-                    onClick: () => window.location.href = alert.action!.href,
-                    variant: 'primary' as const
-                  }
-                ] : []}
-              />
-            ))}
+        {/* Alerts Section */}
+        {alerts && alerts.length > 0 && (
+          <>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Alertes prioritaires</h2>
+            <div className="space-y-4 mb-8">
+              {alerts.map((alert) => (
+                <AlertCard
+                  key={alert.id}
+                  priority={alert.priority}
+                  title={alert.title}
+                  description={alert.description}
+                  timestamp={new Date()}
+                  actions={alert.action ? [
+                    {
+                      label: alert.action.label,
+                      onClick: () => window.location.href = alert.action!.href,
+                      variant: 'primary' as const
+                    }
+                  ] : []}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Quick Actions */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => window.location.href = '/dashboard/members-v2'}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Voir tous les membres
+            </button>
+            <button
+              onClick={() => window.location.href = '/dashboard/sessions-v2'}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Sessions JARVIS
+            </button>
+            <button
+              onClick={() => window.location.href = '/dashboard/analytics-v2'}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Analytics détaillés
+            </button>
           </div>
-        </>
-      )}
-
-      {/* Quick Actions */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => window.location.href = '/dashboard/members-v2'}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Voir tous les membres
-          </button>
-          <button
-            onClick={() => window.location.href = '/dashboard/sessions-v2'}
-            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Sessions JARVIS
-          </button>
-          <button
-            onClick={() => window.location.href = '/dashboard/analytics-v2'}
-            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Analytics détaillés
-          </button>
         </div>
       </div>
-    </DashboardShell>
+    </div>
   )
 }
