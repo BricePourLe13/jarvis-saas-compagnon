@@ -3,7 +3,7 @@
 import { MetricCard } from '@/components/dashboard-v2/MetricCard'
 import { AlertCard } from '@/components/dashboard-v2/AlertCard'
 import { Users, Activity, DollarSign, TrendingUp } from 'lucide-react'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 
 /**
  * PAGE OVERVIEW - Dashboard principal
@@ -119,72 +119,24 @@ export default function OverviewPage() {
     )
   }
 
-  // Mémoïser les métriques pour éviter les re-calculs à chaque re-render
-  const metrics = useMemo(() => {
-    if (!stats) return []
-
-    // Valeurs par défaut pour éviter les erreurs
-    const safeStats = {
-      membres_actifs: stats.membres_actifs ?? 0,
-      sessions_mensuelles: stats.sessions_mensuelles ?? 0,
-      revenus_mensuels: stats.revenus_mensuels ?? 0,
-      taux_retention: stats.taux_retention ?? 0,
-      trends: {
-        membres: stats.trends?.membres ?? 0,
-        sessions: stats.trends?.sessions ?? 0,
-        revenus: stats.trends?.revenus ?? 0,
-        retention: stats.trends?.retention ?? 0
-      }
+  // Calculer les métriques directement (pas de useMemo pour éviter les boucles infinies)
+  // useMemo avec des composants React cause des problèmes de référence
+  
+  // Valeurs par défaut pour éviter les erreurs
+  const safeStats = stats ? {
+    membres_actifs: stats.membres_actifs ?? 0,
+    sessions_mensuelles: stats.sessions_mensuelles ?? 0,
+    revenus_mensuels: stats.revenus_mensuels ?? 0,
+    taux_retention: stats.taux_retention ?? 0,
+    trends: {
+      membres: stats.trends?.membres ?? 0,
+      sessions: stats.trends?.sessions ?? 0,
+      revenus: stats.trends?.revenus ?? 0,
+      retention: stats.trends?.retention ?? 0
     }
+  } : null
 
-    const metricsArray = [
-      {
-        label: 'Membres actifs',
-        value: safeStats.membres_actifs.toString(),
-        icon: Users,
-        iconColor: 'primary' as const,
-        trend: safeStats.trends.membres !== 0 ? {
-          value: `${safeStats.trends.membres > 0 ? '+' : ''}${safeStats.trends.membres}%`,
-          direction: (safeStats.trends.membres > 0 ? 'up' : 'down') as const,
-          isPositive: safeStats.trends.membres > 0
-        } : undefined,
-      },
-      {
-        label: 'Sessions ce mois',
-        value: safeStats.sessions_mensuelles.toString(),
-        icon: Activity,
-        iconColor: 'success' as const,
-        trend: safeStats.trends.sessions !== 0 ? {
-          value: `${safeStats.trends.sessions > 0 ? '+' : ''}${safeStats.trends.sessions}%`,
-          direction: (safeStats.trends.sessions > 0 ? 'up' : 'down') as const,
-          isPositive: safeStats.trends.sessions > 0
-        } : undefined,
-      },
-      {
-        label: 'Revenus mensuels',
-        value: `${safeStats.revenus_mensuels.toLocaleString('fr-FR')}€`,
-        icon: DollarSign,
-        iconColor: 'success' as const,
-        trend: safeStats.trends.revenus !== 0 ? {
-          value: `${safeStats.trends.revenus > 0 ? '+' : ''}${safeStats.trends.revenus}%`,
-          direction: (safeStats.trends.revenus > 0 ? 'up' : 'down') as const,
-          isPositive: safeStats.trends.revenus > 0
-        } : undefined,
-      },
-      {
-        label: 'Taux de rétention',
-        value: `${safeStats.taux_retention}%`,
-        icon: TrendingUp,
-        iconColor: safeStats.taux_retention >= 90 ? 'success' as const : 'warning' as const,
-        badge: safeStats.taux_retention < 80 ? { label: 'Attention', variant: 'warning' as const } : undefined,
-      },
-    ]
-
-    console.log('📊 [OVERVIEW] Metrics mémoïsées:', metricsArray.length, metricsArray)
-    return metricsArray
-  }, [stats]) // Recalculer uniquement quand stats change
-
-  console.log('🔵 [OVERVIEW] Avant render, metrics:', metrics?.length, 'alerts:', alerts?.length)
+  console.log('🔵 [OVERVIEW] Avant render, stats:', !!stats, 'alerts:', alerts?.length)
   
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -197,27 +149,59 @@ export default function OverviewPage() {
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metrics && metrics.length > 0 ? (
-            metrics.map((metric, index) => {
-              console.log(`🔵 [OVERVIEW] Rendering metric ${index}:`, metric?.label, 'icon:', !!metric?.icon)
+          {safeStats ? (
+            <>
+              {/* Métrique 1 : Membres actifs */}
+              <MetricCard 
+                label="Membres actifs"
+                value={safeStats.membres_actifs.toString()}
+                icon={Users}
+                iconColor="primary"
+                trend={safeStats.trends.membres !== 0 ? {
+                  value: `${safeStats.trends.membres > 0 ? '+' : ''}${safeStats.trends.membres}%`,
+                  direction: safeStats.trends.membres > 0 ? 'up' : 'down',
+                  isPositive: safeStats.trends.membres > 0
+                } : undefined}
+              />
               
-              if (!metric || !metric.icon) {
-                console.error('❌ [OVERVIEW] Métrique invalide à l\'index', index, metric)
-                return null
-              }
+              {/* Métrique 2 : Sessions mensuelles */}
+              <MetricCard 
+                label="Sessions ce mois"
+                value={safeStats.sessions_mensuelles.toString()}
+                icon={Activity}
+                iconColor="success"
+                trend={safeStats.trends.sessions !== 0 ? {
+                  value: `${safeStats.trends.sessions > 0 ? '+' : ''}${safeStats.trends.sessions}%`,
+                  direction: safeStats.trends.sessions > 0 ? 'up' : 'down',
+                  isPositive: safeStats.trends.sessions > 0
+                } : undefined}
+              />
               
-              return (
-                <MetricCard 
-                  key={`metric-${index}-${metric.label}`} 
-                  label={metric.label}
-                  value={metric.value}
-                  icon={metric.icon}
-                  iconColor={metric.iconColor}
-                  trend={metric.trend}
-                  badge={metric.badge}
-                />
-              )
-            })
+              {/* Métrique 3 : Revenus mensuels */}
+              <MetricCard 
+                label="Revenus mensuels"
+                value={`${safeStats.revenus_mensuels.toLocaleString('fr-FR')}€`}
+                icon={DollarSign}
+                iconColor="success"
+                trend={safeStats.trends.revenus !== 0 ? {
+                  value: `${safeStats.trends.revenus > 0 ? '+' : ''}${safeStats.trends.revenus}%`,
+                  direction: safeStats.trends.revenus > 0 ? 'up' : 'down',
+                  isPositive: safeStats.trends.revenus > 0
+                } : undefined}
+              />
+              
+              {/* Métrique 4 : Taux de rétention */}
+              <MetricCard 
+                label="Taux de rétention"
+                value={`${safeStats.taux_retention}%`}
+                icon={TrendingUp}
+                iconColor={safeStats.taux_retention >= 90 ? 'success' : 'warning'}
+                badge={safeStats.taux_retention < 80 ? { 
+                  label: 'Attention', 
+                  variant: 'warning' 
+                } : undefined}
+              />
+            </>
           ) : (
             <div className="col-span-4 text-center text-gray-500">
               Aucune métrique disponible
