@@ -1,256 +1,196 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {
-  Card,
-  Title,
-  Text,
-  AreaChart,
-  BarChart,
-  DonutChart,
-  Grid,
-  Flex,
-  Metric,
-  BadgeDelta,
-  Legend
-} from '@tremor/react'
-import {
-  ChartBarIcon,
-  UsersIcon,
-  ClockIcon,
-  FaceSmileIcon
-} from '@heroicons/react/24/outline'
-
-/**
- * 📊 DASHBOARD ANALYTICS - Version Tremor Enterprise
- * Graphiques et insights avancés
- */
+import { DashboardShell } from '@/components/dashboard/DashboardShell'
+import { BarChart3, TrendingUp, Users, MessageSquare } from 'lucide-react'
 
 interface AnalyticsData {
-  sessionsData: Array<{
-    day: string
-    sessions: number
-    membres: number
-  }>
-  sentimentData: Array<{
-    sentiment: string
-    count: number
-  }>
-  topicsData: Array<{
-    topic: string
-    count: number
-  }>
-  metrics: {
-    average_duration_seconds: number
-    average_satisfaction_score: number
-    average_sessions_per_day: number
-    unique_members_count: number
+  dailySessions: Array<{ date: string; count: number }>
+  sentimentDistribution: Array<{ sentiment: string; count: number }>
+  topTopics: Array<{ topic: string; count: number }>
+  memberEngagement: {
+    active: number
+    inactive: number
+    atRisk: number
   }
 }
 
 export default function AnalyticsPage() {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
+  const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchAnalytics() {
-      setLoading(true)
-      setError(null)
-      
-      try {
-        const response = await fetch('/api/dashboard/analytics-v2')
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        setAnalyticsData(data)
-      } catch (e: any) {
-        setError(e.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    
-    fetchAnalytics()
+    fetch('/api/dashboard/analytics-v2')
+      .then(res => res.json())
+      .then(analyticsData => {
+        setData(analyticsData)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    return `${mins} min`
-  }
-
-  if (loading) {
+  if (loading || !data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <Text>Chargement des analytics...</Text>
+      <DashboardShell>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
-      </div>
+      </DashboardShell>
     )
   }
 
-  if (error || !analyticsData) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <Card>
-          <Title>Erreur de chargement</Title>
-          <Text>{error || 'Impossible de charger les analytics'}</Text>
-        </Card>
-      </div>
-    )
-  }
+  const maxDailySessions = Math.max(...data.dailySessions.map(d => d.count))
+  const totalSentiment = data.sentimentDistribution.reduce((sum, s) => sum + s.count, 0)
+  const maxTopicCount = Math.max(...data.topTopics.map(t => t.count))
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <DashboardShell>
+      <div className="space-y-8">
         {/* Header */}
         <div>
-          <Title>Analytics Avancés</Title>
-          <Text>Insights et tendances détaillés</Text>
+          <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+          <p className="text-muted-foreground mt-2">
+            Analyse détaillée des performances et tendances
+          </p>
         </div>
 
-        {/* KPIs Summary */}
-        <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-6">
-          <Card decoration="top" decorationColor="blue">
-            <Flex alignItems="center" className="space-x-2">
-              <ClockIcon className="h-6 w-6 text-blue-600" />
-              <Text>Durée moyenne</Text>
-            </Flex>
-            <Metric className="mt-2">
-              {formatDuration(analyticsData.metrics.average_duration_seconds)}
-            </Metric>
-          </Card>
-
-          <Card decoration="top" decorationColor="emerald">
-            <Flex alignItems="center" className="space-x-2">
-              <FaceSmileIcon className="h-6 w-6 text-emerald-600" />
-              <Text>Satisfaction moyenne</Text>
-            </Flex>
-            <Metric className="mt-2">
-              {analyticsData.metrics.average_satisfaction_score.toFixed(1)}/5
-            </Metric>
-          </Card>
-
-          <Card decoration="top" decorationColor="amber">
-            <Flex alignItems="center" className="space-x-2">
-              <ChartBarIcon className="h-6 w-6 text-amber-600" />
-              <Text>Sessions/jour</Text>
-            </Flex>
-            <Metric className="mt-2">
-              {analyticsData.metrics.average_sessions_per_day.toFixed(1)}
-            </Metric>
-          </Card>
-
-          <Card decoration="top" decorationColor="violet">
-            <Flex alignItems="center" className="space-x-2">
-              <UsersIcon className="h-6 w-6 text-violet-600" />
-              <Text>Membres uniques</Text>
-            </Flex>
-            <Metric className="mt-2">
-              {analyticsData.metrics.unique_members_count}
-            </Metric>
-          </Card>
-        </Grid>
-
-        {/* Sessions Timeline */}
-        <Card>
-          <Title>Évolution des sessions (7 derniers jours)</Title>
-          <AreaChart
-            className="mt-4 h-72"
-            data={analyticsData.sessionsData}
-            index="day"
-            categories={["sessions", "membres"]}
-            colors={["blue", "emerald"]}
-            valueFormatter={(value) => `${value}`}
-            showLegend={true}
-            showGridLines={true}
-            showAnimation={true}
-          />
-        </Card>
-
-        {/* Grid with 2 charts */}
-        <Grid numItems={1} numItemsLg={2} className="gap-6">
-          {/* Sentiment Distribution */}
-          <Card>
-            <Title>Distribution des sentiments</Title>
-            <DonutChart
-              className="mt-4 h-60"
-              data={analyticsData.sentimentData.map(s => ({
-                name: s.sentiment === 'positive' ? 'Positif' :
-                      s.sentiment === 'negative' ? 'Négatif' : 'Neutre',
-                value: s.count
-              }))}
-              category="value"
-              index="name"
-              colors={["emerald", "rose", "gray"]}
-              showAnimation={true}
-              valueFormatter={(value) => `${value} sessions`}
-            />
-            <Legend
-              className="mt-4"
-              categories={["Positif", "Négatif", "Neutre"]}
-              colors={["emerald", "rose", "gray"]}
-            />
-          </Card>
-
-          {/* Top Topics */}
-          <Card>
-            <Title>Top 5 sujets de conversation</Title>
-            <BarChart
-              className="mt-4 h-60"
-              data={analyticsData.topicsData}
-              index="topic"
-              categories={["count"]}
-              colors={["blue"]}
-              valueFormatter={(value) => `${value} mentions`}
-              showAnimation={true}
-              showLegend={false}
-              layout="vertical"
-            />
-          </Card>
-        </Grid>
-
-        {/* Insights Summary */}
-        <Card>
-          <Title>Insights clés</Title>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <Text className="font-semibold text-blue-900">Engagement</Text>
-              <Text className="text-sm text-blue-700 mt-2">
-                {analyticsData.metrics.unique_members_count} membres uniques ont utilisé JARVIS ces 7 derniers jours, 
-                avec une moyenne de {analyticsData.metrics.average_sessions_per_day.toFixed(1)} sessions par jour.
-              </Text>
+        {/* Key Metrics */}
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-lg bg-blue-500/10">
+                <Users className="h-6 w-6 text-blue-500" />
+              </div>
+              <h3 className="font-semibold text-foreground">Engagement Membres</h3>
             </div>
-
-            <div className="bg-emerald-50 p-4 rounded-lg">
-              <Text className="font-semibold text-emerald-900">Satisfaction</Text>
-              <Text className="text-sm text-emerald-700 mt-2">
-                Le score de satisfaction moyen est de {analyticsData.metrics.average_satisfaction_score.toFixed(1)}/5,
-                avec {analyticsData.sentimentData.find(s => s.sentiment === 'positive')?.count || 0} sessions positives.
-              </Text>
-            </div>
-
-            <div className="bg-amber-50 p-4 rounded-lg">
-              <Text className="font-semibold text-amber-900">Durée moyenne</Text>
-              <Text className="text-sm text-amber-700 mt-2">
-                Les conversations durent en moyenne {formatDuration(analyticsData.metrics.average_duration_seconds)},
-                indiquant un bon niveau d'engagement des membres.
-              </Text>
-            </div>
-
-            <div className="bg-violet-50 p-4 rounded-lg">
-              <Text className="font-semibold text-violet-900">Sujets populaires</Text>
-              <Text className="text-sm text-violet-700 mt-2">
-                Les sujets les plus discutés sont : {analyticsData.topicsData.slice(0, 3).map(t => t.topic).join(', ')}.
-              </Text>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Actifs</span>
+                <span className="font-medium text-green-500">{data.memberEngagement.active}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Inactifs</span>
+                <span className="font-medium text-gray-500">{data.memberEngagement.inactive}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">À risque</span>
+                <span className="font-medium text-red-500">{data.memberEngagement.atRisk}</span>
+              </div>
             </div>
           </div>
-        </Card>
+
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-lg bg-purple-500/10">
+                <MessageSquare className="h-6 w-6 text-purple-500" />
+              </div>
+              <h3 className="font-semibold text-foreground">Sessions Totales</h3>
+            </div>
+            <p className="text-4xl font-bold text-foreground">
+              {data.dailySessions.reduce((sum, d) => sum + d.count, 0)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">Derniers 7 jours</p>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-lg bg-green-500/10">
+                <TrendingUp className="h-6 w-6 text-green-500" />
+              </div>
+              <h3 className="font-semibold text-foreground">Sentiment Positif</h3>
+            </div>
+            <p className="text-4xl font-bold text-foreground">
+              {totalSentiment > 0 
+                ? Math.round((data.sentimentDistribution.find(s => s.sentiment === 'positive')?.count || 0) / totalSentiment * 100)
+                : 0}%
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">Des conversations</p>
+          </div>
+        </div>
+
+        {/* Daily Sessions Chart */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-6">Sessions quotidiennes</h3>
+          <div className="space-y-4">
+            {data.dailySessions.map((day) => {
+              const percentage = maxDailySessions > 0 ? (day.count / maxDailySessions) * 100 : 0
+              return (
+                <div key={day.date}>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">
+                      {new Date(day.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </span>
+                    <span className="font-medium text-foreground">{day.count} sessions</span>
+                  </div>
+                  <div className="h-3 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-500"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Sentiment & Topics Grid */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Sentiment Distribution */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-6">Distribution des sentiments</h3>
+            <div className="space-y-4">
+              {data.sentimentDistribution.map((item) => {
+                const percentage = totalSentiment > 0 ? (item.count / totalSentiment) * 100 : 0
+                const colors = {
+                  positive: { bg: 'bg-green-500', text: 'text-green-500', label: 'Positif' },
+                  neutral: { bg: 'bg-yellow-500', text: 'text-yellow-500', label: 'Neutre' },
+                  negative: { bg: 'bg-red-500', text: 'text-red-500', label: 'Négatif' }
+                }
+                const color = colors[item.sentiment as keyof typeof colors] || { bg: 'bg-gray-500', text: 'text-gray-500', label: item.sentiment }
+
+                return (
+                  <div key={item.sentiment}>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className={`font-medium ${color.text}`}>{color.label}</span>
+                      <span className="text-muted-foreground">{item.count} ({percentage.toFixed(0)}%)</span>
+                    </div>
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${color.bg} rounded-full transition-all duration-500`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Top Topics */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-6">Sujets les plus discutés</h3>
+            <div className="space-y-4">
+              {data.topTopics.map((topic, index) => {
+                const percentage = maxTopicCount > 0 ? (topic.count / maxTopicCount) * 100 : 0
+                return (
+                  <div key={topic.topic}>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-foreground font-medium">#{index + 1} {topic.topic}</span>
+                      <span className="text-muted-foreground">{topic.count} mentions</span>
+                    </div>
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </DashboardShell>
   )
 }

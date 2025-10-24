@@ -10,7 +10,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    optimizePackageImports: ['@chakra-ui/react', 'framer-motion', 'lucide-react']
+    optimizePackageImports: ['framer-motion', 'lucide-react']
   },
   
   // 🔀 REDIRECTS 301 : /admin → /dashboard (fusion complète)

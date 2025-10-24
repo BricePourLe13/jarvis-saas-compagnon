@@ -1,20 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from 'next/navigation'
-import {
-  Box,
-  Button,
-  Input,
-  VStack,
-  Heading,
-  Text,
-  Container,
-  FormControl,
-  FormLabel,
-  HStack,
-  Flex,
-  Grid
-} from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import JarvisAvatar from '@/components/common/JarvisAvatar'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
@@ -39,7 +25,7 @@ const ModernFluidShapes = () => {
   if (!mounted) return null
 
   return (
-    <Box position="absolute" inset={0} overflow="hidden">
+    <div className="absolute inset-0 overflow-hidden">
       {/* Grande forme fluide principale */}
       <motion.div
         style={{
@@ -237,7 +223,7 @@ const ModernFluidShapes = () => {
             top: `${Math.random() * 80 + 10}%`,
             width: '4px',
             height: '4px',
-            backgroundColor: 'var(--chakra-colors-gray-300)',
+            backgroundColor: '#d1d5db',
             borderRadius: '50%',
             boxShadow: '0 0 8px rgba(209, 213, 219, 0.6)'
           }}
@@ -256,31 +242,32 @@ const ModernFluidShapes = () => {
       ))}
 
       {/* Gradient overlay pour unifier */}
-      <Box
-        position="absolute"
-        inset={0}
-        background="radial-gradient(ellipse at 60% 40%, transparent 30%, rgba(248, 249, 250, 0.3) 70%, rgba(248, 249, 250, 0.6) 100%)"
-        pointerEvents="none"
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(ellipse at 60% 40%, transparent 30%, rgba(248, 249, 250, 0.3) 70%, rgba(248, 249, 250, 0.6) 100%)"
+        }}
       />
-    </Box>
+    </div>
   )
 }
 
 // Composant illustration JARVIS (côté gauche)
 const JarvisIllustration = () => {
   return (
-    <Box position="relative" w="full" h="full" overflow="hidden">
+    <div className="relative w-full h-full overflow-hidden">
       {/* Background avec pattern */}
-        <Box
-        position="absolute"
-        inset={0}
-          bg="linear-gradient(135deg, var(--chakra-colors-gray-50) 0%, var(--chakra-colors-gray-200) 50%, var(--chakra-colors-gray-300) 100%)"
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(135deg, rgb(249, 250, 251) 0%, rgb(229, 231, 235) 50%, rgb(209, 213, 219) 100%)"
+        }}
       />
       
       <ModernFluidShapes />
       
       {/* Avatar JARVIS central avec composant réutilisable */}
-      <Box position="relative" zIndex={2} h="full">
+      <div className="relative z-10 h-full">
         <JarvisAvatar 
           size={200}
           showText={true}
@@ -289,8 +276,8 @@ const JarvisIllustration = () => {
           variant="default"
           status="idle"
         />
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }
 
@@ -304,7 +291,6 @@ export default function LoginPage() {
   const captchaRef = useRef<any>(null)
   const router = useRouter()
 
-  // Force clear des champs au montage du composant
   useEffect(() => {
     setEmail('')
     setPassword('')
@@ -316,14 +302,11 @@ export default function LoginPage() {
     setError('')
     
     try {
-      // Vérifier que le CAPTCHA est résolu
       if (!captchaToken) {
         setError('Veuillez compléter le CAPTCHA')
         setLoading(false)
         return
       }
-      
-
 
       const supabase = await loadSupabaseClient()
       const { data, error } = await supabase.auth.signInWithPassword({ 
@@ -335,12 +318,8 @@ export default function LoginPage() {
       })
       
       if (error) { 
-        // Log supprimé pour production
-        // Log supprimé pour production
-        // Log supprimé pour production
         setError(error.message)
         setLoading(false)
-        // Reset hCaptcha en cas d'erreur
         if (captchaRef.current) {
           captchaRef.current.resetCaptcha()
           setCaptchaToken(null)
@@ -349,18 +328,15 @@ export default function LoginPage() {
       }
       
       if (data.user) {
-        // Vérifier le rôle de l'utilisateur
         const { data: userProfile } = await supabase
           .from('users')
           .select('role')
           .eq('id', data.user.id)
           .single()
 
-        // Si admin/owner, exiger un challenge 2FA (TOTP) à CHAQUE login
         const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'franchise_owner' || userProfile?.role === 'franchise_admin'
         if (isAdmin) {
           try {
-            // 1) Si aucun facteur TOTP → enrôlement
             // @ts-ignore
             const factors = await (supabase.auth as any).mfa?.listFactors?.()
             const hasTotp = Array.isArray(factors?.data?.totp) && factors.data.totp.length > 0
@@ -369,16 +345,13 @@ export default function LoginPage() {
               return
             }
 
-            // 2) Facteur présent → exiger challenge à chaque login
             router.push('/auth/mfa/challenge')
             return
           } catch {}
         }
 
-        // Indiquer le succès avant la redirection
         setSuccess(true)
 
-        // Redirection standard
         setTimeout(() => {
           router.push('/dashboard')
         }, 800)
@@ -390,56 +363,45 @@ export default function LoginPage() {
   }
 
   return (
-    <Box minH="100vh" bg="bg.surface">
-      <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} h="100vh">
-        {/* Côté gauche - Avatar JARVIS avec sphère du kiosk */}
-        <Box display={{ base: "none", lg: "block" }}>
+    <div className="min-h-screen bg-white">
+      <div className="grid grid-cols-1 lg:grid-cols-2 h-screen">
+        {/* Côté gauche - Avatar JARVIS */}
+        <div className="hidden lg:block">
           <JarvisIllustration />
-        </Box>
+        </div>
         
         {/* Côté droit - Formulaire */}
-        <Flex align="center" justify="center" p={8} bg="bg.subtle">
-          <Box w="full" maxW="400px">
+        <div className="flex items-center justify-center p-8 bg-gray-50">
+          <div className="w-full max-w-[400px]">
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
             >
               {/* Header */}
-              <VStack spacing={6} mb={10} textAlign="center">
+              <div className="space-y-6 mb-10 text-center">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                  <Text
-                    fontSize="2xl"
-                    fontWeight="800"
-                    color="text.default"
-                    letterSpacing="4px"
-                  >
+                  <p className="text-2xl font-extrabold text-gray-900 tracking-[4px]">
                     JARVIS
-                  </Text>
+                  </p>
                 </motion.div>
                 
-                <VStack spacing={2}>
-                  <Heading 
-                    as="h1" 
-                    size="xl" 
-                    color="text.default"
-                    fontWeight="700"
-                  >
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-bold text-gray-900">
                     Bienvenue
-                  </Heading>
-                  <Text color="text.muted" fontSize="md">
+                  </h1>
+                  <p className="text-gray-600 text-base">
                     Connectez-vous à votre espace
-                  </Text>
-                </VStack>
-              </VStack>
+                  </p>
+                </div>
+              </div>
 
               {/* Formulaire */}
-                <Box
-                as="form" 
+              <form 
                 onSubmit={handleLogin}
                 autoComplete="off"
                 autoCorrect="off"
@@ -447,14 +409,14 @@ export default function LoginPage() {
                 spellCheck="false"
               >
                 {/* Champs cachés pour tromper l'autocomplétion */}
-                <Input 
+                <input 
                   type="text" 
                   name="username" 
                   autoComplete="username" 
                   style={{ display: 'none' }} 
                   tabIndex={-1}
                 />
-                <Input 
+                <input 
                   type="password" 
                   name="password" 
                   autoComplete="current-password" 
@@ -462,7 +424,7 @@ export default function LoginPage() {
                   tabIndex={-1}
                 />
                 
-                <VStack spacing={6}>
+                <div className="space-y-6">
                   <AnimatePresence>
                     {error && (
                       <motion.div
@@ -470,142 +432,83 @@ export default function LoginPage() {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3 }}
-                        style={{ width: '100%' }}
+                        className="w-full"
                       >
-                        <Box
-                          bg="rgba(239, 68, 68, 0.1)"
-                          border="1px solid rgba(239, 68, 68, 0.3)"
-                          borderRadius="12px"
-                          p={3}
-                          w="full"
-                        >
-                          <Text color="red.600" fontSize="sm" textAlign="center">
+                        <div className="bg-red-50 border border-red-300 rounded-xl p-3 w-full">
+                          <p className="text-red-600 text-sm text-center">
                             {error}
-                          </Text>
-                        </Box>
+                          </p>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <FormControl>
-                    <FormLabel color="text.default" fontSize="sm" fontWeight="600" mb={2}>
+                  <div>
+                    <label className="block text-gray-900 text-sm font-semibold mb-2">
                       Email
-                    </FormLabel>
-                    <Input
-                      variant="outline"
+                    </label>
+                    <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="nom@entreprise.com"
-                      bg="bg.surface"
-                      border="1px solid"
-                      borderColor="border.default"
-                      borderRadius="12px"
-                      h="50px"
-                      fontSize="15px"
-                      color="text.default"
-                      _placeholder={{ color: "gray.400" }}
-                      _focus={{}}
-                      _hover={{}}
+                      className="w-full bg-white border border-gray-300 rounded-xl h-[50px] px-4 text-[15px] text-gray-900 placeholder-gray-400"
                       autoComplete="off"
                       autoFocus={false}
                       name="email_field_unique"
                       required
                     />
-                  </FormControl>
+                  </div>
 
-                  <FormControl>
-                    <FormLabel color="text.default" fontSize="sm" fontWeight="600" mb={2}>
+                  <div>
+                    <label className="block text-gray-900 text-sm font-semibold mb-2">
                       Mot de passe
-                    </FormLabel>
-                    <Input
-                      variant="outline"
+                    </label>
+                    <input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      bg="bg.surface"
-                      border="1px solid"
-                      borderColor="border.default"
-                      borderRadius="12px"
-                      h="50px"
-                      fontSize="15px"
-                      color="text.default"
-                      _placeholder={{ color: "gray.400" }}
-                      _focus={{}}
-                      _hover={{}}
+                      className="w-full bg-white border border-gray-300 rounded-xl h-[50px] px-4 text-[15px] text-gray-900 placeholder-gray-400"
                       autoComplete="new-password"
                       name="password_field_unique"
                       required
                     />
-                  </FormControl>
+                  </div>
 
                   {/* hCaptcha */}
-                  <Box display="flex" justifyContent="center" w="full">
+                  <div className="flex justify-center w-full">
                     <HCaptcha
                       ref={captchaRef}
                       sitekey={process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY || "59b4e250-bc3c-4940-bf1c-38b0883a1a14"}
-                      onVerify={(token) => {
-                        // Log supprimé pour production
-                        setCaptchaToken(token)
-                      }}
-                      onError={(err) => {
-                        // Log supprimé pour production
-                        setCaptchaToken(null)
-                      }}
-                      onExpire={() => {
-                        // Log supprimé pour production
-                        setCaptchaToken(null)
-                      }}
-                      onLoad={() => {
-                        // Log supprimé pour production
-                      }}
+                      onVerify={(token) => setCaptchaToken(token)}
+                      onError={(err) => setCaptchaToken(null)}
+                      onExpire={() => setCaptchaToken(null)}
+                      onLoad={() => {}}
                       theme="light"
                       size="normal"
                     />
-                  </Box>
-                  
+                  </div>
 
-
-                  <Button
+                  <button
                     type="submit"
-                    w="full"
-                    h="50px"
-                    variant={loading ? "secondary" : "primary"}
-                    borderRadius="12px"
-                    fontWeight="600"
-                    fontSize="15px"
-                    isDisabled={loading}
-                    transition="all 0.2s ease"
-                    position="relative"
-                    overflow="hidden"
+                    disabled={loading}
+                    className="w-full h-[50px] bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-[15px] transition-all duration-200 relative overflow-hidden disabled:opacity-70"
                   >
                     {loading ? (
                       success ? (
-                        // État succès - Animation de checkmark
-                        <HStack spacing={3} justify="center">
+                        <div className="flex items-center justify-center space-x-3">
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ duration: 0.3, ease: "backOut" }}
                           >
-                            <Box
-                              w="20px"
-                              h="20px"
-                              border="2px solid white"
-                              borderRadius="50%"
-                              position="relative"
-                            >
+                            <div className="w-5 h-5 border-2 border-white rounded-full relative">
                               <motion.div
                                 initial={{ pathLength: 0 }}
                                 animate={{ pathLength: 1 }}
                                 transition={{ duration: 0.4, delay: 0.2 }}
-                                style={{
-                                  position: 'absolute',
-                                  top: '50%',
-                                  left: '50%',
-                                  transform: 'translate(-50%, -50%)'
-                                }}
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                               >
                                 <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                                   <motion.path
@@ -620,59 +523,52 @@ export default function LoginPage() {
                                   />
                                 </svg>
                               </motion.div>
-                            </Box>
+                            </div>
                           </motion.div>
-                          <Text fontSize="14px" fontWeight="600">
+                          <span className="text-sm font-semibold">
                             Connecté ! Redirection...
-                          </Text>
-                        </HStack>
+                          </span>
+                        </div>
                       ) : (
-                        // État loading - Animation dots
-                        <HStack spacing={2} justify="center">
+                        <div className="flex items-center justify-center space-x-2">
                           <motion.div
                             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                             transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
                           >
-                            <Box w="6px" h="6px" bg="white" borderRadius="50%" />
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
                           </motion.div>
                           <motion.div
                             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                             transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
                           >
-                            <Box w="6px" h="6px" bg="white" borderRadius="50%" />
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
                           </motion.div>
                           <motion.div
                             animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                             transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
                           >
-                            <Box w="6px" h="6px" bg="white" borderRadius="50%" />
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
                           </motion.div>
-                          <Text ml={2} fontSize="14px" opacity={0.9}>
+                          <span className="ml-2 text-sm opacity-90">
                             Connexion...
-                          </Text>
-                        </HStack>
+                          </span>
+                        </div>
                       )
                     ) : (
                       "Se connecter"
                     )}
-                  </Button>
-                </VStack>
-              </Box>
+                  </button>
+                </div>
+              </form>
 
               {/* Footer */}
-              <Text 
-                textAlign="center" 
-                color="gray.400" 
-                fontSize="xs" 
-                mt={8}
-                letterSpacing="1px"
-              >
+              <p className="text-center text-gray-400 text-xs mt-8 tracking-wide">
                 PLATEFORME SÉCURISÉE
-              </Text>
+              </p>
             </motion.div>
-          </Box>
-        </Flex>
-      </Grid>
-    </Box>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,4 +1,5 @@
 import { Inter } from 'next/font/google'
+import { ThemeProvider } from '@/components/providers/theme-provider'
 import { ChakraProviders } from '@/components/ChakraProviders'
 import { SupabaseProvider } from '@/components/providers/SupabaseProvider'
 import { SentryProvider } from '@/components/providers/SentryProvider'
@@ -47,13 +48,20 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <SentryProvider>
-          <SupabaseProvider>
-            <ChakraProviders>
-              {children}
-            </ChakraProviders>
-          </SupabaseProvider>
-        </SentryProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <ChakraProviders>
+            <SentryProvider>
+              <SupabaseProvider>
+                {children}
+              </SupabaseProvider>
+            </SentryProvider>
+          </ChakraProviders>
+        </ThemeProvider>
       </body>
     </html>
   )

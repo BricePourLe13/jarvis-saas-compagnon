@@ -6,9 +6,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Box } from '@chakra-ui/react'
-import SentryMainLayout from '@/components/dashboard/layouts/SentryMainLayout'
-import AnalyticsModule from '@/components/dashboard/gym-modules/AnalyticsModule'
+import { DashboardShell } from '@/components/dashboard/DashboardShell'
 
 interface AnalyticsPageProps {
   params: Promise<{ id: string; gymId: string }>
@@ -30,19 +28,25 @@ export default function AnalyticsPage({ params }: AnalyticsPageProps) {
   }, [params])
 
   if (!resolvedParams) {
-    return <Box>Loading...</Box>
+    return (
+      <DashboardShell>
+        <div>Chargement...</div>
+      </DashboardShell>
+    )
   }
 
   return (
-    <SentryMainLayout
-      currentPath={['dashboard', 'franchises', resolvedParams.id, 'gyms', resolvedParams.gymId, 'analytics']}
-      gymId={resolvedParams.gymId}
-      franchiseId={resolvedParams.id}
-    >
-      <Box p={6}>
-        <AnalyticsModule gymId={resolvedParams.gymId} />
-      </Box>
-    </SentryMainLayout>
+    <DashboardShell>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+          <p className="text-muted-foreground">Analyse détaillée - Salle {resolvedParams.gymId}</p>
+        </div>
+        <div className="chart-container">
+          <p className="text-muted-foreground">Module analytics en cours de migration...</p>
+        </div>
+      </div>
+    </DashboardShell>
   )
 }
 

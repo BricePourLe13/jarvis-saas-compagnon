@@ -1,300 +1,169 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import {
-  Card,
-  Title,
-  Text,
-  Table,
-  TableHead,
-  TableRow,
-  TableHeaderCell,
-  TableBody,
-  TableCell,
-  Badge,
-  Button,
-  TextInput,
-  Select,
-  SelectItem,
-  Flex,
-  CalloutText
-} from '@tremor/react'
-import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  UserPlusIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/react/24/outline'
-
-/**
- * 👥 DASHBOARD MEMBERS - Version Tremor Enterprise
- * Liste complète des membres avec search, filters et pagination
- */
+import { useEffect, useState } from 'react'
+import { DashboardShell } from '@/components/dashboard/DashboardShell'
+import { Search, Filter, UserPlus } from 'lucide-react'
 
 interface Member {
   id: string
-  badge_id: string
   first_name: string
   last_name: string
-  email: string | null
+  email: string
   phone: string | null
-  membership_type: string | null
-  is_active: boolean
+  membership_type: string
+  churn_risk: string
   last_visit: string | null
-  total_visits: number
-  member_since: string
-  membership_expires: string | null
-  gym_name: string
-  churnRisk: 'high' | 'medium' | 'low'
+  total_sessions: number
 }
 
-function MembersV2Content() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  
+export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([])
-  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
-  const [filterChurn, setFilterChurn] = useState(searchParams.get('filter') || 'all')
-  const [currentPage, setCurrentPage] = useState(1)
-  
-  const membersPerPage = 10
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => {
-    async function fetchMembers() {
-      setLoading(true)
-      setError(null)
-      
-      try {
-        const response = await fetch(
-          `/api/dashboard/members-v2?search=${searchQuery}&filter=${filterChurn}&limit=${membersPerPage}&offset=${(currentPage - 1) * membersPerPage}`
-        )
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        setMembers(data.members)
-        setTotal(data.total)
-      } catch (e: any) {
-        setError(e.message)
-      } finally {
-        setLoading(false)
-      }
-    }
+    fetch('/api/dashboard/members-v2')
+      .then(res => res.json())
+      .then(data => {
+        setMembers(data.members || [])
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filteredMembers = members.filter(member => {
+    const matchesSearch = search === '' || 
+      member.first_name.toLowerCase().includes(search.toLowerCase()) ||
+      member.last_name.toLowerCase().includes(search.toLowerCase()) ||
+      member.email.toLowerCase().includes(search.toLowerCase())
     
-    fetchMembers()
-  }, [searchQuery, filterChurn, currentPage, membersPerPage])
+    const matchesFilter = filter === 'all' || member.churn_risk === filter
+    
+    return matchesSearch && matchesFilter
+  })
 
-  const totalPages = Math.ceil(total / membersPerPage)
-
-  const handleSearch = (value: string) => {
-    setSearchQuery(value)
-    setCurrentPage(1)
-  }
-
-  const handleFilter = (value: string) => {
-    setFilterChurn(value)
-    setCurrentPage(1)
-  }
-
-  const getChurnBadge = (risk: string) => {
+  const getRiskBadgeColor = (risk: string) => {
     switch (risk) {
-      case 'high':
-        return <Badge color="red">Risque élevé</Badge>
-      case 'medium':
-        return <Badge color="amber">Risque moyen</Badge>
-      default:
-        return <Badge color="emerald">Actif</Badge>
+      case 'high': return 'bg-red-500/10 text-red-500 border-red-500/20'
+      case 'medium': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+      case 'low': return 'bg-green-500/10 text-green-500 border-green-500/20'
+      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20'
     }
   }
 
-  const formatDate = (date: string | null) => {
-    if (!date) return 'N/A'
-    return new Date(date).toLocaleDateString('fr-FR')
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <Text>Chargement des membres...</Text>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <Card>
-          <Flex alignItems="center" className="space-x-3">
-            <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
-            <div>
-              <Title>Erreur de chargement</Title>
-              <Text>{error}</Text>
-            </div>
-          </Flex>
-          <Button className="mt-4" onClick={() => window.location.reload()}>
-            Réessayer
-          </Button>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <DashboardShell>
+      <div className="space-y-6">
         {/* Header */}
-        <div>
-          <Title>Membres</Title>
-          <Text>Gérez vos {total} membres actifs</Text>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Membres</h1>
+            <p className="text-muted-foreground mt-2">
+              Gestion et suivi de vos membres
+            </p>
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+            <UserPlus className="h-4 w-4" />
+            Nouveau membre
+          </button>
         </div>
 
-        {/* Filters & Search */}
-        <Card>
-          <Flex justifyContent="between" className="space-x-4">
-            <Flex className="space-x-2 flex-1">
-              <TextInput
-                icon={MagnifyingGlassIcon}
-                placeholder="Rechercher par nom, prénom ou badge..."
-                value={searchQuery}
-                onValueChange={handleSearch}
-                className="max-w-md"
-              />
-              
-              <Select
-                icon={FunnelIcon}
-                value={filterChurn}
-                onValueChange={handleFilter}
-                className="max-w-xs"
-              >
-                <SelectItem value="all">Tous les membres</SelectItem>
-                <SelectItem value="active">Actifs récents</SelectItem>
-                <SelectItem value="inactive">Risque churn (14j+)</SelectItem>
-                <SelectItem value="no-jarvis">Jamais utilisé JARVIS</SelectItem>
-              </Select>
-            </Flex>
+        {/* Filters */}
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Rechercher un membre..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="px-4 py-2 bg-card border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="all">Tous les risques</option>
+            <option value="low">Risque faible</option>
+            <option value="medium">Risque moyen</option>
+            <option value="high">Risque élevé</option>
+          </select>
+        </div>
 
-            <Button
-              icon={UserPlusIcon}
-              variant="primary"
-              onClick={() => router.push('/dashboard/members-v2/new')}
-            >
-              Nouveau membre
-            </Button>
-          </Flex>
-        </Card>
-
-        {/* Members Table */}
-        <Card>
-          {members.length === 0 ? (
-            <div className="text-center py-12">
-              <Text className="text-gray-500">Aucun membre trouvé</Text>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableHeaderCell>Membre</TableHeaderCell>
-                    <TableHeaderCell>Badge</TableHeaderCell>
-                    <TableHeaderCell>Salle</TableHeaderCell>
-                    <TableHeaderCell>Dernière visite</TableHeaderCell>
-                    <TableHeaderCell>Visites totales</TableHeaderCell>
-                    <TableHeaderCell>Statut</TableHeaderCell>
-                    <TableHeaderCell>Actions</TableHeaderCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {members.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell>
-                        <Text className="font-medium">
+        {/* Table */}
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Membre</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Contact</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Abonnement</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Sessions</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Dernière visite</th>
+                  <th className="text-left px-6 py-4 text-sm font-semibold text-foreground">Risque</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredMembers.map((member) => (
+                  <tr key={member.id} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="font-medium text-foreground">
                           {member.first_name} {member.last_name}
-                        </Text>
-                        {member.email && (
-                          <Text className="text-xs text-gray-500">{member.email}</Text>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm">
+                        <div className="text-foreground">{member.email}</div>
+                        {member.phone && (
+                          <div className="text-muted-foreground">{member.phone}</div>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge color="gray">{member.badge_id}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Text>{member.gym_name}</Text>
-                      </TableCell>
-                      <TableCell>
-                        <Text>{formatDate(member.last_visit)}</Text>
-                      </TableCell>
-                      <TableCell>
-                        <Text className="font-medium">{member.total_visits}</Text>
-                      </TableCell>
-                      <TableCell>
-                        {getChurnBadge(member.churnRisk)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="xs"
-                          variant="secondary"
-                          onClick={() => router.push(`/dashboard/members-v2/${member.id}`)}
-                        >
-                          Détails
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                        {member.membership_type || 'Standard'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-foreground">{member.total_sessions}</td>
+                    <td className="px-6 py-4 text-muted-foreground text-sm">
+                      {member.last_visit ? new Date(member.last_visit).toLocaleDateString('fr-FR') : 'Jamais'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRiskBadgeColor(member.churn_risk)}`}>
+                        {member.churn_risk === 'high' && 'Élevé'}
+                        {member.churn_risk === 'medium' && 'Moyen'}
+                        {member.churn_risk === 'low' && 'Faible'}
+                        {!member.churn_risk && 'N/A'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredMembers.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                Aucun membre trouvé
+              </div>
+            )}
+          </div>
+        )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Flex justifyContent="between" className="mt-6">
-                  <Text className="text-gray-600">
-                    Page {currentPage} sur {totalPages} ({total} membres)
-                  </Text>
-                  <Flex className="space-x-2">
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                    >
-                      Précédent
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="secondary"
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                    >
-                      Suivant
-                    </Button>
-                  </Flex>
-                </Flex>
-              )}
-            </>
-          )}
-        </Card>
+        {/* Stats */}
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <span>{filteredMembers.length} membre(s) affiché(s)</span>
+          <span>·</span>
+          <span>{members.length} membre(s) au total</span>
+        </div>
       </div>
-    </div>
-  )
-}
-
-export default function MembersV2Page() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    }>
-      <MembersV2Content />
-    </Suspense>
+    </DashboardShell>
   )
 }
