@@ -1,0 +1,273 @@
+'use client'
+
+import { MetricCard } from '@/components/dashboard-v2/MetricCard'
+import { AlertCard } from '@/components/dashboard-v2/AlertCard'
+import { Users, Activity, DollarSign, TrendingUp } from 'lucide-react'
+import { useEffect, useState } from 'react'
+
+/**
+ * PAGE OVERVIEW - Dashboard principal
+ * Vue d'ensemble d'une salle avec vraies données
+ */
+
+interface Stats {
+  membres_actifs: number
+  sessions_mensuelles: number
+  revenus_mensuels: number
+  taux_retention: number
+  trends: {
+    membres: number
+    sessions: number
+    revenus: number
+    retention: number
+  }
+}
+
+interface Alert {
+  id: string
+  type: 'urgent' | 'warning' | 'info'
+  priority: 'high' | 'medium' | 'low'
+  title: string
+  description: string
+  action?: {
+    label: string
+    href: string
+  }
+}
+
+export default function OverviewPage() {
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true)
+        console.log('🔄 [OVERVIEW] Chargement des données...')
+        
+        // Charger stats et alertes en parallèle
+        const [statsRes, alertsRes] = await Promise.all([
+          fetch('/api/dashboard/overview/stats'),
+          fetch('/api/dashboard/overview/alerts')
+        ])
+
+        console.log('📊 [OVERVIEW] Stats response:', statsRes.status, statsRes.ok)
+        console.log('🚨 [OVERVIEW] Alerts response:', alertsRes.status, alertsRes.ok)
+
+        if (!statsRes.ok) {
+          const errorData = await statsRes.text()
+          console.error('❌ [OVERVIEW] Stats error:', errorData)
+          throw new Error(`Erreur stats API: ${statsRes.status} - ${errorData}`)
+        }
+
+        if (!alertsRes.ok) {
+          const errorData = await alertsRes.text()
+          console.error('❌ [OVERVIEW] Alerts error:', errorData)
+          throw new Error(`Erreur alerts API: ${alertsRes.status} - ${errorData}`)
+        }
+
+        const statsData = await statsRes.json()
+        const alertsData = await alertsRes.json()
+
+        console.log('✅ [OVERVIEW] Stats data:', statsData)
+        console.log('✅ [OVERVIEW] Alerts data:', alertsData)
+
+        // Vérifier que statsData a la bonne structure
+        if (!statsData || typeof statsData !== 'object') {
+          throw new Error('Stats data invalide')
+        }
+
+        setStats(statsData)
+        setAlerts(alertsData.alerts || [])
+      } catch (err) {
+        console.error('❌ [OVERVIEW] Erreur globale:', err)
+        setError(err instanceof Error ? err.message : 'Impossible de charger les données')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des métriques...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center max-w-md">
+          <p className="text-red-800">{error || 'Erreur de chargement'}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Réessayer
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Calculer les métriques directement (pas de useMemo pour éviter les boucles infinies)
+  // useMemo avec des composants React cause des problèmes de référence
+  
+  // Valeurs par défaut pour éviter les erreurs
+  const safeStats = stats ? {
+    membres_actifs: stats.membres_actifs ?? 0,
+    sessions_mensuelles: stats.sessions_mensuelles ?? 0,
+    revenus_mensuels: stats.revenus_mensuels ?? 0,
+    taux_retention: stats.taux_retention ?? 0,
+    trends: {
+      membres: stats.trends?.membres ?? 0,
+      sessions: stats.trends?.sessions ?? 0,
+      revenus: stats.trends?.revenus ?? 0,
+      retention: stats.trends?.retention ?? 0
+    }
+  } : null
+
+  // DIAGNOSTIC : Vérifier que les icônes sont bien importées
+  console.log('🔵 [OVERVIEW] Avant render, stats:', !!stats, 'alerts:', alerts?.length)
+  console.log('🎨 [OVERVIEW] Icônes importées:', {
+    Users: typeof Users,
+    Activity: typeof Activity,
+    DollarSign: typeof DollarSign,
+    TrendingUp: typeof TrendingUp,
+    UsersValue: Users,
+    ActivityValue: Activity
+  })
+  
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Vue d'ensemble</h1>
+          <p className="text-gray-600">Performance temps réel de votre salle</p>
+        </div>
+
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {safeStats ? (
+            <>
+              {/* Métrique 1 : Membres actifs */}
+              <MetricCard 
+                label="Membres actifs"
+                value={safeStats.membres_actifs.toString()}
+                icon={Users}
+                iconColor="primary"
+                trend={safeStats.trends.membres !== 0 ? {
+                  value: `${safeStats.trends.membres > 0 ? '+' : ''}${safeStats.trends.membres}%`,
+                  direction: safeStats.trends.membres > 0 ? 'up' : 'down',
+                  isPositive: safeStats.trends.membres > 0
+                } : undefined}
+              />
+              
+              {/* Métrique 2 : Sessions mensuelles */}
+              <MetricCard 
+                label="Sessions ce mois"
+                value={safeStats.sessions_mensuelles.toString()}
+                icon={Activity}
+                iconColor="success"
+                trend={safeStats.trends.sessions !== 0 ? {
+                  value: `${safeStats.trends.sessions > 0 ? '+' : ''}${safeStats.trends.sessions}%`,
+                  direction: safeStats.trends.sessions > 0 ? 'up' : 'down',
+                  isPositive: safeStats.trends.sessions > 0
+                } : undefined}
+              />
+              
+              {/* Métrique 3 : Revenus mensuels */}
+              <MetricCard 
+                label="Revenus mensuels"
+                value={`${safeStats.revenus_mensuels.toLocaleString('fr-FR')}€`}
+                icon={DollarSign}
+                iconColor="success"
+                trend={safeStats.trends.revenus !== 0 ? {
+                  value: `${safeStats.trends.revenus > 0 ? '+' : ''}${safeStats.trends.revenus}%`,
+                  direction: safeStats.trends.revenus > 0 ? 'up' : 'down',
+                  isPositive: safeStats.trends.revenus > 0
+                } : undefined}
+              />
+              
+              {/* Métrique 4 : Taux de rétention */}
+              <MetricCard 
+                label="Taux de rétention"
+                value={`${safeStats.taux_retention}%`}
+                icon={TrendingUp}
+                iconColor={safeStats.taux_retention >= 90 ? 'success' : 'warning'}
+                badge={safeStats.taux_retention < 80 ? { 
+                  label: 'Attention', 
+                  variant: 'warning' 
+                } : undefined}
+              />
+            </>
+          ) : (
+            <div className="col-span-4 text-center text-gray-500">
+              Aucune métrique disponible
+            </div>
+          )}
+        </div>
+
+        {/* Alerts Section */}
+        {alerts && alerts.length > 0 && (
+          <>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Alertes prioritaires</h2>
+            <div className="space-y-4 mb-8">
+              {alerts.map((alert) => (
+                <AlertCard
+                  key={alert.id}
+                  priority={alert.priority}
+                  title={alert.title}
+                  description={alert.description}
+                  timestamp={new Date()}
+                  actions={alert.action ? [
+                    {
+                      label: alert.action.label,
+                      onClick: () => window.location.href = alert.action!.href,
+                      variant: 'primary' as const
+                    }
+                  ] : []}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Quick Actions */}
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions rapides</h3>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => window.location.href = '/dashboard/members-v2'}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Voir tous les membres
+            </button>
+            <button
+              onClick={() => window.location.href = '/dashboard/sessions-v2'}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Sessions JARVIS
+            </button>
+            <button
+              onClick={() => window.location.href = '/dashboard/analytics-v2'}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Analytics détaillés
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
