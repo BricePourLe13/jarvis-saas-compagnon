@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { DashboardShell } from '@/components/dashboard/DashboardShell'
+
 import { Search, Filter, UserPlus } from 'lucide-react'
 
 interface Member {
@@ -52,7 +52,7 @@ export default function MembersPage() {
   }
 
   return (
-    <DashboardShell>
+    
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -164,6 +164,6 @@ export default function MembersPage() {
           <span>{members.length} membre(s) au total</span>
         </div>
       </div>
-    </DashboardShell>
+
   )
 }

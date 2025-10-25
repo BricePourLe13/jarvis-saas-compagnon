@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { MessageSquare, Clock, Smile, Meh, Frown } from 'lucide-react'
 
 interface Session {
@@ -58,9 +57,8 @@ export default function SessionsPage() {
   }
 
   return (
-    <DashboardShell>
-      <div className="space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">Sessions JARVIS</h1>
           <p className="text-muted-foreground mt-2">
@@ -183,7 +181,6 @@ export default function SessionsPage() {
           <span>·</span>
           <span>{sessions.length} session(s) au total</span>
         </div>
-      </div>
-    </DashboardShell>
+    </div>
   )
 }

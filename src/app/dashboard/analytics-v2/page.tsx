@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { BarChart3, TrendingUp, Users, MessageSquare } from 'lucide-react'
 
 interface AnalyticsData {
@@ -30,11 +29,9 @@ export default function AnalyticsPage() {
 
   if (loading || !data) {
     return (
-      <DashboardShell>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </DashboardShell>
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
     )
   }
 
@@ -43,9 +40,8 @@ export default function AnalyticsPage() {
   const maxTopicCount = Math.max(...data.topTopics.map(t => t.count))
 
   return (
-    <DashboardShell>
-      <div className="space-y-8">
-        {/* Header */}
+    <div className="space-y-8">
+      {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
           <p className="text-muted-foreground mt-2">
@@ -190,7 +186,6 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
-      </div>
-    </DashboardShell>
+    </div>
   )
 }

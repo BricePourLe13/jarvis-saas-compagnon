@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { Activity, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
 
 interface Stats {
@@ -40,11 +39,9 @@ export default function DashboardOverviewPage() {
 
   if (loading || !stats) {
     return (
-      <DashboardShell>
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </DashboardShell>
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
     )
   }
 
@@ -82,15 +79,14 @@ export default function DashboardOverviewPage() {
   ]
 
   return (
-    <DashboardShell>
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Vue d'ensemble</h1>
-          <p className="text-muted-foreground mt-2">
-            Statistiques et performances de votre salle de sport
-          </p>
-        </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Vue d'ensemble</h1>
+        <p className="text-muted-foreground mt-2">
+          Statistiques et performances de votre salle de sport
+        </p>
+      </div>
 
         {/* KPIs Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -164,7 +160,6 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
         )}
-      </div>
-    </DashboardShell>
+    </div>
   )
 }
