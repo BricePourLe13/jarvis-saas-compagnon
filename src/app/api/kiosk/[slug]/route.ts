@@ -9,56 +9,55 @@ export async function GET(
     const { slug } = await params
     const supabase = createSimpleClient()
 
-    // Log supprimé pour production
-
-    // Chercher la salle par kiosk_url_slug SANS JOIN franchises
-    const { data: gym, error: gymError } = await supabase
-      .from('gyms')
+    // Chercher le kiosk par slug dans la nouvelle table dédiée
+    const { data: kiosk, error: kioskError } = await supabase
+      .from('kiosks')
       .select(`
         id,
+        gym_id,
+        slug,
         name,
-        kiosk_config,
-        franchise_id,
-        status
+        provisioning_code,
+        status,
+        last_heartbeat,
+        voice_model,
+        language,
+        openai_model,
+        hardware_info,
+        location_in_gym,
+        gyms!inner(
+          id,
+          name,
+          franchise_id,
+          status
+        )
       `)
-      .eq('kiosk_config->>kiosk_url_slug', slug)
-      .eq('status', 'active')
+      .eq('slug', slug)
+      .eq('gyms.status', 'active')
       .single()
 
-    // Log supprimé pour production
-    // Log supprimé pour production
-
-    if (gymError || !gym) {
-      // Log supprimé pour production
-      
-      // Debug supplémentaire
-      const { data: allKioskGyms } = await supabase
-        .from('gyms')
-        .select('id, name, kiosk_config')
-        .not('kiosk_config->>kiosk_url_slug', 'is', null)
-        .limit(5)
-      
-      // Log supprimé pour production
-
+    if (kioskError || !kiosk) {
       return NextResponse.json(
         { 
           valid: false, 
           error: 'Kiosk non trouvé ou inactif',
           debug: {
             slug,
-            allKioskGyms
+            errorDetails: kioskError?.message
           }
         },
         { status: 404 }
       )
     }
 
-    // Récupérer la configuration du kiosk
-    const kioskConfig = gym.kiosk_config as any
-    // Log supprimé pour production
-    
-    // ✅ CORRECTION : Permettre l'accès aux kiosks non provisionnés pour le provisioning
-    // Au lieu de rejeter, on retourne les infos pour que le frontend affiche l'interface de provisioning
+    // Vérifier que le gym existe
+    const gym = kiosk.gyms
+    if (!gym) {
+      return NextResponse.json(
+        { valid: false, error: 'Gym associée non trouvée' },
+        { status: 404 }
+      )
+    }
 
     // Essayer de récupérer la franchise séparément (peut échouer à cause de RLS)
     let franchiseName = 'Franchise'
@@ -75,45 +74,58 @@ export async function GET(
         franchiseConfig = franchise.jarvis_config || {}
       }
     } catch (e) {
-      // Log supprimé pour production
+      // RLS peut bloquer l'accès franchise
     }
+
+    // Déterminer si le kiosk est provisionné (online = provisionné)
+    const isProvisioned = kiosk.status === 'online'
 
     // Construire la réponse avec les données nécessaires
     const response = {
       valid: true,
       kiosk: {
-        id: gym.id,
-        name: gym.name,
+        id: kiosk.id,
+        name: kiosk.name,
         franchise_name: franchiseName,
-        is_provisioned: kioskConfig?.is_provisioned || false,
-        provisioning_required: !kioskConfig?.is_provisioned,
+        is_provisioned: isProvisioned,
+        provisioning_required: !isProvisioned,
         kiosk_config: {
-          ...kioskConfig,
+          kiosk_url_slug: kiosk.slug,
+          provisioning_code: kiosk.provisioning_code,
+          is_provisioned: isProvisioned,
+          last_heartbeat: kiosk.last_heartbeat,
+          // Configuration JARVIS
+          voice_model: kiosk.voice_model,
+          language_default: kiosk.language,
+          openai_model: kiosk.openai_model,
           // Couleurs par défaut si pas de franchise
-          brand_colors: kioskConfig.brand_colors || franchiseConfig.brand_colors || {
+          brand_colors: franchiseConfig.brand_colors || {
             primary: '#2563eb',
             secondary: '#1e40af',
             accent: '#3b82f6'
           },
-          welcome_message: kioskConfig.welcome_message || `Bienvenue à ${gym.name} !`
+          welcome_message: franchiseConfig.welcome_message || `Bienvenue à ${gym.name} !`,
+          // Hardware info
+          hardware_info: kiosk.hardware_info || {},
+          location_in_gym: kiosk.location_in_gym
         }
       },
       gym: {
         id: gym.id,
         name: gym.name,
-        franchise_id: gym.franchise_id, // ✅ Ajout pour le tracking
-        address: '', // Pour compatibility
+        franchise_id: gym.franchise_id,
+        address: '',
         franchise_name: franchiseName
       },
-      // ✅ Ajout d'une section data pour compatibilité avec le tracking
+      // Section data pour compatibilité avec le tracking
       data: {
         id: gym.id,
         franchise_id: gym.franchise_id,
-        name: gym.name
+        name: gym.name,
+        kiosk_id: kiosk.id
       }
     }
 
-    // Log supprimé pour production
     return NextResponse.json(response)
 
   } catch (error) {

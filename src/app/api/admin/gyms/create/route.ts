@@ -137,38 +137,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 5. Préparer la configuration JARVIS par défaut
-    const defaultKioskConfig = {
-      provisioning_code: generateProvisioningCode(),
-      kiosk_url_slug: generateGymSlug(),
-      provisioning_expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(), // 72h
-      is_provisioned: false,
-      provisioned_at: null,
-      installation_token: crypto.randomUUID(),
-      rfid_reader_id: null,
-      hardware_version: "1.0",
-      last_sync: null,
-      last_heartbeat: null,
-      jarvis_config: {
-        avatar_customization: {},
-        brand_colors: {
-          primary: '#2563eb',
-          secondary: '#1e40af',
-          accent: '#3b82f6'
-        },
-        welcome_message: body.welcome_message || `Bienvenue à ${body.name} !`,
-        features_enabled: ['analytics', 'reports', 'voice_interaction']
-      }
-    }
-
-    // 6. Créer la salle
+    // 5. Créer la salle (sans kiosk_config)
     const gymData = {
       franchise_id: body.franchise_id,
       name: body.name.trim(),
       address: body.address.trim(),
       city: body.city.trim(),
       postal_code: body.postal_code.trim(),
-      kiosk_config: defaultKioskConfig,
       opening_hours: body.opening_hours || {
         monday: { open: "06:00", close: "22:00" },
         tuesday: { open: "06:00", close: "22:00" },
@@ -190,7 +165,6 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (gymError) {
-      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -201,15 +175,52 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 6. Créer un kiosk principal pour la salle dans la nouvelle table
+    const defaultKiosk = {
+      gym_id: gym.id,
+      slug: generateGymSlug(),
+      name: `${body.name.trim()} - Kiosk Principal`,
+      provisioning_code: generateProvisioningCode(),
+      status: 'provisioning' as const,
+      voice_model: 'alloy',
+      language: 'fr',
+      openai_model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+      location_in_gym: 'Entrée principale',
+      hardware_info: {
+        hardware_version: '1.0'
+      }
+    }
+
+    const { data: kiosk, error: kioskError } = await supabase
+      .from('kiosks')
+      .insert(defaultKiosk)
+      .select()
+      .single()
+
+    if (kioskError) {
+      // Rollback gym si création kiosk échoue
+      await supabase.from('gyms').delete().eq('id', gym.id)
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Erreur lors de la création du kiosk',
+          message: kioskError.message 
+        } as ApiResponse<null>,
+        { status: 500 }
+      )
+    }
+
     // 7. Réponse de succès avec infos utiles
-    const response: ApiResponse<Gym & { franchise_name: string; provisioning_code: string }> = {
+    const response: ApiResponse<Gym & { franchise_name: string; provisioning_code: string; kiosk_slug: string }> = {
       success: true,
       data: {
         ...gym,
         franchise_name: franchise.name,
-        provisioning_code: defaultKioskConfig.provisioning_code
+        provisioning_code: kiosk.provisioning_code,
+        kiosk_slug: kiosk.slug
       },
-      message: `Salle "${gym.name}" créée avec succès dans la franchise "${franchise.name}"`
+      message: `Salle "${gym.name}" et kiosk créés avec succès dans la franchise "${franchise.name}"`
     }
 
     return NextResponse.json(response, { status: 201 })

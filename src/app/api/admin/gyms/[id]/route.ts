@@ -13,6 +13,16 @@ function generateProvisioningCode(): string {
   return result
 }
 
+// Fonction utilitaire pour générer un slug de kiosk
+function generateGymSlug(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  let result = 'gym-'
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
 // ===========================================
 // 🔍 GET /api/admin/gyms/[id] - Récupérer une salle
 // ===========================================
@@ -36,7 +46,7 @@ export async function GET(
       }
     )
 
-    // Récupérer la salle avec sa franchise
+    // Récupérer la salle avec sa franchise et ses kiosks
     const { data: gym, error } = await supabase
       .from('gyms')
       .select(`
@@ -47,7 +57,6 @@ export async function GET(
       .single()
 
     if (error) {
-      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -68,35 +77,70 @@ export async function GET(
       )
     }
 
-    // Vérifier si le code de provisioning manque et le générer si nécessaire
-    if (!gym.kiosk_config?.provisioning_code) {
-      // Log supprimé pour production
-      
-      const newProvisioningCode = generateProvisioningCode()
-      const updatedKioskConfig = {
-        ...gym.kiosk_config,
-        provisioning_code: newProvisioningCode,
-        provisioning_expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(), // 72h
-        installation_token: gym.kiosk_config?.installation_token || crypto.randomUUID()
+    // Récupérer les kiosks associés
+    const { data: kiosks, error: kiosksError } = await supabase
+      .from('kiosks')
+      .select('*')
+      .eq('gym_id', id)
+
+    if (kiosksError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Erreur lors de la récupération des kiosks',
+          details: kiosksError.message 
+        },
+        { status: 500 }
+      )
+    }
+
+    // Si aucun kiosk n'existe, en créer un par défaut
+    if (!kiosks || kiosks.length === 0) {
+      const defaultKiosk = {
+        gym_id: gym.id,
+        slug: generateGymSlug(),
+        name: `${gym.name} - Kiosk Principal`,
+        provisioning_code: generateProvisioningCode(),
+        status: 'provisioning',
+        voice_model: 'alloy',
+        language: 'fr'
       }
 
-      // Mettre à jour en base
-      const { error: updateError } = await supabase
-        .from('gyms')
-        .update({ kiosk_config: updatedKioskConfig })
-        .eq('id', id)
+      const { data: newKiosk, error: createError } = await supabase
+        .from('kiosks')
+        .insert(defaultKiosk)
+        .select()
+        .single()
 
-      if (!updateError) {
-        gym.kiosk_config = updatedKioskConfig
-        // Log supprimé pour production
-      } else {
-        // Log supprimé pour production
+      if (!createError && newKiosk) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            ...gym,
+            kiosks: [newKiosk],
+            kiosk_config: {
+              provisioning_code: newKiosk.provisioning_code,
+              kiosk_url_slug: newKiosk.slug,
+              is_provisioned: false
+            }
+          }
+        })
       }
     }
 
+    // Retourner avec les kiosks et maintenir kiosk_config pour compatibilité
+    const primaryKiosk = kiosks?.[0]
     return NextResponse.json({
       success: true,
-      data: gym
+      data: {
+        ...gym,
+        kiosks: kiosks || [],
+        kiosk_config: primaryKiosk ? {
+          provisioning_code: primaryKiosk.provisioning_code,
+          kiosk_url_slug: primaryKiosk.slug,
+          is_provisioned: primaryKiosk.status === 'online'
+        } : gym.kiosk_config
+      }
     })
 
   } catch (error) {
@@ -121,7 +165,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const { action } = await request.json()
+    const { action, kiosk_id } = await request.json()
     
     if (action !== 'regenerate_provisioning_code') {
       return NextResponse.json(
@@ -146,18 +190,32 @@ export async function POST(
       }
     )
 
-    // Récupérer la salle
-    const { data: gym, error: fetchError } = await supabase
-      .from('gyms')
+    // Récupérer les kiosks de la salle
+    const { data: kiosks, error: fetchError } = await supabase
+      .from('kiosks')
       .select('*')
-      .eq('id', id)
-      .single()
+      .eq('gym_id', id)
 
-    if (fetchError || !gym) {
+    if (fetchError || !kiosks || kiosks.length === 0) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Salle non trouvée' 
+          error: 'Aucun kiosk trouvé pour cette salle' 
+        },
+        { status: 404 }
+      )
+    }
+
+    // Si kiosk_id fourni, utiliser celui-là, sinon prendre le premier
+    const targetKiosk = kiosk_id 
+      ? kiosks.find(k => k.id === kiosk_id) 
+      : kiosks[0]
+
+    if (!targetKiosk) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Kiosk spécifié non trouvé' 
         },
         { status: 404 }
       )
@@ -165,23 +223,18 @@ export async function POST(
 
     // Générer un nouveau code
     const newProvisioningCode = generateProvisioningCode()
-    const updatedKioskConfig = {
-      ...gym.kiosk_config,
-      provisioning_code: newProvisioningCode,
-      provisioning_expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(), // 72h
-      installation_token: gym.kiosk_config?.installation_token || crypto.randomUUID(),
-      is_provisioned: false, // Reset du statut de provisioning
-      provisioned_at: null
-    }
 
-    // Mettre à jour en base
+    // Mettre à jour le kiosk (reset provisioning)
     const { error: updateError } = await supabase
-      .from('gyms')
-      .update({ kiosk_config: updatedKioskConfig })
-      .eq('id', id)
+      .from('kiosks')
+      .update({ 
+        provisioning_code: newProvisioningCode,
+        status: 'provisioning', // Reset status
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', targetKiosk.id)
 
     if (updateError) {
-      // Log supprimé pour production
       return NextResponse.json(
         { 
           success: false, 
@@ -191,19 +244,16 @@ export async function POST(
       )
     }
 
-    // Log supprimé pour production
-
     return NextResponse.json({
       success: true,
       data: {
-        provisioning_code: newProvisioningCode,
-        expires_at: updatedKioskConfig.provisioning_expires_at
+        kiosk_id: targetKiosk.id,
+        provisioning_code: newProvisioningCode
       },
       message: 'Code de provisioning régénéré avec succès'
     })
 
   } catch (error) {
-    // Log supprimé pour production
     return NextResponse.json(
       { 
         success: false, 

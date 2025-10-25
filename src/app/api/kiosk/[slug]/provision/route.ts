@@ -40,24 +40,26 @@ export async function POST(
     )
 
     // Vérifier que le kiosk existe
-    const { data: gym, error: gymError } = await supabase
-      .from('gyms')
-      .select('*')
-      .eq('kiosk_config->>kiosk_url_slug', slug)
+    const { data: kiosk, error: kioskError } = await supabase
+      .from('kiosks')
+      .select(`
+        *,
+        gyms!inner(id, name, status)
+      `)
+      .eq('slug', slug)
       .single()
 
-    if (gymError || !gym) {
-      // Log supprimé pour production
+    if (kioskError || !kiosk) {
       return NextResponse.json(
         { error: 'Kiosk non trouvé' },
         { status: 404 }
       )
     }
 
-    const kioskConfig = gym.kiosk_config as any
+    const gym = kiosk.gyms
 
     // Vérifier si déjà provisionné
-    if (kioskConfig?.is_provisioned) {
+    if (kiosk.status === 'online') {
       return NextResponse.json(
         { error: 'Kiosk déjà activé' },
         { status: 400 }
@@ -65,23 +67,11 @@ export async function POST(
     }
 
     // Valider le code de provisioning
-    if (kioskConfig?.provisioning_code !== provisioning_code) {
-      // Log supprimé pour production
+    if (kiosk.provisioning_code !== provisioning_code) {
       return NextResponse.json(
         { error: 'Code d\'activation invalide' },
         { status: 400 }
       )
-    }
-
-    // Vérifier l'expiration du code (72h)
-    if (kioskConfig?.provisioning_expires_at) {
-      const expiresAt = new Date(kioskConfig.provisioning_expires_at)
-      if (expiresAt < new Date()) {
-        return NextResponse.json(
-          { error: 'Code d\'activation expiré. Contactez votre administrateur.' },
-          { status: 400 }
-        )
-      }
     }
 
     // Actions selon le type de requête
@@ -98,35 +88,37 @@ export async function POST(
       // Finaliser le provisioning
       const now = new Date().toISOString()
       
-      const updatedConfig = {
-        ...kioskConfig,
-        is_provisioned: true,
-        provisioned_at: now,
-        last_heartbeat: now,
-        // Mettre à jour les infos matériel si fournies
+      // Préparer les infos hardware à merger
+      const updatedHardwareInfo = {
+        ...((kiosk.hardware_info as any) || {}),
         ...(hardware_info?.rfid_reader_id && { rfid_reader_id: hardware_info.rfid_reader_id }),
         ...(hardware_info?.screen_resolution && { screen_resolution: hardware_info.screen_resolution }),
         ...(hardware_info?.browser_info && { browser_info: hardware_info.browser_info }),
       }
 
-      // Mettre à jour en base
+      // Mettre à jour le kiosk
       const { error: updateError } = await supabase
-        .from('gyms')
+        .from('kiosks')
         .update({ 
-          kiosk_config: updatedConfig,
-          status: 'active' // Activer la salle
+          status: 'online',
+          last_heartbeat: now,
+          hardware_info: updatedHardwareInfo,
+          updated_at: now
         })
-        .eq('id', gym.id)
+        .eq('id', kiosk.id)
 
       if (updateError) {
-        // Log supprimé pour production
         return NextResponse.json(
           { error: 'Erreur lors de l\'activation' },
           { status: 500 }
         )
       }
 
-      // Log supprimé pour production
+      // Activer la salle si elle ne l'est pas déjà
+      await supabase
+        .from('gyms')
+        .update({ status: 'active' })
+        .eq('id', kiosk.gym_id)
 
       return NextResponse.json({ 
         success: true,

@@ -35,17 +35,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 🚀 RÉCUPÉRATION PROFIL MEMBRE (v2 avec modules)
+    // 🚀 RÉCUPÉRATION PROFIL MEMBRE via nouvelle table kiosks
     const supabase = getSupabaseService()
-    const { data: gym } = await supabase
-      .from('gyms')
-      .select('id')
-      .eq('kiosk_config->>kiosk_url_slug', gymSlug)
+    
+    // Chercher le kiosk par slug pour obtenir le gym_id
+    const { data: kiosk } = await supabase
+      .from('kiosks')
+      .select('id, gym_id, gyms!inner(id)')
+      .eq('slug', gymSlug)
       .single()
 
-    if (!gym) {
-      return NextResponse.json({ error: 'Salle non trouvée' }, { status: 404 })
+    if (!kiosk || !kiosk.gyms) {
+      return NextResponse.json({ error: 'Kiosk ou salle non trouvée' }, { status: 404 })
     }
+
+    const gym = { id: kiosk.gym_id }
 
     // Récupérer membre complet (core + fitness + preferences)
     const { data: memberProfile } = await supabase

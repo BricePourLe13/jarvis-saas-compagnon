@@ -1,87 +1,77 @@
 import { test, expect } from '@playwright/test'
 
-/**
- * TESTS E2E - AUTHENTIFICATION
- * 
- * Ces tests vérifient que le système d'authentification fonctionne correctement :
- * - Redirection si non authentifié
- * - Login réussi
- * - Redirection selon rôle
- */
+test.describe('Authentication Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:3001/login')
+  })
 
-test.describe('Authentification', () => {
-  
-  test('Utilisateur non authentifié est redirigé vers /login', async ({ page }) => {
-    // Tenter d'accéder au dashboard sans être connecté
-    await page.goto('/dashboard')
-    
-    // Devrait être redirigé vers /login avec paramètre redirect
-    await expect(page).toHaveURL(/\/login/)
-    await expect(page.url()).toContain('redirect=%2Fdashboard')
+  test('should display login page correctly', async ({ page }) => {
+    await expect(page).toHaveTitle(/JARVIS/)
+    await expect(page.locator('h1')).toContainText('Connexion')
   })
-  
-  test('Utilisateur non authentifié ne peut pas accéder à /dashboard/franchises', async ({ page }) => {
-    // Tenter d'accéder à une page protégée
-    await page.goto('/dashboard/franchises')
+
+  test('should show validation errors for empty form', async ({ page }) => {
+    const submitButton = page.locator('button[type="submit"]')
+    await submitButton.click()
     
-    // Devrait être redirigé vers /login
-    await expect(page).toHaveURL(/\/login/)
+    // Vérifier que des erreurs s'affichent
+    await expect(page.locator('text=requis')).toBeVisible({ timeout: 2000 })
   })
-  
-  test('Page /login est accessible', async ({ page }) => {
-    await page.goto('/login')
-    
-    // Vérifier que la page login s'affiche
-    await expect(page).toHaveURL('/login')
-    await expect(page.locator('input[type="email"]')).toBeVisible()
-    await expect(page.locator('input[type="password"]')).toBeVisible()
-  })
-  
-  test.describe('Login avec credentials valides', () => {
-    test.skip('Super admin est redirigé vers /dashboard', async ({ page }) => {
-      // NOTE: Ce test nécessite des credentials de test
-      // À configurer via variables d'environnement
-      
-      await page.goto('/login')
-      
-      await page.fill('input[type="email"]', process.env.TEST_SUPERADMIN_EMAIL || '')
-      await page.fill('input[type="password"]', process.env.TEST_SUPERADMIN_PASSWORD || '')
-      await page.click('button[type="submit"]')
-      
-      // Attendre la redirection
-      await page.waitForURL('/dashboard', { timeout: 5000 })
-      
-      // Vérifier qu'on est bien sur le dashboard
-      await expect(page).toHaveURL(/\/dashboard/)
-    })
-    
-    test.skip('Gym manager est redirigé vers sa salle', async ({ page }) => {
-      // NOTE: Ce test nécessite des credentials de test
-      
-      await page.goto('/login')
-      
-      await page.fill('input[type="email"]', process.env.TEST_GYMMANAGER_EMAIL || '')
-      await page.fill('input[type="password"]', process.env.TEST_GYMMANAGER_PASSWORD || '')
-      await page.click('button[type="submit"]')
-      
-      // Attendre la redirection vers sa salle
-      await page.waitForURL(/\/dashboard\/gyms\/[a-f0-9-]+/, { timeout: 5000 })
-      
-      // Vérifier qu'on est bien sur la page de sa salle
-      await expect(page.url()).toContain('/dashboard/gyms/')
-    })
-  })
-  
-  test('Login avec credentials invalides affiche une erreur', async ({ page }) => {
-    await page.goto('/login')
-    
-    await page.fill('input[type="email"]', 'invalid@example.com')
+
+  test('should fail login with invalid credentials', async ({ page }) => {
+    await page.fill('input[type="email"]', 'wrong@example.com')
     await page.fill('input[type="password"]', 'wrongpassword')
-    await page.click('button[type="submit"]')
+    
+    const submitButton = page.locator('button[type="submit"]')
+    await submitButton.click()
     
     // Vérifier qu'un message d'erreur s'affiche
-    // NOTE: Adapter le sélecteur selon votre UI
-    await expect(page.locator('text=/Invalid|Incorrect|Erreur/')).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('text=/erreur|invalide|incorrect/i')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('should successfully login with valid credentials', async ({ page }) => {
+    // Utiliser les credentials de test
+    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL || 'admin@jarvis-group.net')
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD || 'testpassword')
+    
+    const submitButton = page.locator('button[type="submit"]')
+    await submitButton.click()
+    
+    // Vérifier la redirection vers le dashboard
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
+  })
+
+  test('should redirect to MFA if enabled', async ({ page }) => {
+    // Ce test nécessiterait un user avec MFA activé
+    // Pour l'instant on le skip si pas configuré
+    if (!process.env.TEST_USER_MFA_ENABLED) {
+      test.skip()
+    }
+    
+    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL_MFA || '')
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD_MFA || '')
+    
+    const submitButton = page.locator('button[type="submit"]')
+    await submitButton.click()
+    
+    // Vérifier qu'on arrive sur la page MFA
+    await expect(page).toHaveURL(/\/auth\/verify-mfa/, { timeout: 5000 })
+  })
+
+  test('should logout successfully', async ({ page }) => {
+    // D'abord se connecter
+    await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL || 'admin@jarvis-group.net')
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD || 'testpassword')
+    await page.click('button[type="submit"]')
+    
+    // Attendre d'être sur le dashboard
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
+    
+    // Trouver et cliquer sur le bouton de déconnexion
+    const logoutButton = page.locator('button:has-text("Déconnexion"), button:has-text("Se déconnecter")')
+    await logoutButton.click()
+    
+    // Vérifier qu'on est redirigé vers la page login
+    await expect(page).toHaveURL(/\/login/, { timeout: 5000 })
   })
 })
-

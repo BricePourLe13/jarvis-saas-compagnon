@@ -13,34 +13,44 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSimpleClient()
+    const now = new Date().toISOString()
 
-    // Insérer ou mettre à jour le heartbeat
-    const { error } = await supabase
+    // 1. Update kiosk last_heartbeat dans la table kiosks (nouvelle table dédiée)
+    const { error: kioskError } = await supabase
+      .from('kiosks')
+      .update({
+        last_heartbeat: now,
+        status: 'online',
+        updated_at: now
+      })
+      .eq('slug', kioskSlug)
+      .eq('gym_id', gymId)
+
+    if (kioskError) {
+      return NextResponse.json(
+        { error: 'Erreur mise à jour kiosk' },
+        { status: 500 }
+      )
+    }
+
+    // 2. Maintenir kiosk_heartbeats pour compatibilité legacy (optionnel)
+    await supabase
       .from('kiosk_heartbeats')
       .upsert([{
         gym_id: gymId,
         kiosk_slug: kioskSlug,
-        last_heartbeat: new Date().toISOString(),
+        last_heartbeat: now,
         status: 'online'
       }], {
         onConflict: 'gym_id'
       })
 
-    if (error) {
-      // Log supprimé pour production
-      return NextResponse.json(
-        { error: 'Erreur serveur' },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json({ 
       success: true,
-      timestamp: new Date().toISOString()
+      timestamp: now
     })
 
   } catch (error) {
-    // Log supprimé pour production
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }
