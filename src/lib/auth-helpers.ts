@@ -159,23 +159,13 @@ export function canAccessResource(
 
 /**
  * Redirection selon le rôle de l'utilisateur
+ * ✅ NOUVELLE ARCHITECTURE CONTEXT-AWARE : Tous vers /dashboard
+ * Le ContextSwitcher gère automatiquement le filtrage selon le rôle
  */
 export function getDefaultRedirectForRole(user: AuthUser): string {
-  switch (user.role) {
-    case 'super_admin':
-      return '/dashboard' // Vue globale
-    case 'franchise_manager':
-      return user.franchise_id 
-        ? `/dashboard/franchises/${user.franchise_id}`
-        : '/dashboard'
-    case 'gym_manager':
-    case 'receptionist':
-      return user.gym_id 
-        ? `/dashboard/gyms/${user.gym_id}`
-        : '/dashboard'
-    default:
-      return '/dashboard'
-  }
+  // Tout le monde vers /dashboard (sera redirigé vers /dashboard/overview)
+  // Le GymContext Provider détecte automatiquement le rôle et filtre les données
+  return '/dashboard'
 }
 
 // ============================================================================
