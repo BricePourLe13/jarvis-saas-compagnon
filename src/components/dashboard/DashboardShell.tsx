@@ -108,7 +108,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
-      return pathname === '/dashboard' || pathname === '/dashboard/overview'
+      return pathname === '/dashboard'
     }
     return pathname.startsWith(href)
   }
