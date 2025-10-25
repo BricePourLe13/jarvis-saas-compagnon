@@ -36,7 +36,7 @@
   }
 
   .dark {
-    /* Backgrounds - Kestra Dark */
+    /* Backgrounds - JARVIS Dark (aligned with vitrine) */
     --background: 220 13% 13%;        /* #1a1d29 */
     --foreground: 210 40% 98%;        /* #f8fafc */
     
@@ -49,8 +49,8 @@
     --popover: 220 13% 18%;           /* #242837 */
     --popover-foreground: 210 40% 98%; /* #f8fafc */
     
-    /* Primary - Purple Accent (Kestra style) */
-    --primary: 262 83% 58%;           /* #8b5cf6 */
+    /* Primary - JARVIS Purple (aligned with vitrine #8B5CF6) */
+    --primary: 262 83% 58%;           /* #8b5cf6 - JARVIS brand */
     --primary-foreground: 210 40% 98%; /* #f8fafc */
     --primary-hover: 262 83% 65%;     /* #a78bfa */
     
