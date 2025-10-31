@@ -270,3 +270,4 @@ Si un job prend trop de temps (> 60s sur Vercel Free) :
 
 **🎯 Une fois configuré, les jobs s'exécutent automatiquement selon leur planning !**
 
+

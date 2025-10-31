@@ -5,12 +5,18 @@ import { cookies } from 'next/headers'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/dashboard/admin/gyms
- * Liste toutes les salles avec leurs stats
+ * GET /api/dashboard/admin/franchises/[id]
+ * Récupère les détails d'une franchise avec ses salles
  * Réservé aux super_admin
  */
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+    const resolvedParams = await params
+    const franchiseId = resolvedParams.id
+    
     const cookieStore = await cookies()
     
     const supabase = createServerClient(
@@ -50,28 +56,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé - Super admin requis' }, { status: 403 })
     }
 
-    // 4. Récupérer toutes les salles avec leurs franchises
+    // 4. Récupérer la franchise
+    const { data: franchise, error: franchiseError } = await supabase
+      .from('franchises')
+      .select('*')
+      .eq('id', franchiseId)
+      .single()
+
+    if (franchiseError || !franchise) {
+      return NextResponse.json({ error: 'Franchise introuvable' }, { status: 404 })
+    }
+
+    // 5. Récupérer les salles de la franchise
     const { data: gyms, error: gymsError } = await supabase
       .from('gyms')
-      .select(`
-        id,
-        name,
-        city,
-        address,
-        postal_code,
-        status,
-        franchise_id,
-        created_at,
-        franchises(id, name)
-      `)
-      .order('created_at', { ascending: false })
+      .select('id, name, city, status, created_at')
+      .eq('franchise_id', franchiseId)
+      .order('name')
 
     if (gymsError) {
       console.error('[API] Error fetching gyms:', gymsError)
       return NextResponse.json({ error: 'Erreur lors de la récupération des salles' }, { status: 500 })
     }
 
-    // 5. Pour chaque gym, récupérer le nombre de kiosks et membres
+    // 6. Pour chaque salle, compter membres et kiosks
     const gymsWithStats = await Promise.all(
       (gyms || []).map(async (gym: any) => {
         // Compter les kiosks
@@ -87,36 +95,20 @@ export async function GET(request: NextRequest) {
           .eq('gym_id', gym.id)
 
         return {
-          id: gym.id,
-          name: gym.name,
-          city: gym.city,
-          address: gym.address,
-          postal_code: gym.postal_code,
-          status: gym.status,
-          franchise_id: gym.franchise_id,
-          franchise_name: gym.franchises?.name,
+          ...gym,
           total_kiosks: kiosksCount || 0,
-          total_members: membersCount || 0,
-          created_at: gym.created_at
+          total_members: membersCount || 0
         }
       })
     )
 
-    // 6. Calculer métriques globales
-    const metrics = {
-      totalGyms: gymsWithStats.length,
-      activeGyms: gymsWithStats.filter(g => g.status === 'active').length,
-      suspendedGyms: gymsWithStats.filter(g => g.status === 'suspended').length,
-      totalMembers: gymsWithStats.reduce((sum, g) => sum + g.total_members, 0)
-    }
-
     return NextResponse.json({
-      gyms: gymsWithStats,
-      metrics
+      ...franchise,
+      gyms: gymsWithStats
     })
 
   } catch (error) {
-    console.error('[API] Unexpected error in GET /api/dashboard/admin/gyms:', error)
+    console.error('[API] Unexpected error in GET /api/dashboard/admin/franchises/[id]:', error)
     return NextResponse.json(
       { error: 'Erreur serveur' },
       { status: 500 }

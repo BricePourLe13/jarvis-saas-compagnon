@@ -156,3 +156,4 @@ COMMENT ON COLUMN kiosks.voice_model IS 'Modèle voix OpenAI (alloy, echo, fable
 COMMENT ON COLUMN kiosks.openai_model IS 'Modèle OpenAI Realtime API';
 COMMENT ON COLUMN kiosks.location_in_gym IS 'Emplacement physique dans la salle';
 
+

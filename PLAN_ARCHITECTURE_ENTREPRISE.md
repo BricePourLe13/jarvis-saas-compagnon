@@ -836,3 +836,4 @@ jobs:
 
 **ARCHITECTURE VIVANTE : Ce document évolue avec le projet. Mise à jour à chaque décision architecturale majeure.**
 
+
