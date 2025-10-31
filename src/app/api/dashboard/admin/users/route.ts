@@ -57,11 +57,11 @@ export async function GET(request: NextRequest) {
         id,
         email,
         role,
-        name,
-        is_mfa_enabled,
+        full_name,
+        mfa_enrolled,
         franchise_id,
         gym_id,
-        last_sign_in_at,
+        last_login,
         created_at,
         franchises(id, name),
         gyms(id, name)
@@ -78,23 +78,23 @@ export async function GET(request: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role,
-      name: user.name,
-      is_mfa_enabled: user.is_mfa_enabled,
+      name: user.full_name || user.email.split('@')[0],
+      is_mfa_enabled: user.mfa_enrolled || false,
       franchise_id: user.franchise_id,
       franchise_name: user.franchises?.name,
       gym_id: user.gym_id,
       gym_name: user.gyms?.name,
-      last_sign_in: user.last_sign_in_at || user.created_at,
+      last_sign_in: user.last_login || user.created_at,
       created_at: user.created_at
     }))
 
     // 6. Calculer métriques
     const metrics = {
       totalUsers: formattedUsers.length,
-      superAdmins: formattedUsers.filter(u => u.role === 'super_admin').length,
-      franchiseOwners: formattedUsers.filter(u => u.role === 'franchise_owner').length,
-      gymManagers: formattedUsers.filter(u => u.role === 'gym_manager').length,
-      mfaEnabled: formattedUsers.filter(u => u.is_mfa_enabled).length
+      superAdmins: formattedUsers.filter((u: any) => u.role === 'super_admin').length,
+      franchiseOwners: formattedUsers.filter((u: any) => u.role === 'franchise_owner').length,
+      gymManagers: formattedUsers.filter((u: any) => u.role === 'gym_manager').length,
+      mfaEnabled: formattedUsers.filter((u: any) => u.is_mfa_enabled).length
     }
 
     return NextResponse.json({
