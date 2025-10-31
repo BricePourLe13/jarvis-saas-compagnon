@@ -96,9 +96,9 @@ export default function Avatar3D({
     let nextBlinkDelay = 2000 + Math.random() * 3000
 
     const animate = (currentTime: number) => {
-      // Rotation toutes les 50ms (même vitesse visuelle)
-      if (currentTime - lastRotationTime > 50) {
-        setRotation(prev => prev + 0.1)
+      // Rotation optimisée toutes les 100ms (réduit la charge CPU)
+      if (currentTime - lastRotationTime > 100) {
+        setRotation(prev => prev + 0.15)
         lastRotationTime = currentTime
       }
 
@@ -431,14 +431,14 @@ export default function Avatar3D({
           position: 'relative',
           overflow: 'hidden',
           boxShadow: `
-            inset 0 0 100px rgba(255, 255, 255, 0.1),
-            inset 0 0 50px rgba(255, 255, 255, 0.05),
-            0 0 50px rgba(255, 255, 255, 0.1),
+            inset 0 0 60px rgba(255, 255, 255, 0.08),
+            inset 0 0 30px rgba(255, 255, 255, 0.04),
             0 20px 60px rgba(0, 0, 0, 0.3)
           `,
           backdropFilter: 'blur(1px)',
           willChange: 'transform',
-          transform: 'translate3d(0, 0, 0)'
+          transform: 'translate3d(0, 0, 0)',
+          isolation: 'isolate'
         }}
         animate={{
           scale: status === 'speaking' ? [1, 1.03, 1] : [1, 1.01, 1],
@@ -472,9 +472,11 @@ export default function Avatar3D({
             width: '35%',
             height: '45%',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.3) 40%, transparent 80%)',
-            filter: 'blur(8px)',
-            transform: 'rotate(-25deg)'
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 40%, transparent 80%)',
+            filter: 'blur(6px)',
+            transform: 'rotate(-25deg)',
+            willChange: 'transform, opacity',
+            zIndex: 1
           }}
           animate={{
             opacity: [0.6, 1, 0.6],
@@ -503,7 +505,7 @@ export default function Avatar3D({
             rotateZ: rotation * 0.3
           }}
         >
-          {/* Marbré couche 1 - Couleur chaude */}
+          {/* Marbré couche 1 - Couleur chaude (optimisée) */}
           <motion.div
             style={{
               position: 'absolute',
@@ -518,13 +520,15 @@ export default function Avatar3D({
                   transparent 70%)
               `,
               borderRadius: '50%',
-              filter: 'blur(20px)',
-              mixBlendMode: 'screen'
+              filter: 'blur(12px)',
+              mixBlendMode: 'screen',
+              willChange: 'transform',
+              transform: 'translate3d(0, 0, 0)'
             }}
             animate={{
               x: [0, 15, -10, 0],
               y: [0, -12, 15, 0],
-              scale: [1, 1.3, 0.8, 1],
+              scale: [1, 1.2, 0.9, 1],
               rotateZ: [0, 45, -30, 0]
             }}
             transition={{
@@ -534,7 +538,7 @@ export default function Avatar3D({
             }}
           />
 
-          {/* Marbré couche 2 - Couleur froide */}
+          {/* Marbré couche 2 - Couleur froide (optimisée) */}
           <motion.div
             style={{
               position: 'absolute',
@@ -549,13 +553,15 @@ export default function Avatar3D({
                   transparent 75%)
               `,
               borderRadius: '50%',
-              filter: 'blur(25px)',
-              mixBlendMode: 'multiply'
+              filter: 'blur(10px)',
+              mixBlendMode: 'multiply',
+              willChange: 'transform',
+              transform: 'translate3d(0, 0, 0)'
             }}
             animate={{
               x: [0, -20, 12, 0],
               y: [0, 18, -8, 0],
-              scale: [1, 0.7, 1.4, 1],
+              scale: [1, 0.8, 1.2, 1],
               rotateZ: [0, -60, 40, 0]
             }}
             transition={{
@@ -565,74 +571,10 @@ export default function Avatar3D({
               delay: 3
             }}
           />
-
-          {/* Marbré couche 3 - Accent mystérieux */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              bottom: '10%',
-              left: '25%',
-              width: '50%',
-              height: '60%',
-              background: `
-                radial-gradient(ellipse 60% 50%,
-                  ${colors.accent}60 0%,
-                  ${colors.warm}40 50%,
-                  transparent 80%)
-              `,
-              borderRadius: '50%',
-              filter: 'blur(18px)',
-              mixBlendMode: 'overlay'
-            }}
-            animate={{
-              x: [0, 18, -15, 0],
-              y: [0, -20, 10, 0],
-              scale: [1, 1.2, 0.9, 1],
-              rotateZ: [0, 30, -45, 0]
-            }}
-            transition={{
-              duration: 18,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 6
-            }}
-          />
-
-          {/* Marbré couche 4 - Fluide final */}
-          <motion.div
-            style={{
-              position: 'absolute',
-              top: '30%',
-              left: '30%',
-              width: '40%',
-              height: '40%',
-              background: `
-                radial-gradient(circle,
-                  ${colors.primary}50 0%,
-                  ${colors.secondary}30 60%,
-                  transparent 90%)
-              `,
-              borderRadius: '50%',
-              filter: 'blur(15px)',
-              mixBlendMode: 'soft-light'
-            }}
-            animate={{
-              x: [0, -8, 12, 0],
-              y: [0, 15, -10, 0],
-              scale: [1, 0.8, 1.3, 1],
-              rotateZ: [0, 90, -60, 0]
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 9
-            }}
-          />
         </motion.div>
 
         {/* 👁️ YEUX ANIMÉS QUI REGARDENT AUTOUR ET CLIGNENT */}
-        <div style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
           {(() => {
             const eyeWidthPx = Math.max(10, Math.round(size * 0.04 * eyeScale))
             const eyeHeightPx = Math.max(28, Math.round(size * 0.21 * eyeScale))
@@ -650,12 +592,12 @@ export default function Avatar3D({
                     background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
                     borderRadius: '3px',
                     boxShadow: `
-                      0 0 25px rgba(255, 255, 255, 0.9),
-                      0 0 50px rgba(255, 255, 255, 0.5),
-                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                      0 0 15px rgba(255, 255, 255, 0.7),
+                      0 0 30px rgba(255, 255, 255, 0.3),
+                      inset 0 0 8px rgba(255, 255, 255, 0.5)
                     `,
                     transform: 'translate(-50%, -50%)',
-                    filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
+                    willChange: 'transform, opacity'
                   }}
                   animate={{
                     scaleY: isBlinking ? 0.1 : 1,
@@ -663,9 +605,9 @@ export default function Avatar3D({
                     x: eyePosition.x * 1.0,
                     y: eyePosition.y * 0.8,
                     boxShadow: `
-                      0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
-                      0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
-                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                      0 0 ${status === 'speaking' ? '20px' : '15px'} rgba(255, 255, 255, 0.7),
+                      0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.3),
+                      inset 0 0 8px rgba(255, 255, 255, 0.5)
                     `
                   }}
                   transition={{
@@ -693,12 +635,12 @@ export default function Avatar3D({
                     background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.95) 100%)',
                     borderRadius: '3px',
                     boxShadow: `
-                      0 0 25px rgba(255, 255, 255, 0.9),
-                      0 0 50px rgba(255, 255, 255, 0.5),
-                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                      0 0 15px rgba(255, 255, 255, 0.7),
+                      0 0 30px rgba(255, 255, 255, 0.3),
+                      inset 0 0 8px rgba(255, 255, 255, 0.5)
                     `,
                     transform: 'translate(-50%, -50%)',
-                    filter: 'drop-shadow(0 0 12px rgba(255, 255, 255, 0.8))'
+                    willChange: 'transform, opacity'
                   }}
                   animate={{
                     scaleY: isBlinking ? 0.1 : 1,
@@ -706,9 +648,9 @@ export default function Avatar3D({
                     x: eyePosition.x * 1.0,
                     y: eyePosition.y * 0.8,
                     boxShadow: `
-                      0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.9),
-                      0 0 ${status === 'speaking' ? '60px' : '50px'} rgba(255, 255, 255, 0.5),
-                      inset 0 0 10px rgba(255, 255, 255, 0.7)
+                      0 0 ${status === 'speaking' ? '20px' : '15px'} rgba(255, 255, 255, 0.7),
+                      0 0 ${status === 'speaking' ? '35px' : '25px'} rgba(255, 255, 255, 0.3),
+                      inset 0 0 8px rgba(255, 255, 255, 0.5)
                     `
                   }}
                   transition={{
@@ -730,24 +672,25 @@ export default function Avatar3D({
           })()}
         </div>
 
-        {/* ✨ PARTICULES LUMINEUSES MYSTÉRIEUSES */}
+        {/* ✨ PARTICULES LUMINEUSES MYSTÉRIEUSES (optimisées - réduites) */}
         <motion.div
           style={{
             position: 'absolute',
             inset: '20%',
-            opacity: 0.7
+            opacity: 0.6,
+            willChange: 'transform',
+            zIndex: 0
           }}
           animate={{
             rotateZ: rotation * 0.1
           }}
         >
           {[
-            { left: '15%', top: '20%', size: 1.5, delay: 0, color: colors.primary },
-            { left: '85%', top: '25%', size: 1, delay: 1.5, color: colors.secondary },
-            { left: '25%', top: '85%', size: 1.2, delay: 3, color: colors.accent },
-            // Particule en bas à droite supprimée pour éviter la lueur
-            { left: '50%', top: '15%', size: 0.8, delay: 6, color: colors.primary },
-            { left: '10%', top: '60%', size: 1.1, delay: 7.5, color: colors.secondary }
+            { left: '15%', top: '20%', size: 1.2, delay: 0, color: colors.primary, x: 2, y: -3 },
+            { left: '85%', top: '25%', size: 0.8, delay: 1.5, color: colors.secondary, x: -3, y: 2 },
+            { left: '25%', top: '85%', size: 1, delay: 3, color: colors.accent, x: 4, y: -2 },
+            { left: '50%', top: '15%', size: 0.7, delay: 6, color: colors.primary, x: -2, y: 3 },
+            { left: '10%', top: '60%', size: 0.9, delay: 7.5, color: colors.secondary, x: 3, y: 1 }
           ].map((particle, i) => (
             <motion.div
               key={i}
@@ -758,14 +701,15 @@ export default function Avatar3D({
                 width: `${particle.size}px`,
                 height: `${particle.size}px`,
                 borderRadius: '50%',
-                background: `${particle.color}80`,
-                boxShadow: `0 0 8px ${particle.color}60`
+                background: `${particle.color}70`,
+                boxShadow: `0 0 6px ${particle.color}40`,
+                willChange: 'transform, opacity'
               }}
               animate={{
-                opacity: [0.2, 0.9, 0.2],
-                scale: [0.3, 1.5, 0.3],
-                x: [0, Math.random() * 10 - 5, 0],
-                y: [0, Math.random() * 10 - 5, 0]
+                opacity: [0.2, 0.7, 0.2],
+                scale: [0.5, 1.2, 0.5],
+                x: [0, particle.x, 0],
+                y: [0, particle.y, 0]
               }}
               transition={{
                 duration: 5 + particle.delay,
