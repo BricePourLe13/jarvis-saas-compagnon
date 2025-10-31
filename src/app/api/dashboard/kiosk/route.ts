@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/dashboard/kiosk
- * Récupère la liste des kiosks avec filtrage selon le rôle utilisateur
+ * Liste tous les kiosks accessibles selon le rôle et les permissions
  */
 export async function GET(request: NextRequest) {
   try {
@@ -44,10 +44,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profil utilisateur introuvable' }, { status: 404 })
     }
 
-    // 3. Construire la query avec filtrage RLS
+    // 3. Récupérer les paramètres de filtrage
     const { searchParams } = new URL(request.url)
     const gymIdFilter = searchParams.get('gym_id')
 
+    // 4. Construire la requête selon le rôle
     let query = supabase
       .from('kiosks')
       .select(`
@@ -57,32 +58,59 @@ export async function GET(request: NextRequest) {
         name,
         status,
         last_heartbeat,
-        version,
-        device_info,
-        gyms!inner(id, name)
+        software_version,
+        device_id,
+        hardware_info,
+        gyms!inner(
+          id,
+          name
+        )
       `)
-      .order('name', { ascending: true })
+      .order('created_at', { ascending: false })
 
-    // Filtrage selon le rôle
-    if (userProfile.role === 'gym_manager' && userProfile.gym_id) {
-      // Gym manager: voir uniquement les kiosks de sa salle
+    // Filtrer selon le rôle
+    if (userProfile.role === 'gym_manager') {
+      if (!userProfile.gym_id) {
+        return NextResponse.json({ 
+          kiosks: [], 
+          metrics: {
+            totalKiosks: 0,
+            onlineKiosks: 0,
+            offlineKiosks: 0,
+            errorKiosks: 0,
+            avgUptime: 0
+          }
+        })
+      }
       query = query.eq('gym_id', userProfile.gym_id)
-    } else if (userProfile.role === 'franchise_owner' && userProfile.franchise_id) {
-      // Franchise owner: voir les kiosks de toutes ses salles
-      query = query.eq('gyms.franchise_id', userProfile.franchise_id)
+    } else if (userProfile.role === 'franchise_owner') {
+      // Récupérer les gyms de la franchise
+      const { data: franchiseGyms } = await supabase
+        .from('gyms')
+        .select('id')
+        .eq('franchise_id', userProfile.franchise_id)
       
-      // Si un gym_id spécifique est demandé, le filtrer
-      if (gymIdFilter) {
-        query = query.eq('gym_id', gymIdFilter)
+      if (franchiseGyms && franchiseGyms.length > 0) {
+        const gymIds = franchiseGyms.map(g => g.id)
+        query = query.in('gym_id', gymIds)
+      } else {
+        return NextResponse.json({ 
+          kiosks: [], 
+          metrics: {
+            totalKiosks: 0,
+            onlineKiosks: 0,
+            offlineKiosks: 0,
+            errorKiosks: 0,
+            avgUptime: 0
+          }
+        })
       }
-    } else if (userProfile.role === 'super_admin') {
-      // Super admin: voir tous les kiosks (avec filtre optionnel)
-      if (gymIdFilter) {
-        query = query.eq('gym_id', gymIdFilter)
-      }
-    } else {
-      // Autres rôles: pas d'accès
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+    // super_admin voit tous les kiosks
+
+    // Appliquer le filtre gym_id si fourni
+    if (gymIdFilter && gymIdFilter !== 'all') {
+      query = query.eq('gym_id', gymIdFilter)
     }
 
     const { data: kiosks, error: kiosksError } = await query
@@ -92,38 +120,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des kiosks' }, { status: 500 })
     }
 
-    // 4. Formatter les données
-    const formattedKiosks = (kiosks || []).map((k: any) => ({
-      id: k.id,
-      gym_id: k.gym_id,
-      gym_name: k.gyms?.name || 'N/A',
-      slug: k.slug,
-      name: k.name,
-      status: k.status || 'offline',
-      last_heartbeat: k.last_heartbeat,
-      version: k.version,
-      device_info: k.device_info
+    // 5. Formater les kiosks
+    const formattedKiosks = (kiosks || []).map((kiosk: any) => ({
+      id: kiosk.id,
+      gym_id: kiosk.gym_id,
+      gym_name: kiosk.gyms?.name || 'N/A',
+      slug: kiosk.slug,
+      name: kiosk.name,
+      status: kiosk.status,
+      last_heartbeat: kiosk.last_heartbeat,
+      version: kiosk.software_version,
+      device_info: kiosk.hardware_info
     }))
 
-    // 5. Calculer les métriques
-    const totalKiosks = formattedKiosks.length
-    const onlineKiosks = formattedKiosks.filter(k => k.status === 'online').length
-    const offlineKiosks = formattedKiosks.filter(k => k.status === 'offline').length
-    const errorKiosks = formattedKiosks.filter(k => k.status === 'error').length
-    
-    // Uptime moyen (estimation basée sur les kiosks online)
-    const avgUptime = totalKiosks > 0 ? (onlineKiosks / totalKiosks) * 100 : 0
+    // 6. Calculer métriques
+    const metrics = {
+      totalKiosks: formattedKiosks.length,
+      onlineKiosks: formattedKiosks.filter((k: any) => k.status === 'online').length,
+      offlineKiosks: formattedKiosks.filter((k: any) => k.status === 'offline').length,
+      errorKiosks: formattedKiosks.filter((k: any) => k.status === 'error').length,
+      avgUptime: formattedKiosks.length > 0 
+        ? (formattedKiosks.filter((k: any) => k.status === 'online').length / formattedKiosks.length) * 100 
+        : 0
+    }
 
     return NextResponse.json({
       kiosks: formattedKiosks,
-      metrics: {
-        totalKiosks,
-        onlineKiosks,
-        offlineKiosks,
-        errorKiosks,
-        avgUptime
-      }
+      metrics
     })
+
   } catch (error) {
     console.error('[API] Unexpected error in GET /api/dashboard/kiosk:', error)
     return NextResponse.json(
@@ -132,4 +157,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-

@@ -78,6 +78,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       title: "Administration",
       items: [
         { label: "Franchises", href: "/dashboard/admin/franchises", icon: Building2 },
+        { label: "Salles", href: "/dashboard/admin/gyms", icon: Building2 },
         { label: "Utilisateurs", href: "/dashboard/admin/users", icon: UserCog },
         { label: "Monitoring", href: "/dashboard/admin/monitoring", icon: Activity },
         { label: "Logs", href: "/dashboard/admin/logs", icon: FileText },
