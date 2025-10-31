@@ -523,23 +523,7 @@ export default function LandingClientOptimizedPage() {
                   >
                     {/* Container de la sphère avec dimensions optimisées */}
                     <div className="w-80 h-80 2xl:w-[360px] 2xl:h-[360px] flex items-center justify-center relative">
-                      {/* Glow effect du kiosk - Radial gradient animé */}
-                      <motion.div
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] rounded-full pointer-events-none"
-                        style={{
-                          background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 45%, rgba(0,0,0,0) 70%)',
-                          filter: 'blur(6px)'
-                        }}
-                        animate={{ 
-                          opacity: [0.7, 0.9, 0.7], 
-                          scale: [1, 1.02, 1] 
-                        }}
-                        transition={{ 
-                          duration: 6, 
-                          repeat: Infinity, 
-                          ease: "easeInOut" 
-                        }}
-                      />
+                      {/* Glow effect supprimé pour éliminer la lueur blanche indésirable */}
                       
                       {/* Avatar JARVIS */}
                       <motion.div
@@ -566,23 +550,7 @@ export default function LandingClientOptimizedPage() {
                   >
                     {/* Container de la sphère mobile - petite taille */}
                     <div className="w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center relative">
-                      {/* Glow effect subtil */}
-                      <motion.div
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 rounded-full pointer-events-none"
-                        style={{
-                          background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 45%, rgba(0,0,0,0) 70%)',
-                          filter: 'blur(4px)'
-                        }}
-                        animate={{ 
-                          opacity: [0.6, 0.8, 0.6], 
-                          scale: [1, 1.02, 1] 
-                        }}
-                        transition={{ 
-                          duration: 6, 
-                          repeat: Infinity, 
-                          ease: "easeInOut" 
-                        }}
-                      />
+                      {/* Glow effect supprimé pour éliminer la lueur blanche */}
                       
                       {/* Avatar JARVIS mobile */}
                       <motion.div
