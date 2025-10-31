@@ -459,10 +459,10 @@ export default function LandingClientOptimizedPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="text-center hidden lg:block mb-8"
+                      className="text-center hidden lg:block"
                     >
                       <motion.p 
-                        className="text-white/90 text-lg font-light tracking-[0.15em] uppercase mb-8 hidden lg:block"
+                        className="text-white/90 text-lg font-light tracking-[0.15em] uppercase mb-8"
                         style={{
                           letterSpacing: '0.15em',
                           textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
