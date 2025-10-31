@@ -36,14 +36,14 @@
   }
 
   .dark {
-    /* Backgrounds - JARVIS Dark (aligned with vitrine) */
-    --background: 220 13% 13%;        /* #1a1d29 */
-    --foreground: 210 40% 98%;        /* #f8fafc */
+    /* Backgrounds - JARVIS Dark (pure black like landing) */
+    --background: 0 0% 0%;            /* #000000 - Pure black */
+    --foreground: 0 0% 100%;          /* #ffffff - Pure white */
     
-    /* Cards */
-    --card: 220 13% 18%;              /* #242837 */
-    --card-foreground: 210 40% 98%;   /* #f8fafc */
-    --card-hover: 220 13% 20%;        /* #282d3f */
+    /* Cards - Glassmorphism effect */
+    --card: 0 0% 8%;                  /* #141414 - Very dark with transparency */
+    --card-foreground: 0 0% 100%;     /* #ffffff */
+    --card-hover: 0 0% 12%;           /* #1f1f1f */
     
     /* Popover */
     --popover: 220 13% 18%;           /* #242837 */
@@ -55,12 +55,12 @@
     --primary-hover: 262 83% 65%;     /* #a78bfa */
     
     /* Secondary */
-    --secondary: 220 13% 23%;         /* #2d3142 */
-    --secondary-foreground: 210 40% 98%; /* #f8fafc */
+    --secondary: 0 0% 10%;            /* #1a1a1a */
+    --secondary-foreground: 0 0% 100%; /* #ffffff */
     
     /* Muted */
-    --muted: 220 13% 30%;             /* #3a3f50 */
-    --muted-foreground: 215 20% 65%;  /* #94a3b8 */
+    --muted: 0 0% 15%;                /* #262626 */
+    --muted-foreground: 0 0% 65%;     /* #a6a6a6 */
     
     /* Accent */
     --accent: 262 90% 70%;            /* #a78bfa */
@@ -81,9 +81,9 @@
     /* Info */
     --info: 199 89% 48%;              /* #0ea5e9 */
     
-    /* Borders */
-    --border: 220 13% 25%;            /* #32364a */
-    --input: 220 13% 25%;             /* #32364a */
+    /* Borders - Subtle with violet tint */
+    --border: 262 20% 20%;            /* #2a2240 - Dark violet */
+    --input: 262 20% 20%;             /* #2a2240 */
     
     /* Ring */
     --ring: 262 83% 58%;              /* #8b5cf6 */
@@ -127,17 +127,21 @@
    ============================================================================ */
 
 @layer components {
-  /* Card Variants */
+  /* Card Variants - Glassmorphism like landing */
   .card-gradient {
-    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.6) 0%, rgba(30, 30, 30, 0.4) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(139, 92, 246, 0.1);
   }
   
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-lg;
+    @apply transition-all duration-200;
   }
   
   .card-hover:hover {
-    background-color: hsl(var(--card-hover));
+    background: rgba(30, 30, 30, 0.7);
+    border-color: rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
   }
   
   /* KPI Card */

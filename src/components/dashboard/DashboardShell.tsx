@@ -133,15 +133,18 @@ export function DashboardShell({ children }: DashboardShellProps) {
       <aside
         className={`fixed top-0 left-0 z-40 h-screen transition-transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } bg-card border-r border-border w-64`}
+        } bg-black/40 backdrop-blur-xl border-r border-primary/10 w-64`}
       >
         {/* Logo / Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">J</span>
+            <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-primary via-purple-600 to-primary animate-pulse">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/50 to-transparent blur-md"></div>
+              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-primary to-purple-700 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-white/90"></div>
+              </div>
             </div>
-            <span className="font-bold text-foreground">JARVIS</span>
+            <span className="font-bold text-foreground tracking-wide">JARVIS</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -167,7 +170,11 @@ export function DashboardShell({ children }: DashboardShellProps) {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`sidebar-item ${active ? 'sidebar-item-active' : ''}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
+                        active 
+                          ? 'bg-primary/20 text-primary border border-primary/30' 
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
                     >
                       <Icon className="w-5 h-5" />
                       <span className="text-sm font-medium">{item.label}</span>
@@ -225,10 +232,10 @@ export function DashboardShell({ children }: DashboardShellProps) {
       {/* Main Content */}
       <div className={`transition-all ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
         {/* Header */}
-        <header className="dashboard-header sticky top-0 z-30 h-16 flex items-center justify-between px-6">
+        <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-6 bg-black/20 backdrop-blur-xl border-b border-primary/10">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-gray-400 hover:text-white transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
