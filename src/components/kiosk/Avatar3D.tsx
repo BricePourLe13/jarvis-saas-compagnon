@@ -489,30 +489,7 @@ export default function Avatar3D({
           }}
         />
 
-        {/* Reflet secondaire */}
-        <motion.div
-          style={{
-            position: 'absolute',
-            top: '60%',
-            right: '20%',
-            width: '25%',
-            height: '30%',
-            borderRadius: '50%',
-            background: 'linear-gradient(45deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 60%, transparent 100%)',
-            filter: 'blur(6px)',
-            transform: 'rotate(15deg)'
-          }}
-          animate={{
-            opacity: [0.3, 0.7, 0.3],
-            scale: [1, 1.05, 1]
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }}
-        />
+        {/* Reflet secondaire - supprimé pour éviter la lueur en bas à droite */}
 
         {/* 🎨 EFFET MARBRÉ INTÉRIEUR - COULEURS CHAUDES ET FROIDES */}
         <motion.div
@@ -768,7 +745,7 @@ export default function Avatar3D({
             { left: '15%', top: '20%', size: 1.5, delay: 0, color: colors.primary },
             { left: '85%', top: '25%', size: 1, delay: 1.5, color: colors.secondary },
             { left: '25%', top: '85%', size: 1.2, delay: 3, color: colors.accent },
-            { left: '75%', top: '80%', size: 1, delay: 4.5, color: colors.warm },
+            // Particule en bas à droite supprimée pour éviter la lueur
             { left: '50%', top: '15%', size: 0.8, delay: 6, color: colors.primary },
             { left: '10%', top: '60%', size: 1.1, delay: 7.5, color: colors.secondary }
           ].map((particle, i) => (
