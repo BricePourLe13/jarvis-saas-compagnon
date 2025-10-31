@@ -319,9 +319,9 @@ export default function LandingClientOptimizedPage() {
         </div>
       </header>
 
-      {/* 🎯 BACKGROUND EFFECTS - Désactivé sur mobile pour performance */}
+      {/* 🎯 BACKGROUND EFFECTS FIXES - Fond étoilé sur toute la page */}
       {!isMobile && (
-        <>
+        <div className="fixed inset-0 -z-10 pointer-events-none">
           <ShootingStars 
             minSpeed={8}
             maxSpeed={20}
@@ -339,7 +339,7 @@ export default function LandingClientOptimizedPage() {
             minTwinkleSpeed={0.8}
             maxTwinkleSpeed={2}
           />
-        </>
+        </div>
       )}
 
       {/* 🎯 FLOATING NAVIGATION */}
@@ -462,12 +462,17 @@ export default function LandingClientOptimizedPage() {
                       className="text-center hidden lg:block mb-8"
                     >
                       <motion.p 
-                        className="text-white/80 text-base font-light tracking-wide"
+                        className="text-white/90 text-lg font-light tracking-[0.15em] uppercase mb-8 hidden lg:block"
+                        style={{
+                          letterSpacing: '0.15em',
+                          textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                          fontWeight: 300
+                        }}
                         animate={{ 
-                          opacity: [0.6, 0.85, 0.6]
+                          opacity: [0.7, 0.95, 0.7]
                         }}
                         transition={{ 
-                          duration: 4, 
+                          duration: 3, 
                           repeat: Infinity,
                           ease: "easeInOut"
                         }}
@@ -574,12 +579,17 @@ export default function LandingClientOptimizedPage() {
                     {/* Texte d'instruction mobile (en dessous de la sphère) */}
                     {!isVoiceActive && (
                       <motion.p 
-                        className="text-white/70 text-sm font-light tracking-wide text-center mt-4"
+                        className="text-white/90 text-base font-light tracking-[0.12em] uppercase text-center mt-4 lg:hidden"
+                        style={{
+                          letterSpacing: '0.12em',
+                          textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                          fontWeight: 300
+                        }}
                         animate={{ 
-                          opacity: [0.5, 0.8, 0.5]
+                          opacity: [0.7, 0.95, 0.7]
                         }}
                         transition={{ 
-                          duration: 4, 
+                          duration: 3, 
                           repeat: Infinity,
                           ease: "easeInOut"
                         }}

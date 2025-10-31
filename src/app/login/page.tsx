@@ -5,6 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import JarvisAvatar from '@/components/common/JarvisAvatar'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
 
+// Style pour forcer les champs à rester blancs même avec autofill
+const inputStyles = `
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #111827 !important;
+    box-shadow: 0 0 0 30px white inset !important;
+  }
+`
+
 let createClient: any = null
 async function loadSupabaseClient() {
   if (!createClient) {
@@ -364,6 +376,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <style dangerouslySetInnerHTML={{ __html: inputStyles }} />
       <div className="grid grid-cols-1 lg:grid-cols-2 h-screen">
         {/* Côté gauche - Avatar JARVIS */}
         <div className="hidden lg:block">
@@ -452,7 +465,11 @@ export default function LoginPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="nom@entreprise.com"
-                      className="w-full bg-white border border-gray-300 rounded-xl h-[50px] px-4 text-[15px] text-gray-900 placeholder-gray-400"
+                      className="w-full bg-white border border-gray-300 rounded-xl h-[50px] px-4 text-[15px] text-gray-900 placeholder-gray-400 focus:bg-white focus:border-gray-400"
+                      style={{ 
+                        backgroundColor: '#ffffff',
+                        WebkitTextFillColor: '#111827'
+                      }}
                       autoComplete="off"
                       autoFocus={false}
                       name="email_field_unique"
@@ -469,7 +486,11 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-white border border-gray-300 rounded-xl h-[50px] px-4 text-[15px] text-gray-900 placeholder-gray-400"
+                      className="w-full bg-white border border-gray-300 rounded-xl h-[50px] px-4 text-[15px] text-gray-900 placeholder-gray-400 focus:bg-white focus:border-gray-400"
+                      style={{ 
+                        backgroundColor: '#ffffff',
+                        WebkitTextFillColor: '#111827'
+                      }}
                       autoComplete="new-password"
                       name="password_field_unique"
                       required
@@ -493,7 +514,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-[50px] bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-[15px] transition-all duration-200 relative overflow-hidden disabled:opacity-70"
+                    className="w-full h-[50px] bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-semibold text-[15px] transition-all duration-200 relative overflow-hidden disabled:opacity-70"
                   >
                     {loading ? (
                       success ? (
