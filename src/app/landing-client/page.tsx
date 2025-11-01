@@ -287,7 +287,7 @@ export default function LandingClientOptimizedPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="relative min-h-screen bg-black text-white overflow-x-hidden">
       
       {/* 🎯 HEADER NAVIGATION */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
@@ -321,7 +321,7 @@ export default function LandingClientOptimizedPage() {
 
       {/* 🎯 BACKGROUND EFFECTS FIXES - Fond étoilé fixe au scroll */}
       {!isMobile && (
-        <div className="fixed inset-0 -z-10 pointer-events-none">
+        <div className="fixed inset-0 z-0 pointer-events-none">
           <StarsBackground
             starDensity={0.0001}
             allStarsTwinkle={true}
