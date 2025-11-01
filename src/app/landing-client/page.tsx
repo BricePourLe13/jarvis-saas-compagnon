@@ -321,7 +321,14 @@ export default function LandingClientOptimizedPage() {
 
       {/* 🎯 BACKGROUND EFFECTS FIXES - Fond étoilé sur toute la page */}
       {!isMobile && (
-        <div className="fixed inset-0 -z-10 pointer-events-none">
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <StarsBackground 
+            starDensity={0.0001}
+            allStarsTwinkle={true}
+            twinkleProbability={0.6}
+            minTwinkleSpeed={0.8}
+            maxTwinkleSpeed={2}
+          />
           <ShootingStars 
             minSpeed={8}
             maxSpeed={20}
@@ -331,13 +338,6 @@ export default function LandingClientOptimizedPage() {
             trailColor="#CCCCCC"
             starWidth={6}
             starHeight={1}
-          />
-          <StarsBackground 
-            starDensity={0.0001}
-            allStarsTwinkle={true}
-            twinkleProbability={0.6}
-            minTwinkleSpeed={0.8}
-            maxTwinkleSpeed={2}
           />
         </div>
       )}
