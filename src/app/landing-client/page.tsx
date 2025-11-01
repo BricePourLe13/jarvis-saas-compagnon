@@ -319,17 +319,10 @@ export default function LandingClientOptimizedPage() {
         </div>
       </header>
 
-      {/* 🎯 BACKGROUND EFFECTS FIXES - Fond étoilé sur toute la page */}
+      {/* 🎯 BACKGROUND EFFECTS - Désactivé sur mobile pour performance */}
       {!isMobile && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <StarsBackground 
-            starDensity={0.0001}
-            allStarsTwinkle={true}
-            twinkleProbability={0.6}
-            minTwinkleSpeed={0.8}
-            maxTwinkleSpeed={2}
-          />
-          <ShootingStars 
+        <>
+          <ShootingStars
             minSpeed={8}
             maxSpeed={20}
             minDelay={4000}
@@ -339,7 +332,14 @@ export default function LandingClientOptimizedPage() {
             starWidth={6}
             starHeight={1}
           />
-        </div>
+          <StarsBackground
+            starDensity={0.0001}
+            allStarsTwinkle={true}
+            twinkleProbability={0.6}
+            minTwinkleSpeed={0.8}
+            maxTwinkleSpeed={2}
+          />
+        </>
       )}
 
       {/* 🎯 FLOATING NAVIGATION */}
