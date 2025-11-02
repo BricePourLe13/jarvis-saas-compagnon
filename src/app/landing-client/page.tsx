@@ -321,24 +321,26 @@ export default function LandingClientOptimizedPage() {
 
       {/* 🎯 BACKGROUND EFFECTS FIXES - Fond étoilé fixe au scroll */}
       {!isMobile && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none' }}>
-          <StarsBackground
-            starDensity={0.0001}
-            allStarsTwinkle={true}
-            twinkleProbability={0.6}
-            minTwinkleSpeed={0.8}
-            maxTwinkleSpeed={2}
-          />
-          <ShootingStars
-            minSpeed={8}
-            maxSpeed={20}
-            minDelay={4000}
-            maxDelay={10000}
-            starColor="#FFFFFF"
-            trailColor="#CCCCCC"
-            starWidth={6}
-            starHeight={1}
-          />
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="relative w-full h-full">
+            <StarsBackground
+              starDensity={0.0001}
+              allStarsTwinkle={true}
+              twinkleProbability={0.6}
+              minTwinkleSpeed={0.8}
+              maxTwinkleSpeed={2}
+            />
+            <ShootingStars
+              minSpeed={8}
+              maxSpeed={20}
+              minDelay={4000}
+              maxDelay={10000}
+              starColor="#FFFFFF"
+              trailColor="#CCCCCC"
+              starWidth={6}
+              starHeight={1}
+            />
+          </div>
         </div>
       )}
 
@@ -372,7 +374,7 @@ export default function LandingClientOptimizedPage() {
       </div>
 
       {/* 🎯 SECTION 1: HERO IMPACT */}
-      <section id="hero" className="relative min-h-screen flex items-start lg:items-center pt-24 pb-32 md:pt-32 lg:pt-16 lg:pb-0">
+      <section id="hero" className="relative z-10 min-h-screen flex items-start lg:items-center pt-24 pb-32 md:pt-32 lg:pt-16 lg:pb-0">
         <div className="w-full max-w-7xl mx-auto px-6 sm:px-6 md:px-8 lg:px-10 grid grid-cols-1 lg:grid-cols-2 gap-20 md:gap-24 lg:gap-16 items-center">
           
           {/* Hero Content */}
@@ -643,7 +645,7 @@ export default function LandingClientOptimizedPage() {
 
 
       {/* 🎯 SECTION 3: PROBLÈMES (Pain Points) */}
-      <section id="problems" className="relative py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+      <section id="problems" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
@@ -724,7 +726,7 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 3: SOLUTION - DÉMONSTRATION INTERACTIVE */}
-      <section id="solution" className="relative py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-black">
+      <section id="solution" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-black">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
@@ -983,7 +985,7 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 4: PROCESS - 3 ÉTAPES */}
-      <section id="process" className="relative py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+      <section id="process" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
@@ -1076,7 +1078,7 @@ export default function LandingClientOptimizedPage() {
 
 
       {/* 🎯 SECTION 5: PROGRAMME PILOTE + À PROPOS + CONTACT (FUSIONNÉE) */}
-      <section id="results" className="relative py-12 md:py-16 lg:py-20 bg-black">
+      <section id="results" className="relative z-10 py-12 md:py-16 lg:py-20 bg-black">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           
           {/* SOUS-SECTION 1: Programme Pilote */}
