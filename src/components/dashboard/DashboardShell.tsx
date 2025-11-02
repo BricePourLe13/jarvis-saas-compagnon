@@ -133,14 +133,14 @@ export function DashboardShell({ children }: DashboardShellProps) {
       <aside
         className={`fixed top-0 left-0 z-40 h-screen transition-transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } bg-black/40 backdrop-blur-xl border-r border-primary/10 w-64`}
+        } bg-black/60 backdrop-blur-xl border-r border-white/5 w-64`}
       >
         {/* Logo / Header */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-primary via-purple-600 to-primary animate-pulse">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/50 to-transparent blur-md"></div>
-              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-primary to-purple-700 flex items-center justify-center">
+            <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 via-gray-600 to-gray-700 animate-pulse">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-gray-600/50 to-transparent blur-md"></div>
+              <div className="absolute inset-1 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
                 <div className="w-2 h-2 rounded-full bg-white/90"></div>
               </div>
             </div>
@@ -172,8 +172,8 @@ export function DashboardShell({ children }: DashboardShellProps) {
                       href={item.href}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                         active 
-                          ? 'bg-primary/20 text-primary border border-primary/30' 
-                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          ? 'bg-white/10 text-white border border-white/20' 
+                          : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                       }`}
                     >
                       <Icon className="w-5 h-5" />
@@ -232,7 +232,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       {/* Main Content */}
       <div className={`transition-all ${sidebarOpen ? 'lg:ml-64' : 'ml-0'}`}>
         {/* Header */}
-        <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-6 bg-black/20 backdrop-blur-xl border-b border-primary/10">
+        <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-6 bg-black/30 backdrop-blur-xl border-b border-white/5">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="text-gray-400 hover:text-white transition-colors"

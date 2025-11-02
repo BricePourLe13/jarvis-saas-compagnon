@@ -36,35 +36,35 @@
   }
 
   .dark {
-    /* Backgrounds - JARVIS Dark (pure black like landing) */
+    /* Backgrounds - Pure monochrome */
     --background: 0 0% 0%;            /* #000000 - Pure black */
     --foreground: 0 0% 100%;          /* #ffffff - Pure white */
     
-    /* Cards - Glassmorphism effect */
-    --card: 0 0% 8%;                  /* #141414 - Very dark with transparency */
-    --card-foreground: 0 0% 100%;     /* #ffffff */
-    --card-hover: 0 0% 12%;           /* #1f1f1f */
+    /* Cards - Subtle gray glassmorphism */
+    --card: 0 0% 7%;                  /* #121212 - Very dark gray */
+    --card-foreground: 0 0% 98%;      /* #fafafa - Almost white */
+    --card-hover: 0 0% 10%;           /* #1a1a1a - Slightly lighter on hover */
     
     /* Popover */
-    --popover: 220 13% 18%;           /* #242837 */
-    --popover-foreground: 210 40% 98%; /* #f8fafc */
+    --popover: 0 0% 7%;               /* #121212 */
+    --popover-foreground: 0 0% 98%;   /* #fafafa */
     
-    /* Primary - JARVIS Purple (aligned with vitrine #8B5CF6) */
-    --primary: 262 83% 58%;           /* #8b5cf6 - JARVIS brand */
-    --primary-foreground: 210 40% 98%; /* #f8fafc */
-    --primary-hover: 262 83% 65%;     /* #a78bfa */
+    /* Primary - SUBTLE violet (barely visible) */
+    --primary: 262 50% 50%;           /* #6b46c1 - More muted violet */
+    --primary-foreground: 0 0% 100%;  /* #ffffff */
+    --primary-hover: 262 55% 55%;     /* #7c5fd1 */
     
-    /* Secondary */
-    --secondary: 0 0% 10%;            /* #1a1a1a */
+    /* Secondary - Pure monochrome */
+    --secondary: 0 0% 12%;            /* #1f1f1f */
     --secondary-foreground: 0 0% 100%; /* #ffffff */
     
-    /* Muted */
+    /* Muted - Gray scale */
     --muted: 0 0% 15%;                /* #262626 */
-    --muted-foreground: 0 0% 65%;     /* #a6a6a6 */
+    --muted-foreground: 0 0% 60%;     /* #999999 - Medium gray */
     
-    /* Accent */
-    --accent: 262 90% 70%;            /* #a78bfa */
-    --accent-foreground: 210 40% 98%; /* #f8fafc */
+    /* Accent - Very subtle violet */
+    --accent: 262 30% 50%;            /* Barely visible violet */
+    --accent-foreground: 0 0% 100%;   /* #ffffff */
     
     /* Destructive/Error */
     --destructive: 0 84% 60%;         /* #ef4444 */
@@ -81,9 +81,9 @@
     /* Info */
     --info: 199 89% 48%;              /* #0ea5e9 */
     
-    /* Borders - Subtle with violet tint */
-    --border: 262 20% 20%;            /* #2a2240 - Dark violet */
-    --input: 262 20% 20%;             /* #2a2240 */
+    /* Borders - Pure gray, no violet */
+    --border: 0 0% 20%;               /* #333333 - Dark gray */
+    --input: 0 0% 20%;                /* #333333 */
     
     /* Ring */
     --ring: 262 83% 58%;              /* #8b5cf6 */
@@ -127,11 +127,11 @@
    ============================================================================ */
 
 @layer components {
-  /* Card Variants - Glassmorphism like landing */
+  /* Card Variants - Monochrome glassmorphism */
   .card-gradient {
-    background: linear-gradient(135deg, rgba(20, 20, 20, 0.6) 0%, rgba(30, 30, 30, 0.4) 100%);
+    background: linear-gradient(135deg, rgba(18, 18, 18, 0.6) 0%, rgba(26, 26, 26, 0.4) 100%);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
   
   .card-hover {
@@ -139,9 +139,9 @@
   }
   
   .card-hover:hover {
-    background: rgba(30, 30, 30, 0.7);
-    border-color: rgba(139, 92, 246, 0.3);
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
+    background: rgba(26, 26, 26, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
   }
   
   /* KPI Card */
