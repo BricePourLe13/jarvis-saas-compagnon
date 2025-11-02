@@ -1,14 +1,12 @@
 import { useEffect, useRef } from 'react'
 
 interface UseKioskHeartbeatProps {
-  gymId: string
   kioskSlug: string
   enabled?: boolean
   interval?: number // en millisecondes
 }
 
 export function useKioskHeartbeat({ 
-  gymId, 
   kioskSlug, 
   enabled = true, 
   interval = 30000 // 30 secondes par défaut
@@ -16,6 +14,7 @@ export function useKioskHeartbeat({
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const isActiveRef = useRef(true)
   const lastKnownConfigVersionRef = useRef<number>(0)
+  const gymIdRef = useRef<string | null>(null)
 
   const sendHeartbeat = async () => {
     try {
@@ -25,11 +24,18 @@ export function useKioskHeartbeat({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          gymId,
           kioskSlug,
           timestamp: new Date().toISOString()
         })
       })
+      
+      // Récupérer le gym_id depuis la réponse pour les autres opérations
+      if (response.ok) {
+        const data = await response.json()
+        if (data.gym_id) {
+          gymIdRef.current = data.gym_id
+        }
+      }
 
       if (!response.ok) {
         // Warning supprimé pour production
@@ -42,8 +48,10 @@ export function useKioskHeartbeat({
 
   // Vérifier périodiquement la version de configuration et appliquer entre sessions
   const checkConfigVersion = async () => {
+    if (!gymIdRef.current) return // Attendre que le gym_id soit récupéré
+    
     try {
-      const res = await fetch(`/api/admin/gyms/${gymId}`)
+      const res = await fetch(`/api/admin/gyms/${gymIdRef.current}`)
       if (!res.ok) return
       const json = await res.json()
       const version = Number((json?.data?.kiosk_config?.config_version) || 0)
@@ -74,7 +82,7 @@ export function useKioskHeartbeat({
   }
 
   const startHeartbeat = () => {
-    if (!enabled || !gymId || !kioskSlug) return
+    if (!enabled || !kioskSlug) return
 
     // Envoyer immédiatement un heartbeat
     sendHeartbeat()
@@ -115,7 +123,6 @@ export function useKioskHeartbeat({
     const handleBeforeUnload = () => {
       // Optionnel : envoyer un signal de déconnexion
       navigator.sendBeacon('/api/kiosk/heartbeat', JSON.stringify({
-        gymId,
         kioskSlug,
         status: 'offline',
         timestamp: new Date().toISOString()
@@ -130,7 +137,7 @@ export function useKioskHeartbeat({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [gymId, kioskSlug, enabled, interval])
+  }, [kioskSlug, enabled, interval])
 
   return {
     sendHeartbeat,

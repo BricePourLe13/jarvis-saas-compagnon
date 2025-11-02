@@ -67,8 +67,16 @@ export async function cleanupOrphanedSessions(maxAgeMinutes: number = 15) {
 
 /**
  * Démarre un nettoyage automatique périodique
+ * ⚠️ NOTE: Cette fonction ne doit PAS être appelée côté client (pas d'accès service_role)
+ * Le nettoyage doit être fait via API route côté serveur
  */
 export function startPeriodicCleanup(intervalMinutes: number = 30) {
+  // ⚠️ DÉSACTIVÉ côté client - utiliser l'API route /api/admin/sessions?action=cleanup
+  if (typeof window !== 'undefined') {
+    console.warn('⚠️ [CLEANUP] Nettoyage automatique désactivé côté client (utiliser API route)')
+    return () => {} // Noop
+  }
+  
   console.log(`🔄 [CLEANUP] Démarrage nettoyage automatique (${intervalMinutes}min)`)
   
   const cleanup = () => {

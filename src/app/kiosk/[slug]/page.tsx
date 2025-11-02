@@ -115,7 +115,6 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   // 💓 Heartbeat pour signaler que le kiosk est en ligne - OPTIMISÉ ⚡
   useKioskHeartbeat({
-    gymId: kioskData?.kiosk?.id || '',
     kioskSlug: slug,
     enabled: !!kioskData?.kiosk?.id, // Activer seulement quand les données sont chargées
     interval: 10000 // ⚡ 10 secondes pour détection ultra-rapide

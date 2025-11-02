@@ -3,11 +3,11 @@ import { createSimpleClient } from '../../../../lib/supabase-admin'
 
 export async function POST(request: NextRequest) {
   try {
-    const { gymId, kioskSlug, timestamp } = await request.json()
+    const { kioskSlug } = await request.json()
 
-    if (!gymId || !kioskSlug) {
+    if (!kioskSlug) {
       return NextResponse.json(
-        { error: 'gymId et kioskSlug requis' },
+        { error: 'kioskSlug requis' },
         { status: 400 }
       )
     }
@@ -15,7 +15,21 @@ export async function POST(request: NextRequest) {
     const supabase = createSimpleClient()
     const now = new Date().toISOString()
 
-    // 1. Update kiosk last_heartbeat dans la table kiosks (nouvelle table dédiée)
+    // 1. Récupérer le kiosk pour avoir le gym_id
+    const { data: kiosk, error: fetchError } = await supabase
+      .from('kiosks')
+      .select('id, gym_id')
+      .eq('slug', kioskSlug)
+      .single()
+
+    if (fetchError || !kiosk) {
+      return NextResponse.json(
+        { error: 'Kiosk non trouvé' },
+        { status: 404 }
+      )
+    }
+
+    // 2. Update kiosk last_heartbeat dans la table kiosks
     const { error: kioskError } = await supabase
       .from('kiosks')
       .update({
@@ -24,7 +38,6 @@ export async function POST(request: NextRequest) {
         updated_at: now
       })
       .eq('slug', kioskSlug)
-      .eq('gym_id', gymId)
 
     if (kioskError) {
       return NextResponse.json(
@@ -33,11 +46,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Maintenir kiosk_heartbeats pour compatibilité legacy (optionnel)
+    // 3. Maintenir kiosk_heartbeats pour compatibilité legacy (optionnel)
     await supabase
       .from('kiosk_heartbeats')
       .upsert([{
-        gym_id: gymId,
+        gym_id: kiosk.gym_id,
         kiosk_slug: kioskSlug,
         last_heartbeat: now,
         status: 'online'
@@ -47,7 +60,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true,
-      timestamp: now
+      timestamp: now,
+      gym_id: kiosk.gym_id
     })
 
   } catch (error) {
