@@ -645,7 +645,7 @@ export default function LandingClientOptimizedPage() {
 
 
       {/* 🎯 SECTION 3: PROBLÈMES (Pain Points) */}
-      <section id="problems" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+      <section id="problems" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black/80 via-neutral-950/20 to-black/80">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
@@ -677,7 +677,7 @@ export default function LandingClientOptimizedPage() {
                 className="group"
               >
                 <CardContainer className="inter-var">
-                  <CardBody className={`relative group/card hover:shadow-2xl hover:shadow-${point.color}-500/[0.1] bg-black border-white/[0.1] w-full h-auto rounded-xl p-4 md:p-6 border transition-all duration-500`}>
+                  <CardBody className={`relative group/card hover:shadow-2xl hover:shadow-${point.color}-500/[0.1] bg-black/60 border-white/[0.1] w-full h-auto rounded-xl p-4 md:p-6 border transition-all duration-500`}>
                     {/* Icon */}
                     <CardItem translateZ="50" className="mb-4 md:mb-6">
                       {point.icon}
@@ -726,7 +726,7 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 3: SOLUTION - DÉMONSTRATION INTERACTIVE */}
-      <section id="solution" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-black">
+      <section id="solution" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-black/80">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
@@ -985,7 +985,7 @@ export default function LandingClientOptimizedPage() {
       </section>
 
       {/* 🎯 SECTION 4: PROCESS - 3 ÉTAPES */}
-      <section id="process" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black via-neutral-950/30 to-black">
+      <section id="process" className="relative z-10 py-10 sm:py-12 md:py-16 lg:py-20 xl:py-24 bg-gradient-to-b from-black/80 via-neutral-950/20 to-black/80">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8">
           {/* Section Header */}
           <motion.div
@@ -1078,7 +1078,7 @@ export default function LandingClientOptimizedPage() {
 
 
       {/* 🎯 SECTION 5: PROGRAMME PILOTE + À PROPOS + CONTACT (FUSIONNÉE) */}
-      <section id="results" className="relative z-10 py-12 md:py-16 lg:py-20 bg-black">
+      <section id="results" className="relative z-10 py-12 md:py-16 lg:py-20 bg-black/80">
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
           
           {/* SOUS-SECTION 1: Programme Pilote */}
