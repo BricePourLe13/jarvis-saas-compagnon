@@ -159,6 +159,10 @@ export function useVoiceVitrineChat({
     onError: (error) => {
       const errorMessage = error.message
       setError(errorMessage)
+      // Si l'erreur contient resetTime, le stocker pour affichage
+      if ((error as any).resetTime) {
+        setResetTime(new Date((error as any).resetTime))
+      }
       onStatusChange?.('error')
     },
     onFunctionCall: (call, dataChannel) => {
@@ -217,6 +221,7 @@ export function useVoiceVitrineChat({
       setError(null)
       setCurrentTranscript('')
       setIsAISpeaking(false)
+      setResetTime(null)
       sessionStartTimeRef.current = null
       
     } catch (error) {
@@ -263,22 +268,35 @@ export function useVoiceVitrineChat({
       
       // Gérer les erreurs spécifiques vitrine
       if (error.hasActiveSession) {
-        const err: any = new Error('Session déjà active')
+        const err: any = new Error('Session déjà active. Fermez les autres onglets.')
         err.hasActiveSession = true
         err.remainingCredits = error.remainingCredits
+        throw err
+      } else if (error.isBlocked) {
+        const err: any = new Error('Accès bloqué. Contactez-nous si vous pensez qu\'il s\'agit d\'une erreur.')
+        err.isBlocked = true
+        throw err
+      } else if (error.message?.includes('Limite quotidienne') || error.message?.includes('Limite totale') || error.statusCode === 429) {
+        // Erreur de limite (quotidienne ou totale)
+        const err: any = new Error(error.message || 'Limite d\'utilisation atteinte')
+        err.remainingCredits = error.remainingCredits || 0
+        err.resetTime = error.resetTime
+        err.isLimitReached = true
+        setResetTime(error.resetTime ? new Date(error.resetTime) : null)
         throw err
       } else if (error.remainingCredits === 0) {
         const err: any = new Error('Temps de démo épuisé')
         err.remainingCredits = 0
         throw err
-      } else if (error.isBlocked) {
-        const err: any = new Error('IP bloquée')
-        err.isBlocked = true
-        throw err
       }
       
+      // Erreur générique - propager le message d'erreur de l'API
+      const errorMessage = error.message || error.error || 'Erreur de connexion'
+      const err: any = new Error(errorMessage)
+      err.remainingCredits = error.remainingCredits
+      err.resetTime = error.resetTime
       onStatusChange?.('error')
-      throw error
+      throw err
     }
   }, [core.isConnected, core, onStatusChange])
 

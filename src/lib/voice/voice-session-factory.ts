@@ -74,6 +74,7 @@ export class VitrineSessionFactory implements VoiceSessionFactory {
       error.hasActiveSession = errorData.hasActiveSession
       error.remainingCredits = errorData.remainingCredits
       error.isBlocked = errorData.isBlocked
+      error.resetTime = errorData.resetTime // ✅ Propager resetTime pour limite quotidienne
       
       throw error
     }
