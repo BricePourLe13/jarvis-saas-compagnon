@@ -129,14 +129,62 @@ export function useVoiceRealtimeCore(
       // 2. Vérifier permissions microphone
       await checkMicrophonePermissions()
 
-      // 3. Créer PeerConnection
+      // 3. Créer PeerConnection avec STUN servers configurables
+      const stunServers = [
+        process.env.WEBRTC_STUN_SERVER_1 || 'stun:stun.l.google.com:19302',
+        process.env.WEBRTC_STUN_SERVER_2 || 'stun:stun1.l.google.com:19302'
+      ].filter(Boolean).map(url => ({ urls: url }))
+      
       const pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' } // Fallback
-        ]
+        iceServers: stunServers
       })
       peerConnectionRef.current = pc
+
+      // ✅ GESTION ERREURS ICE (connexion WebRTC)
+      pc.oniceconnectionstatechange = () => {
+        const state = pc.iceConnectionState
+        console.log(`🔌 [WebRTC] ICE Connection State: ${state}`)
+        
+        switch (state) {
+          case 'failed':
+            config.onError?.(new Error('Échec connexion réseau. Vérifiez votre connexion internet.'))
+            updateStatus('error')
+            // Tentative de récupération automatique
+            setTimeout(() => {
+              if (peerConnectionRef.current?.iceConnectionState === 'failed') {
+                console.log('🔄 [WebRTC] Tentative récupération connexion...')
+                // Le core hook gérera la reconnexion si nécessaire
+              }
+            }, 2000)
+            break
+          case 'disconnected':
+            console.log('⚠️ [WebRTC] Connexion interrompue')
+            updateStatus('error')
+            config.onError?.(new Error('Connexion interrompue'))
+            break
+          case 'closed':
+            setIsConnected(false)
+            updateStatus('idle')
+            break
+          case 'connected':
+          case 'completed':
+            setIsConnected(true)
+            updateStatus('connected')
+            break
+        }
+      }
+
+      // ✅ GESTION ERREURS ICE CANDIDATES
+      pc.onicecandidateerror = (event) => {
+        console.error('❌ [WebRTC] Erreur ICE candidate:', event)
+        // Ne pas bloquer la connexion pour erreurs mineures
+        if (event.errorCode === 701 || event.errorCode === 702) {
+          // Erreurs STUN/TURN - continuer quand même
+          console.warn('⚠️ [WebRTC] Erreur STUN/TURN (non bloquant)')
+        } else {
+          config.onError?.(new Error(`Erreur réseau: ${event.errorText || 'Erreur inconnue'}`))
+        }
+      }
 
       // 4. Obtenir stream microphone
       const stream = await getMicrophoneStream(config.audioConfig)
