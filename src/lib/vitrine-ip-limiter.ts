@@ -79,7 +79,7 @@ export class VitrineIPLimiter {
             last_session_at: now.toISOString(),
             total_duration_seconds: 0,
             daily_duration_seconds: 0, // ✅ Nouvelle colonne pour durée quotidienne
-            is_session_active: ipAddress !== 'unknown' // ✅ Ne pas marquer active si IP unknown
+            is_session_active: true // ✅ Marquer comme active (sera nettoyé automatiquement si orpheline)
           })
 
         if (insertError) {
