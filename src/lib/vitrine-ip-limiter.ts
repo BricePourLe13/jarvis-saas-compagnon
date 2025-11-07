@@ -116,9 +116,9 @@ export class VitrineIPLimiter {
         const lastSession = new Date(sessionData.last_session_at)
         const timeSinceLastSession = (now.getTime() - lastSession.getTime()) / 1000 // secondes
         
-        // ✅ FIX : Timeout à 2 minutes pour permettre reconnexion après fermeture brutale
-        // Si la dernière session date de plus de 2 minutes, considérer comme orpheline
-        if (timeSinceLastSession < 120) { // 2 minutes
+        // ✅ FIX : Timeout à 1 minute (60s) pour permettre reconnexion rapide après fermeture brutale
+        // Si la dernière session date de plus de 1 minute, considérer comme orpheline
+        if (timeSinceLastSession < 60) { // 1 minute (réduit de 2 minutes)
           return {
             allowed: false,
             reason: 'Session déjà active. Fermez les autres onglets.',
@@ -127,12 +127,13 @@ export class VitrineIPLimiter {
             hasActiveSession: true
           }
         } else {
-          // Timeout dépassé : session orpheline, réinitialiser le flag
-          console.log(`🔓 Session orpheline détectée (${Math.floor(timeSinceLastSession)}s) - Réinitialisation`)
+          // Timeout dépassé : session orpheline, réinitialiser le flag automatiquement
+          console.log(`🔓 Session orpheline détectée (${Math.floor(timeSinceLastSession)}s) - Réinitialisation automatique`)
           await supabase
             .from('vitrine_demo_sessions')
             .update({ is_session_active: false })
             .eq('ip_address', ipAddress)
+          // ✅ Continuer la création de session après nettoyage
         }
       } else if (sessionData.is_session_active && ipAddress === 'unknown') {
         // IP unknown : réinitialiser automatiquement pour éviter blocage global
@@ -280,10 +281,22 @@ export class VitrineIPLimiter {
           total_duration_seconds: newTotalDuration,
           daily_duration_seconds: newDailyDuration,
           daily_reset_date: today, // Mettre à jour la date de reset
-          is_session_active: false, // ✅ FIX : Marquer comme inactive pour permettre nouvelle session
+          is_session_active: false, // ✅ CRITIQUE : Marquer comme inactive pour permettre nouvelle session
           updated_at: new Date().toISOString()
         })
         .eq('ip_address', ipAddress)
+        
+      // ✅ Double vérification : s'assurer que le flag est bien à false
+      if (error) {
+        console.error('❌ Erreur fin de session:', error)
+        // Même en cas d'erreur, essayer de réinitialiser is_session_active
+        await supabase
+          .from('vitrine_demo_sessions')
+          .update({ is_session_active: false })
+          .eq('ip_address', ipAddress)
+          .catch(() => {}) // Ignorer erreur si déjà à false
+        return false
+      }
 
       if (error) {
         console.error('❌ Erreur fin de session:', error)
