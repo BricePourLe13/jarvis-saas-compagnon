@@ -110,38 +110,31 @@ export class VitrineIPLimiter {
         }
       }
 
-      // 3. 🔒 NOUVEAU : Vérifier si une session est déjà active (anti multi-onglets)
-      // ⚠️ DÉSACTIVÉ si IP = 'unknown' (trop de faux positifs)
-      if (sessionData.is_session_active && ipAddress !== 'unknown') {
+      // 3. 🔒 SIMPLIFICATION : Pour la vitrine, on autorise toujours une nouvelle session
+      // On réinitialise automatiquement le flag si la dernière session date de plus de 30 secondes
+      // Cela permet de gérer les fermetures brutales sans bloquer l'utilisateur
+      if (sessionData.is_session_active) {
         const lastSession = new Date(sessionData.last_session_at)
         const timeSinceLastSession = (now.getTime() - lastSession.getTime()) / 1000 // secondes
         
-        // ✅ FIX : Timeout à 1 minute (60s) pour permettre reconnexion rapide après fermeture brutale
-        // Si la dernière session date de plus de 1 minute, considérer comme orpheline
-        if (timeSinceLastSession < 60) { // 1 minute (réduit de 2 minutes)
-          return {
-            allowed: false,
-            reason: 'Session déjà active. Fermez les autres onglets.',
-            remainingCredits: 0,
-            isBlocked: false,
-            hasActiveSession: true
-          }
-        } else {
-          // Timeout dépassé : session orpheline, réinitialiser le flag automatiquement
+        // Si la dernière session date de plus de 30 secondes, considérer comme terminée
+        if (timeSinceLastSession > 30) {
+          // Session orpheline, réinitialiser automatiquement
           console.log(`🔓 Session orpheline détectée (${Math.floor(timeSinceLastSession)}s) - Réinitialisation automatique`)
           await supabase
             .from('vitrine_demo_sessions')
             .update({ is_session_active: false })
             .eq('ip_address', ipAddress)
           // ✅ Continuer la création de session après nettoyage
+        } else {
+          // Session très récente (< 30s) : peut-être un double-clic, autoriser quand même mais logger
+          console.log(`⚠️ Session active récente (${Math.floor(timeSinceLastSession)}s) - Autorisation quand même pour éviter blocage`)
+          await supabase
+            .from('vitrine_demo_sessions')
+            .update({ is_session_active: false })
+            .eq('ip_address', ipAddress)
+          // ✅ Autoriser la nouvelle session (on ferme l'ancienne automatiquement)
         }
-      } else if (sessionData.is_session_active && ipAddress === 'unknown') {
-        // IP unknown : réinitialiser automatiquement pour éviter blocage global
-        console.log(`⚠️ IP 'unknown' détectée - Réinitialisation session active pour éviter blocage`)
-        await supabase
-          .from('vitrine_demo_sessions')
-          .update({ is_session_active: false })
-          .eq('ip_address', ipAddress)
       }
 
       // 4. Reset quotidien si nécessaire
@@ -213,7 +206,7 @@ export class VitrineIPLimiter {
           daily_session_count: (sessionData.daily_session_count || 0) + 1,
           daily_reset_date: today,
           last_session_at: now.toISOString(),
-          is_session_active: ipAddress !== 'unknown', // ✅ Ne pas marquer active si IP unknown
+            is_session_active: true, // ✅ Marquer comme active (sera nettoyé automatiquement si orpheline)
           user_agent: userAgent,
           updated_at: now.toISOString()
         })
