@@ -113,9 +113,9 @@ export class VitrineIPLimiter {
         const lastSession = new Date(sessionData.last_session_at)
         const timeSinceLastSession = (now.getTime() - lastSession.getTime()) / 1000 // secondes
         
-        // ✅ FIX : Réduire timeout à 30s (au lieu de 5 min) pour permettre reconnexion rapide
-        // + Vérifier flag is_session_active
-        if (timeSinceLastSession < 30) {
+        // ✅ FIX : Timeout à 2 minutes pour permettre reconnexion après fermeture brutale
+        // Si la dernière session date de plus de 2 minutes, considérer comme orpheline
+        if (timeSinceLastSession < 120) { // 2 minutes
           return {
             allowed: false,
             reason: 'Session déjà active. Fermez les autres onglets.',
@@ -124,7 +124,8 @@ export class VitrineIPLimiter {
             hasActiveSession: true
           }
         } else {
-          // Timeout dépassé : réinitialiser le flag
+          // Timeout dépassé : session orpheline, réinitialiser le flag
+          console.log(`🔓 Session orpheline détectée (${Math.floor(timeSinceLastSession)}s) - Réinitialisation`)
           await supabase
             .from('vitrine_demo_sessions')
             .update({ is_session_active: false })
