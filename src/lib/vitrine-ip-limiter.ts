@@ -252,20 +252,34 @@ export class VitrineIPLimiter {
    */
   async endSession(ipAddress: string, durationSeconds: number): Promise<boolean> {
     try {
+      const today = new Date().toISOString().split('T')[0]
+      
       const { data: sessionData } = await supabase
         .from('vitrine_demo_sessions')
-        .select('total_duration_seconds')
+        .select('total_duration_seconds, daily_duration_seconds, daily_reset_date')
         .eq('ip_address', ipAddress)
         .single()
 
       if (!sessionData) return false
 
       const newTotalDuration = (sessionData.total_duration_seconds || 0) + durationSeconds
+      
+      // ✅ Calculer daily_duration_seconds correctement
+      let newDailyDuration = (sessionData.daily_duration_seconds as number) || 0
+      if (sessionData.daily_reset_date === today) {
+        // Même jour : ajouter à la durée quotidienne
+        newDailyDuration += durationSeconds
+      } else {
+        // Nouveau jour : reset et commencer avec la nouvelle durée
+        newDailyDuration = durationSeconds
+      }
 
       const { error } = await supabase
         .from('vitrine_demo_sessions')
         .update({
           total_duration_seconds: newTotalDuration,
+          daily_duration_seconds: newDailyDuration,
+          daily_reset_date: today, // Mettre à jour la date de reset
           is_session_active: false, // ✅ FIX : Marquer comme inactive pour permettre nouvelle session
           updated_at: new Date().toISOString()
         })
