@@ -106,6 +106,17 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
       tool_choice: "auto",
     }
 
+    // 🔍 DEBUG: Log de la config envoyée à OpenAI
+    console.log('📡 [VITRINE] Appel OpenAI avec:', {
+      model: sessionConfig.model,
+      voice: sessionConfig.voice,
+      modalities: sessionConfig.modalities,
+      turn_detection: sessionConfig.turn_detection,
+      instructions_length: sessionConfig.instructions.length,
+      tools_count: sessionConfig.tools?.length || 0,
+      has_api_key: !!process.env.OPENAI_API_KEY
+    })
+    
     // ✅ Retry automatique avec backoff exponentiel
     const response = await fetchWithRetry(
       'https://api.openai.com/v1/realtime/sessions',
@@ -127,16 +138,34 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('❌ Erreur OpenAI API:', {
+      console.error('❌ [VITRINE] Erreur OpenAI API:', {
         status: response.status,
         statusText: response.statusText,
         errorText,
+        model_used: sessionConfig.model,
+        voice_used: sessionConfig.voice,
         headers: Object.fromEntries(response.headers.entries())
       })
+      
+      // 🚨 CRITIQUE: Parser l'erreur OpenAI pour diagnostic
+      let parsedError
+      try {
+        parsedError = JSON.parse(errorText)
+      } catch (e) {
+        parsedError = errorText
+      }
+      
+      console.error('❌ [VITRINE] Détails erreur parsée:', parsedError)
+      
       return NextResponse.json(
         { 
           error: 'Service temporairement indisponible',
-          details: process.env.NODE_ENV === 'development' ? errorText : undefined 
+          details: process.env.NODE_ENV === 'development' ? errorText : undefined,
+          debug: {
+            model: sessionConfig.model,
+            status: response.status,
+            error: parsedError
+          }
         },
         { status: 503 }
       )

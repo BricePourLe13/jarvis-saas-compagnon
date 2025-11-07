@@ -491,3 +491,4 @@ class VitrineSessionFactory implements VoiceSessionFactory {
 **Plan créé le :** 2025-01-XX  
 **Statut :** ✅ Prêt pour implémentation méthodique
 
+

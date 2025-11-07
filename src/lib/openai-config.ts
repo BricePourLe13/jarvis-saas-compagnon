@@ -40,11 +40,11 @@ export const OPENAI_CONFIG = {
     
     /**
      * Modèle vitrine (démos commerciales, landing page)
-     * - Full = meilleure qualité
-     * - Latence <600ms
-     * - Impression professionnelle
+     * - UTILISÉ TEMPORAIREMENT LE MÊME QUE PRODUCTION pour debug
+     * - Si ça marche = problème de modèle vitrine
+     * - TODO: Tester 'gpt-realtime-2025-08-28' quand disponible
      */
-    vitrine: process.env.OPENAI_REALTIME_MODEL_VITRINE || 'gpt-realtime-2025-08-28',
+    vitrine: process.env.OPENAI_REALTIME_MODEL_VITRINE || 'gpt-4o-realtime-preview-2024-10-01',
     
     /**
      * Modèle audio spécialisé (à évaluer)

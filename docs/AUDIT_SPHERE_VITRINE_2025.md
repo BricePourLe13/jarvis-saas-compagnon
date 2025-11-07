@@ -512,3 +512,4 @@ Si tu détectes que tu commences à répondre en anglais, arrête-toi immédiate
 **Auditeur :** Claude Sonnet 4.5  
 **Statut :** ✅ Audit complet terminé
 
+

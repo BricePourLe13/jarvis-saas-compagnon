@@ -185,3 +185,4 @@ hooks/
 **Dernière mise à jour :** 2025-01-XX  
 **Prochaine étape :** Finaliser useVoiceChat refactoré
 
+
