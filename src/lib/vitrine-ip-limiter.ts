@@ -298,13 +298,24 @@ export class VitrineIPLimiter {
         return false
       }
 
-      if (error) {
-        console.error('❌ Erreur fin de session:', error)
-        return false
-      }
-
-      console.log(`✅ Session terminée: ${durationSeconds}s utilisées (total: ${newTotalDuration}s)`)
+      console.log(`✅ Session terminée: ${durationSeconds}s utilisées (quotidien: ${newDailyDuration}s, total: ${newTotalDuration}s)`)
       console.log(`🔓 Session marquée comme inactive - nouvelle connexion possible`)
+      
+      // ✅ Triple vérification : vérifier que is_session_active est bien à false
+      const { data: verifyData } = await supabase
+        .from('vitrine_demo_sessions')
+        .select('is_session_active')
+        .eq('ip_address', ipAddress)
+        .single()
+        
+      if (verifyData?.is_session_active) {
+        console.warn('⚠️ Flag is_session_active toujours à true après update - correction forcée')
+        await supabase
+          .from('vitrine_demo_sessions')
+          .update({ is_session_active: false })
+          .eq('ip_address', ipAddress)
+      }
+      
       return true
 
     } catch (error) {
