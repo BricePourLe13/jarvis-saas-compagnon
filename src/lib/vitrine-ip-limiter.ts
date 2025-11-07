@@ -66,6 +66,7 @@ export class VitrineIPLimiter {
 
       if (!sessionData) {
         // Première visite : créer une nouvelle entrée
+        // ⚠️ Si IP = 'unknown', ne pas marquer comme active (évite blocage global)
         const { error: insertError } = await supabase
           .from('vitrine_demo_sessions')
           .insert({
@@ -77,7 +78,7 @@ export class VitrineIPLimiter {
             first_session_at: now.toISOString(),
             last_session_at: now.toISOString(),
             total_duration_seconds: 0,
-            is_session_active: true // ✅ Initialiser comme active
+            is_session_active: ipAddress !== 'unknown' // ✅ Ne pas marquer active si IP unknown
           })
 
         if (insertError) {
@@ -199,7 +200,7 @@ export class VitrineIPLimiter {
           daily_session_count: (sessionData.daily_session_count || 0) + 1,
           daily_reset_date: today,
           last_session_at: now.toISOString(),
-          is_session_active: true, // ✅ FIX : Marquer comme active
+          is_session_active: ipAddress !== 'unknown', // ✅ Ne pas marquer active si IP unknown
           user_agent: userAgent,
           updated_at: now.toISOString()
         })
