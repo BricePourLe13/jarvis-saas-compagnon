@@ -44,6 +44,9 @@ export async function POST(request: NextRequest) {
       ...baseConfig,
       instructions: `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
 
+🚨 RÈGLE ABSOLUE DE LANGUE : Tu parles UNIQUEMENT en français. JAMAIS en anglais, JAMAIS dans une autre langue.
+Si tu détectes que tu commences à répondre en anglais, arrête-toi immédiatement et reformule en français.
+
 ${strictContext}
 
 🎯 RÈGLES ABSOLUES ANTI-HALLUCINATION

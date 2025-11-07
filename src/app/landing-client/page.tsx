@@ -73,7 +73,7 @@ export default function LandingClientOptimizedPage() {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error'>('idle');
   const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [voiceTimeRemaining, setVoiceTimeRemaining] = useState(120);
+  const [voiceTimeRemaining, setVoiceTimeRemaining] = useState(300); // 5 minutes
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
   // 🎯 DEVICE DETECTION
@@ -100,7 +100,7 @@ export default function LandingClientOptimizedPage() {
   } = useVoiceVitrineChat({
     onStatusChange: setVoiceStatus,
     onTranscriptUpdate: setVoiceTranscript,
-    maxDuration: 120
+    maxDuration: 300 // 5 minutes
   });
 
   // 🎤 VOICE FUNCTIONS
@@ -155,7 +155,7 @@ export default function LandingClientOptimizedPage() {
       setIsVoiceActive(false);
       setVoiceStatus('idle');
       setVoiceTranscript('');
-      setVoiceTimeRemaining(120);
+      setVoiceTimeRemaining(300); // 5 minutes
     } catch (error) {
       console.error('Erreur déconnexion vocale:', error);
     }

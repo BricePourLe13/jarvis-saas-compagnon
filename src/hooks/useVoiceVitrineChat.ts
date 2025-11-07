@@ -13,7 +13,7 @@ interface VoiceVitrineConfig {
 export function useVoiceVitrineChat({
   onStatusChange,
   onTranscriptUpdate,
-  maxDuration = 120
+  maxDuration = 300 // 5 minutes par défaut
 }: VoiceVitrineConfig) {
   // États
   const [isConnected, setIsConnected] = useState(false)
@@ -175,7 +175,7 @@ export function useVoiceVitrineChat({
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
-            sampleRate: 24000, // Qualité HD pour meilleur rendu
+            sampleRate: 16000, // ✅ Standard OpenAI Realtime (16 kHz PCM16 mono)
             channelCount: 1,
             latency: 0.01, // Faible latence
             volume: 1.0

@@ -298,3 +298,4 @@ export default function GymDetailPage({ params }: { params: Promise<{ id: string
   )
 }
 
+

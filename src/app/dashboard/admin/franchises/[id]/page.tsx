@@ -271,3 +271,4 @@ export default function FranchiseDetailPage({ params }: { params: Promise<{ id: 
   )
 }
 
+

@@ -1,6 +1,6 @@
 J'ai créé une entreprise (JARVIS-GROUP) qui a pour but d'aider les entreprises à migrer vers l'IA en créant des solutions IA dédiées ou du consulting. 
 
-**Notre solution phare : JARVIS Voice Engine** 🎙️
+**Notre solution phare : JARVIS compagnon**
 
 Un agent vocal IA conversationnel installé sur des miroirs digitaux dans les salles de sport. Les adhérents peuvent parler en temps réel (speech-to-speech) et demander n'importe quoi (critiques, demandes, questions, etc.). 
 

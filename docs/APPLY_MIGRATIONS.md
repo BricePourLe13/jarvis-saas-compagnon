@@ -132,3 +132,4 @@ ALTER TABLE kiosks ENABLE ROW LEVEL SECURITY;
 - [Supabase Migrations Docs](https://supabase.com/docs/guides/cli/managing-database-migrations)
 - [SQL Editor Guide](https://supabase.com/docs/guides/database/overview)
 
+

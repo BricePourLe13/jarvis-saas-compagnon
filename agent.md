@@ -244,6 +244,7 @@ P2 (MINEUR)   → Nice-to-have, peut attendre
 2. ❌ Modifier prod DB manuellement (use migrations)
 3. ❌ Commenter du code au lieu de le supprimer
 4. ❌ Créer des docs obsolètes (delete old docs)
+5. NE JAMAIS EN Crée de nouvelles docs
 
 ---
 

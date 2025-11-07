@@ -283,9 +283,10 @@ export function getConfigForContext(context: OpenAIContext) {
     voice: context === 'production' ? OPENAI_CONFIG.voices.production : OPENAI_CONFIG.voices.vitrine,
     input_audio_format: OPENAI_CONFIG.audio.inputFormat,
     output_audio_format: OPENAI_CONFIG.audio.outputFormat,
+    modalities: ['audio'], // ✅ Forcer audio uniquement (évite comportements inattendus)
     turn_detection: {
       type: OPENAI_CONFIG.vad.type,
-      threshold: OPENAI_CONFIG.vad.threshold,
+      threshold: isDemo ? 0.3 : OPENAI_CONFIG.vad.threshold, // ✅ Plus sensible pour vitrine (0.3 vs 0.5)
       prefix_padding_ms: OPENAI_CONFIG.vad.prefixPaddingMs,
       silence_duration_ms: isDemo ? OPENAI_CONFIG.vad.silenceDurationMsDemo : OPENAI_CONFIG.vad.silenceDurationMs,
       interrupt_response: OPENAI_CONFIG.vad.interruptResponse,
@@ -293,6 +294,7 @@ export function getConfigForContext(context: OpenAIContext) {
     },
     input_audio_transcription: {
       model: OPENAI_CONFIG.session.transcriptionModel,
+      language: 'fr', // ✅ Forcer français (évite détection automatique incorrecte)
     },
     temperature: OPENAI_CONFIG.session.temperature,
     max_response_output_tokens: OPENAI_CONFIG.session.maxResponseOutputTokens,
