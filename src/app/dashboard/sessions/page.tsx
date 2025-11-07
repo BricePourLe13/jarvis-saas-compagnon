@@ -19,7 +19,7 @@ export default function SessionsPage() {
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
-    fetch('/api/dashboard/sessions-v2')
+    fetch('/api/dashboard/sessions')
       .then(res => res.json())
       .then(data => {
         setSessions(data.sessions || [])

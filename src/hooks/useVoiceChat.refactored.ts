@@ -115,6 +115,11 @@ export function useVoiceChat(config: VoiceChatConfig) {
     
     try {
       const args = JSON.parse(argsString || '{}')
+      const sessionId = sessionRef.current?.session_id
+      
+      // ✅ Ajouter session_id aux arguments pour récupération contexte
+      const argsWithSession = { ...args, session_id: sessionId }
+      
       let toolResponse: any
       
       switch (name) {
@@ -122,7 +127,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
           toolResponse = await fetch('/api/jarvis/tools/get-member-profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
+            body: JSON.stringify(argsWithSession)
           })
           break
           
@@ -130,7 +135,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
           toolResponse = await fetch('/api/jarvis/tools/update-member-info', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
+            body: JSON.stringify(argsWithSession)
           })
           break
           
@@ -138,7 +143,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
           toolResponse = await fetch('/api/jarvis/tools/log-member-interaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
+            body: JSON.stringify(argsWithSession)
           })
           break
           
@@ -146,7 +151,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
           toolResponse = await fetch('/api/jarvis/tools/manage-session-state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
+            body: JSON.stringify(argsWithSession)
           })
           break
           
@@ -388,6 +393,8 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       // Fermer session serveur
       if (sessionRef.current) {
+        const sessionId = sessionRef.current.session_id
+        
         const dataChannel = core.getDataChannel()
         if (dataChannel && dataChannel.readyState === 'open') {
           try {
@@ -408,10 +415,14 @@ export function useVoiceChat(config: VoiceChatConfig) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            sessionId: sessionRef.current.session_id,
+            sessionId: sessionId,
             reason: 'user_disconnect'
           })
         }).catch(() => {})
+
+        // ✅ Nettoyer contexte session du store sécurisé
+        const { sessionContextStore } = await import('@/lib/voice/session-context-store')
+        sessionContextStore.delete(sessionId)
 
         sessionRef.current = null
       }

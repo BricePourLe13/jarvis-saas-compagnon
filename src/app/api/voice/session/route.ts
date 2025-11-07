@@ -8,6 +8,7 @@ import { getSupabaseService } from '@/lib/supabase-service'
 import { getConfigForContext } from '@/lib/openai-config'
 import { getConversationContext } from '@/lib/rag-context'
 import { getMemberFacts, formatFactsForPrompt } from '@/lib/member-facts'
+import { sessionContextStore } from '@/lib/voice/session-context-store'
 
 // Générer un ID de session unique
 function generateSessionId(): string {
@@ -98,13 +99,13 @@ export async function POST(request: NextRequest) {
     // 🎭 PERSONNALISATION JARVIS VIA TOOLS UNIQUEMENT
     // Plus de données hardcodées - tout via tools dynamiques
     
-    // 📝 STOCKER CONTEXTE MEMBRE POUR LES TOOLS
-    global.currentMemberContext = {
+    // 📝 STOCKER CONTEXTE MEMBRE POUR LES TOOLS (sécurisé avec TTL)
+    sessionContextStore.set(sessionId, {
       member_id: memberProfile.id,
       session_id: sessionId,
       gym_slug: gymSlug,
       badge_id: badge_id
-    }
+    })
 
     // 🛠️ CONFIGURATION TOOLS JARVIS
     const jarvisTools = [

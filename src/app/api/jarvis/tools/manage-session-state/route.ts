@@ -5,26 +5,28 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
+import { sessionContextStore } from '@/lib/voice/session-context-store'
 
 export async function POST(request: NextRequest) {
   try {
     const { 
+      session_id, // ✅ Reçu depuis function call
       action, 
       reason,
       extend_duration_minutes,
       farewell_message 
     } = await request.json()
 
-    // 📝 RÉCUPÉRER CONTEXTE MEMBRE DEPUIS LA SESSION
-    const memberContext = (global as any).currentMemberContext
+    // 📝 RÉCUPÉRER CONTEXTE MEMBRE DEPUIS LE STORE SÉCURISÉ
+    const memberContext = session_id ? sessionContextStore.get(session_id) : undefined
     if (!memberContext?.member_id) {
       return NextResponse.json(
-        { error: 'Contexte membre non disponible. Outil appelé hors session.' },
+        { error: 'Contexte membre non disponible. Outil appelé hors session ou session expirée.' },
         { status: 400 }
       )
     }
 
-    const { member_id, session_id, gym_slug } = memberContext
+    const { member_id, gym_slug } = memberContext
     console.log(`🎯 [TOOL] manage_session_state - Action: ${action}, Raison: ${reason}`)
 
     if (!action) {

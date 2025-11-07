@@ -5,25 +5,27 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
+import { sessionContextStore } from '@/lib/voice/session-context-store'
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🎯 [TOOL] get_member_profile appelé')
     
     const { 
+      session_id, // ✅ Reçu depuis function call
       include_fitness_details = true, 
       include_visit_history = true, 
       include_conversation_context = true 
     } = await request.json()
 
-    // 📝 RÉCUPÉRER CONTEXTE MEMBRE DEPUIS LA SESSION
-    const memberContext = (global as any).currentMemberContext
-    console.log(`🔍 [TOOL] Contexte global:`, memberContext)
+    // 📝 RÉCUPÉRER CONTEXTE MEMBRE DEPUIS LE STORE SÉCURISÉ
+    const memberContext = session_id ? sessionContextStore.get(session_id) : undefined
+    console.log(`🔍 [TOOL] Contexte session:`, memberContext ? 'trouvé' : 'non trouvé')
     
     if (!memberContext?.member_id) {
-      console.error(`❌ [TOOL] Contexte membre manquant:`, memberContext)
+      console.error(`❌ [TOOL] Contexte membre manquant pour session: ${session_id}`)
       return NextResponse.json(
-        { error: 'Contexte membre non disponible. Outil appelé hors session.' },
+        { error: 'Contexte membre non disponible. Outil appelé hors session ou session expirée.' },
         { status: 400 }
       )
     }

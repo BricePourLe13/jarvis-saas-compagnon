@@ -1,13 +1,14 @@
 /**
  * 🏠 DASHBOARD PRINCIPAL
  * Vue d'ensemble avec KPIs et alertes
- * ✅ NOUVELLE ARCHITECTURE : Contenu direct (pas de redirect)
+ * ✅ DESIGN MONOCHROME STRICT (blanc/gris/noir)
  */
 
 'use client'
 
 import { useEffect, useState } from 'react'
 import { Activity, Users, MessageSquare, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
+import { mono, kpiCard } from '@/lib/dashboard-design'
 
 interface Stats {
   totalMembers: number
@@ -57,30 +58,26 @@ export default function DashboardPage() {
       value: stats.activeMembersToday,
       total: stats.totalMembers,
       icon: Users,
-      trend: stats.membersTrend,
-      color: 'text-blue-500'
+      trend: stats.membersTrend
     },
     {
       label: 'Sessions JARVIS',
       value: stats.sessionsToday,
       total: stats.totalSessions,
       icon: MessageSquare,
-      trend: stats.sessionsTrend,
-      color: 'text-purple-500'
+      trend: stats.sessionsTrend
     },
     {
       label: 'Sentiment Moyen',
       value: `${(stats.avgSentiment * 100).toFixed(0)}%`,
       icon: Activity,
-      trend: 0,
-      color: 'text-green-500'
+      trend: 0
     },
     {
       label: 'Risque Churn',
       value: stats.churnRisk,
       icon: AlertTriangle,
-      trend: 0,
-      color: 'text-red-500'
+      trend: 0
     }
   ]
 
@@ -88,8 +85,8 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Vue d'ensemble</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className={mono.h1 + " text-3xl"}>Vue d'ensemble</h1>
+        <p className={mono.description + " mt-2"}>
           Statistiques et performances de votre salle de sport
         </p>
       </div>
@@ -104,25 +101,24 @@ export default function DashboardPage() {
           return (
             <div
               key={metric.label}
-              className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-all duration-200"
-              style={{ backgroundColor: 'hsl(var(--card))' }}
+              className={kpiCard.container}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg bg-muted ${metric.color}`}>
-                  <Icon className="h-6 w-6" />
+              <div className={kpiCard.header}>
+                <div className="p-3 rounded-lg bg-white/5">
+                  <Icon className={kpiCard.icon} />
                 </div>
                 {metric.trend !== 0 && (
-                  <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className="flex items-center gap-1 text-sm text-white/70">
                     <TrendIcon className="h-4 w-4" />
                     <span>{Math.abs(metric.trend)}%</span>
                   </div>
                 )}
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">{metric.label}</p>
-                <p className="text-3xl font-bold text-foreground">
+                <p className={kpiCard.label + " mb-1"}>{metric.label}</p>
+                <p className={kpiCard.value}>
                   {metric.value}
-                  {metric.total && <span className="text-lg text-muted-foreground">/{metric.total}</span>}
+                  {metric.total && <span className={mono.description + " text-lg"}>/{metric.total}</span>}
                 </p>
               </div>
             </div>
@@ -133,31 +129,35 @@ export default function DashboardPage() {
       {/* Alerts */}
       {alerts.length > 0 && (
         <div>
-          <h2 className="text-xl font-bold text-foreground mb-4">Alertes récentes</h2>
+          <h2 className={mono.h2 + " text-xl mb-4"}>Alertes récentes</h2>
           <div className="space-y-3">
             {alerts.map((alert) => {
-              const bgColor = {
-                warning: 'bg-yellow-500/10 border-yellow-500/20',
-                error: 'bg-red-500/10 border-red-500/20',
-                info: 'bg-blue-500/10 border-blue-500/20'
-              }[alert.type]
-
-              const iconColor = {
-                warning: 'text-yellow-500',
-                error: 'text-red-500',
-                info: 'text-blue-500'
+              // MONOCHROME : Nuances de gris selon sévérité
+              const alertStyles = {
+                warning: {
+                  bg: 'bg-white/5 border-white/10',
+                  icon: 'text-white/70'
+                },
+                error: {
+                  bg: 'bg-white/10 border-white/15',
+                  icon: 'text-white/90'
+                },
+                info: {
+                  bg: 'bg-black/40 border-white/5',
+                  icon: 'text-white/60'
+                }
               }[alert.type]
 
               return (
                 <div
                   key={alert.id}
-                  className={`border rounded-lg p-4 ${bgColor}`}
+                  className={`border rounded-lg p-4 backdrop-blur-xl ${alertStyles.bg}`}
                 >
                   <div className="flex items-start gap-3">
-                    <AlertTriangle className={`h-5 w-5 mt-0.5 ${iconColor}`} />
+                    <AlertTriangle className={`h-5 w-5 mt-0.5 ${alertStyles.icon}`} />
                     <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">{alert.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">{alert.message}</p>
+                      <h3 className={mono.h3 + " text-base"}>{alert.title}</h3>
+                      <p className={mono.description + " mt-1"}>{alert.message}</p>
                     </div>
                   </div>
                 </div>

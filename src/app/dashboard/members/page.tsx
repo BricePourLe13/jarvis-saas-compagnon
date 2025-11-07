@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { Search, Filter, UserPlus } from 'lucide-react'
+import { mono, dataTable } from '@/lib/dashboard-design'
 
 interface Member {
   id: string
@@ -23,7 +24,7 @@ export default function MembersPage() {
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
-    fetch('/api/dashboard/members-v2')
+    fetch('/api/dashboard/members')
       .then(res => res.json())
       .then(data => {
         setMembers(data.members || [])
@@ -42,11 +43,12 @@ export default function MembersPage() {
     return matchesSearch && matchesFilter
   })
 
+  // MONOCHROME : Nuances de gris selon le risque
   const getRiskBadgeColor = (risk: string) => {
     switch (risk) {
-      case 'high': return 'bg-red-500/10 text-red-500 border-red-500/20'
-      case 'medium': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-      case 'low': return 'bg-green-500/10 text-green-500 border-green-500/20'
+      case 'high': return 'bg-white/15 text-white/90 border-white/20'  // Blanc brillant = critique
+      case 'medium': return 'bg-white/10 text-white/80 border-white/15'  // Blanc moyen
+      case 'low': return 'bg-white/5 text-white/70 border-white/10'   // Blanc subtil = OK
       default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20'
     }
   }
@@ -57,12 +59,12 @@ export default function MembersPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Membres</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className={mono.h1 + " text-3xl"}>Membres</h1>
+            <p className={mono.description + " mt-2"}>
               Gestion et suivi de vos membres
             </p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+          <button className={mono.button + " flex items-center gap-2"}>
             <UserPlus className="h-4 w-4" />
             Nouveau membre
           </button>
