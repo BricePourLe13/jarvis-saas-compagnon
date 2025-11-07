@@ -109,7 +109,8 @@ export class VitrineIPLimiter {
       }
 
       // 3. 🔒 NOUVEAU : Vérifier si une session est déjà active (anti multi-onglets)
-      if (sessionData.is_session_active) {
+      // ⚠️ DÉSACTIVÉ si IP = 'unknown' (trop de faux positifs)
+      if (sessionData.is_session_active && ipAddress !== 'unknown') {
         const lastSession = new Date(sessionData.last_session_at)
         const timeSinceLastSession = (now.getTime() - lastSession.getTime()) / 1000 // secondes
         
@@ -131,6 +132,13 @@ export class VitrineIPLimiter {
             .update({ is_session_active: false })
             .eq('ip_address', ipAddress)
         }
+      } else if (sessionData.is_session_active && ipAddress === 'unknown') {
+        // IP unknown : réinitialiser automatiquement pour éviter blocage global
+        console.log(`⚠️ IP 'unknown' détectée - Réinitialisation session active pour éviter blocage`)
+        await supabase
+          .from('vitrine_demo_sessions')
+          .update({ is_session_active: false })
+          .eq('ip_address', ipAddress)
       }
 
       // 4. Reset quotidien si nécessaire

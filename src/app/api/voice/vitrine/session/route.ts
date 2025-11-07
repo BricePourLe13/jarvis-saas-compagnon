@@ -7,9 +7,23 @@ import { getConfigForContext, OPENAI_CONFIG } from '@/lib/openai-config'
 export async function POST(request: NextRequest) {
   try {
     // Récupération de l'IP et User-Agent
-    const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0] || 
-                    request.headers.get('x-real-ip') || 
-                    'unknown'
+    // Essayer plusieurs méthodes pour détecter l'IP réelle
+    let clientIP = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                   request.headers.get('x-real-ip')?.trim() ||
+                   request.headers.get('cf-connecting-ip')?.trim() || // Cloudflare
+                   request.ip || // Next.js request.ip
+                   'unknown'
+    
+    // Log pour debug (masqué en production)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 IP détectée:', {
+        'x-forwarded-for': request.headers.get('x-forwarded-for'),
+        'x-real-ip': request.headers.get('x-real-ip'),
+        'cf-connecting-ip': request.headers.get('cf-connecting-ip'),
+        'request.ip': request.ip,
+        'final': clientIP
+      })
+    }
     
     const userAgent = request.headers.get('user-agent') || 'unknown'
     
