@@ -126,6 +126,15 @@ export interface VoiceRealtimeCoreConfig {
   /** Callback session créée */
   onSessionCreated?: (sessionId: string) => void
   
+  /** Callback activité détectée (pour reset timeout) */
+  onActivity?: () => void
+  
+  /** Callback speech started (pour injection realtime kiosk) */
+  onSpeechStarted?: () => void
+  
+  /** Callback speech stopped (pour injection realtime kiosk) */
+  onSpeechStopped?: () => void
+  
   /** Contexte (pour logging différencié) */
   context?: 'kiosk' | 'vitrine'
 }

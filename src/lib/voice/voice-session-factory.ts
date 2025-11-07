@@ -81,11 +81,19 @@ export class VitrineSessionFactory implements VoiceSessionFactory {
     const sessionData = await response.json()
     const session = sessionData.session
     
-    return {
+    // Retourner session avec métadonnées (remainingCredits pour vitrine)
+    const voiceSession = {
       client_secret: session.client_secret || { value: session.client_secret },
       session_id: session.session_id,
       expires_at: session.expires_at
     }
+    
+    // Ajouter remainingCredits si présent (pour compatibilité avec useVoiceVitrineChat)
+    if (sessionData.remainingCredits !== undefined) {
+      (voiceSession as any).remainingCredits = sessionData.remainingCredits
+    }
+    
+    return voiceSession
   }
 }
 

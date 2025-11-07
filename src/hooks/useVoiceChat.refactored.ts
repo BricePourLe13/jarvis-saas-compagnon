@@ -93,24 +93,15 @@ export function useVoiceChat(config: VoiceChatConfig) {
     }
   }, [config.memberData?.badge_id, config.gymSlug])
 
+  // Ref pour stocker la fonction de déconnexion (évite dépendance circulaire)
+  const disconnectRef = useRef<() => Promise<void>>()
+
   // ⏰ GESTION TIMEOUT INACTIVITÉ (spécifique kiosk)
   const resetInactivityTimeout = useCallback(() => {
     if (inactivityTimeoutRef.current) {
       clearTimeout(inactivityTimeoutRef.current)
       inactivityTimeoutRef.current = null
     }
-
-    // Le timeout sera réinitialisé quand core.isConnected change
-  }, [])
-
-  // Mettre à jour inactivity timeout quand connexion change
-  useEffect(() => {
-    if (inactivityTimeoutRef.current) {
-      clearTimeout(inactivityTimeoutRef.current)
-      inactivityTimeoutRef.current = null
-    }
-
-    // Le timeout sera géré par le hook parent via resetInactivityTimeout
   }, [])
 
   // 🛠️ GESTION FUNCTION CALLS (spécifique kiosk)
@@ -278,16 +269,40 @@ export function useVoiceChat(config: VoiceChatConfig) {
     context: 'production',
     onStatusChange: (status) => {
       config.onStatusChange?.(status)
+    },
+    onActivity: () => {
       // Réinitialiser timeout à chaque activité
-      if (status === 'connected' || status === 'listening' || status === 'speaking') {
-        resetInactivityTimeout()
-        if (core.isConnected) {
-          inactivityTimeoutRef.current = setTimeout(() => {
-            kioskLogger.session('⏰ Timeout inactivité - Fermeture session', 'info')
-            core.disconnect()
-            config.onError?.('INACTIVITY_TIMEOUT')
-          }, INACTIVITY_TIMEOUT_MS)
-        }
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current)
+        inactivityTimeoutRef.current = null
+      }
+      // Réinitialiser le timeout si connecté
+      if (core.isConnected) {
+        inactivityTimeoutRef.current = setTimeout(() => {
+          kioskLogger.session('⏰ Timeout inactivité - Fermeture session', 'info')
+          disconnectRef.current?.()
+          config.onError?.('INACTIVITY_TIMEOUT')
+        }, INACTIVITY_TIMEOUT_MS)
+      }
+    },
+    onSpeechStarted: () => {
+      // 🎙️ INJECTER ÉVÉNEMENT REALTIME
+      if (currentMemberRef.current && sessionRef.current) {
+        realtimeClientInjector.injectUserSpeechStart(
+          sessionRef.current.session_id,
+          currentMemberRef.current.gym_id,
+          currentMemberRef.current.id
+        )
+      }
+    },
+    onSpeechStopped: () => {
+      // 🎙️ INJECTER ÉVÉNEMENT REALTIME
+      if (currentMemberRef.current && sessionRef.current) {
+        realtimeClientInjector.injectUserSpeechEnd(
+          sessionRef.current.session_id,
+          currentMemberRef.current.gym_id,
+          currentMemberRef.current.id
+        )
       }
     },
     onTranscriptUpdate: (transcript, isFinal) => {
@@ -334,19 +349,34 @@ export function useVoiceChat(config: VoiceChatConfig) {
     }
   })
 
-  // Gérer injection événements realtime (spécifique kiosk)
+  // Réinitialiser timeout quand connexion établie
   useEffect(() => {
-    if (core.status === 'listening' && currentMemberRef.current && sessionRef.current) {
-      realtimeClientInjector.injectUserSpeechStart(
-        sessionRef.current.session_id,
-        currentMemberRef.current.gym_id,
-        currentMemberRef.current.id
-      )
+    if (core.isConnected) {
+      // Réinitialiser le timeout
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current)
+        inactivityTimeoutRef.current = null
+      }
+      inactivityTimeoutRef.current = setTimeout(() => {
+        kioskLogger.session('⏰ Timeout inactivité - Fermeture session', 'info')
+        disconnectRef.current?.()
+        config.onError?.('INACTIVITY_TIMEOUT')
+      }, INACTIVITY_TIMEOUT_MS)
+    } else {
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current)
+        inactivityTimeoutRef.current = null
+      }
     }
-  }, [core.status])
+  }, [core.isConnected, config])
 
   // Gérer fermeture session serveur (spécifique kiosk)
   const disconnectWithCleanup = useCallback(async () => {
+    // Nettoyer timeout immédiatement
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current)
+      inactivityTimeoutRef.current = null
+    }
     try {
       kioskLogger.session('🔌 Déconnexion session...', 'info')
 
@@ -404,6 +434,11 @@ export function useVoiceChat(config: VoiceChatConfig) {
       kioskLogger.session(`❌ Erreur déconnexion: ${error.message}`, 'error')
     }
   }, [core])
+
+  // Stocker la fonction de déconnexion dans la ref
+  useEffect(() => {
+    disconnectRef.current = disconnectWithCleanup
+  }, [disconnectWithCleanup])
 
   // 🧹 CLEANUP AU DÉMONTAGE
   useEffect(() => {

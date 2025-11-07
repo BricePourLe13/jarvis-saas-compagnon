@@ -275,17 +275,22 @@ export function useVoiceRealtimeCore(
       case 'input_audio_buffer.speech_started':
         updateStatus('listening')
         updateAudioState({ isListening: true })
+        config.onActivity?.()
+        config.onSpeechStarted?.()
         break
 
       case 'input_audio_buffer.speech_stopped':
         updateStatus('connected')
         updateAudioState({ isListening: false })
+        config.onActivity?.()
+        config.onSpeechStopped?.()
         break
 
       case 'conversation.item.input_audio_transcription.completed':
         const transcript = event.transcript || ''
         config.onTranscriptUpdate?.(transcript, true)
         updateAudioState({ transcript, isFinal: true })
+        config.onActivity?.() // Transcription = activité
         break
 
       case 'response.created':
@@ -295,11 +300,13 @@ export function useVoiceRealtimeCore(
       case 'response.audio.delta':
         updateStatus('speaking')
         updateAudioState({ isPlaying: true })
+        config.onActivity?.() // Réponse = activité
         break
 
       case 'response.audio.done':
         updateStatus('connected')
         updateAudioState({ isPlaying: false })
+        config.onActivity?.() // Fin réponse = activité
         break
 
       case 'response.done':
