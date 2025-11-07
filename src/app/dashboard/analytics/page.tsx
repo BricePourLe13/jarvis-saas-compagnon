@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { BarChart3, TrendingUp, Users, MessageSquare } from 'lucide-react'
+import { mono, kpiCard } from '@/lib/dashboard-design'
 
 interface AnalyticsData {
   dailySessions: Array<{ date: string; count: number }>
@@ -43,41 +44,41 @@ export default function AnalyticsPage() {
     <div className="space-y-8">
       {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className={mono.h1 + " text-3xl"}>Analytics</h1>
+          <p className={mono.description + " mt-2"}>
             Analyse détaillée des performances et tendances
           </p>
         </div>
 
         {/* Key Metrics */}
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="bg-card border border-border rounded-lg p-6">
+          <div className={kpiCard.container}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-blue-500/10">
-                <Users className="h-6 w-6 text-blue-500" />
+              <div className="p-3 rounded-lg bg-white/5">
+                <Users className={kpiCard.icon} />
               </div>
-              <h3 className="font-semibold text-foreground">Engagement Membres</h3>
+              <h3 className={mono.h3}>Engagement Membres</h3>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Actifs</span>
-                <span className="font-medium text-green-500">{data.memberEngagement.active}</span>
+                <span className={mono.description}>Actifs</span>
+                <span className="font-medium text-white/90">{data.memberEngagement.active}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Inactifs</span>
-                <span className="font-medium text-gray-500">{data.memberEngagement.inactive}</span>
+                <span className={mono.description}>Inactifs</span>
+                <span className="font-medium text-white/70">{data.memberEngagement.inactive}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">À risque</span>
-                <span className="font-medium text-red-500">{data.memberEngagement.atRisk}</span>
+                <span className={mono.description}>À risque</span>
+                <span className="font-medium text-gray-500">{data.memberEngagement.atRisk}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-lg p-6">
+          <div className={kpiCard.container}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-purple-500/10">
-                <MessageSquare className="h-6 w-6 text-purple-500" />
+              <div className="p-3 rounded-lg bg-white/5">
+                <MessageSquare className={kpiCard.icon} />
               </div>
               <h3 className="font-semibold text-foreground">Sessions Totales</h3>
             </div>
