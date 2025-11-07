@@ -40,11 +40,10 @@ export const OPENAI_CONFIG = {
     
     /**
      * Modèle vitrine (démos commerciales, landing page)
-     * - UTILISÉ TEMPORAIREMENT LE MÊME QUE PRODUCTION pour debug
-     * - Si ça marche = problème de modèle vitrine
-     * - TODO: Tester 'gpt-realtime-2025-08-28' quand disponible
+     * - gpt-realtime-2025-08-28 = Modèle GA officiel (doc actualisée nov 2025)
+     * - Format GA (pas de header OpenAI-Beta)
      */
-    vitrine: process.env.OPENAI_REALTIME_MODEL_VITRINE || 'gpt-4o-realtime-preview-2024-10-01',
+    vitrine: process.env.OPENAI_REALTIME_MODEL_VITRINE || 'gpt-realtime-2025-08-28',
     
     /**
      * Modèle audio spécialisé (à évaluer)
