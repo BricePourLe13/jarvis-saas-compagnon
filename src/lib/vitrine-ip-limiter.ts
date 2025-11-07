@@ -78,6 +78,7 @@ export class VitrineIPLimiter {
             first_session_at: now.toISOString(),
             last_session_at: now.toISOString(),
             total_duration_seconds: 0,
+            daily_duration_seconds: 0, // ✅ Nouvelle colonne pour durée quotidienne
             is_session_active: ipAddress !== 'unknown' // ✅ Ne pas marquer active si IP unknown
           })
 
@@ -143,9 +144,20 @@ export class VitrineIPLimiter {
       }
 
       // 4. Reset quotidien si nécessaire
-      let dailyDurationSeconds = sessionData.total_duration_seconds || 0
+      // ✅ FIX : Utiliser daily_duration_seconds (colonne séparée) pour la limite quotidienne
+      let dailyDurationSeconds = (sessionData.daily_duration_seconds as number) || 0
+      
       if (sessionData.daily_reset_date !== today) {
-        dailyDurationSeconds = 0 // Reset du compteur quotidien
+        // Nouveau jour : reset de la durée quotidienne
+        dailyDurationSeconds = 0
+        // Mettre à jour daily_reset_date et reset daily_duration_seconds
+        await supabase
+          .from('vitrine_demo_sessions')
+          .update({ 
+            daily_reset_date: today,
+            daily_duration_seconds: 0
+          })
+          .eq('ip_address', ipAddress)
       }
 
       // Convertir en crédits (1 crédit = 60 secondes)
