@@ -206,7 +206,7 @@ export class VitrineIPLimiter {
           daily_session_count: (sessionData.daily_session_count || 0) + 1,
           daily_reset_date: today,
           last_session_at: now.toISOString(),
-            is_session_active: true, // ✅ Marquer comme active (sera nettoyé automatiquement si orpheline)
+          is_session_active: true, // ✅ Marquer comme active (sera nettoyé automatiquement si orpheline)
           user_agent: userAgent,
           updated_at: now.toISOString()
         })
