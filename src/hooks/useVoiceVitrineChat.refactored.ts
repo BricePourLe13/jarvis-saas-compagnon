@@ -29,6 +29,7 @@ export function useVoiceVitrineChat({
   const [error, setError] = useState<string | null>(null)
   const [currentTranscript, setCurrentTranscript] = useState('')
   const [isAISpeaking, setIsAISpeaking] = useState(false)
+  const [resetTime, setResetTime] = useState<Date | null>(null) // ✅ Pour afficher quand la limite se réinitialise
   
   // Refs pour timeout et session
   const sessionStartTimeRef = useRef<number | null>(null)
