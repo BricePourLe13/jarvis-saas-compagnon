@@ -9,6 +9,7 @@ import { getConfigForContext } from '@/lib/openai-config'
 import { getConversationContext } from '@/lib/rag-context'
 import { getMemberFacts, formatFactsForPrompt } from '@/lib/member-facts'
 import { sessionContextStore } from '@/lib/voice/session-context-store'
+import { fetchWithRetry } from '@/lib/openai-retry'
 
 // Générer un ID de session unique
 function generateSessionId(): string {
@@ -238,14 +239,23 @@ export async function POST(request: NextRequest) {
     // 📡 CRÉER SESSION OPENAI
     console.log(`📡 [SESSION] Appel OpenAI pour session: ${sessionId}`)
     
-    const sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
+    // ✅ Retry automatique avec backoff exponentiel
+    const sessionResponse = await fetchWithRetry(
+      'https://api.openai.com/v1/realtime/sessions',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(sessionConfig)
       },
-      body: JSON.stringify(sessionConfig)
-    })
+      {
+        maxRetries: 3,
+        initialDelayMs: 1000,
+        retryableStatuses: [429, 500, 502, 503, 504]
+      }
+    )
 
     if (!sessionResponse.ok) {
       const errorText = await sessionResponse.text()

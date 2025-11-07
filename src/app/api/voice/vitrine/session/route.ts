@@ -3,6 +3,7 @@ import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
 import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
 import { getStrictContext } from '@/lib/jarvis-knowledge-base'
 import { getConfigForContext, OPENAI_CONFIG } from '@/lib/openai-config'
+import { fetchWithRetry } from '@/lib/openai-retry'
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,15 +106,24 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
       tool_choice: "auto",
     }
 
-    const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-        'OpenAI-Beta': 'realtime=v1'
+    // ✅ Retry automatique avec backoff exponentiel
+    const response = await fetchWithRetry(
+      'https://api.openai.com/v1/realtime/sessions',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'realtime=v1'
+        },
+        body: JSON.stringify(sessionConfig),
       },
-      body: JSON.stringify(sessionConfig),
-    })
+      {
+        maxRetries: 3,
+        initialDelayMs: 1000,
+        retryableStatuses: [429, 500, 502, 503, 504]
+      }
+    )
 
     if (!response.ok) {
       const errorText = await response.text()

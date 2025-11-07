@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { MessageSquare, Clock, Smile, Meh, Frown } from 'lucide-react'
+import { mono } from '@/lib/dashboard-design'
 
 interface Session {
   id: string
@@ -32,11 +33,12 @@ export default function SessionsPage() {
     return session.sentiment === filter
   })
 
+  // MONOCHROME : Nuances de gris selon sentiment
   const getSentimentIcon = (sentiment: string) => {
     switch (sentiment) {
-      case 'positive': return <Smile className="h-5 w-5 text-green-500" />
-      case 'neutral': return <Meh className="h-5 w-5 text-yellow-500" />
-      case 'negative': return <Frown className="h-5 w-5 text-red-500" />
+      case 'positive': return <Smile className="h-5 w-5 text-white/90" />
+      case 'neutral': return <Meh className="h-5 w-5 text-white/70" />
+      case 'negative': return <Frown className="h-5 w-5 text-gray-500" />
       default: return <Meh className="h-5 w-5 text-gray-500" />
     }
   }
@@ -60,8 +62,8 @@ export default function SessionsPage() {
     <div className="space-y-6">
       {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Sessions JARVIS</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className={mono.h1 + " text-3xl"}>Sessions JARVIS</h1>
+          <p className={mono.description + " mt-2"}>
             Historique des conversations avec vos membres
           </p>
         </div>
@@ -72,8 +74,8 @@ export default function SessionsPage() {
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-lg transition-colors ${
               filter === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-white/15 text-white/90 border border-white/20'
+                : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
             }`}
           >
             Toutes
