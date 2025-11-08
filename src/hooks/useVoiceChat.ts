@@ -522,10 +522,17 @@ export function useVoiceChat(config: VoiceChatConfig) {
   // 📨 GESTION ÉVÉNEMENTS SERVEUR (comme ba8f34a)
   const handleServerEvent = useCallback((event: any) => {
     resetInactivityTimeout()
+    
+    // 🔍 LOG TOUS LES ÉVÉNEMENTS POUR DEBUG
+    kioskLogger.session(`📨 Événement: ${event.type}`, 'info')
 
     switch (event.type) {
       case 'session.created':
         kioskLogger.session('🎯 Session OpenAI active', 'success')
+        break
+      
+      case 'session.updated':
+        kioskLogger.session('✅ Session mise à jour confirmée', 'success')
         break
 
       case 'input_audio_buffer.speech_started':
@@ -555,6 +562,34 @@ export function useVoiceChat(config: VoiceChatConfig) {
             currentMemberRef.current.id
           )
         }
+        break
+      
+      case 'input_audio_buffer.committed':
+        kioskLogger.session('✅ Buffer audio committé', 'info')
+        break
+
+      case 'conversation.item.created':
+        kioskLogger.session(`💬 Item créé: ${event.item?.type}`, 'info')
+        break
+      
+      case 'response.created':
+        kioskLogger.session('🎙️ JARVIS commence à répondre', 'success')
+        setAudioState(prev => ({ ...prev, isPlaying: true }))
+        updateStatus('speaking')
+        break
+      
+      case 'response.audio.delta':
+        kioskLogger.session('🔊 Chunk audio reçu', 'info')
+        break
+      
+      case 'response.audio.done':
+        kioskLogger.session('✅ Audio complet reçu', 'success')
+        break
+      
+      case 'response.done':
+        kioskLogger.session('✅ Réponse JARVIS terminée', 'success')
+        setAudioState(prev => ({ ...prev, isPlaying: false }))
+        updateStatus('connected')
         break
 
       case 'conversation.item.input_audio_transcription.completed':
