@@ -31,6 +31,14 @@ interface VoiceChatSession {
   expires_at: string
 }
 
+interface SessionResponse {
+  success: boolean
+  session: VoiceChatSession
+  sessionUpdate?: any  // Config complète pour session.update
+  member?: any
+  context?: any
+}
+
 const INACTIVITY_TIMEOUT_MS = 45000 // 45 secondes
 
 export function useVoiceChat(config: VoiceChatConfig) {
@@ -48,6 +56,7 @@ export function useVoiceChat(config: VoiceChatConfig) {
   // Refs pour la gestion des ressources
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
   const dataChannelRef = useRef<RTCDataChannel | null>(null)
+  const sessionUpdateConfigRef = useRef<any | null>(null)  // Config complète pour session.update
   
   // 💬 Refs pour logging des conversations
   const currentMemberRef = useRef<{ id: string; gym_id: string } | null>(null)
@@ -117,10 +126,16 @@ export function useVoiceChat(config: VoiceChatConfig) {
         throw new Error(`Session creation failed: ${response.status} - ${errorData}`)
       }
 
-      const responseData = await response.json()
-      // L'API retourne { success: true, session: {...} }
+      const responseData: SessionResponse = await response.json()
+      // L'API retourne { success: true, session: {...}, sessionUpdate: {...} }
       const session = responseData.session || responseData
       sessionRef.current = session
+      
+      // ✅ NOUVEAU : Stocker la config complète pour session.update
+      if (responseData.sessionUpdate) {
+        sessionUpdateConfigRef.current = responseData.sessionUpdate
+        kioskLogger.session('📋 Config complète reçue pour session.update', 'info')
+      }
       
       kioskLogger.session(`✅ Session créée: ${session.session_id}`, 'success')
       config.onSessionCreated?.(session.session_id, config.memberId, config.gymSlug)
@@ -215,6 +230,17 @@ export function useVoiceChat(config: VoiceChatConfig) {
         setIsConnected(true)
         updateStatus('connected')
         resetInactivityTimeout()
+        
+        // 🎛️ ÉTAPE 3 : Envoyer session.update avec la config COMPLÈTE
+        // (instructions personnalisées, tools, etc.)
+        if (sessionUpdateConfigRef.current) {
+          kioskLogger.session('📡 Envoi session.update avec config complète', 'info')
+          dc.send(JSON.stringify({
+            type: 'session.update',
+            session: sessionUpdateConfigRef.current
+          }))
+          kioskLogger.session('✅ session.update envoyé', 'success')
+        }
       }
 
       dc.onmessage = (event) => {

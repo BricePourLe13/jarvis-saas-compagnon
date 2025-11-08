@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
 import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
 import { getStrictContext } from '@/lib/jarvis-knowledge-base'
-import { getConfigForContext, OPENAI_CONFIG, convertToGAFormat } from '@/lib/openai-config'
+import { getMinimalSessionConfig, getConfigForContext, getFullSessionUpdate, OPENAI_CONFIG } from '@/lib/openai-config'
 import { fetchWithRetry } from '@/lib/openai-retry'
 
 export async function POST(request: NextRequest) {
@@ -53,7 +53,84 @@ export async function POST(request: NextRequest) {
     // 📚 Récupérer le contexte strict de la knowledge base
     const strictContext = getStrictContext();
 
-    // Créer une session OpenAI Realtime pour la démo
+    // 🔑 ÉTAPE 1 : Créer ephemeral token avec config MINIMALE
+    // Doc: L'endpoint /client_secrets n'accepte QUE: type, model, audio.output.voice
+    const minimalConfig = getMinimalSessionConfig('vitrine')
+
+    console.log('🔑 [VITRINE] Création ephemeral token avec config minimale:', {
+      model: minimalConfig.model,
+      voice: minimalConfig.audio.output.voice,
+      has_api_key: !!process.env.OPENAI_API_KEY
+    })
+    
+    // ✅ Retry automatique avec backoff exponentiel
+    const response = await fetchWithRetry(
+      'https://api.openai.com/v1/realtime/client_secrets',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session: minimalConfig  // ✅ Config minimale uniquement
+        }),
+      },
+      {
+        maxRetries: 3,
+        initialDelayMs: 1000,
+        retryableStatuses: [429, 500, 502, 503, 504]
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ [VITRINE] Erreur OpenAI API:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        model_used: minimalConfig.model,
+        voice_used: minimalConfig.audio.output.voice,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+      
+      // 🚨 CRITIQUE: Parser l'erreur OpenAI pour diagnostic
+      let parsedError
+      try {
+        parsedError = JSON.parse(errorText)
+      } catch (e) {
+        parsedError = errorText
+      }
+      
+      console.error('❌ [VITRINE] Détails erreur parsée:', parsedError)
+      
+      return NextResponse.json(
+        { 
+          error: 'Service temporairement indisponible',
+          details: process.env.NODE_ENV === 'development' ? errorText : undefined,
+          debug: {
+            model: sessionConfig.model,
+            status: response.status,
+            error: parsedError
+          }
+        },
+        { status: 503 }
+      )
+    }
+
+    const sessionData = await response.json()
+    
+    // ✅ FORMAT GA : La réponse contient { value: "ek_xxx", expires_at: xxx }
+    console.log('✅ [VITRINE] Ephemeral token créé:', {
+      timestamp: new Date().toISOString(),
+      clientIP: clientIP.substring(0, 8) + '...',
+      tokenPrefix: sessionData.value?.substring(0, 10) + '...',
+      remainingCredits: limitResult.remainingCredits,
+      userAgent: userAgent.substring(0, 50) + '...'
+    })
+
+    // 🎛️ ÉTAPE 2 : Préparer la config COMPLÈTE pour session.update
+    // Cette config sera envoyée par le client via WebRTC data channel APRÈS connexion
     const baseConfig = getConfigForContext('vitrine')
     
     // Instructions complètes pour JARVIS commercial
@@ -102,100 +179,10 @@ Ne réponds JAMAIS de mémoire pour ces sujets.
 "Salut ! Je suis JARVIS ! Dis-moi, tu gères une salle de sport ?"
 
 RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`
-    
-    // Convertir au format GA avec instructions et tools
-    const gaConfig = convertToGAFormat(baseConfig)
-    const sessionConfig = {
-      ...gaConfig,
-      instructions,
-      tools: jarvisExpertFunctions,
-      tool_choice: "auto",
-    }
 
-    // 🔍 DEBUG: Log de la config envoyée à OpenAI
-    console.log('📡 [VITRINE] Appel OpenAI avec:', {
-      model: sessionConfig.model,
-      voice: sessionConfig.audio.output.voice,
-      output_modalities: sessionConfig.output_modalities,
-      turn_detection: sessionConfig.audio.input.turn_detection,
-      instructions_length: sessionConfig.instructions.length,
-      tools_count: sessionConfig.tools?.length || 0,
-      has_api_key: !!process.env.OPENAI_API_KEY
-    })
-    
-    // ✅ Retry automatique avec backoff exponentiel
-    // 🚨 FORMAT GA : Endpoint /v1/realtime/client_secrets (pas /sessions)
-    // Doc ligne 336-362: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
-    const response = await fetchWithRetry(
-      'https://api.openai.com/v1/realtime/client_secrets',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session: sessionConfig  // ✅ FORMAT GA : sessionConfig déjà au bon format
-        }),
-      },
-      {
-        maxRetries: 3,
-        initialDelayMs: 1000,
-        retryableStatuses: [429, 500, 502, 503, 504]
-      }
-    )
+    const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisExpertFunctions)
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ [VITRINE] Erreur OpenAI API:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        model_used: sessionConfig.model,
-        voice_used: sessionConfig.audio.output.voice,
-        headers: Object.fromEntries(response.headers.entries())
-      })
-      
-      // 🚨 CRITIQUE: Parser l'erreur OpenAI pour diagnostic
-      let parsedError
-      try {
-        parsedError = JSON.parse(errorText)
-      } catch (e) {
-        parsedError = errorText
-      }
-      
-      console.error('❌ [VITRINE] Détails erreur parsée:', parsedError)
-      
-      return NextResponse.json(
-        { 
-          error: 'Service temporairement indisponible',
-          details: process.env.NODE_ENV === 'development' ? errorText : undefined,
-          debug: {
-            model: sessionConfig.model,
-            status: response.status,
-            error: parsedError
-          }
-        },
-        { status: 503 }
-      )
-    }
-
-    const sessionData = await response.json()
-    
-    // ✅ FORMAT GA : La réponse contient { value: "ek_xxx", expires_at: xxx }
-    // Doc ligne 360-361: console.log(data.value)
-
-    // Log pour monitoring (sans exposer les données sensibles)
-    console.log('✅ Session vitrine créée:', {
-      timestamp: new Date().toISOString(),
-      clientIP: clientIP.substring(0, 8) + '...',
-      tokenPrefix: sessionData.value?.substring(0, 10) + '...',
-      remainingCredits: limitResult.remainingCredits, // Minutes restantes
-      userAgent: userAgent.substring(0, 50) + '...'
-    })
-
-    // Retourner le format attendu par le hook (format GA)
-    // Note: On génère un session_id temporaire côté serveur pour tracking
+    // Retourner le format attendu par le hook
     const tempSessionId = `sess_vitrine_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
     return NextResponse.json({
@@ -203,14 +190,16 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
       session: {
         session_id: tempSessionId,
         client_secret: {
-          value: sessionData.value,  // ✅ FORMAT GA : token ephemeral
+          value: sessionData.value,  // ✅ Ephemeral token
           expires_at: sessionData.expires_at
         },
         model: OPENAI_CONFIG.models.vitrine,
         voice: OPENAI_CONFIG.voices.vitrine,
         expires_at: sessionData.expires_at || 0
       },
-      remainingCredits: limitResult.remainingCredits // Informer le client des crédits restants
+      // ✅ NOUVEAU : Renvoyer la config complète pour que le client l'envoie via session.update
+      sessionUpdate: sessionUpdateConfig,
+      remainingCredits: limitResult.remainingCredits
     })
 
   } catch (error) {

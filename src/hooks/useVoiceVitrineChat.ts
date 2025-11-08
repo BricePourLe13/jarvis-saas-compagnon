@@ -216,10 +216,16 @@ export function useVoiceVitrineChat({
         updateStatus('connected')
         sessionStartTimeRef.current = Date.now()
         
-        // ✅ CORRECTION : Ne pas écraser le prompt serveur !
-        // Le prompt commercial expert est déjà configuré dans /api/voice/vitrine/session
-        // avec toutes les instructions détaillées, function calling, etc.
-        console.log('🎯 Utilisation du prompt commercial serveur (expert JARVIS-GROUP)')
+        // 🎛️ ÉTAPE 3 : Envoyer session.update avec la config COMPLÈTE
+        // (instructions, tools, etc.)
+        if (sessionResponse.sessionUpdate) {
+          console.log('📡 [VITRINE] Envoi session.update avec config complète')
+          dc.send(JSON.stringify({
+            type: 'session.update',
+            session: sessionResponse.sessionUpdate
+          }))
+          console.log('✅ [VITRINE] session.update envoyé')
+        }
       }
 
       dc.onmessage = (event) => {

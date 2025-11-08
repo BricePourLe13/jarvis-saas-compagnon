@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
-import { getConfigForContext, convertToGAFormat } from '@/lib/openai-config'
+import { getMinimalSessionConfig, getConfigForContext, getFullSessionUpdate } from '@/lib/openai-config'
 import { getConversationContext } from '@/lib/rag-context'
 import { getMemberFacts, formatFactsForPrompt } from '@/lib/member-facts'
 import { sessionContextStore } from '@/lib/voice/session-context-store'
@@ -227,32 +227,16 @@ export async function POST(request: NextRequest) {
       }
     ]
 
-    // 🎙️ CONFIGURATION AUDIO OPTIMISÉE AVEC TOOLS + CONTEXTE ENRICHI
-    const baseConfig = getConfigForContext('production')
-    
-    // Convertir au format GA
-    const gaConfig = convertToGAFormat(baseConfig)
-    const sessionConfig = {
-      ...gaConfig,
-      instructions: generateEnrichedInstructions(memberProfile, gymSlug, factsPrompt, conversationContext),
-      tools: jarvisTools,
-      tool_choice: 'auto',
-    }
+    // 🔑 ÉTAPE 1 : Créer ephemeral token avec config MINIMALE
+    const minimalConfig = getMinimalSessionConfig('production')
 
-    // 📡 CRÉER SESSION OPENAI
-    console.log(`📡 [SESSION] Appel OpenAI pour session: ${sessionId}`)
-    console.log(`📡 [DEBUG] Config:`, {
-      model: sessionConfig.model,
-      voice: sessionConfig.audio.output.voice,
-      output_modalities: sessionConfig.output_modalities,
-      turn_detection: sessionConfig.audio.input.turn_detection,
-      instructions_length: sessionConfig.instructions.length,
-      tools_count: sessionConfig.tools?.length || 0
+    console.log(`🔑 [SESSION] Création ephemeral token pour ${memberProfile.first_name}`)
+    console.log(`📡 [DEBUG] Config minimale:`, {
+      model: minimalConfig.model,
+      voice: minimalConfig.audio.output.voice
     })
     
     // ✅ Retry automatique avec backoff exponentiel
-    // 🚨 FORMAT GA : Endpoint /v1/realtime/client_secrets (pas /sessions)
-    // Doc ligne 336-362: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
     const sessionResponse = await fetchWithRetry(
       'https://api.openai.com/v1/realtime/client_secrets',
       {
@@ -262,7 +246,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          session: sessionConfig  // ✅ FORMAT GA : sessionConfig déjà au bon format
+          session: minimalConfig  // ✅ Config minimale uniquement
         })
       },
       {
@@ -290,32 +274,33 @@ export async function POST(request: NextRequest) {
 
     const sessionData = await sessionResponse.json()
     
-    // ✅ FORMAT GA : La réponse contient { value: "ek_xxx", expires_at: xxx }
-    // Doc ligne 360-361: console.log(data.value)
-    
-    // Générer un session_id temporaire côté serveur pour tracking
-    const tempSessionId = `sess_prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
-    console.log(`✅ [SESSION] Session OpenAI créée: ${tempSessionId}`)
-    console.log(`✅ [DEBUG] Session data:`, {
-      tempSessionId,
+    console.log(`✅ [SESSION] Ephemeral token créé pour ${memberProfile.first_name}`)
+    console.log(`✅ [DEBUG] Token:`, {
+      session_id: sessionId,
       tokenPrefix: sessionData.value?.substring(0, 10) + '...',
-      model: sessionConfig.model,
-      voice: sessionConfig.voice,
+      model: minimalConfig.model,
+      voice: minimalConfig.audio.output.voice,
       expires_at: sessionData.expires_at
     })
+
+    // 🎛️ ÉTAPE 2 : Préparer la config COMPLÈTE pour session.update
+    const baseConfig = getConfigForContext('production')
+    const instructions = generateEnrichedInstructions(memberProfile, gymSlug, factsPrompt, conversationContext)
+    const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisTools)
+
+    console.log(`📋 [SESSION] Config complète préparée (${instructions.length} chars, ${jarvisTools.length} tools)`)
 
     // 🎯 ENREGISTREMENT EN BASE AVEC RELATION FORTE
     try {
       const supabase = getSupabaseService()
       
       const { data: result, error } = await supabase.rpc('create_session_with_member', {
-        p_session_id: tempSessionId,  // Utiliser notre session_id temporaire
+        p_session_id: sessionId,
         p_gym_id: memberProfile.gym_id,
         p_member_id: memberProfile.id,
         p_kiosk_slug: gymSlug,
-        p_ai_model: sessionConfig.model,
-        p_voice_model: sessionConfig.voice
+        p_ai_model: minimalConfig.model,
+        p_voice_model: minimalConfig.audio.output.voice
       })
 
       if (error) {
@@ -330,19 +315,21 @@ export async function POST(request: NextRequest) {
       // Ne pas faire échouer la session pour ça
     }
 
-    // 📊 RETOURNER LA SESSION AVEC CONTEXTE MEMBRE (FORMAT GA)
+    // 📊 RETOURNER LA SESSION AVEC CONTEXTE MEMBRE
     return NextResponse.json({
       success: true,
       session: {
-        session_id: tempSessionId,
+        session_id: sessionId,
         client_secret: {
-          value: sessionData.value,  // ✅ FORMAT GA : token ephemeral
+          value: sessionData.value,
           expires_at: sessionData.expires_at
         },
-        model: sessionConfig.model,
-        voice: sessionConfig.voice,
+        model: minimalConfig.model,
+        voice: minimalConfig.audio.output.voice,
         expires_at: sessionData.expires_at || 0
       },
+      // ✅ NOUVEAU : Config complète pour session.update
+      sessionUpdate: sessionUpdateConfig,
       member: {
         id: memberProfile.id,
         badge_id: memberProfile.badge_id,

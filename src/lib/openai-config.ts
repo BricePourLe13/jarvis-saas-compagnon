@@ -306,66 +306,94 @@ export function getConfigForContext(context: OpenAIContext) {
 }
 
 /**
- * Convertir config interne vers format GA OpenAI API
+ * 🔑 Créer config MINIMALE pour ephemeral token
  * 
- * Transforme la structure retournée par getConfigForContext() vers le format
- * attendu par l'API POST /v1/realtime/client_secrets (format GA novembre 2025)
+ * L'endpoint /v1/realtime/client_secrets N'ACCEPTE QUE la config minimale.
+ * Les instructions, tools, etc. doivent être envoyés APRÈS via session.update.
  * 
- * @param config Configuration retournée par getConfigForContext()
- * @returns Configuration au format GA pour l'API OpenAI
+ * @param context Type de session (production, vitrine, audio)
+ * @returns Configuration minimale pour créer l'ephemeral token
  * 
  * @example
  * ```typescript
- * const internalConfig = getConfigForContext('vitrine')
- * const gaFormat = convertToGAFormat(internalConfig)
- * // gaFormat = { type: "realtime", model: "...", audio: { ... }, ... }
+ * const minimalConfig = getMinimalSessionConfig('vitrine')
+ * // { type: "realtime", model: "gpt-realtime-2025-08-28", audio: { output: { voice: "alloy" } } }
  * ```
  * 
- * Doc référence: https://platform.openai.com/docs/guides/realtime-webrtc
- * Structure attendue (doc ligne 1205-1220):
+ * Doc référence: https://platform.openai.com/docs/guides/realtime-webrtc (ligne 634-644)
+ * Structure acceptée par /client_secrets :
  * ```
  * {
  *   type: "realtime",
  *   model: "gpt-realtime",
- *   output_modalities: ["audio", "text"],
  *   audio: {
- *     input: {
- *       format: { type: "audio/pcm", rate: 24000 },
- *       turn_detection: { type: "server_vad", ... }
- *     },
- *     output: {
- *       format: { type: "audio/pcm" },
- *       voice: "marin"
- *     }
- *   },
- *   instructions: "...",
- *   tools: [...],
- *   temperature: 0.8,
- *   ...
+ *     output: { voice: "marin" }
+ *   }
  * }
  * ```
  */
-export function convertToGAFormat(config: ReturnType<typeof getConfigForContext>) {
+export function getMinimalSessionConfig(context: OpenAIContext) {
   return {
     type: "realtime" as const,
-    model: config.model,
-    output_modalities: config.modalities,  // ⚠️ Renommé: modalities → output_modalities
+    model: OPENAI_CONFIG.models[context],
+    audio: {
+      output: {
+        voice: context === 'production' ? OPENAI_CONFIG.voices.production : OPENAI_CONFIG.voices.vitrine
+      }
+    }
+  }
+}
+
+/**
+ * 🎛️ Créer config COMPLÈTE pour session.update
+ * 
+ * Cette config est envoyée APRÈS la connexion WebRTC via le data channel
+ * avec un événement `session.update`.
+ * 
+ * @param config Configuration retournée par getConfigForContext()
+ * @param instructions Instructions système pour le LLM
+ * @param tools Fonctions disponibles (optionnel)
+ * @returns Configuration complète pour session.update
+ * 
+ * @example
+ * ```typescript
+ * const baseConfig = getConfigForContext('vitrine')
+ * const sessionUpdate = getFullSessionUpdate(baseConfig, instructions, tools)
+ * 
+ * // Envoyer via WebRTC data channel :
+ * dataChannel.send(JSON.stringify({
+ *   type: 'session.update',
+ *   session: sessionUpdate
+ * }))
+ * ```
+ * 
+ * Doc référence: https://platform.openai.com/docs/guides/realtime-webrtc
+ */
+export function getFullSessionUpdate(
+  config: ReturnType<typeof getConfigForContext>,
+  instructions: string,
+  tools?: any[]
+) {
+  return {
+    output_modalities: config.modalities,
     audio: {
       input: {
         format: {
-          type: `audio/${config.input_audio_format}` as const,  // "audio/pcm16"
-          rate: OPENAI_CONFIG.audio.sampleRate,  // 16000
+          type: `audio/${config.input_audio_format}` as const,
+          rate: OPENAI_CONFIG.audio.sampleRate,
         },
-        turn_detection: config.turn_detection,  // ⚠️ Déplacé: vers audio.input
+        turn_detection: config.turn_detection,
       },
       output: {
         format: {
-          type: `audio/${config.output_audio_format}` as const,  // "audio/pcm16"
-        },
-        voice: config.voice,  // ⚠️ Déplacé: vers audio.output
+          type: `audio/${config.output_audio_format}` as const,
+        }
       },
     },
     input_audio_transcription: config.input_audio_transcription,
+    instructions,
+    tools: tools || [],
+    tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
     temperature: config.temperature,
     max_response_output_tokens: config.max_response_output_tokens,
   }
