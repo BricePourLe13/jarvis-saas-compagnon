@@ -375,7 +375,7 @@ export function getFullSessionUpdate(
   tools?: any[]
 ) {
   return {
-    type: "realtime" as const,  // ✅ REQUIS même pour session.update !
+    type: "realtime" as const,
     output_modalities: config.modalities,
     audio: {
       input: {
@@ -391,7 +391,7 @@ export function getFullSessionUpdate(
         }
       },
     },
-    input_audio_transcription: config.input_audio_transcription,
+    // ❌ RETIRÉ: input_audio_transcription n'est pas accepté dans session.update
     instructions,
     tools: tools || [],
     tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
