@@ -118,19 +118,21 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
     })
     
     // ✅ Retry automatique avec backoff exponentiel
-    // 🚨 FORMAT GA : La config doit être enveloppée dans { session: {...} }
-    // Doc ligne 340-362: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
+    // 🚨 FORMAT GA : Endpoint /v1/realtime/client_secrets (pas /sessions)
+    // Doc ligne 336-362: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
     const response = await fetchWithRetry(
-      'https://api.openai.com/v1/realtime/sessions',
+      'https://api.openai.com/v1/realtime/client_secrets',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
-          // ❌ SUPPRIMÉ: 'OpenAI-Beta': 'realtime=v1' (nécessaire uniquement pour format beta)
         },
         body: JSON.stringify({
-          session: sessionConfig  // ✅ FORMAT GA : Enveloppe "session" obligatoire
+          session: {
+            type: "realtime",  // ✅ REQUIS par format GA
+            ...sessionConfig
+          }
         }),
       },
       {
@@ -176,25 +178,34 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
     }
 
     const sessionData = await response.json()
+    
+    // ✅ FORMAT GA : La réponse contient { value: "ek_xxx", expires_at: xxx }
+    // Doc ligne 360-361: console.log(data.value)
 
     // Log pour monitoring (sans exposer les données sensibles)
     console.log('✅ Session vitrine créée:', {
       timestamp: new Date().toISOString(),
       clientIP: clientIP.substring(0, 8) + '...',
-      sessionId: sessionData.id?.substring(0, 10) + '...',
+      tokenPrefix: sessionData.value?.substring(0, 10) + '...',
       remainingCredits: limitResult.remainingCredits, // Minutes restantes
       userAgent: userAgent.substring(0, 50) + '...'
     })
 
     // Retourner le format attendu par le hook (format GA)
+    // Note: On génère un session_id temporaire côté serveur pour tracking
+    const tempSessionId = `sess_vitrine_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
     return NextResponse.json({
       success: true,
       session: {
-        session_id: sessionData.id,
-        client_secret: sessionData.client_secret, // Format BETA direct
+        session_id: tempSessionId,
+        client_secret: {
+          value: sessionData.value,  // ✅ FORMAT GA : token ephemeral
+          expires_at: sessionData.expires_at
+        },
         model: OPENAI_CONFIG.models.vitrine,
         voice: OPENAI_CONFIG.voices.vitrine,
-        expires_at: sessionData.expires_at
+        expires_at: sessionData.expires_at || 0
       },
       remainingCredits: limitResult.remainingCredits // Informer le client des crédits restants
     })

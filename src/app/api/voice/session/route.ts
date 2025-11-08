@@ -248,10 +248,10 @@ export async function POST(request: NextRequest) {
     })
     
     // ✅ Retry automatique avec backoff exponentiel
-    // 🚨 FORMAT GA : La config doit être enveloppée dans { session: {...} }
-    // Doc: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
+    // 🚨 FORMAT GA : Endpoint /v1/realtime/client_secrets (pas /sessions)
+    // Doc ligne 336-362: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
     const sessionResponse = await fetchWithRetry(
-      'https://api.openai.com/v1/realtime/sessions',
+      'https://api.openai.com/v1/realtime/client_secrets',
       {
         method: 'POST',
         headers: {
@@ -259,7 +259,10 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          session: sessionConfig  // ✅ FORMAT GA : Enveloppe "session" obligatoire
+          session: {
+            type: "realtime",  // ✅ REQUIS par format GA
+            ...sessionConfig
+          }
         })
       },
       {
@@ -286,12 +289,19 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = await sessionResponse.json()
-    console.log(`✅ [SESSION] Session OpenAI créée: ${sessionData.id}`)
+    
+    // ✅ FORMAT GA : La réponse contient { value: "ek_xxx", expires_at: xxx }
+    // Doc ligne 360-361: console.log(data.value)
+    
+    // Générer un session_id temporaire côté serveur pour tracking
+    const tempSessionId = `sess_prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    console.log(`✅ [SESSION] Session OpenAI créée: ${tempSessionId}`)
     console.log(`✅ [DEBUG] Session data:`, {
-      id: sessionData.id,
-      model: sessionData.model,
-      voice: sessionData.voice,
-      turn_detection: sessionData.turn_detection,
+      tempSessionId,
+      tokenPrefix: sessionData.value?.substring(0, 10) + '...',
+      model: sessionConfig.model,
+      voice: sessionConfig.voice,
       expires_at: sessionData.expires_at
     })
 
@@ -300,7 +310,7 @@ export async function POST(request: NextRequest) {
       const supabase = getSupabaseService()
       
       const { data: result, error } = await supabase.rpc('create_session_with_member', {
-        p_session_id: sessionData.id,
+        p_session_id: tempSessionId,  // Utiliser notre session_id temporaire
         p_gym_id: memberProfile.gym_id,
         p_member_id: memberProfile.id,
         p_kiosk_slug: gymSlug,
@@ -320,15 +330,18 @@ export async function POST(request: NextRequest) {
       // Ne pas faire échouer la session pour ça
     }
 
-    // 📊 RETOURNER LA SESSION AVEC CONTEXTE MEMBRE
+    // 📊 RETOURNER LA SESSION AVEC CONTEXTE MEMBRE (FORMAT GA)
     return NextResponse.json({
       success: true,
       session: {
-        session_id: sessionData.id,
-        client_secret: sessionData.client_secret,
+        session_id: tempSessionId,
+        client_secret: {
+          value: sessionData.value,  // ✅ FORMAT GA : token ephemeral
+          expires_at: sessionData.expires_at
+        },
         model: sessionConfig.model,
         voice: sessionConfig.voice,
-        expires_at: sessionData.expires_at
+        expires_at: sessionData.expires_at || 0
       },
       member: {
         id: memberProfile.id,

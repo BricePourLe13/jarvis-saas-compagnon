@@ -123,14 +123,25 @@ export function useVoiceVitrineChat({
     const sessionData = await response.json()
     console.log('✅ Session créée:', sessionData)
     console.log('🔍 Structure session:', JSON.stringify(sessionData.session, null, 2))
-    console.log('🔍 client_secret:', sessionData.session?.client_secret)
+    
+    // ✅ FORMAT GA : client_secret est maintenant un objet { value, expires_at }
+    // Doc ligne 360-361: console.log(data.value)
+    const ephemeralKey = typeof sessionData.session?.client_secret === 'object' 
+      ? sessionData.session.client_secret.value 
+      : sessionData.session?.client_secret
+      
+    console.log('🔍 ephemeral key:', ephemeralKey?.substring(0, 15) + '...')
     
     // 💳 Retourner aussi les crédits restants
     if (sessionData.remainingCredits !== undefined) {
       console.log(`💳 Crédits restants: ${sessionData.remainingCredits} minutes`)
     }
     
-    return sessionData
+    return {
+      ...sessionData,
+      // Exposer directement le ephemeral key pour compatibilité
+      ephemeralKey
+    }
   }, [])
 
   // Initialiser WebRTC
@@ -144,7 +155,13 @@ export function useVoiceVitrineChat({
       // Créer session démo
       const sessionResponse = await createDemoSession()
       const session = sessionResponse.session
+      
+      if (!sessionResponse?.ephemeralKey) {
+        throw new Error('Session créée mais token manquant')
+      }
+      
       console.log('🔍 Session utilisée:', session)
+      console.log('🔍 Ephemeral key:', sessionResponse.ephemeralKey?.substring(0, 15) + '...')
       
       // Configurer peer connection
       const pc = new RTCPeerConnection({
@@ -290,8 +307,8 @@ export function useVoiceVitrineChat({
       const offer = await pc.createOffer()
       await pc.setLocalDescription(offer)
 
-      // Envoyer à OpenAI (format BETA comme le kiosk)
-      const ephemeralKey = session.client_secret.value
+      // Envoyer à OpenAI (format GA)
+      const ephemeralKey = sessionResponse.ephemeralKey
       console.log('🔑 Token utilisé:', ephemeralKey?.substring(0, 20) + '...')
       // 🎯 Vitrine utilise le modèle full pour meilleure qualité démo
       // ✅ FORMAT GA : Pas de header Beta pour gpt-realtime-2025-08-28

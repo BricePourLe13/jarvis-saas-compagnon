@@ -171,10 +171,11 @@ export const OPENAI_CONFIG = {
    */
   api: {
     /**
-     * URL création session ephemeral (format GA)
-     * Doc: https://platform.openai.com/docs/api-reference/realtime-sessions
+     * URL création client secrets (ephemeral tokens) - FORMAT GA
+     * Doc ligne 336: "POST /v1/realtime/client_secrets"
+     * https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
      */
-    sessions: 'https://api.openai.com/v1/realtime/sessions',
+    clientSecrets: 'https://api.openai.com/v1/realtime/client_secrets',
     
     /**
      * URL WebRTC calls (FORMAT GA - changé de /realtime vers /realtime/calls)
