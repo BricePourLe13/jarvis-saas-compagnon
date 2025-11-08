@@ -382,14 +382,14 @@ export function getFullSessionUpdate(
     audio: {
       input: {
         format: {
-          type: `audio/${config.input_audio_format}` as const,
+          type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
           rate: OPENAI_CONFIG.audio.sampleRate,
         },
         turn_detection: config.turn_detection,
       },
       output: {
         format: {
-          type: `audio/${config.output_audio_format}` as const,
+          type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
         }
       },
     },
