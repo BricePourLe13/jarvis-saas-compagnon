@@ -375,35 +375,30 @@ export function getFullSessionUpdate(
   tools?: any[],
   voice?: OpenAIVoice
 ) {
-  // ✅ Structure EXACTE selon doc OpenAI (ligne 1196-1236)
+  // ✅ Structure session.update selon doc OpenAI
   // https://platform.openai.com/docs/guides/realtime-webrtc
-  // Speech-to-speech : output_modalities = ['audio'] uniquement
   return {
     type: "realtime" as const,
-    output_modalities: ['audio'] as const,  // ✅ Speech-to-speech (doc ligne 1202-1203)
+    output_modalities: ['audio'] as const,
     audio: {
       input: {
         format: {
-          type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
-          rate: 24000,  // ✅ Minimum 24000 Hz requis par OpenAI (doc ligne 1208)
+          type: "audio/pcm" as const,
+          rate: 24000,  // ✅ REQUIS pour input
         },
         turn_detection: config.turn_detection,
       },
       output: {
         format: {
-          type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
-          // ❌ PAS de rate pour output ! (doc ligne 1214-1219)
+          type: "audio/pcm" as const,
+          rate: 24000,  // ✅ REQUIS selon erreur OpenAI
         },
-        voice: voice || config.voice  // ✅ REQUIS pour générer de l'audio ! (doc ligne 1218)
+        voice: voice || config.voice
       },
     },
     instructions,
     tools: tools || [],
     tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
-    // ❌ RETIRÉS: Ces paramètres ne sont PAS acceptés dans session.update
-    // - input_audio_transcription
-    // - temperature
-    // - max_response_output_tokens
   }
 }
 
