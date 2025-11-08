@@ -1,163 +1,103 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
-import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
-import { getStrictContext } from '@/lib/jarvis-knowledge-base'
-import { getConfigForContext, OPENAI_CONFIG } from '@/lib/openai-config'
-import { fetchWithRetry } from '@/lib/openai-retry'
+/**
+ * API Route : Créer une session Realtime pour JARVIS Vitrine (Landing Page)
+ * 
+ * POST /api/voice/vitrine/session
+ * 
+ * - Génère un ephemeral token OpenAI
+ * - Rate limit par IP (3 sessions/jour max)
+ * - Pas d'auth requise
+ * - 5 minutes max de conversation
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { RealtimeSessionFactory } from '@/lib/voice/core/realtime-session-factory';
+import { VITRINE_CONFIG, getVitrineSessionConfig, checkVitrineRateLimit } from '@/lib/voice/contexts/vitrine-config';
+import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter';
 
 export async function POST(request: NextRequest) {
   try {
-    // Récupération de l'IP et User-Agent
-    let clientIP = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
-                   request.headers.get('x-real-ip')?.trim() ||
-                   request.headers.get('cf-connecting-ip')?.trim() ||
-                   request.ip ||
-                   'unknown'
+    // ============================================
+    // 1. RATE LIMITING par IP
+    // ============================================
+    const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0].trim()
+      || request.headers.get('x-real-ip')
+      || 'unknown';
     
-    const userAgent = request.headers.get('user-agent') || 'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown';
     
-    // Vérification des limites par IP
-    const limitResult = await vitrineIPLimiter.checkAndUpdateLimit(clientIP, userAgent)
+    if (clientIP === 'unknown') {
+      return NextResponse.json(
+        { error: 'Unable to identify client' },
+        { status: 403 }
+      );
+    }
+
+    // Check rate limit
+    const limitResult = await vitrineIPLimiter.checkLimit(clientIP, userAgent);
     
     if (!limitResult.allowed) {
-      const errorMessage = limitResult.hasActiveSession
-        ? 'Session déjà active. Fermez les autres onglets.'
-        : limitResult.isBlocked 
-          ? 'Accès bloqué. Contactez-nous si vous pensez qu\'il s\'agit d\'une erreur.'
-          : limitResult.reason || 'Limite d\'utilisation atteinte'
-
       return NextResponse.json(
         { 
-          error: errorMessage,
-          isBlocked: limitResult.isBlocked,
-          hasActiveSession: limitResult.hasActiveSession,
-          remainingCredits: limitResult.remainingCredits,
-          resetTime: limitResult.resetTime?.toISOString()
+          error: 'Limite quotidienne atteinte', 
+          message: limitResult.message,
+          remainingCredits: 0
         },
-        { status: limitResult.isBlocked ? 403 : limitResult.hasActiveSession ? 409 : 429 }
-      )
+        { status: 429 }
+      );
     }
 
-    // ✅ RETOUR À L'APPROCHE BETA (qui fonctionnait)
-    const strictContext = getStrictContext();
-    const baseConfig = getConfigForContext('vitrine')
+    // ============================================
+    // 2. CRÉER EPHEMERAL TOKEN (GA)
+    // ============================================
+    const factory = new RealtimeSessionFactory();
     
-    const sessionConfig = {
-      ...baseConfig,
-      instructions: `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
+    const sessionResult = await factory.createSession({
+      model: VITRINE_CONFIG.model,
+      voice: VITRINE_CONFIG.voice,
+      sessionId: `vitrine_${Date.now()}_${clientIP.replace(/\./g, '_')}`
+    });
 
-🚨 RÈGLE ABSOLUE DE LANGUE : Tu parles UNIQUEMENT en français. JAMAIS en anglais, JAMAIS dans une autre langue.
-Si tu détectes que tu commences à répondre en anglais, arrête-toi immédiatement et reformule en français.
-
-${strictContext}
-
-🎯 RÈGLES ABSOLUES ANTI-HALLUCINATION
-
-1️⃣ TU NE PEUX PARLER QUE DE CE QUI EST DANS LA KNOWLEDGE BASE CI-DESSUS
-2️⃣ Si une info N'EST PAS dans la KB → Tu dis : "Je ne dispose pas de cette information précise. Contacte notre équipe à contact@jarvis-group.net"
-3️⃣ JAMAIS inventer de chiffres, JAMAIS estimer, JAMAIS approximer
-4️⃣ Utilise UNIQUEMENT les métriques vérifiées :
-   - Churn : EXACTEMENT -30%
-   - Satisfaction : EXACTEMENT +40%
-   - Automatisation : EXACTEMENT 70%
-   - Détection : EXACTEMENT 60 jours avant
-
-💬 STYLE DE CONVERSATION
-
-✅ TON ÉNERGIQUE ET RAPIDE (pas monotone !)
-✅ Phrases COURTES et PERCUTANTES
-✅ Parle comme un VRAI commercial passionné
-✅ VARIE ton intonation pour montrer ton enthousiasme
-
-❌ JAMAIS de listes : "1, 2, 3..." ou "premièrement, deuxièmement..."
-❌ JAMAIS de ton plat ou robotique
-❌ JAMAIS ralentir ou traîner
-
-🎯 EXEMPLE PARFAIT
-
-BIEN ✅ : "Écoute, JARVIS c'est ultra simple ! Tu installes des miroirs digitaux dans ta salle. Tes adhérents leur parlent comme ils me parlent là ! Et boom, tu réduis ton churn de trente pour cent. C'est prouvé sur nos clients."
-
-MAL ❌ : "Alors... euh... JARVIS propose plusieurs fonctionnalités. Premièrement, des miroirs digitaux. Deuxièmement, une intelligence artificielle. Troisièmement..."
-
-🔧 UTILISE TES OUTILS
-
-Quand on te demande du ROI précis, un plan d'implémentation, ou des cas clients → APPELLE tes fonctions !
-Ne réponds JAMAIS de mémoire pour ces sujets.
-
-📞 PREMIÈRE PHRASE
-
-"Salut ! Je suis JARVIS ! Dis-moi, tu gères une salle de sport ?"
-
-RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`,
-      tools: jarvisExpertFunctions,
-      tool_choice: "auto",
-    }
-
-    // ✅ APPROCHE BETA : Tout en UNE fois via /realtime/sessions
-    const response = await fetchWithRetry(
-      'https://api.openai.com/v1/realtime/sessions',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-          'OpenAI-Beta': 'realtime=v1'
-        },
-        body: JSON.stringify(sessionConfig),
-      },
-      {
-        maxRetries: 3,
-        initialDelayMs: 1000,
-        retryableStatuses: [429, 500, 502, 503, 504]
-      }
-    )
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Erreur OpenAI API:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        headers: Object.fromEntries(response.headers.entries())
-      })
+    if (!sessionResult.success || !sessionResult.session) {
+      console.error('❌ [VITRINE] Failed to create session:', sessionResult.error);
       return NextResponse.json(
-        { 
-          error: 'Service temporairement indisponible',
-          details: process.env.NODE_ENV === 'development' ? errorText : undefined 
-        },
-        { status: 503 }
-      )
+        { error: 'Échec création session OpenAI', details: sessionResult.error },
+        { status: 500 }
+      );
     }
 
-    const sessionData = await response.json()
+    // ============================================
+    // 3. PRÉPARER CONFIG SESSION.UPDATE
+    // ============================================
+    const sessionUpdateConfig = getVitrineSessionConfig();
 
-    // Log pour monitoring
-    console.log('✅ Session vitrine créée (BETA):', {
-      timestamp: new Date().toISOString(),
-      clientIP: clientIP.substring(0, 8) + '...',
-      sessionId: sessionData.id?.substring(0, 10) + '...',
-      remainingCredits: limitResult.remainingCredits,
-      userAgent: userAgent.substring(0, 50) + '...'
-    })
+    // ============================================
+    // 4. LOG & RESPONSE
+    // ============================================
+    console.log('✅ [VITRINE] Session créée:', {
+      sessionId: sessionResult.session.session_id,
+      clientIP,
+      remainingCredits: limitResult.remainingCredits
+    });
 
-    // Retourner le format attendu par le hook
     return NextResponse.json({
       success: true,
       session: {
-        session_id: sessionData.id,
-        client_secret: sessionData.client_secret,
-        model: OPENAI_CONFIG.models.vitrine,
-        voice: OPENAI_CONFIG.voices.vitrine,
-        expires_at: sessionData.expires_at
+        session_id: sessionResult.session.session_id,
+        client_secret: sessionResult.session.client_secret,
+        model: sessionResult.session.model,
+        voice: sessionResult.session.voice,
+        expires_at: sessionResult.session.expires_at
       },
-      remainingCredits: limitResult.remainingCredits
-    })
+      sessionUpdateConfig, // Config à envoyer via session.update côté client
+      remainingCredits: limitResult.remainingCredits,
+      maxDuration: VITRINE_CONFIG.maxDurationSeconds
+    });
 
   } catch (error) {
-    console.error('❌ Erreur création session vitrine:', error)
+    console.error('❌ [VITRINE] Erreur globale:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }
-    )
+    );
   }
 }

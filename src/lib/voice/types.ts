@@ -1,167 +1,237 @@
 /**
- * 🎙️ TYPES COMMUNS - VOICE REALTIME SYSTEM
- * 
- * Types partagés entre kiosk et vitrine pour le système vocal
- * 
- * @version 1.0.0
- * @date 2025-01-XX
+ * Types partagés pour le système vocal Realtime
  */
 
-/**
- * Statut de la connexion vocale
- */
-export type VoiceStatus = 
-  | 'idle' 
-  | 'connecting' 
-  | 'connected' 
-  | 'listening' 
-  | 'speaking' 
-  | 'error' 
-  | 'reconnecting'
+// ============================================
+// SESSION TYPES
+// ============================================
 
-/**
- * Session OpenAI Realtime
- */
-export interface VoiceSession {
-  /** Client secret pour authentification WebRTC */
-  client_secret: { value: string } | string
-  /** ID de session OpenAI */
-  session_id: string
-  /** Date d'expiration */
-  expires_at: string
+export type VoiceModel = 'gpt-realtime' | 'gpt-realtime-mini';
+
+export type VoiceOption = 'alloy' | 'ash' | 'ballad' | 'coral' | 'echo' | 'sage' | 'shimmer' | 'verse' | 'cedar' | 'marin';
+
+export type OutputModality = 'audio' | 'text';
+
+export type AudioFormat = 'audio/pcm' | 'audio/pcmu' | 'audio/pcma';
+
+export type SessionContext = 'vitrine' | 'kiosk';
+
+// ============================================
+// SESSION CONFIGURATION
+// ============================================
+
+export interface RealtimeSessionConfig {
+  type: 'realtime';
+  model: VoiceModel;
+  instructions: string;
+  output_modalities: OutputModality[];
+  audio: {
+    input: {
+      format: {
+        type: AudioFormat;
+        rate: number;
+      };
+      transcription?: {
+        model: string;
+      };
+      turn_detection: {
+        type: 'server_vad';
+        threshold: number;
+        silence_duration_ms: number;
+        prefix_padding_ms: number;
+        create_response: boolean;
+        interrupt_response?: boolean;
+      };
+    };
+    output: {
+      voice: VoiceOption;
+      format: {
+        type: AudioFormat;
+        rate?: number;
+      };
+    };
+  };
+  tools?: RealtimeTool[];
+  tool_choice?: 'auto' | 'none' | 'required';
 }
 
-/**
- * Factory pour créer des sessions vocales
- * 
- * Permet de séparer la logique de création de session (kiosk vs vitrine)
- * du code WebRTC commun
- */
-export interface VoiceSessionFactory {
-  /**
-   * Créer une nouvelle session vocale
-   * 
-   * @returns Session OpenAI Realtime avec credentials
-   * @throws Error si la création échoue
-   */
-  createSession(): Promise<VoiceSession>
+// ============================================
+// EPHEMERAL TOKEN
+// ============================================
+
+export interface EphemeralTokenRequest {
+  session: {
+    type: 'realtime';
+    model: VoiceModel;
+    audio: {
+      output: { voice: VoiceOption };
+    };
+  };
 }
 
-/**
- * État audio pour le hook kiosk
- * 
- * Note: Différent de AudioState dans types/kiosk.ts
- * Ce type est spécifique au système vocal Realtime
- */
-export interface VoiceAudioState {
-  /** L'utilisateur est en train de parler */
-  isListening: boolean
-  /** JARVIS est en train de répondre */
-  isPlaying: boolean
-  /** Volume audio (0-100) */
-  volume: number
-  /** Transcription actuelle */
-  transcript: string
-  /** Transcription finale (non modifiable) */
-  isFinal: boolean
+export interface EphemeralTokenResponse {
+  value: string;
+  expires_at: number;
 }
 
-/**
- * Configuration audio pour getUserMedia
- */
-export interface AudioConfig {
-  /** Taux d'échantillonnage (Hz) - Standard OpenAI: 16000 */
-  sampleRate?: number
-  /** Annulation d'écho */
-  echoCancellation?: boolean
-  /** Suppression de bruit */
-  noiseSuppression?: boolean
-  /** Contrôle automatique du gain */
-  autoGainControl?: boolean
-  /** Nombre de canaux (1 = mono, 2 = stéréo) */
-  channelCount?: number
-  /** Latence cible (secondes) */
-  latency?: number
-  /** Volume (0.0 - 1.0) */
-  volume?: number
+// ============================================
+// REALTIME EVENTS (GA)
+// ============================================
+
+export type RealtimeEventType =
+  // Session
+  | 'session.created'
+  | 'session.updated'
+  // Input Audio
+  | 'input_audio_buffer.speech_started'
+  | 'input_audio_buffer.speech_stopped'
+  | 'input_audio_buffer.committed'
+  // Conversation
+  | 'conversation.item.added'
+  | 'conversation.item.done'
+  | 'conversation.item.input_audio_transcription.completed'
+  // Response
+  | 'response.created'
+  | 'response.output_item.added'
+  | 'response.content_part.added'
+  | 'response.output_audio.delta'
+  | 'response.output_audio.done'
+  | 'response.output_audio_transcript.delta'
+  | 'response.output_audio_transcript.done'
+  | 'response.output_text.delta'
+  | 'response.output_text.done'
+  | 'response.content_part.done'
+  | 'response.output_item.done'
+  | 'response.done'
+  // Function calling
+  | 'response.function_call_arguments.delta'
+  | 'response.function_call_arguments.done'
+  // Errors
+  | 'error'
+  | 'rate_limits.updated';
+
+export interface RealtimeEvent {
+  type: RealtimeEventType;
+  event_id?: string;
+  [key: string]: unknown;
 }
 
-/**
- * Événement de function call OpenAI
- */
-export interface FunctionCallEvent {
-  /** ID de l'appel */
-  call_id: string
-  /** Nom de la fonction */
-  name: string
-  /** Arguments (JSON string) */
-  arguments: string
+export interface SessionCreatedEvent extends RealtimeEvent {
+  type: 'session.created';
+  session: {
+    id: string;
+    model: string;
+    voice?: string;
+  };
 }
 
-/**
- * Configuration du core Realtime
- */
-export interface VoiceRealtimeCoreConfig {
-  /** Factory pour créer la session (spécifique au contexte) */
-  sessionFactory: VoiceSessionFactory
-  
-  /** Configuration audio */
-  audioConfig?: AudioConfig
-  
-  /** Callback changement de statut */
-  onStatusChange?: (status: VoiceStatus) => void
-  
-  /** Callback mise à jour transcription */
-  onTranscriptUpdate?: (transcript: string, isFinal?: boolean) => void
-  
-  /** Callback erreur */
-  onError?: (error: Error) => void
-  
-  /** Callback changement état audio (pour kiosk) */
-  onAudioStateChange?: (state: VoiceAudioState) => void
-  
-  /** Callback function call détecté */
-  onFunctionCall?: (call: FunctionCallEvent, dataChannel: RTCDataChannel) => void
-  
-  /** Callback session créée */
-  onSessionCreated?: (sessionId: string) => void
-  
-  /** Callback activité détectée (pour reset timeout) */
-  onActivity?: () => void
-  
-  /** Callback speech started (pour injection realtime kiosk) */
-  onSpeechStarted?: () => void
-  
-  /** Callback speech stopped (pour injection realtime kiosk) */
-  onSpeechStopped?: () => void
-  
-  /** Contexte (pour logging différencié) */
-  context?: 'kiosk' | 'vitrine'
+export interface SessionUpdatedEvent extends RealtimeEvent {
+  type: 'session.updated';
+  session: RealtimeSessionConfig;
 }
 
-/**
- * Retour du hook core Realtime
- */
-export interface VoiceRealtimeCoreReturn {
-  /** État de connexion */
-  isConnected: boolean
-  
-  /** Statut actuel */
-  status: VoiceStatus
-  
-  /** Connexion à OpenAI Realtime */
-  connect: () => Promise<void>
-  
-  /** Déconnexion */
-  disconnect: () => Promise<void>
-  
-  /** Obtenir le data channel (pour function calls) */
-  getDataChannel: () => RTCDataChannel | null
-  
-  /** Obtenir la peer connection (pour debugging) */
-  getPeerConnection: () => RTCPeerConnection | null
-  
-  /** Obtenir l'ID de session */
-  getSessionId: () => string | null
+export interface AudioDeltaEvent extends RealtimeEvent {
+  type: 'response.output_audio.delta';
+  delta: string; // Base64-encoded PCM16
 }
 
+export interface TranscriptDeltaEvent extends RealtimeEvent {
+  type: 'response.output_audio_transcript.delta';
+  transcript: string;
+}
+
+export interface ResponseDoneEvent extends RealtimeEvent {
+  type: 'response.done';
+  response: {
+    id: string;
+    status: 'completed' | 'failed' | 'cancelled';
+    output: unknown[];
+  };
+}
+
+export interface ErrorEvent extends RealtimeEvent {
+  type: 'error';
+  error: {
+    type: string;
+    code: string;
+    message: string;
+    param?: string;
+  };
+}
+
+// ============================================
+// AUDIO STATE
+// ============================================
+
+export interface AudioState {
+  isListening: boolean;
+  isPlaying: boolean;
+  isFinal: boolean;
+  transcript: string;
+}
+
+// ============================================
+// CONNECTION STATE
+// ============================================
+
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'listening' | 'speaking' | 'error';
+
+export interface ConnectionState {
+  status: ConnectionStatus;
+  sessionId: string | null;
+  error: string | null;
+  reconnectAttempts: number;
+}
+
+// ============================================
+// TOOLS (Function Calling)
+// ============================================
+
+export interface RealtimeTool {
+  type: 'function';
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
+// ============================================
+// CONTEXT CONFIG
+// ============================================
+
+export interface VitrineContext {
+  context: 'vitrine';
+  maxDurationSeconds: number;
+  rateLimitPerIP: number;
+}
+
+export interface KioskContext {
+  context: 'kiosk';
+  memberId: string;
+  memberName: string;
+  gymId: string;
+  gymName: string;
+}
+
+export type RealtimeContext = VitrineContext | KioskContext;
+
+// ============================================
+// SESSION FACTORY RESPONSE
+// ============================================
+
+export interface SessionFactoryResponse {
+  success: boolean;
+  session?: {
+    session_id: string;
+    client_secret: string;
+    model: VoiceModel;
+    voice: VoiceOption;
+    expires_at: number;
+  };
+  sessionUpdateConfig?: RealtimeSessionConfig;
+  error?: string;
+  remainingCredits?: number;
+}
