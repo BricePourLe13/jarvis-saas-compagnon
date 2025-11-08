@@ -118,7 +118,8 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
     })
     
     // ✅ Retry automatique avec backoff exponentiel
-    // 🚨 FORMAT GA : Pas de header OpenAI-Beta pour les modèles GA (gpt-realtime-2025-08-28)
+    // 🚨 FORMAT GA : La config doit être enveloppée dans { session: {...} }
+    // Doc ligne 340-362: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
     const response = await fetchWithRetry(
       'https://api.openai.com/v1/realtime/sessions',
       {
@@ -128,7 +129,9 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
           'Content-Type': 'application/json',
           // ❌ SUPPRIMÉ: 'OpenAI-Beta': 'realtime=v1' (nécessaire uniquement pour format beta)
         },
-        body: JSON.stringify(sessionConfig),
+        body: JSON.stringify({
+          session: sessionConfig  // ✅ FORMAT GA : Enveloppe "session" obligatoire
+        }),
       },
       {
         maxRetries: 3,

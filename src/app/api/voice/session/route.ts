@@ -248,6 +248,8 @@ export async function POST(request: NextRequest) {
     })
     
     // ✅ Retry automatique avec backoff exponentiel
+    // 🚨 FORMAT GA : La config doit être enveloppée dans { session: {...} }
+    // Doc: https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret
     const sessionResponse = await fetchWithRetry(
       'https://api.openai.com/v1/realtime/sessions',
       {
@@ -256,7 +258,9 @@ export async function POST(request: NextRequest) {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(sessionConfig)
+        body: JSON.stringify({
+          session: sessionConfig  // ✅ FORMAT GA : Enveloppe "session" obligatoire
+        })
       },
       {
         maxRetries: 3,
