@@ -2,33 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
 import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
 import { getStrictContext } from '@/lib/jarvis-knowledge-base'
-import { getMinimalSessionConfig, getConfigForContext, getFullSessionUpdate, OPENAI_CONFIG } from '@/lib/openai-config'
+import { getConfigForContext, OPENAI_CONFIG } from '@/lib/openai-config'
 import { fetchWithRetry } from '@/lib/openai-retry'
 
 export async function POST(request: NextRequest) {
   try {
     // Récupération de l'IP et User-Agent
-    // Essayer plusieurs méthodes pour détecter l'IP réelle
     let clientIP = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                    request.headers.get('x-real-ip')?.trim() ||
-                   request.headers.get('cf-connecting-ip')?.trim() || // Cloudflare
-                   request.ip || // Next.js request.ip
+                   request.headers.get('cf-connecting-ip')?.trim() ||
+                   request.ip ||
                    'unknown'
-    
-    // Log pour debug (masqué en production)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 IP détectée:', {
-        'x-forwarded-for': request.headers.get('x-forwarded-for'),
-        'x-real-ip': request.headers.get('x-real-ip'),
-        'cf-connecting-ip': request.headers.get('cf-connecting-ip'),
-        'request.ip': request.ip,
-        'final': clientIP
-      })
-    }
     
     const userAgent = request.headers.get('user-agent') || 'unknown'
     
-    // Vérification des limites par IP (plus robuste qu'email)
+    // Vérification des limites par IP
     const limitResult = await vitrineIPLimiter.checkAndUpdateLimit(clientIP, userAgent)
     
     if (!limitResult.allowed) {
@@ -43,98 +31,20 @@ export async function POST(request: NextRequest) {
           error: errorMessage,
           isBlocked: limitResult.isBlocked,
           hasActiveSession: limitResult.hasActiveSession,
-          remainingCredits: limitResult.remainingCredits, // Crédits (minutes) au lieu de sessions
+          remainingCredits: limitResult.remainingCredits,
           resetTime: limitResult.resetTime?.toISOString()
         },
         { status: limitResult.isBlocked ? 403 : limitResult.hasActiveSession ? 409 : 429 }
       )
     }
 
-    // 📚 Récupérer le contexte strict de la knowledge base
+    // ✅ RETOUR À L'APPROCHE BETA (qui fonctionnait)
     const strictContext = getStrictContext();
-
-    // 🔑 ÉTAPE 1 : Créer ephemeral token avec config MINIMALE
-    // Doc: L'endpoint /client_secrets n'accepte QUE: type, model, audio.output.voice
-    const minimalConfig = getMinimalSessionConfig('vitrine')
-
-    console.log('🔑 [VITRINE] Création ephemeral token avec config minimale:', {
-      model: minimalConfig.model,
-      voice: minimalConfig.audio.output.voice,
-      has_api_key: !!process.env.OPENAI_API_KEY
-    })
-    
-    // ✅ Retry automatique avec backoff exponentiel
-    const response = await fetchWithRetry(
-      'https://api.openai.com/v1/realtime/client_secrets',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session: minimalConfig  // ✅ Config minimale uniquement
-        }),
-      },
-      {
-        maxRetries: 3,
-        initialDelayMs: 1000,
-        retryableStatuses: [429, 500, 502, 503, 504]
-      }
-    )
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ [VITRINE] Erreur OpenAI API:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorText,
-        model_used: minimalConfig.model,
-        voice_used: minimalConfig.audio.output.voice,
-        headers: Object.fromEntries(response.headers.entries())
-      })
-      
-      // 🚨 CRITIQUE: Parser l'erreur OpenAI pour diagnostic
-      let parsedError
-      try {
-        parsedError = JSON.parse(errorText)
-      } catch (e) {
-        parsedError = errorText
-      }
-      
-      console.error('❌ [VITRINE] Détails erreur parsée:', parsedError)
-      
-      return NextResponse.json(
-        { 
-          error: 'Service temporairement indisponible',
-          details: process.env.NODE_ENV === 'development' ? errorText : undefined,
-          debug: {
-            model: sessionConfig.model,
-            status: response.status,
-            error: parsedError
-          }
-        },
-        { status: 503 }
-      )
-    }
-
-    const sessionData = await response.json()
-    
-    // ✅ FORMAT GA : La réponse contient { value: "ek_xxx", expires_at: xxx }
-    console.log('✅ [VITRINE] Ephemeral token créé:', {
-      timestamp: new Date().toISOString(),
-      clientIP: clientIP.substring(0, 8) + '...',
-      tokenPrefix: sessionData.value?.substring(0, 10) + '...',
-      remainingCredits: limitResult.remainingCredits,
-      userAgent: userAgent.substring(0, 50) + '...'
-    })
-
-    // 🎛️ ÉTAPE 2 : Préparer la config COMPLÈTE pour session.update
-    // Cette config sera envoyée par le client via WebRTC data channel APRÈS connexion
     const baseConfig = getConfigForContext('vitrine')
     
-    // Instructions complètes pour JARVIS commercial
-    const instructions = `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
+    const sessionConfig = {
+      ...baseConfig,
+      instructions: `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
 
 🚨 RÈGLE ABSOLUE DE LANGUE : Tu parles UNIQUEMENT en français. JAMAIS en anglais, JAMAIS dans une autre langue.
 Si tu détectes que tu commences à répondre en anglais, arrête-toi immédiatement et reformule en français.
@@ -178,27 +88,68 @@ Ne réponds JAMAIS de mémoire pour ces sujets.
 
 "Salut ! Je suis JARVIS ! Dis-moi, tu gères une salle de sport ?"
 
-RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`
+RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`,
+      tools: jarvisExpertFunctions,
+      tool_choice: "auto",
+    }
 
-    const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisExpertFunctions, OPENAI_CONFIG.voices.vitrine)
+    // ✅ APPROCHE BETA : Tout en UNE fois via /realtime/sessions
+    const response = await fetchWithRetry(
+      'https://api.openai.com/v1/realtime/sessions',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+          'OpenAI-Beta': 'realtime=v1'
+        },
+        body: JSON.stringify(sessionConfig),
+      },
+      {
+        maxRetries: 3,
+        initialDelayMs: 1000,
+        retryableStatuses: [429, 500, 502, 503, 504]
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Erreur OpenAI API:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+      return NextResponse.json(
+        { 
+          error: 'Service temporairement indisponible',
+          details: process.env.NODE_ENV === 'development' ? errorText : undefined 
+        },
+        { status: 503 }
+      )
+    }
+
+    const sessionData = await response.json()
+
+    // Log pour monitoring
+    console.log('✅ Session vitrine créée (BETA):', {
+      timestamp: new Date().toISOString(),
+      clientIP: clientIP.substring(0, 8) + '...',
+      sessionId: sessionData.id?.substring(0, 10) + '...',
+      remainingCredits: limitResult.remainingCredits,
+      userAgent: userAgent.substring(0, 50) + '...'
+    })
 
     // Retourner le format attendu par le hook
-    const tempSessionId = `sess_vitrine_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
     return NextResponse.json({
       success: true,
       session: {
-        session_id: tempSessionId,
-        client_secret: {
-          value: sessionData.value,  // ✅ Ephemeral token
-          expires_at: sessionData.expires_at
-        },
+        session_id: sessionData.id,
+        client_secret: sessionData.client_secret,
         model: OPENAI_CONFIG.models.vitrine,
         voice: OPENAI_CONFIG.voices.vitrine,
-        expires_at: sessionData.expires_at || 0
+        expires_at: sessionData.expires_at
       },
-      // ✅ NOUVEAU : Renvoyer la config complète pour que le client l'envoie via session.update
-      sessionUpdate: sessionUpdateConfig,
       remainingCredits: limitResult.remainingCredits
     })
 
