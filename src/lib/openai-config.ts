@@ -383,7 +383,7 @@ export function getFullSessionUpdate(
       input: {
         format: {
           type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
-          rate: OPENAI_CONFIG.audio.sampleRate,
+          rate: 24000,  // ✅ Minimum 24000 Hz requis par OpenAI (doc ligne 1208)
         },
         turn_detection: config.turn_detection,
       },
