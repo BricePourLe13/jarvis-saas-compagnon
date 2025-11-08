@@ -287,7 +287,7 @@ export function getConfigForContext(context: OpenAIContext) {
     voice: context === 'production' ? OPENAI_CONFIG.voices.production : OPENAI_CONFIG.voices.vitrine,
     input_audio_format: OPENAI_CONFIG.audio.inputFormat,
     output_audio_format: OPENAI_CONFIG.audio.outputFormat,
-    modalities: ['audio', 'text'], // ✅ FORMAT GA : ['audio', 'text'] obligatoire pour gpt-realtime-2025-08-28
+    modalities: ['audio'], // ✅ Speech-to-speech : ['audio'] uniquement (doc ligne 1202-1203)
     turn_detection: {
       type: OPENAI_CONFIG.vad.type,
       threshold: isDemo ? 0.3 : OPENAI_CONFIG.vad.threshold, // ✅ Plus sensible pour vitrine (0.3 vs 0.5)
@@ -374,11 +374,12 @@ export function getFullSessionUpdate(
   instructions: string,
   tools?: any[]
 ) {
-  // ✅ Structure EXACTE selon doc OpenAI (ligne 2368-2406)
-  // https://platform.openai.com/docs/guides/realtime-function-calling
+  // ✅ Structure EXACTE selon doc OpenAI (ligne 1196-1236)
+  // https://platform.openai.com/docs/guides/realtime-webrtc
+  // Speech-to-speech : output_modalities = ['audio'] uniquement
   return {
     type: "realtime" as const,
-    output_modalities: config.modalities,
+    output_modalities: ['audio'] as const,  // ✅ Speech-to-speech (doc ligne 1202-1203)
     audio: {
       input: {
         format: {
