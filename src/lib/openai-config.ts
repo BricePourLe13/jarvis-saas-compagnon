@@ -372,7 +372,8 @@ export function getMinimalSessionConfig(context: OpenAIContext) {
 export function getFullSessionUpdate(
   config: ReturnType<typeof getConfigForContext>,
   instructions: string,
-  tools?: any[]
+  tools?: any[],
+  voice?: OpenAIVoice
 ) {
   // ✅ Structure EXACTE selon doc OpenAI (ligne 1196-1236)
   // https://platform.openai.com/docs/guides/realtime-webrtc
@@ -392,7 +393,8 @@ export function getFullSessionUpdate(
         format: {
           type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
           rate: 24000,  // ✅ Minimum 24000 Hz requis
-        }
+        },
+        voice: voice || config.voice  // ✅ REQUIS pour générer de l'audio ! (doc ligne 1218)
       },
     },
     instructions,
