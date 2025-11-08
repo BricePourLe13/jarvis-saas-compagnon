@@ -374,6 +374,8 @@ export function getFullSessionUpdate(
   instructions: string,
   tools?: any[]
 ) {
+  // ✅ Structure EXACTE selon doc OpenAI (ligne 2368-2406)
+  // https://platform.openai.com/docs/guides/realtime-function-calling
   return {
     type: "realtime" as const,
     output_modalities: config.modalities,
@@ -391,12 +393,13 @@ export function getFullSessionUpdate(
         }
       },
     },
-    // ❌ RETIRÉ: input_audio_transcription n'est pas accepté dans session.update
     instructions,
     tools: tools || [],
     tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
-    temperature: config.temperature,
-    max_response_output_tokens: config.max_response_output_tokens,
+    // ❌ RETIRÉS: Ces paramètres ne sont PAS acceptés dans session.update
+    // - input_audio_transcription
+    // - temperature
+    // - max_response_output_tokens
   }
 }
 
