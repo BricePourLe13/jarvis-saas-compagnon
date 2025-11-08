@@ -375,6 +375,7 @@ export function getFullSessionUpdate(
   tools?: any[]
 ) {
   return {
+    type: "realtime" as const,  // ✅ REQUIS même pour session.update !
     output_modalities: config.modalities,
     audio: {
       input: {
