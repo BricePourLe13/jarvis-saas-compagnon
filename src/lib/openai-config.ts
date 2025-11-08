@@ -282,7 +282,7 @@ export function getConfigForContext(context: OpenAIContext) {
     voice: context === 'production' ? OPENAI_CONFIG.voices.production : OPENAI_CONFIG.voices.vitrine,
     input_audio_format: OPENAI_CONFIG.audio.inputFormat,
     output_audio_format: OPENAI_CONFIG.audio.outputFormat,
-    modalities: ['audio'], // ✅ Forcer audio uniquement (évite comportements inattendus)
+    modalities: ['audio', 'text'], // ✅ FORMAT GA : ['audio', 'text'] obligatoire pour gpt-realtime-2025-08-28
     turn_detection: {
       type: OPENAI_CONFIG.vad.type,
       threshold: isDemo ? 0.3 : OPENAI_CONFIG.vad.threshold, // ✅ Plus sensible pour vitrine (0.3 vs 0.5)
