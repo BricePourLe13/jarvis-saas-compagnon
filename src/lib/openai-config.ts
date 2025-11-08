@@ -390,6 +390,7 @@ export function getFullSessionUpdate(
       output: {
         format: {
           type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
+          rate: 24000,  // ✅ Minimum 24000 Hz requis
         }
       },
     },
