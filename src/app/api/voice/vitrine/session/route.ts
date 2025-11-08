@@ -180,7 +180,7 @@ Ne réponds JAMAIS de mémoire pour ces sujets.
 
 RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`
 
-    const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisExpertFunctions)
+    const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisExpertFunctions, OPENAI_CONFIG.voices.vitrine)
 
     // Retourner le format attendu par le hook
     const tempSessionId = `sess_vitrine_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`

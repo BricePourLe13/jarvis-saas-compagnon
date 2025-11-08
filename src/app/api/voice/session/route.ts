@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
     // 🎛️ ÉTAPE 2 : Préparer la config COMPLÈTE pour session.update
     const baseConfig = getConfigForContext('production')
     const instructions = generateEnrichedInstructions(memberProfile, gymSlug, factsPrompt, conversationContext)
-    const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisTools)
+    const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisTools, baseConfig.voice)
 
     console.log(`📋 [SESSION] Config complète préparée (${instructions.length} chars, ${jarvisTools.length} tools)`)
 
