@@ -216,16 +216,8 @@ export function useVoiceVitrineChat({
         updateStatus('connected')
         sessionStartTimeRef.current = Date.now()
         
-        // 🎛️ ÉTAPE 3 : Envoyer session.update avec la config COMPLÈTE
-        // (instructions, tools, etc.)
-        if (sessionResponse.sessionUpdate) {
-          console.log('📡 [VITRINE] Envoi session.update avec config complète')
-          dc.send(JSON.stringify({
-            type: 'session.update',
-            session: sessionResponse.sessionUpdate
-          }))
-          console.log('✅ [VITRINE] session.update envoyé')
-        }
+        // ✅ BETA : Pas besoin de session.update, tout envoyé en une fois côté serveur
+        console.log('✅ [VITRINE BETA] Session prête (config envoyée côté serveur)')
       }
 
       dc.onmessage = (event) => {
