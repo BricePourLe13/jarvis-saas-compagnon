@@ -216,8 +216,18 @@ export function useVoiceVitrineChat({
         updateStatus('connected')
         sessionStartTimeRef.current = Date.now()
         
-        // ✅ BETA : Pas besoin de session.update, tout envoyé en une fois côté serveur
-        console.log('✅ [VITRINE BETA] Session prête (config envoyée côté serveur)')
+        // ✅ GA : Envoyer session.update avec config complète
+        if (sessionResponse.sessionUpdateConfig) {
+          console.log('📤 Envoi session.update (GA)')
+          dc.send(JSON.stringify({
+            type: 'session.update',
+            session: sessionResponse.sessionUpdateConfig
+          }))
+          console.log('✅ [VITRINE GA] Session configurée (config envoyée via data channel)')
+        } else {
+          console.warn('⚠️ sessionUpdateConfig manquant - mode Beta')
+          console.log('✅ [VITRINE BETA] Session prête (config envoyée côté serveur)')
+        }
       }
 
       dc.onmessage = (event) => {
@@ -244,9 +254,9 @@ export function useVoiceVitrineChat({
               setIsAISpeaking(false)
               break
               
-            case 'response.audio.delta':
-              console.log('🎤 Chunk audio reçu de JARVIS')
-              // Audio chunks from BETA API - traitement immédiat
+            case 'response.output_audio.delta':
+              console.log('🎤 Chunk audio reçu de JARVIS (GA)')
+              // Audio chunks from GA API - traitement immédiat
               break
               
             case 'conversation.item.input_audio_transcription.completed':
