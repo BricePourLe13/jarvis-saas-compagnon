@@ -306,6 +306,72 @@ export function getConfigForContext(context: OpenAIContext) {
 }
 
 /**
+ * Convertir config interne vers format GA OpenAI API
+ * 
+ * Transforme la structure retournée par getConfigForContext() vers le format
+ * attendu par l'API POST /v1/realtime/client_secrets (format GA novembre 2025)
+ * 
+ * @param config Configuration retournée par getConfigForContext()
+ * @returns Configuration au format GA pour l'API OpenAI
+ * 
+ * @example
+ * ```typescript
+ * const internalConfig = getConfigForContext('vitrine')
+ * const gaFormat = convertToGAFormat(internalConfig)
+ * // gaFormat = { type: "realtime", model: "...", audio: { ... }, ... }
+ * ```
+ * 
+ * Doc référence: https://platform.openai.com/docs/guides/realtime-webrtc
+ * Structure attendue (doc ligne 1205-1220):
+ * ```
+ * {
+ *   type: "realtime",
+ *   model: "gpt-realtime",
+ *   output_modalities: ["audio", "text"],
+ *   audio: {
+ *     input: {
+ *       format: { type: "audio/pcm", rate: 24000 },
+ *       turn_detection: { type: "server_vad", ... }
+ *     },
+ *     output: {
+ *       format: { type: "audio/pcm" },
+ *       voice: "marin"
+ *     }
+ *   },
+ *   instructions: "...",
+ *   tools: [...],
+ *   temperature: 0.8,
+ *   ...
+ * }
+ * ```
+ */
+export function convertToGAFormat(config: ReturnType<typeof getConfigForContext>) {
+  return {
+    type: "realtime" as const,
+    model: config.model,
+    output_modalities: config.modalities,  // ⚠️ Renommé: modalities → output_modalities
+    audio: {
+      input: {
+        format: {
+          type: `audio/${config.input_audio_format}` as const,  // "audio/pcm16"
+          rate: OPENAI_CONFIG.audio.sampleRate,  // 16000
+        },
+        turn_detection: config.turn_detection,  // ⚠️ Déplacé: vers audio.input
+      },
+      output: {
+        format: {
+          type: `audio/${config.output_audio_format}` as const,  // "audio/pcm16"
+        },
+        voice: config.voice,  // ⚠️ Déplacé: vers audio.output
+      },
+    },
+    input_audio_transcription: config.input_audio_transcription,
+    temperature: config.temperature,
+    max_response_output_tokens: config.max_response_output_tokens,
+  }
+}
+
+/**
  * Construire URL WebRTC pour format GA
  * 
  * @param context Type de session

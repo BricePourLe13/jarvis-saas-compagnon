@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { vitrineIPLimiter } from '@/lib/vitrine-ip-limiter'
 import { jarvisExpertFunctions } from '@/lib/jarvis-expert-functions'
 import { getStrictContext } from '@/lib/jarvis-knowledge-base'
-import { getConfigForContext, OPENAI_CONFIG } from '@/lib/openai-config'
+import { getConfigForContext, OPENAI_CONFIG, convertToGAFormat } from '@/lib/openai-config'
 import { fetchWithRetry } from '@/lib/openai-retry'
 
 export async function POST(request: NextRequest) {
@@ -53,11 +53,11 @@ export async function POST(request: NextRequest) {
     // 📚 Récupérer le contexte strict de la knowledge base
     const strictContext = getStrictContext();
 
-    // Créer une session OpenAI Realtime pour la démo (format BETA pur)
+    // Créer une session OpenAI Realtime pour la démo
     const baseConfig = getConfigForContext('vitrine')
-    const sessionConfig = {
-      ...baseConfig,
-      instructions: `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
+    
+    // Instructions complètes pour JARVIS commercial
+    const instructions = `Tu es JARVIS, l'assistant commercial EXPERT de JARVIS-GROUP.
 
 🚨 RÈGLE ABSOLUE DE LANGUE : Tu parles UNIQUEMENT en français. JAMAIS en anglais, JAMAIS dans une autre langue.
 Si tu détectes que tu commences à répondre en anglais, arrête-toi immédiatement et reformule en français.
@@ -101,7 +101,13 @@ Ne réponds JAMAIS de mémoire pour ces sujets.
 
 "Salut ! Je suis JARVIS ! Dis-moi, tu gères une salle de sport ?"
 
-RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`,
+RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret vérifié !`
+    
+    // Convertir au format GA avec instructions et tools
+    const gaConfig = convertToGAFormat(baseConfig)
+    const sessionConfig = {
+      ...gaConfig,
+      instructions,
       tools: jarvisExpertFunctions,
       tool_choice: "auto",
     }
@@ -109,9 +115,9 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
     // 🔍 DEBUG: Log de la config envoyée à OpenAI
     console.log('📡 [VITRINE] Appel OpenAI avec:', {
       model: sessionConfig.model,
-      voice: sessionConfig.voice,
-      modalities: sessionConfig.modalities,
-      turn_detection: sessionConfig.turn_detection,
+      voice: sessionConfig.audio.output.voice,
+      output_modalities: sessionConfig.output_modalities,
+      turn_detection: sessionConfig.audio.input.turn_detection,
       instructions_length: sessionConfig.instructions.length,
       tools_count: sessionConfig.tools?.length || 0,
       has_api_key: !!process.env.OPENAI_API_KEY
@@ -129,10 +135,7 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          session: {
-            type: "realtime",  // ✅ REQUIS par format GA
-            ...sessionConfig
-          }
+          session: sessionConfig  // ✅ FORMAT GA : sessionConfig déjà au bon format
         }),
       },
       {
@@ -149,7 +152,7 @@ RAPPEL CRITIQUE : Énergie, rapidité, précision. Pas de blabla, que du concret
         statusText: response.statusText,
         errorText,
         model_used: sessionConfig.model,
-        voice_used: sessionConfig.voice,
+        voice_used: sessionConfig.audio.output.voice,
         headers: Object.fromEntries(response.headers.entries())
       })
       

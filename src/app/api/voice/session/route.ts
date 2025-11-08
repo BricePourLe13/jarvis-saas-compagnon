@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
-import { getConfigForContext } from '@/lib/openai-config'
+import { getConfigForContext, convertToGAFormat } from '@/lib/openai-config'
 import { getConversationContext } from '@/lib/rag-context'
 import { getMemberFacts, formatFactsForPrompt } from '@/lib/member-facts'
 import { sessionContextStore } from '@/lib/voice/session-context-store'
@@ -229,8 +229,11 @@ export async function POST(request: NextRequest) {
 
     // 🎙️ CONFIGURATION AUDIO OPTIMISÉE AVEC TOOLS + CONTEXTE ENRICHI
     const baseConfig = getConfigForContext('production')
+    
+    // Convertir au format GA
+    const gaConfig = convertToGAFormat(baseConfig)
     const sessionConfig = {
-      ...baseConfig,
+      ...gaConfig,
       instructions: generateEnrichedInstructions(memberProfile, gymSlug, factsPrompt, conversationContext),
       tools: jarvisTools,
       tool_choice: 'auto',
@@ -240,9 +243,9 @@ export async function POST(request: NextRequest) {
     console.log(`📡 [SESSION] Appel OpenAI pour session: ${sessionId}`)
     console.log(`📡 [DEBUG] Config:`, {
       model: sessionConfig.model,
-      voice: sessionConfig.voice,
-      modalities: sessionConfig.modalities,
-      turn_detection: sessionConfig.turn_detection,
+      voice: sessionConfig.audio.output.voice,
+      output_modalities: sessionConfig.output_modalities,
+      turn_detection: sessionConfig.audio.input.turn_detection,
       instructions_length: sessionConfig.instructions.length,
       tools_count: sessionConfig.tools?.length || 0
     })
@@ -259,10 +262,7 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          session: {
-            type: "realtime",  // ✅ REQUIS par format GA
-            ...sessionConfig
-          }
+          session: sessionConfig  // ✅ FORMAT GA : sessionConfig déjà au bon format
         })
       },
       {
