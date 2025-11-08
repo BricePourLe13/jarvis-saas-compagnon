@@ -71,10 +71,10 @@ export const OPENAI_CONFIG = {
     
     /**
      * Voix vitrine
-     * - alloy = voix masculine dynamique
-     * - Ton commercial et énergique
+     * - shimmer = voix féminine énergique et claire
+     * - Ton commercial et engageant
      */
-    vitrine: (process.env.OPENAI_VOICE_VITRINE || 'alloy') as OpenAIVoice,
+    vitrine: (process.env.OPENAI_VOICE_VITRINE || 'shimmer') as OpenAIVoice,
     
     /**
      * Voix fallback (si voix principale indisponible)
@@ -392,7 +392,7 @@ export function getFullSessionUpdate(
       output: {
         format: {
           type: "audio/pcm" as const,  // ✅ Valeurs acceptées: 'audio/pcm', 'audio/pcmu', 'audio/pcma'
-          rate: 24000,  // ✅ Minimum 24000 Hz requis
+          // ❌ PAS de rate pour output ! (doc ligne 1214-1219)
         },
         voice: voice || config.voice  // ✅ REQUIS pour générer de l'audio ! (doc ligne 1218)
       },
