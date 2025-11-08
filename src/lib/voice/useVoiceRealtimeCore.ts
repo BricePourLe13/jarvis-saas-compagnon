@@ -247,13 +247,14 @@ export function useVoiceRealtimeCore(
         ? session.client_secret 
         : session.client_secret.value
 
+      // ✅ FORMAT GA : Pas de header Beta pour modèles GA
       const realtimeResponse = await fetch(getRealtimeURL(realtimeContext), {
         method: 'POST',
         body: offer.sdp,
         headers: {
           'Authorization': `Bearer ${ephemeralKey}`,
           'Content-Type': 'application/sdp',
-          ...(realtimeContext === 'vitrine' && { 'OpenAI-Beta': 'realtime=v1' })
+          // ❌ SUPPRIMÉ: Header Beta (nécessaire uniquement pour modèles beta)
         },
       })
 

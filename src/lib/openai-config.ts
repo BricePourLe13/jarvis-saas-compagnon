@@ -167,23 +167,27 @@ export const OPENAI_CONFIG = {
   },
 
   /**
-   * 📡 URLS API OPENAI
+   * 📡 URLS API OPENAI (FORMAT GA 2025)
    */
   api: {
     /**
-     * URL création session ephemeral
+     * URL création session ephemeral (format GA)
+     * Doc: https://platform.openai.com/docs/api-reference/realtime-sessions
      */
     sessions: 'https://api.openai.com/v1/realtime/sessions',
     
     /**
-     * URL WebRTC realtime (avec query param model)
+     * URL WebRTC calls (FORMAT GA - changé de /realtime vers /realtime/calls)
+     * Doc ligne 368-370: "New URL for WebRTC SDP data"
+     * https://platform.openai.com/docs/guides/realtime-webrtc#connecting-using-the-unified-interface
      */
-    realtime: 'https://api.openai.com/v1/realtime',
+    realtimeCalls: 'https://api.openai.com/v1/realtime/calls',
     
     /**
-     * Header beta requis pour API Realtime
+     * ❌ DEPRECATED - Ne plus utiliser le header Beta pour modèles GA
+     * (Nécessaire uniquement si utilisation modèles beta avec OpenAI-Beta: realtime=v1)
      */
-    betaHeader: 'realtime=v1',
+    betaHeader: 'realtime=v1', // ❌ Ne pas utiliser pour gpt-realtime-2025-08-28
   },
 
   /**
@@ -301,20 +305,24 @@ export function getConfigForContext(context: OpenAIContext) {
 }
 
 /**
- * Construire URL WebRTC avec modèle
+ * Construire URL WebRTC pour format GA
  * 
  * @param context Type de session
- * @returns URL complète pour connexion WebRTC
+ * @returns URL pour connexion WebRTC (format GA - /realtime/calls)
  * 
  * @example
  * ```typescript
  * const url = getRealtimeURL('production')
- * // 'https://api.openai.com/v1/realtime?model=gpt-realtime-mini-2025-10-06'
+ * // 'https://api.openai.com/v1/realtime/calls'
  * ```
+ * 
+ * ⚠️ FORMAT GA : L'URL est maintenant /realtime/calls (pas de query param model)
+ * Le modèle est spécifié dans le sessionConfig lors de la création de session
+ * Doc: https://platform.openai.com/docs/guides/realtime-webrtc#connecting-using-the-unified-interface
  */
 export function getRealtimeURL(context: OpenAIContext): string {
-  const model = OPENAI_CONFIG.models[context]
-  return `${OPENAI_CONFIG.api.realtime}?model=${model}`
+  // ✅ FORMAT GA : Utiliser /realtime/calls sans query param
+  return OPENAI_CONFIG.api.realtimeCalls
 }
 
 /**

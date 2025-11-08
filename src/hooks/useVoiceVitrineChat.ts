@@ -294,13 +294,14 @@ export function useVoiceVitrineChat({
       const ephemeralKey = session.client_secret.value
       console.log('🔑 Token utilisé:', ephemeralKey?.substring(0, 20) + '...')
       // 🎯 Vitrine utilise le modèle full pour meilleure qualité démo
+      // ✅ FORMAT GA : Pas de header Beta pour gpt-realtime-2025-08-28
       const realtimeResponse = await fetch(getRealtimeURL('vitrine'), {
         method: 'POST',
         body: offer.sdp,
         headers: {
           'Authorization': `Bearer ${ephemeralKey}`,
           'Content-Type': 'application/sdp',
-          'OpenAI-Beta': 'realtime=v1'
+          // ❌ SUPPRIMÉ: 'OpenAI-Beta': 'realtime=v1' (format GA)
         },
       })
 
