@@ -33,14 +33,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check rate limit
-    const limitResult = await vitrineIPLimiter.checkLimit(clientIP, userAgent);
+    const limitResult = await vitrineIPLimiter.checkAndUpdateLimit(clientIP, userAgent);
     
     if (!limitResult.allowed) {
       return NextResponse.json(
         { 
           error: 'Limite quotidienne atteinte', 
-          message: limitResult.message,
-          remainingCredits: 0
+          message: limitResult.reason || 'Rate limit exceeded',
+          remainingCredits: limitResult.remainingCredits
         },
         { status: 429 }
       );

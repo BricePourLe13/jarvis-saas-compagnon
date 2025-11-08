@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RealtimeSessionFactory } from '@/lib/voice/core/realtime-session-factory';
 import { KIOSK_CONFIG, getKioskSessionConfig } from '@/lib/voice/contexts/kiosk-config';
-import { createSimpleClient } from '@/lib/supabase-service';
+import { getSupabaseService } from '@/lib/supabase-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // ============================================
     // 2. CHARGER CONTEXTE MEMBRE
     // ============================================
-    const supabase = createSimpleClient();
+    const supabase = getSupabaseService();
     
     const { data: member, error: memberError } = await supabase
       .from('members')
