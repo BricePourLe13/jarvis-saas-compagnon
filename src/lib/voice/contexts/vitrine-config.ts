@@ -70,7 +70,7 @@ Tu as 5 minutes max pour convaincre. Sois percutant !`,
       input: {
         format: {
           type: 'audio/pcm',
-          rate: VITRINE_CONFIG.sampleRate
+          rate: VITRINE_CONFIG.sampleRate  // 24000
         },
         transcription: {
           model: 'whisper-1'
@@ -85,11 +85,11 @@ Tu as 5 minutes max pour convaincre. Sois percutant !`,
         }
       },
       output: {
+        voice: VITRINE_CONFIG.voice,
         format: {
-          type: 'audio/pcm'
-          // Pas de 'rate' pour output selon doc GA
-        },
-        voice: VITRINE_CONFIG.voice
+          type: 'audio/pcm',
+          rate: VITRINE_CONFIG.sampleRate  // 24000 - AJOUTÉ selon doc GA complète
+        }
       }
     },
     tools: [], // Pas de tools pour vitrine

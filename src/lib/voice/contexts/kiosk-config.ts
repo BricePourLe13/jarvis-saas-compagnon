@@ -226,7 +226,7 @@ export function getKioskSessionConfig(member: {
       input: {
         format: {
           type: 'audio/pcm',
-          rate: KIOSK_CONFIG.sampleRate
+          rate: KIOSK_CONFIG.sampleRate  // 24000
         },
         transcription: {
           model: 'whisper-1'
@@ -241,11 +241,11 @@ export function getKioskSessionConfig(member: {
         }
       },
       output: {
+        voice: KIOSK_CONFIG.voice,
         format: {
-          type: 'audio/pcm'
-          // Pas de 'rate' pour output selon doc GA
-        },
-        voice: KIOSK_CONFIG.voice
+          type: 'audio/pcm',
+          rate: KIOSK_CONFIG.sampleRate  // 24000 - AJOUTÉ selon doc GA complète
+        }
       }
     },
     tools: KIOSK_TOOLS,
