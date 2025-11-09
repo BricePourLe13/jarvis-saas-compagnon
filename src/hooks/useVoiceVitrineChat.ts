@@ -175,6 +175,9 @@ export function useVoiceVitrineChat({
         audioEl.id = 'jarvis-audio-vitrine'
         audioEl.autoplay = true
         audioEl.controls = false // true pour debug
+        audioEl.muted = false  // 🔧 FIX: Explicitement NON muté
+        audioEl.volume = 1.0   // 🔧 FIX: Volume à 100%
+        audioEl.setAttribute('playsinline', '')  // 🔧 FIX: iOS compatibility
         
         // 🔧 FIX CRITIQUE : Ajouter au DOM pour que autoplay fonctionne
         document.body.appendChild(audioEl)
@@ -224,6 +227,18 @@ export function useVoiceVitrineChat({
         
         // Logger l'état APRÈS assignation
         console.log(`📊 Audio element APRÈS - srcObject active: ${audioElementRef.current.srcObject?.active || false}`)
+        
+        // 🔧 FIX CRITIQUE: Resume AudioContext pour débloquer autoplay
+        try {
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => {
+              console.log('✅ [AUDIO] AudioContext resumed (autoplay débloqué)')
+            })
+          }
+        } catch (err) {
+          console.warn(`⚠️ [AUDIO] AudioContext non disponible: ${err}`)
+        }
         
         // ✅ FORCER play() immédiatement
         const playPromise = audioElementRef.current.play()
