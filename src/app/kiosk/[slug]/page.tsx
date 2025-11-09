@@ -563,10 +563,19 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     await handleMemberScanned(currentMember)
   }, [currentMember, handleMemberScanned])
 
-  // 🚫 ANCIENNE DÉTECTION AU REVOIR DÉSACTIVÉE
-  // Détection désormais via transcripts OpenAI (useVoiceChat)
+  // 🎯 DÉTECTION "AU REVOIR" RÉACTIVÉE
   const detectExitIntent = useCallback((transcript: string) => {
-    return false
+    const exitKeywords = [
+      /au\s*revoir/i,
+      /merci\s+(beaucoup|bien|bcp)/i,
+      /\b(salut|ciao|bye|adieu)\b/i,
+      /bonne\s+(journée|journ[ée]e|soir[ée]e|nuit)/i,
+      /à\s+(bientôt|bient[ôo]t|plus|tout\s+à\s+l'heure|demain)/i,
+      /c['']\s*est\s+bon/i,
+      /j['']\s*y\s+vais/i,
+      /je\s+(pars|m['']\s*en\s+vais)/i
+    ]
+    return exitKeywords.some(regex => regex.test(transcript.toLowerCase()))
   }, [])
 
   // Callback pour analyser les transcriptions
