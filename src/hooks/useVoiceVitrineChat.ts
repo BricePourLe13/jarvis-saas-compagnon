@@ -172,7 +172,27 @@ export function useVoiceVitrineChat({
       // Créer l'élément audio pour le playback (COMME LE KIOSK)
       if (!audioElementRef.current) {
         const audioEl = document.createElement('audio')
+        audioEl.id = 'jarvis-audio-vitrine'
         audioEl.autoplay = true
+        audioEl.controls = false // true pour debug
+        
+        // 🔧 FIX CRITIQUE : Ajouter au DOM pour que autoplay fonctionne
+        document.body.appendChild(audioEl)
+        
+        // 🔧 FIX : Ajouter listeners debug
+        audioEl.onloadedmetadata = () => {
+          console.log('✅ [AUDIO] Metadata chargé - prêt à jouer')
+        }
+        audioEl.onerror = (e) => {
+          console.error('❌ [AUDIO] Erreur audio element:', e)
+        }
+        audioEl.onplay = () => {
+          console.log('▶️ [AUDIO] Playback démarré')
+        }
+        audioEl.onended = () => {
+          console.log('🏁 [AUDIO] Audio terminé')
+        }
+        
         audioElementRef.current = audioEl
       }
 
@@ -182,6 +202,20 @@ export function useVoiceVitrineChat({
         if (audioElementRef.current && event.streams[0]) {
           audioElementRef.current.srcObject = event.streams[0]
           console.log('✅ Audio srcObject défini')
+          
+          // 🔧 FIX : Forcer play() après srcObject (autoplay peut être bloqué)
+          setTimeout(() => {
+            audioElementRef.current?.play()
+              .then(() => console.log('✅ [AUDIO] Playback started'))
+              .catch((err) => {
+                console.error('❌ [AUDIO] Autoplay blocked:', err.message)
+                console.warn('⚠️ [AUDIO] Cliquez n\'importe où pour démarrer l\'audio')
+                // Fallback: attendre interaction utilisateur
+                document.addEventListener('click', () => {
+                  audioElementRef.current?.play()
+                }, { once: true })
+              })
+          }, 100)
         }
       }
 
@@ -456,10 +490,14 @@ export function useVoiceVitrineChat({
 
       // Arrêter audio et nettoyer DOM
       if (audioElementRef.current) {
+        // Pause et reset
+        audioElementRef.current.pause()
         audioElementRef.current.srcObject = null
+        
         // Retirer du DOM
         if (audioElementRef.current.parentNode) {
           audioElementRef.current.parentNode.removeChild(audioElementRef.current)
+          console.log('🧹 [AUDIO] Audio element retiré du DOM')
         }
         audioElementRef.current = null
       }

@@ -208,7 +208,27 @@ export function useVoiceChat(config: VoiceChatConfig) {
       // Créer l'élément audio pour le playback
       if (!audioElementRef.current) {
         const audioEl = document.createElement('audio')
+        audioEl.id = 'jarvis-audio-kiosk'
         audioEl.autoplay = true
+        audioEl.controls = false // true pour debug
+        
+        // 🔧 FIX CRITIQUE : Ajouter au DOM pour que autoplay fonctionne
+        document.body.appendChild(audioEl)
+        
+        // 🔧 FIX : Ajouter listeners debug
+        audioEl.onloadedmetadata = () => {
+          kioskLogger.session('✅ [AUDIO] Metadata chargé - prêt à jouer', 'success')
+        }
+        audioEl.onerror = (e) => {
+          kioskLogger.session(`❌ [AUDIO] Erreur audio element: ${e}`, 'error')
+        }
+        audioEl.onplay = () => {
+          kioskLogger.session('▶️ [AUDIO] Playback démarré', 'info')
+        }
+        audioEl.onended = () => {
+          kioskLogger.session('🏁 [AUDIO] Audio terminé', 'info')
+        }
+        
         audioElementRef.current = audioEl
       }
 
@@ -218,6 +238,20 @@ export function useVoiceChat(config: VoiceChatConfig) {
         if (audioElementRef.current && event.streams[0]) {
           audioElementRef.current.srcObject = event.streams[0]
           setAudioState(prev => ({ ...prev, isPlaying: true }))
+          
+          // 🔧 FIX : Forcer play() après srcObject (autoplay peut être bloqué)
+          setTimeout(() => {
+            audioElementRef.current?.play()
+              .then(() => kioskLogger.session('✅ [AUDIO] Playback started', 'success'))
+              .catch((err) => {
+                kioskLogger.session(`❌ [AUDIO] Autoplay blocked: ${err.message}`, 'error')
+                kioskLogger.session('⚠️ [AUDIO] Cliquez n\'importe où pour démarrer l\'audio', 'warning')
+                // Fallback: attendre interaction utilisateur
+                document.addEventListener('click', () => {
+                  audioElementRef.current?.play()
+                }, { once: true })
+              })
+          }, 100)
         }
       }
 
@@ -692,9 +726,18 @@ export function useVoiceChat(config: VoiceChatConfig) {
         dataChannelRef.current = null
       }
 
-      // Arrêter l'audio
+      // Arrêter l'audio et nettoyer DOM
       if (audioElementRef.current) {
+        // Pause et reset
+        audioElementRef.current.pause()
         audioElementRef.current.srcObject = null
+        
+        // Retirer du DOM
+        if (audioElementRef.current.parentNode) {
+          audioElementRef.current.parentNode.removeChild(audioElementRef.current)
+          kioskLogger.session('🧹 [AUDIO] Audio element retiré du DOM', 'info')
+        }
+        audioElementRef.current = null
       }
 
       // 🚨 FERMER LA SESSION OPENAI REALTIME CÔTÉ SERVEUR
