@@ -85,11 +85,11 @@ Tu as 5 minutes max pour convaincre. Sois percutant !`,
         }
       },
       output: {
-        voice: VITRINE_CONFIG.voice,
         format: {
-          type: 'audio/pcm',
-          rate: VITRINE_CONFIG.sampleRate
-        }
+          type: 'audio/pcm'
+          // Pas de 'rate' pour output selon doc GA
+        },
+        voice: VITRINE_CONFIG.voice
       }
     },
     tools: [], // Pas de tools pour vitrine

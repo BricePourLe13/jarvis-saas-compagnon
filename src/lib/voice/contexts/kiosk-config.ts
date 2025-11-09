@@ -241,11 +241,11 @@ export function getKioskSessionConfig(member: {
         }
       },
       output: {
-        voice: KIOSK_CONFIG.voice,
         format: {
-          type: 'audio/pcm',
-          rate: KIOSK_CONFIG.sampleRate
-        }
+          type: 'audio/pcm'
+          // Pas de 'rate' pour output selon doc GA
+        },
+        voice: KIOSK_CONFIG.voice
       }
     },
     tools: KIOSK_TOOLS,
