@@ -234,24 +234,57 @@ export function useVoiceChat(config: VoiceChatConfig) {
 
       // Gérer l'audio entrant (réponses de JARVIS)
       pc.ontrack = (event) => {
-        kioskLogger.session('🔊 Audio entrant reçu', 'info')
-        if (audioElementRef.current && event.streams[0]) {
-          audioElementRef.current.srcObject = event.streams[0]
-          setAudioState(prev => ({ ...prev, isPlaying: true }))
-          
-          // 🔧 FIX : Forcer play() après srcObject (autoplay peut être bloqué)
-          setTimeout(() => {
-            audioElementRef.current?.play()
-              .then(() => kioskLogger.session('✅ [AUDIO] Playback started', 'success'))
-              .catch((err) => {
-                kioskLogger.session(`❌ [AUDIO] Autoplay blocked: ${err.message}`, 'error')
-                kioskLogger.session('⚠️ [AUDIO] Cliquez n\'importe où pour démarrer l\'audio', 'warning')
+        kioskLogger.session(`🎵 TRACK EVENT FIRED: ${event.track.kind} (streams: ${event.streams.length})`, 'success')
+        
+        // ✅ CRITICAL: Vérifier que c'est bien un track AUDIO
+        if (event.track.kind !== 'audio') {
+          kioskLogger.session(`⚠️ Track ignoré (type: ${event.track.kind})`, 'warning')
+          return
+        }
+        
+        if (!audioElementRef.current) {
+          kioskLogger.session('❌ Audio element n\'existe pas!', 'error')
+          return
+        }
+        
+        if (!event.streams[0]) {
+          kioskLogger.session('❌ Aucun stream dans l\'event!', 'error')
+          return
+        }
+        
+        // Logger l'état AVANT assignation
+        kioskLogger.session(`📊 Audio element AVANT - srcObject active: ${audioElementRef.current.srcObject?.active || false}, paused: ${audioElementRef.current.paused}, muted: ${audioElementRef.current.muted}`, 'info')
+        
+        // ✅ Assigner le stream
+        audioElementRef.current.srcObject = event.streams[0]
+        
+        // Logger l'état APRÈS assignation
+        kioskLogger.session(`📊 Audio element APRÈS - srcObject active: ${audioElementRef.current.srcObject?.active || false}`, 'success')
+        
+        setAudioState(prev => ({ ...prev, isPlaying: true }))
+        
+        // ✅ FORCER play() immédiatement
+        const playPromise = audioElementRef.current.play()
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              kioskLogger.session('✅ ▶️ Audio playback DÉMARRÉ avec succès!', 'success')
+            })
+            .catch((err) => {
+              kioskLogger.session(`❌ PLAY FAILED: ${err.name} - ${err.message}`, 'error')
+              
+              if (err.name === 'NotAllowedError') {
+                kioskLogger.session('⚠️ Autoplay bloqué par le navigateur - Cliquez pour activer l\'audio', 'warning')
                 // Fallback: attendre interaction utilisateur
                 document.addEventListener('click', () => {
+                  kioskLogger.session('🖱️ Click détecté - Tentative play()...', 'info')
                   audioElementRef.current?.play()
+                    .then(() => kioskLogger.session('✅ Audio démarré après click', 'success'))
+                    .catch(e => kioskLogger.session(`❌ Échec après click: ${e.message}`, 'error'))
                 }, { once: true })
-              })
-          }, 100)
+              }
+            })
         }
       }
 

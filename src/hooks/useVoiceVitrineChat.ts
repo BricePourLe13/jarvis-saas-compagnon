@@ -196,26 +196,57 @@ export function useVoiceVitrineChat({
         audioElementRef.current = audioEl
       }
 
-      // Gérer l'audio entrant (réponses de JARVIS) - COMME LE KIOSK
+      // Gérer l'audio entrant (réponses de JARVIS) - DIAGNOSTIC COMPLET
       pc.ontrack = (event) => {
-        console.log('🔊 Audio entrant reçu (style kiosk)')
-        if (audioElementRef.current && event.streams[0]) {
-          audioElementRef.current.srcObject = event.streams[0]
-          console.log('✅ Audio srcObject défini')
-          
-          // 🔧 FIX : Forcer play() après srcObject (autoplay peut être bloqué)
-          setTimeout(() => {
-            audioElementRef.current?.play()
-              .then(() => console.log('✅ [AUDIO] Playback started'))
-              .catch((err) => {
-                console.error('❌ [AUDIO] Autoplay blocked:', err.message)
-                console.warn('⚠️ [AUDIO] Cliquez n\'importe où pour démarrer l\'audio')
+        console.log(`🎵 TRACK EVENT FIRED: ${event.track.kind} (streams: ${event.streams.length})`)
+        
+        // ✅ CRITICAL: Vérifier que c'est bien un track AUDIO
+        if (event.track.kind !== 'audio') {
+          console.warn(`⚠️ Track ignoré (type: ${event.track.kind})`)
+          return
+        }
+        
+        if (!audioElementRef.current) {
+          console.error('❌ Audio element n\'existe pas!')
+          return
+        }
+        
+        if (!event.streams[0]) {
+          console.error('❌ Aucun stream dans l\'event!')
+          return
+        }
+        
+        // Logger l'état AVANT assignation
+        console.log(`📊 Audio element AVANT - srcObject active: ${audioElementRef.current.srcObject?.active || false}, paused: ${audioElementRef.current.paused}, muted: ${audioElementRef.current.muted}`)
+        
+        // ✅ Assigner le stream
+        audioElementRef.current.srcObject = event.streams[0]
+        
+        // Logger l'état APRÈS assignation
+        console.log(`📊 Audio element APRÈS - srcObject active: ${audioElementRef.current.srcObject?.active || false}`)
+        
+        // ✅ FORCER play() immédiatement
+        const playPromise = audioElementRef.current.play()
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('✅ ▶️ Audio playback DÉMARRÉ avec succès!')
+            })
+            .catch((err) => {
+              console.error(`❌ PLAY FAILED: ${err.name} - ${err.message}`)
+              
+              if (err.name === 'NotAllowedError') {
+                console.warn('⚠️ Autoplay bloqué par le navigateur - Cliquez pour activer l\'audio')
                 // Fallback: attendre interaction utilisateur
                 document.addEventListener('click', () => {
+                  console.log('🖱️ Click détecté - Tentative play()...')
                   audioElementRef.current?.play()
+                    .then(() => console.log('✅ Audio démarré après click'))
+                    .catch(e => console.error(`❌ Échec après click: ${e.message}`))
                 }, { once: true })
-              })
-          }, 100)
+              }
+            })
         }
       }
 
