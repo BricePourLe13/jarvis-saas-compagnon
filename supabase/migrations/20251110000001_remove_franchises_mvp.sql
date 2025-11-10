@@ -35,13 +35,13 @@ BEGIN
 END $$;
 
 -- ============================================
--- ÉTAPE 2 : MIGRER USERS (ROLES FRANCHISE → GYM_MANAGER)
+-- ÉTAPE 2 : MIGRER USERS (TOUS ROLES → 2 ROLES MVP)
 -- ============================================
 
--- Migrer franchise_owner et franchise_admin → gym_manager
+-- Migrer franchise_owner, franchise_admin, gym_staff → gym_manager
 UPDATE public.users
 SET role = 'gym_manager'
-WHERE role IN ('franchise_owner', 'franchise_admin');
+WHERE role IN ('franchise_owner', 'franchise_admin', 'gym_staff');
 
 -- Vérification migration users
 DO $$
@@ -54,9 +54,9 @@ BEGIN
   
   RAISE NOTICE 'Users migrés vers gym_manager : %', migrated_users;
   
-  -- S'assurer qu'aucun role franchise ne reste
-  IF EXISTS (SELECT 1 FROM public.users WHERE role IN ('franchise_owner', 'franchise_admin')) THEN
-    RAISE EXCEPTION 'Erreur: Des users ont encore un role franchise!';
+  -- S'assurer qu'aucun ancien role ne reste
+  IF EXISTS (SELECT 1 FROM public.users WHERE role IN ('franchise_owner', 'franchise_admin', 'gym_staff')) THEN
+    RAISE EXCEPTION 'Erreur: Des users ont encore un ancien role!';
   END IF;
 END $$;
 
