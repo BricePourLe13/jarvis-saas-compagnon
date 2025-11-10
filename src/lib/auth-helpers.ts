@@ -1,21 +1,24 @@
 // ============================================================================
 // AUTH HELPERS - Système d'authentification sécurisé
+// VERSION MVP - 2 ROLES (super_admin + gym_manager)
 // ============================================================================
 
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnvironmentConfig } from './supabase-admin'
 import type { Database } from '@/types/database'
+import type { UserRole } from '@/types/core'
 
-// Types
-export type UserRole = 'super_admin' | 'franchise_manager' | 'gym_manager' | 'receptionist'
+// ============================================================================
+// TYPES
+// ============================================================================
 
 export interface AuthUser {
   id: string
   email: string
   role: UserRole
   gym_id?: string
-  franchise_id?: string
+  gym_access?: string[] // Array of gym IDs for gym_manager
   full_name?: string
   is_active: boolean
 }
@@ -105,7 +108,7 @@ export async function getUserProfile(
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, role, gym_id, franchise_id, full_name, is_active')
+      .select('id, email, role, gym_id, gym_access, full_name, is_active')
       .eq('id', userId)
       .single()
 
@@ -121,37 +124,36 @@ export async function getUserProfile(
   }
 }
 
+// ============================================================================
+// ACCESS CONTROL (2 ROLES)
+// ============================================================================
+
 /**
- * Vérifier si l'utilisateur a accès à une ressource
+ * Vérifier si l'utilisateur a accès à une ressource (GYM uniquement)
+ * 
+ * - super_admin : accès à TOUT
+ * - gym_manager : accès uniquement aux salles de gym_access[]
  */
 export function canAccessResource(
   user: AuthUser,
-  resourceType: 'gym' | 'franchise' | 'global',
+  resourceType: 'gym' | 'global',
   resourceId?: string
 ): boolean {
   // Super admin : accès complet
   if (user.role === 'super_admin') return true
 
-  // Franchise manager : accès à sa franchise
-  if (user.role === 'franchise_manager') {
+  // Gym manager : accès uniquement à ses salles
+  if (user.role === 'gym_manager') {
     if (resourceType === 'global') return false
-    if (resourceType === 'franchise') {
-      return !resourceId || user.franchise_id === resourceId
-    }
+    
     if (resourceType === 'gym' && resourceId) {
-      // Vérifier que la salle appartient à sa franchise (à implémenter avec query)
-      return true // TODO: vérifier via query
+      // Vérifier que la salle est dans gym_access
+      const gymAccess = user.gym_access || (user.gym_id ? [user.gym_id] : [])
+      return gymAccess.includes(resourceId)
     }
-    return false
-  }
-
-  // Gym manager : accès uniquement à sa salle
-  if (user.role === 'gym_manager' || user.role === 'receptionist') {
-    if (resourceType === 'global' || resourceType === 'franchise') return false
-    if (resourceType === 'gym') {
-      return !resourceId || user.gym_id === resourceId
-    }
-    return false
+    
+    // Si pas de resourceId spécifié, autoriser (la query sera filtrée par RLS)
+    return true
   }
 
   return false
@@ -159,11 +161,11 @@ export function canAccessResource(
 
 /**
  * Redirection selon le rôle de l'utilisateur
- * ✅ NOUVELLE ARCHITECTURE CONTEXT-AWARE : Tous vers /dashboard
- * Le ContextSwitcher gère automatiquement le filtrage selon le rôle
+ * 
+ * Tous vers /dashboard (le GymContext filtre automatiquement les données)
  */
 export function getDefaultRedirectForRole(user: AuthUser): string {
-  // Tout le monde vers /dashboard (sera redirigé vers /dashboard/overview)
+  // Tout le monde vers /dashboard
   // Le GymContext Provider détecte automatiquement le rôle et filtre les données
   return '/dashboard'
 }
@@ -173,65 +175,65 @@ export function getDefaultRedirectForRole(user: AuthUser): string {
 // ============================================================================
 
 /**
- * Extraire les IDs des routes dynamiques
+ * Extraire les IDs des routes dynamiques (GYM uniquement)
  */
 export function extractRouteParams(pathname: string): {
-  franchiseId?: string
   gymId?: string
 } {
-  const franchiseMatch = pathname.match(/\/franchises\/([^\/]+)/)
   const gymMatch = pathname.match(/\/gyms\/([^\/]+)/)
 
   return {
-    franchiseId: franchiseMatch?.[1],
     gymId: gymMatch?.[1],
   }
 }
 
 /**
  * Vérifier si l'utilisateur peut accéder à cette route
+ * 
+ * - super_admin : accès à /admin et /dashboard
+ * - gym_manager : accès uniquement à /dashboard
  */
 export function canAccessRoute(
   user: AuthUser,
   pathname: string
 ): { allowed: boolean; redirectTo?: string } {
-  const { franchiseId, gymId } = extractRouteParams(pathname)
+  const { gymId } = extractRouteParams(pathname)
 
-  // Routes globales (monitoring, admin)
+  // Routes /admin : UNIQUEMENT super_admin
+  if (pathname.startsWith('/admin')) {
+    if (user.role !== 'super_admin') {
+      return { 
+        allowed: false, 
+        redirectTo: '/dashboard' 
+      }
+    }
+    return { allowed: true }
+  }
+
+  // Routes globales (monitoring) : UNIQUEMENT super_admin
   if (pathname.startsWith('/dashboard/monitoring') || 
       pathname.startsWith('/dashboard/repair')) {
     if (user.role !== 'super_admin') {
       return { 
         allowed: false, 
-        redirectTo: getDefaultRedirectForRole(user) 
+        redirectTo: '/dashboard' 
       }
     }
     return { allowed: true }
   }
 
-  // Routes franchise
-  if (franchiseId) {
-    if (!canAccessResource(user, 'franchise', franchiseId)) {
-      return { 
-        allowed: false, 
-        redirectTo: getDefaultRedirectForRole(user) 
-      }
-    }
-    return { allowed: true }
-  }
-
-  // Routes gym
+  // Routes gym spécifiques (/dashboard/gyms/:id, /admin/gyms/:id)
   if (gymId) {
     if (!canAccessResource(user, 'gym', gymId)) {
       return { 
         allowed: false, 
-        redirectTo: getDefaultRedirectForRole(user) 
+        redirectTo: '/dashboard' 
       }
     }
     return { allowed: true }
   }
 
-  // Routes générales dashboard
+  // Routes générales dashboard : autorisées pour tous
   return { allowed: true }
 }
 
@@ -290,4 +292,3 @@ export function forbiddenResponse(message = 'Accès refusé') {
     { status: 403 }
   )
 }
-

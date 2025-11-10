@@ -80,9 +80,6 @@ export async function middleware(request: NextRequest) {
       if (userProfile.gym_id) {
         response.headers.set('X-User-Gym-Id', userProfile.gym_id)
       }
-      if (userProfile.franchise_id) {
-        response.headers.set('X-User-Franchise-Id', userProfile.franchise_id)
-      }
 
       logger.debug(
         '✅ [AUTH] Accès autorisé', 
