@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Récupérer le profil utilisateur
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError} = await supabase
       .from('users')
-      .select('id, role, gym_id, franchise_id')
+      .select('id, role, gym_id, gym_access')
       .eq('id', user.id)
       .single()
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // 4. Déterminer le scope selon le rôle
+    // 4. Déterminer le scope selon le rôle (MVP: super_admin, gym_manager)
     let gymIds: string[] = []
     
     if (userProfile.role === 'super_admin') {
@@ -64,18 +64,12 @@ export async function GET(request: NextRequest) {
         .from('gyms')
         .select('id')
       gymIds = allGyms?.map(g => g.id) || []
-    } else if (userProfile.role === 'franchise_owner' || userProfile.role === 'franchise_admin') {
-      if (userProfile.franchise_id) {
-        const { data: franchiseGyms } = await supabase
-          .from('gyms')
-          .select('id')
-          .eq('franchise_id', userProfile.franchise_id)
-        gymIds = franchiseGyms?.map(g => g.id) || []
-      }
-    } else if (userProfile.role === 'manager' || userProfile.role === 'staff') {
-      if (userProfile.gym_id) {
-        gymIds = [userProfile.gym_id]
-      }
+    } else if (userProfile.role === 'gym_manager') {
+      // gym_manager: accès via gym_id + gym_access[]
+      gymIds = [
+        ...(userProfile.gym_id ? [userProfile.gym_id] : []),
+        ...(userProfile.gym_access || [])
+      ]
     }
 
     if (gymIds.length === 0) {
