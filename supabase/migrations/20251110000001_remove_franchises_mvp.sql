@@ -61,19 +61,29 @@ BEGIN
 END $$;
 
 -- ============================================
--- ÉTAPE 3 : NETTOYER COLONNES FRANCHISE DANS USERS
+-- ÉTAPE 3 : SUPPRIMER POLICIES DÉPENDANT DE users.franchise_id
+-- ============================================
+
+-- CRITIQUE : Supprimer AVANT de drop users.franchise_id
+DROP POLICY IF EXISTS "franchise_owner_kiosks" ON public.kiosks;
+DROP POLICY IF EXISTS "franchise_owner_gyms" ON public.gyms;
+DROP POLICY IF EXISTS "franchise_owner_members" ON public.gym_members_v2;
+DROP POLICY IF EXISTS "franchise_owner_users" ON public.users;
+
+-- ============================================
+-- ÉTAPE 4 : NETTOYER COLONNES FRANCHISE DANS USERS
 -- ============================================
 
 -- Supprimer colonne franchise_id (non utilisée selon audit)
 ALTER TABLE public.users 
-DROP COLUMN IF EXISTS franchise_id;
+DROP COLUMN IF EXISTS franchise_id CASCADE; -- CASCADE pour supprimer dépendances
 
 -- Supprimer colonne franchise_access (non utilisée)
 ALTER TABLE public.users 
 DROP COLUMN IF EXISTS franchise_access;
 
 -- ============================================
--- ÉTAPE 4 : MODIFIER ENUM user_role (SUPPRIMER ROLES FRANCHISE)
+-- ÉTAPE 5 : MODIFIER ENUM user_role (SUPPRIMER ROLES FRANCHISE)
 -- ============================================
 
 -- Créer nouveau enum sans roles franchise
@@ -90,7 +100,7 @@ DROP TYPE IF EXISTS user_role;
 ALTER TYPE user_role_new RENAME TO user_role;
 
 -- ============================================
--- ÉTAPE 5 : NETTOYER FOREIGN KEYS FRANCHISE
+-- ÉTAPE 6 : NETTOYER FOREIGN KEYS FRANCHISE
 -- ============================================
 
 -- Supprimer FK gyms.franchise_id → franchises.id
@@ -102,7 +112,7 @@ ALTER TABLE public.jarvis_session_costs
 DROP CONSTRAINT IF EXISTS jarvis_session_costs_franchise_id_fkey;
 
 -- ============================================
--- ÉTAPE 6 : SUPPRIMER COLONNES FRANCHISE_ID
+-- ÉTAPE 7 : SUPPRIMER COLONNES FRANCHISE_ID
 -- ============================================
 
 -- Supprimer colonne franchise_id de gyms
@@ -123,7 +133,7 @@ DROP COLUMN IF EXISTS franchise_id;
 -- ALTER TABLE public.kiosk_sessions RENAME COLUMN franchise_id TO gym_id;
 
 -- ============================================
--- ÉTAPE 7 : SUPPRIMER RLS POLICIES FRANCHISE
+-- ÉTAPE 8 : SUPPRIMER RLS POLICIES FRANCHISE
 -- ============================================
 
 -- Supprimer policies mentionnant franchise_owner/franchise_admin
@@ -146,13 +156,13 @@ DROP POLICY IF EXISTS "Franchise owners can view their kiosks" ON public.kiosks;
 DROP POLICY IF EXISTS "Franchise owners can view members" ON public.gym_members_v2;
 
 -- ============================================
--- ÉTAPE 8 : SUPPRIMER TABLE FRANCHISES
+-- ÉTAPE 9 : SUPPRIMER TABLE FRANCHISES
 -- ============================================
 
 DROP TABLE IF EXISTS public.franchises CASCADE;
 
 -- ============================================
--- ÉTAPE 9 : CRÉER/METTRE À JOUR POLICIES MVP (2 ROLES)
+-- ÉTAPE 10 : CRÉER/METTRE À JOUR POLICIES MVP (2 ROLES)
 -- ============================================
 
 -- GYMS : super_admin voit tout, gym_manager voit ses salles
@@ -237,7 +247,7 @@ CREATE POLICY "Gym manager can view their gym members" ON public.gym_members_v2
   );
 
 -- ============================================
--- ÉTAPE 10 : VÉRIFICATIONS FINALES
+-- ÉTAPE 11 : VÉRIFICATIONS FINALES
 -- ============================================
 
 DO $$
