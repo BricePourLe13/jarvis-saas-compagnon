@@ -61,17 +61,20 @@ BEGIN
 END $$;
 
 -- ============================================
--- ÉTAPE 3 : SUPPRIMER POLICIES DÉPENDANT DE users.franchise_id/franchise_access
+-- ÉTAPE 3 : DROP **TOUTES** POLICIES (~50 dépendent de users.role!)
 -- ============================================
 
--- CRITIQUE : Supprimer policies AVANT de drop colonnes
-DROP POLICY IF EXISTS "franchise_owner_kiosks" ON public.kiosks;
-DROP POLICY IF EXISTS "franchise_owner_gyms" ON public.gyms;
-DROP POLICY IF EXISTS "franchise_owner_members" ON public.gym_members_v2;
-DROP POLICY IF EXISTS "franchise_owner_users" ON public.users;
-DROP POLICY IF EXISTS "franchises_contextual_select" ON public.franchises;
-DROP POLICY IF EXISTS "franchises_contextual_update" ON public.franchises;
-DROP POLICY IF EXISTS "gyms_select_scoped" ON public.gyms;
+-- CRITIQUE : ~50 policies référencent users.role et bloquent ALTER TYPE
+-- Solution : Drop toutes les policies, modifier enum, recréer uniquement MVP
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN (SELECT schemaname, tablename, policyname FROM pg_policies WHERE schemaname = 'public') LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
+  END LOOP;
+  RAISE NOTICE 'Toutes les policies public.* supprimées';
+END $$;
 
 -- ============================================
 -- ÉTAPE 4 : SUPPRIMER TABLE FRANCHISES (CASCADE AUTO-SUPPRIME SES POLICIES)
@@ -95,18 +98,24 @@ DROP COLUMN IF EXISTS franchise_access;
 -- ÉTAPE 6 : MODIFIER ENUM user_role (SUPPRIMER ROLES FRANCHISE)
 -- ============================================
 
--- Créer nouveau enum sans roles franchise
+-- 6.1: Supprimer DEFAULT temporairement (sinon cast error)
+ALTER TABLE public.users ALTER COLUMN role DROP DEFAULT;
+
+-- 6.2: Créer nouveau enum sans roles franchise
 CREATE TYPE user_role_new AS ENUM ('super_admin', 'gym_manager');
 
--- Migrer colonne role vers nouveau enum
+-- 6.3: Migrer colonne role vers nouveau enum
 ALTER TABLE public.users 
 ALTER COLUMN role TYPE user_role_new USING role::text::user_role_new;
 
--- Supprimer ancien enum
+-- 6.4: Supprimer ancien enum
 DROP TYPE IF EXISTS user_role;
 
--- Renommer nouveau enum
+-- 6.5: Renommer nouveau enum
 ALTER TYPE user_role_new RENAME TO user_role;
+
+-- 6.6: Remettre DEFAULT avec nouvelle valeur
+ALTER TABLE public.users ALTER COLUMN role SET DEFAULT 'gym_manager'::user_role;
 
 -- ============================================
 -- ÉTAPE 7 : NETTOYER FOREIGN KEYS FRANCHISE
@@ -142,31 +151,10 @@ DROP COLUMN IF EXISTS franchise_id;
 -- ALTER TABLE public.kiosk_sessions RENAME COLUMN franchise_id TO gym_id;
 
 -- ============================================
--- ÉTAPE 9 : SUPPRIMER RLS POLICIES FRANCHISE (RESTE)
+-- ÉTAPE 9 : CRÉER/METTRE À JOUR POLICIES MVP (2 ROLES)
 -- ============================================
 
--- Supprimer policies mentionnant franchise_owner/franchise_admin
--- Gyms
-DROP POLICY IF EXISTS "Franchise owners can view their gyms" ON public.gyms;
-DROP POLICY IF EXISTS "Franchise owners can update their gyms" ON public.gyms;
-DROP POLICY IF EXISTS "Franchise admins can view gyms" ON public.gyms;
-
--- Users
-DROP POLICY IF EXISTS "Franchise owners can view their users" ON public.users;
-DROP POLICY IF EXISTS "Franchise owners can update their users" ON public.users;
-
--- Jarvis session costs
-DROP POLICY IF EXISTS "Franchise owners can view their session costs" ON public.jarvis_session_costs;
-
--- Kiosks
-DROP POLICY IF EXISTS "Franchise owners can view their kiosks" ON public.kiosks;
-
--- Members
-DROP POLICY IF EXISTS "Franchise owners can view members" ON public.gym_members_v2;
-
--- ============================================
--- ÉTAPE 10 : CRÉER/METTRE À JOUR POLICIES MVP (2 ROLES)
--- ============================================
+-- NOTE : Toutes les anciennes policies ont été supprimées en ÉTAPE 3
 
 -- GYMS : super_admin voit tout, gym_manager voit ses salles
 DROP POLICY IF EXISTS "Super admin can view all gyms" ON public.gyms;
@@ -249,8 +237,29 @@ CREATE POLICY "Gym manager can view their gym members" ON public.gym_members_v2
     )
   );
 
+-- KIOSKS : super_admin ALL, gym_manager leur gym, anon lecture si online
+CREATE POLICY "kiosks_super_admin_all" ON public.kiosks FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'super_admin'));
+CREATE POLICY "kiosks_gym_manager_view" ON public.kiosks FOR SELECT TO authenticated USING (gym_id IN (SELECT users.gym_id FROM users WHERE users.id = auth.uid() UNION SELECT unnest(gym_access) FROM users WHERE users.id = auth.uid()));
+CREATE POLICY "kiosks_anon_view_online" ON public.kiosks FOR SELECT TO anon USING (status = 'online');
+
+-- KIOSK MONITORING : anon ALL (heartbeats + metrics)
+CREATE POLICY "kiosk_heartbeats_anon_all" ON public.kiosk_heartbeats FOR ALL TO anon USING (true);
+CREATE POLICY "kiosk_metrics_anon_all" ON public.kiosk_metrics FOR ALL TO anon USING (true);
+
+-- JARVIS ERRORS/SESSIONS : super_admin lecture, anon écriture
+CREATE POLICY "jarvis_errors_authenticated" ON public.jarvis_errors_log FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'super_admin'));
+CREATE POLICY "jarvis_errors_anon_insert" ON public.jarvis_errors_log FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "openai_sessions_authenticated" ON public.openai_realtime_sessions FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'super_admin'));
+CREATE POLICY "openai_sessions_anon_all" ON public.openai_realtime_sessions FOR ALL TO anon USING (true);
+
+-- VITRINE DEMO : libre accès
+CREATE POLICY "vitrine_demo_anon_all" ON public.vitrine_demo_sessions FOR ALL TO anon USING (true);
+
+-- SYSTEM LOGS : authenticated lecture
+CREATE POLICY "system_logs_authenticated" ON public.system_logs FOR SELECT TO authenticated USING (auth.role() = 'authenticated');
+
 -- ============================================
--- ÉTAPE 11 : VÉRIFICATIONS FINALES
+-- ÉTAPE 10 : VÉRIFICATIONS FINALES
 -- ============================================
 
 DO $$
