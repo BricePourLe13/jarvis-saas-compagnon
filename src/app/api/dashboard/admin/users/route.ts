@@ -59,11 +59,10 @@ export async function GET(request: NextRequest) {
         role,
         full_name,
         mfa_enrolled,
-        franchise_id,
         gym_id,
+        gym_access,
         last_login,
         created_at,
-        franchises(id, name),
         gyms(id, name)
       `)
       .order('created_at', { ascending: false })
@@ -73,17 +72,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des utilisateurs' }, { status: 500 })
     }
 
-    // 5. Formatter les utilisateurs
+    // 5. Formatter les utilisateurs (MVP)
     const formattedUsers = (users || []).map((user: any) => ({
       id: user.id,
       email: user.email,
       role: user.role,
       name: user.full_name || user.email.split('@')[0],
       is_mfa_enabled: user.mfa_enrolled || false,
-      franchise_id: user.franchise_id,
-      franchise_name: user.franchises?.name,
       gym_id: user.gym_id,
       gym_name: user.gyms?.name,
+      gym_access: user.gym_access || [],
       last_sign_in: user.last_login || user.created_at,
       created_at: user.created_at
     }))

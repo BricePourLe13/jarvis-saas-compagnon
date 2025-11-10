@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé - Super admin requis' }, { status: 403 })
     }
 
-    // 4. Récupérer toutes les salles avec leurs franchises
+    // 4. Récupérer toutes les salles (MVP)
     const { data: gyms, error: gymsError } = await supabase
       .from('gyms')
       .select(`
@@ -60,9 +60,8 @@ export async function GET(request: NextRequest) {
         address,
         postal_code,
         status,
-        franchise_id,
-        created_at,
-        franchises(id, name)
+        legacy_franchise_name,
+        created_at
       `)
       .order('created_at', { ascending: false })
 
@@ -93,8 +92,7 @@ export async function GET(request: NextRequest) {
           address: gym.address,
           postal_code: gym.postal_code,
           status: gym.status,
-          franchise_id: gym.franchise_id,
-          franchise_name: gym.franchises?.name,
+          legacy_franchise_name: gym.legacy_franchise_name,
           total_kiosks: kiosksCount || 0,
           total_members: membersCount || 0,
           created_at: gym.created_at
