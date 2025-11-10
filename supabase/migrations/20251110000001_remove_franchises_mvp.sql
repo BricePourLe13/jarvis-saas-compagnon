@@ -61,29 +61,38 @@ BEGIN
 END $$;
 
 -- ============================================
--- ÉTAPE 3 : SUPPRIMER POLICIES DÉPENDANT DE users.franchise_id
+-- ÉTAPE 3 : SUPPRIMER POLICIES DÉPENDANT DE users.franchise_id/franchise_access
 -- ============================================
 
--- CRITIQUE : Supprimer AVANT de drop users.franchise_id
+-- CRITIQUE : Supprimer policies AVANT de drop colonnes
 DROP POLICY IF EXISTS "franchise_owner_kiosks" ON public.kiosks;
 DROP POLICY IF EXISTS "franchise_owner_gyms" ON public.gyms;
 DROP POLICY IF EXISTS "franchise_owner_members" ON public.gym_members_v2;
 DROP POLICY IF EXISTS "franchise_owner_users" ON public.users;
+DROP POLICY IF EXISTS "franchises_contextual_select" ON public.franchises;
+DROP POLICY IF EXISTS "franchises_contextual_update" ON public.franchises;
+DROP POLICY IF EXISTS "gyms_select_scoped" ON public.gyms;
 
 -- ============================================
--- ÉTAPE 4 : NETTOYER COLONNES FRANCHISE DANS USERS
+-- ÉTAPE 4 : SUPPRIMER TABLE FRANCHISES (CASCADE AUTO-SUPPRIME SES POLICIES)
 -- ============================================
 
--- Supprimer colonne franchise_id (non utilisée selon audit)
+DROP TABLE IF EXISTS public.franchises CASCADE;
+
+-- ============================================
+-- ÉTAPE 5 : MAINTENANT NETTOYER COLONNES FRANCHISE DANS USERS
+-- ============================================
+
+-- Supprimer colonne franchise_id (safe après DROP TABLE franchises)
 ALTER TABLE public.users 
-DROP COLUMN IF EXISTS franchise_id CASCADE; -- CASCADE pour supprimer dépendances
+DROP COLUMN IF EXISTS franchise_id CASCADE;
 
--- Supprimer colonne franchise_access (non utilisée)
+-- Supprimer colonne franchise_access (safe après DROP TABLE franchises)
 ALTER TABLE public.users 
 DROP COLUMN IF EXISTS franchise_access;
 
 -- ============================================
--- ÉTAPE 5 : MODIFIER ENUM user_role (SUPPRIMER ROLES FRANCHISE)
+-- ÉTAPE 6 : MODIFIER ENUM user_role (SUPPRIMER ROLES FRANCHISE)
 -- ============================================
 
 -- Créer nouveau enum sans roles franchise
@@ -100,7 +109,7 @@ DROP TYPE IF EXISTS user_role;
 ALTER TYPE user_role_new RENAME TO user_role;
 
 -- ============================================
--- ÉTAPE 6 : NETTOYER FOREIGN KEYS FRANCHISE
+-- ÉTAPE 7 : NETTOYER FOREIGN KEYS FRANCHISE
 -- ============================================
 
 -- Supprimer FK gyms.franchise_id → franchises.id
@@ -112,7 +121,7 @@ ALTER TABLE public.jarvis_session_costs
 DROP CONSTRAINT IF EXISTS jarvis_session_costs_franchise_id_fkey;
 
 -- ============================================
--- ÉTAPE 7 : SUPPRIMER COLONNES FRANCHISE_ID
+-- ÉTAPE 8 : SUPPRIMER COLONNES FRANCHISE_ID
 -- ============================================
 
 -- Supprimer colonne franchise_id de gyms
@@ -133,7 +142,7 @@ DROP COLUMN IF EXISTS franchise_id;
 -- ALTER TABLE public.kiosk_sessions RENAME COLUMN franchise_id TO gym_id;
 
 -- ============================================
--- ÉTAPE 8 : SUPPRIMER RLS POLICIES FRANCHISE
+-- ÉTAPE 9 : SUPPRIMER RLS POLICIES FRANCHISE (RESTE)
 -- ============================================
 
 -- Supprimer policies mentionnant franchise_owner/franchise_admin
@@ -154,12 +163,6 @@ DROP POLICY IF EXISTS "Franchise owners can view their kiosks" ON public.kiosks;
 
 -- Members
 DROP POLICY IF EXISTS "Franchise owners can view members" ON public.gym_members_v2;
-
--- ============================================
--- ÉTAPE 9 : SUPPRIMER TABLE FRANCHISES
--- ============================================
-
-DROP TABLE IF EXISTS public.franchises CASCADE;
 
 -- ============================================
 -- ÉTAPE 10 : CRÉER/METTRE À JOUR POLICIES MVP (2 ROLES)
