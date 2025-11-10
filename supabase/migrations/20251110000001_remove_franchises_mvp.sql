@@ -113,8 +113,8 @@ DROP COLUMN IF EXISTS franchise_access;
 -- 6.1: Supprimer DEFAULT temporairement (sinon cast error)
 ALTER TABLE public.users ALTER COLUMN role DROP DEFAULT;
 
--- 6.2: Créer nouveau enum sans roles franchise
-CREATE TYPE user_role_new AS ENUM ('super_admin', 'gym_manager');
+-- 6.2: Créer nouveau enum MVP (super_admin, gym_manager, member pour app)
+CREATE TYPE user_role_new AS ENUM ('super_admin', 'gym_manager', 'member');
 
 -- 6.3: Migrer colonne role vers nouveau enum
 ALTER TABLE public.users 

@@ -64,7 +64,7 @@ export interface Database {
           id: string
           email: string
           full_name: string
-          role: 'super_admin' | 'gym_manager'
+          role: 'super_admin' | 'gym_manager' | 'member'
           gym_access: string[] | null
           dashboard_preferences: Json | null
           notification_settings: Json | null
