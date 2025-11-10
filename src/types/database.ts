@@ -9,55 +9,14 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      franchises: {
-        Row: {
-          id: string
-          name: string
-          address: string
-          city: string
-          postal_code: string
-          email: string
-          phone: string
-          owner_id: string
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          address: string
-          city: string
-          postal_code: string
-          email: string
-          phone: string
-          owner_id: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          address?: string
-          city?: string
-          postal_code?: string
-          email?: string
-          phone?: string
-          owner_id?: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
       gyms: {
         Row: {
           id: string
-          franchise_id: string
           name: string
           address: string
           city: string
           postal_code: string
+          phone: string | null
           kiosk_config: Json
           opening_hours: Json
           features: string[]
@@ -65,14 +24,15 @@ export interface Database {
           status: string
           created_at: string
           updated_at: string
+          legacy_franchise_name: string | null
         }
         Insert: {
           id?: string
-          franchise_id: string
           name: string
           address: string
           city: string
           postal_code: string
+          phone?: string | null
           kiosk_config?: Json
           opening_hours?: Json
           features?: string[]
@@ -80,14 +40,15 @@ export interface Database {
           status?: string
           created_at?: string
           updated_at?: string
+          legacy_franchise_name?: string | null
         }
         Update: {
           id?: string
-          franchise_id?: string
           name?: string
           address?: string
           city?: string
           postal_code?: string
+          phone?: string | null
           kiosk_config?: Json
           opening_hours?: Json
           features?: string[]
@@ -95,6 +56,7 @@ export interface Database {
           status?: string
           created_at?: string
           updated_at?: string
+          legacy_franchise_name?: string | null
         }
       }
       users: {
@@ -102,8 +64,7 @@ export interface Database {
           id: string
           email: string
           full_name: string
-          role: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
-          franchise_access: string[] | null
+          role: 'super_admin' | 'gym_manager'
           gym_access: string[] | null
           dashboard_preferences: Json | null
           notification_settings: Json | null
@@ -116,8 +77,7 @@ export interface Database {
           id: string
           email: string
           full_name: string
-          role?: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
-          franchise_access?: string[] | null
+          role?: 'super_admin' | 'gym_manager'
           gym_access?: string[] | null
           dashboard_preferences?: Json | null
           notification_settings?: Json | null
@@ -130,8 +90,7 @@ export interface Database {
           id?: string
           email?: string
           full_name?: string
-          role?: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
-          franchise_access?: string[] | null
+          role?: 'super_admin' | 'gym_manager'
           gym_access?: string[] | null
           dashboard_preferences?: Json | null
           notification_settings?: Json | null
@@ -144,7 +103,7 @@ export interface Database {
       kiosk_sessions: {
         Row: {
           id: string
-          franchise_id: string
+          gym_id: string
           user_email: string | null
           user_name: string | null
           session_type: 'anonymous' | 'registered'
@@ -154,7 +113,7 @@ export interface Database {
         }
         Insert: {
           id?: string
-          franchise_id: string
+          gym_id: string
           user_email?: string | null
           user_name?: string | null
           session_type: 'anonymous' | 'registered'
@@ -164,7 +123,7 @@ export interface Database {
         }
         Update: {
           id?: string
-          franchise_id?: string
+          gym_id?: string
           user_email?: string | null
           user_name?: string | null
           session_type?: 'anonymous' | 'registered'
