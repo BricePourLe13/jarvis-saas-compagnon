@@ -74,12 +74,11 @@ export function DashboardShell({ children }: DashboardShellProps) {
       items: [
         { label: "Interface Kiosk", href: "/dashboard/kiosk", icon: Monitor },
       ],
-      roles: ['gym_manager', 'super_admin', 'franchise_owner']
+      roles: ['gym_manager', 'super_admin']
     },
     {
       title: "Administration",
       items: [
-        { label: "Franchises", href: "/dashboard/admin/franchises", icon: Building2 },
         { label: "Salles", href: "/dashboard/admin/gyms", icon: Building2 },
         { label: "Utilisateurs", href: "/dashboard/admin/users", icon: UserCog },
         { label: "Monitoring", href: "/dashboard/admin/monitoring", icon: Activity },
@@ -91,7 +90,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       title: "Paramètres",
       items: [
         { label: "Mon profil", href: "/dashboard/settings", icon: Settings },
-        { label: "Équipe", href: "/dashboard/team", icon: Users, roles: ['franchise_owner', 'super_admin'] },
+        { label: "Équipe", href: "/dashboard/team", icon: Users, roles: ['super_admin'] },
       ]
     }
   ]
