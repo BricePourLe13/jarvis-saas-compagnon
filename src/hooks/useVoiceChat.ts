@@ -461,41 +461,69 @@ export function useVoiceChat(config: VoiceChatConfig) {
       // Appeler l'API tool correspondante
       let toolResponse: any
       
-      switch (name) {
-        case 'get_member_profile':
-          toolResponse = await fetch('/api/jarvis/tools/get-member-profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
+      // 🔧 Liste des tools built-in (toujours disponibles)
+      const builtInTools = ['get_member_profile', 'update_member_info', 'log_member_interaction', 'manage_session_state']
+      const isBuiltInTool = builtInTools.includes(name)
+      
+      if (isBuiltInTool) {
+        // 🏗️ Tools built-in standard
+        switch (name) {
+          case 'get_member_profile':
+            toolResponse = await fetch('/api/jarvis/tools/get-member-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(args)
+            })
+            break
+            
+          case 'update_member_info':
+            toolResponse = await fetch('/api/jarvis/tools/update-member-info', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(args)
+            })
+            break
+            
+          case 'log_member_interaction':
+            toolResponse = await fetch('/api/jarvis/tools/log-member-interaction', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(args)
+            })
+            break
+            
+          case 'manage_session_state':
+            toolResponse = await fetch('/api/jarvis/tools/manage-session-state', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(args)
+            })
+            break
+        }
+      } else {
+        // 🔧 CUSTOM TOOL - Exécution dynamique
+        kioskLogger.session(`🔧 [CUSTOM TOOL] Détecté: ${name}`, 'info')
+        
+        // Récupérer gym_id et member_id depuis la session ou le config
+        const member_id = config.memberId || currentMemberRef.current?.id
+        const gym_id = currentMemberRef.current?.gym_id
+        const session_id = sessionRef.current?.session_id
+        
+        if (!member_id || !gym_id || !session_id) {
+          throw new Error('Contexte session manquant pour exécuter custom tool')
+        }
+        
+        toolResponse = await fetch('/api/jarvis/tools/execute-custom', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gym_id,
+            tool_name: name,
+            args,
+            member_id,
+            session_id
           })
-          break
-          
-        case 'update_member_info':
-          toolResponse = await fetch('/api/jarvis/tools/update-member-info', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
-          })
-          break
-          
-        case 'log_member_interaction':
-          toolResponse = await fetch('/api/jarvis/tools/log-member-interaction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
-          })
-          break
-          
-        case 'manage_session_state':
-          toolResponse = await fetch('/api/jarvis/tools/manage-session-state', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(args)
-          })
-          break
-          
-        default:
-          throw new Error(`Tool non supporté: ${name}`)
+        })
       }
       
       if (!toolResponse.ok) {

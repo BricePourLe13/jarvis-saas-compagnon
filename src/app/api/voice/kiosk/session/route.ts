@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { RealtimeSessionFactory } from '@/lib/voice/core/realtime-session-factory';
 import { KIOSK_CONFIG, getKioskSessionConfig } from '@/lib/voice/contexts/kiosk-config';
 import { getSupabaseService } from '@/lib/supabase-service';
+import { getOpenAIFunctionsForGym } from '@/lib/custom-tools/helpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,6 +113,18 @@ export async function POST(request: NextRequest) {
     };
 
     const sessionUpdateConfig = getKioskSessionConfig(memberContext);
+    
+    // 🔧 CHARGER CUSTOM TOOLS DE LA GYM
+    const customTools = await getOpenAIFunctionsForGym(gymId);
+    
+    // Fusionner tools built-in + custom tools
+    if (customTools.length > 0) {
+      console.log(`✨ [KIOSK] ${customTools.length} custom tools chargés pour gym ${gym.name}`);
+      sessionUpdateConfig.tools = [
+        ...sessionUpdateConfig.tools,
+        ...customTools
+      ];
+    }
 
     // ============================================
     // 6. LOG SESSION START (Analytics)
