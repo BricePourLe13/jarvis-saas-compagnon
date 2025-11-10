@@ -18,7 +18,8 @@ import {
   Monitor,
   Activity,
   FileText,
-  UserCog
+  UserCog,
+  Wrench
 } from 'lucide-react'
 import { useGymContext } from '@/contexts/GymContext'
 import { ContextSwitcher } from './ContextSwitcher'
@@ -64,6 +65,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
       items: [
         { label: "Membres", href: "/dashboard/members", icon: Users },
         { label: "Sessions JARVIS", href: "/dashboard/sessions", icon: MessageSquare },
+        { label: "Tools JARVIS", href: "/dashboard/tools", icon: Wrench },
         { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
       ]
     },

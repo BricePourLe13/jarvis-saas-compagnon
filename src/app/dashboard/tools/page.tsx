@@ -33,46 +33,47 @@ export default function CustomToolsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
 
+  // Charger les tools au montage et quand currentGym change
   useEffect(() => {
-    if (currentGym?.id) {
-      loadTools()
-      loadStats()
+    async function loadTools() {
+      if (!currentGym?.id) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/dashboard/tools?gym_id=${currentGym.id}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setTools(data.tools)
+        }
+      } catch (error) {
+        console.error('Error loading tools:', error)
+      } finally {
+        setLoading(false)
+      }
     }
+
+    loadTools()
   }, [currentGym?.id])
 
-  async function loadTools() {
-    try {
-      const response = await fetch(`/api/dashboard/tools?gym_id=${currentGym?.id}`)
-      const data = await response.json()
-      
-      if (data.success) {
-        setTools(data.tools)
-      }
-    } catch (error) {
-      console.error('Error loading tools:', error)
-    } finally {
-      setLoading(false)
+  // Calculer les stats quand tools change
+  useEffect(() => {
+    if (tools.length === 0) {
+      setStats(null)
+      return
     }
-  }
-
-  async function loadStats() {
-    // TODO: Implémenter API route pour stats
-    // Pour l'instant, calculer côté client
-    if (!tools.length) return
 
     const activeTools = tools.filter(t => t.status === 'active').length
     const draftTools = tools.filter(t => t.status === 'draft').length
     const pausedTools = tools.filter(t => t.status === 'paused').length
     
-    const avgSuccessRate = tools.length > 0
-      ? tools.reduce((sum, t) => sum + t.success_rate, 0) / tools.length
-      : 0
+    const avgSuccessRate = tools.reduce((sum, t) => sum + (t.success_rate || 0), 0) / tools.length
     
-    const mostUsedTool = tools.length > 0
-      ? tools.reduce((prev, current) => 
-          current.usage_count > prev.usage_count ? current : prev
-        )
-      : null
+    const mostUsedTool = tools.reduce((prev, current) => 
+      current.usage_count > prev.usage_count ? current : prev
+    )
 
     setStats({
       total_tools: tools.length,
@@ -82,13 +83,13 @@ export default function CustomToolsPage() {
       total_executions_today: 0, // TODO: depuis API
       total_executions_week: 0, // TODO: depuis API
       avg_success_rate: avgSuccessRate,
-      most_used_tool: mostUsedTool ? {
+      most_used_tool: {
         id: mostUsedTool.id,
         name: mostUsedTool.display_name,
         usage_count: mostUsedTool.usage_count
-      } : null
+      }
     })
-  }
+  }, [tools])
 
   async function handleToggleStatus(toolId: string, currentStatus: string) {
     const newStatus = currentStatus === 'active' ? 'paused' : 'active'
@@ -101,7 +102,11 @@ export default function CustomToolsPage() {
       })
       
       if (response.ok) {
-        loadTools()
+        // Recharger les tools
+        const data = await response.json()
+        if (data.success) {
+          setTools(tools.map(t => t.id === toolId ? { ...t, status: newStatus as any } : t))
+        }
       }
     } catch (error) {
       console.error('Error toggling tool status:', error)
@@ -117,7 +122,8 @@ export default function CustomToolsPage() {
       })
       
       if (response.ok) {
-        loadTools()
+        // Retirer le tool de la liste
+        setTools(tools.filter(t => t.id !== toolId))
       }
     } catch (error) {
       console.error('Error deleting tool:', error)
