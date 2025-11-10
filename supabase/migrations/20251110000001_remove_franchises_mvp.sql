@@ -61,11 +61,13 @@ BEGIN
 END $$;
 
 -- ============================================
--- ÉTAPE 3 : DROP **TOUTES** POLICIES (~50 dépendent de users.role!)
+-- ÉTAPE 3 : DROP **TOUTES** POLICIES + VIEWS (~50 policies + vues dépendent de users.role!)
 -- ============================================
 
--- CRITIQUE : ~50 policies référencent users.role et bloquent ALTER TYPE
--- Solution : Drop toutes les policies, modifier enum, recréer uniquement MVP
+-- CRITIQUE : Policies ET vues référencent users.role et bloquent ALTER TYPE
+-- Solution : Drop tout, modifier enum, recréer uniquement MVP
+
+-- 3.1: Drop policies
 DO $$
 DECLARE
   r RECORD;
@@ -75,6 +77,16 @@ BEGIN
   END LOOP;
   RAISE NOTICE 'Toutes les policies public.* supprimées';
 END $$;
+
+-- 3.2: Drop views (incluant v_admins_missing_mfa qui bloque ALTER TYPE)
+DROP VIEW IF EXISTS public.v_sessions_today CASCADE;
+DROP VIEW IF EXISTS public.v_openai_realtime_active_sessions_v2 CASCADE;
+DROP VIEW IF EXISTS public.v_kiosk_status CASCADE;
+DROP VIEW IF EXISTS public.franchises_compat CASCADE;
+DROP VIEW IF EXISTS public.gyms_compat CASCADE;
+DROP VIEW IF EXISTS public.v_admins_missing_mfa CASCADE;
+DROP VIEW IF EXISTS public.jarvis_unified_costs CASCADE;
+DROP VIEW IF EXISTS public.kiosk_monitoring_unified CASCADE;
 
 -- ============================================
 -- ÉTAPE 4 : SUPPRIMER TABLE FRANCHISES (CASCADE AUTO-SUPPRIME SES POLICIES)
