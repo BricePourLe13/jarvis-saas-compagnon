@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     try {
       await resend.emails.send({
-        from: 'JARVIS <no-reply@jarvis-group.net>',
+        from: 'JARVIS <onboarding@resend.dev>',
         to: [email],
         subject: `Invitation à gérer ${gym.name} avec JARVIS`,
         html: `
