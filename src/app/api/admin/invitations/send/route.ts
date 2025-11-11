@@ -1,248 +1,216 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { createAdminClient, getEnvironmentConfig, createServerClientWithConfig } from '@/lib/supabase-admin'
+import { Resend } from 'resend'
+import { randomBytes } from 'crypto'
 
-// ===========================================
-// 🔐 TYPES & INTERFACES
-// ===========================================
+export const dynamic = 'force-dynamic'
 
-interface InviteAdminRequest {
-  email: string
-  full_name: string
-  role: 'super_admin' | 'franchise_owner' | 'franchise_admin'
-  franchise_access?: string[] // Pour franchise_owner uniquement
-  department?: string // Pour franchise_admin
-}
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-  message: string
-}
-
-// ===========================================
-// 🛡️ VALIDATION & SÉCURITÉ
-// ===========================================
-
-async function validateSuperAdmin(supabase: any) {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
-  if (error || !user) {
-    return { valid: false, error: 'Non authentifié' }
-  }
-
-  const { data: userProfile, error: profileError } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !userProfile || userProfile.role !== 'super_admin') {
-    return { valid: false, error: 'Accès non autorisé - Super admin requis' }
-  }
-
-  return { valid: true, user }
-}
-
-function validateInviteRequest(body: any): { isValid: boolean; errors: string[] } {
-  const errors: string[] = []
-  
-  // Email validation
-  if (!body.email || typeof body.email !== 'string') {
-    errors.push('Email requis')
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
-    errors.push('Format email invalide')
-  }
-  
-  // Nom complet
-  if (!body.full_name || typeof body.full_name !== 'string' || body.full_name.trim().length < 2) {
-    errors.push('Nom complet requis (minimum 2 caractères)')
-  }
-  
-  // Rôle validation - Supporte franchise_admin pour cohérence avec le code frontend
-  if (!body.role || !['super_admin', 'franchise_owner', 'franchise_admin'].includes(body.role)) {
-    errors.push('Rôle invalide (super_admin, franchise_owner, ou franchise_admin uniquement)')
-  }
-  
-  // Franchise access pour franchise_owner
-  if (body.role === 'franchise_owner') {
-    if (!body.franchise_access || !Array.isArray(body.franchise_access) || body.franchise_access.length === 0) {
-      errors.push('Au moins une franchise requise pour franchise_owner')
-    }
-  }
-  
-  return { isValid: errors.length === 0, errors }
-}
-
-// ===========================================
-// 🎯 ENDPOINT PRINCIPAL
-// ===========================================
-
+/**
+ * POST /api/admin/invitations/send
+ * Envoie une invitation par email à un nouveau gérant
+ * Génère un token sécurisé et stocke l'invitation en BDD
+ */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Initialiser Supabase avec cookies pour auth
     const cookieStore = await cookies()
-    const supabase = createServerClientWithConfig(cookieStore)
     
-    // Client admin pour les invitations
-    const adminSupabase = createAdminClient()
-    
-    // 2. Vérifier authentification Super Admin
-    const authResult = await validateSuperAdmin(supabase)
-    if (!authResult.valid) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: authResult.error,
-          message: 'Vous devez être connecté en tant que super admin'
-        } as ApiResponse<null>,
-        { status: 401 }
-      )
-    }
-
-    // 3. Parsing et validation des données
-    const body: InviteAdminRequest = await request.json()
-    const { isValid, errors } = validateInviteRequest(body)
-    
-    if (!isValid) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Données invalides',
-          message: errors.join(', ')
-        } as ApiResponse<null>,
-        { status: 400 }
-      )
-    }
-
-    // 4. Vérifier si l'utilisateur existe déjà
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id, email')
-      .eq('email', body.email.toLowerCase())
-      .single()
-      
-    if (existingUser) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Utilisateur existant',
-          message: `Un utilisateur avec l'email ${body.email} existe déjà`
-        } as ApiResponse<null>,
-        { status: 409 }
-      )
-    }
-
-    // 5. 🔥 INVITATION NATIVE SUPABASE
-    const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
-      body.email.toLowerCase(),
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        data: {
-          full_name: body.full_name.trim(),
-          role: body.role,
-          franchise_access: body.franchise_access || [],
-          invited_by: authResult.user.id,
-          invitation_type: 'admin_access'
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
         },
-        redirectTo: `${getEnvironmentConfig().appUrl}/auth/setup?type=admin&role=${body.role}`
       }
     )
-
-    if (inviteError) {
-      // Log supprimé pour production
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Erreur invitation',
-          message: inviteError.message || 'Impossible d\'envoyer l\'invitation'
-        } as ApiResponse<null>,
-        { status: 500 }
-      )
-    }
-
-    // 6. Créer le profil utilisateur en attente
-    const { error: profileError } = await adminSupabase
-      .from('users')
-      .insert({
-        id: inviteData.user.id,
-        email: body.email.toLowerCase(),
-        full_name: body.full_name.trim(),
-        role: body.role,
-        franchise_access: body.franchise_access || [],
-        is_active: false, // Sera activé lors de la première connexion
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-
-    if (profileError) {
-      // Log supprimé pour production
-      // L'invitation a été envoyée mais le profil n'a pas pu être créé
-      // On continue quand même, le profil sera créé au callback
-    }
-
-    // 7. Log de l'action (pour audit)
-    await adminSupabase
-      .from('jarvis_errors_log')
-      .insert({
-        type: 'admin_invitation_sent',
-        details: {
-          invited_email: body.email,
-          invited_role: body.role,
-          invited_by: authResult.user.id,
-          invitation_id: inviteData.user.id
-        },
-        timestamp: new Date().toISOString()
-      })
-
-    // 8. Réponse de succès
-    const response: ApiResponse<{ invitation_id: string; email: string }> = {
-      success: true,
-      data: {
-        invitation_id: inviteData.user.id,
-        email: body.email
-      },
-      message: `Invitation envoyée avec succès à ${body.email}`
-    }
-
-    return NextResponse.json(response, { status: 201 })
-
-  } catch (error: any) {
-    // Log supprimé pour production
     
+    // 1. Vérifier l'auth
+    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    if (authError || !session) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
+    // 2. Vérifier permissions super_admin
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (profileError || !userProfile || userProfile.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Accès refusé - Super admin requis' }, { status: 403 })
+    }
+
+    // 3. Parser body
+    const body = await request.json()
+    const { email, full_name, gym_id } = body
+
+    if (!email || !full_name || !gym_id) {
+      return NextResponse.json({ error: 'Email, nom et gym_id requis' }, { status: 400 })
+    }
+
+    // 4. Vérifier que la salle existe
+    const { data: gym, error: gymError } = await supabase
+      .from('gyms')
+      .select('id, name, city')
+      .eq('id', gym_id)
+      .single()
+
+    if (gymError || !gym) {
+      return NextResponse.json({ error: 'Salle introuvable' }, { status: 404 })
+    }
+
+    // 5. Vérifier si l'email n'est pas déjà utilisé
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single()
+
+    if (existingUser) {
+      return NextResponse.json({ error: 'Cet email est déjà utilisé' }, { status: 409 })
+    }
+
+    // 6. Générer token sécurisé
+    const token = randomBytes(32).toString('hex')
+
+    // 7. Créer l'invitation en BDD
+    const { data: invitation, error: invitationError } = await supabase
+      .from('manager_invitations')
+      .insert({
+        email,
+        full_name,
+        gym_id,
+        token,
+        created_by: session.user.id,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 jours
+      })
+      .select()
+      .single()
+
+    if (invitationError) {
+      console.error('[API] Error creating invitation:', invitationError)
+      return NextResponse.json({ error: 'Erreur lors de la création de l\'invitation' }, { status: 500 })
+    }
+
+    // 8. Envoyer l'email via Resend
+    const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/invitation/${token}`
+
+    try {
+      await resend.emails.send({
+        from: 'JARVIS <no-reply@jarvis-group.net>',
+        to: [email],
+        subject: `Invitation à gérer ${gym.name} avec JARVIS`,
+        html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #000 0%, #333 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+    .button { display: inline-block; padding: 14px 28px; background: #000; color: white !important; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .button:hover { background: #333; }
+    .info-box { background: white; padding: 20px; border-left: 4px solid #000; margin: 20px 0; border-radius: 4px; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0; font-size: 28px;">🤖 Bienvenue sur JARVIS</h1>
+    </div>
+    
+    <div class="content">
+      <p style="font-size: 16px;">Bonjour <strong>${full_name}</strong>,</p>
+      
+      <p>Vous avez été invité(e) à rejoindre JARVIS en tant que <strong>Gérant de salle</strong> pour :</p>
+      
+      <div class="info-box">
+        <h3 style="margin: 0 0 10px 0;">🏋️ ${gym.name}</h3>
+        <p style="margin: 0; color: #666;">${gym.city}</p>
+      </div>
+      
+      <p><strong>JARVIS</strong> est votre assistant IA qui va révolutionner l'expérience de vos adhérents et vous aider à réduire le churn grâce à :</p>
+      
+      <ul style="line-height: 2;">
+        <li>✅ Interface vocale 24/7 pour vos membres</li>
+        <li>⚠️ Détection automatique des membres à risque</li>
+        <li>📊 Dashboard avec insights actionnables</li>
+        <li>🤖 Alertes intelligentes et recommandations</li>
+      </ul>
+      
+      <p>Cliquez sur le bouton ci-dessous pour créer votre compte et accéder à votre dashboard :</p>
+      
+      <div style="text-align: center;">
+        <a href="${invitationUrl}" class="button">
+          Créer mon compte gérant
+        </a>
+      </div>
+      
+      <p style="font-size: 13px; color: #666; margin-top: 30px;">
+        Ce lien est valable <strong>7 jours</strong>. Si vous n'avez pas demandé cette invitation, ignorez cet email.
+      </p>
+      
+      <p style="font-size: 13px; color: #666;">
+        Lien direct : <a href="${invitationUrl}" style="color: #000;">${invitationUrl}</a>
+      </p>
+    </div>
+    
+    <div class="footer">
+      <p>JARVIS Group © 2024 - Agent IA pour salles de sport</p>
+      <p><a href="https://jarvis-group.net" style="color: #666;">jarvis-group.net</a></p>
+    </div>
+  </div>
+</body>
+</html>
+        `
+      })
+
+      console.log('[API] Invitation email sent successfully to:', email)
+    } catch (emailError) {
+      console.error('[API] Error sending email:', emailError)
+      // Continue quand même, l'invitation est créée en BDD
+      // L'admin peut renvoyer l'email si nécessaire
+    }
+
+    // 9. Log action (audit trail)
+    await supabase
+      .from('system_logs')
+      .insert({
+        event_type: 'manager_invited',
+        user_id: session.user.id,
+        resource_type: 'manager_invitation',
+        resource_id: invitation.id,
+        metadata: {
+          email,
+          gym_id,
+          gym_name: gym.name
+        }
+      })
+
+    return NextResponse.json({
+      success: true,
+      invitation_id: invitation.id,
+      invitation_url: invitationUrl,
+      expires_at: invitation.expires_at
+    })
+
+  } catch (error) {
+    console.error('[API] Unexpected error in POST /api/admin/invitations/send:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Erreur système',
-        message: error.message || 'Une erreur inattendue s\'est produite'
-      } as ApiResponse<null>,
+      { error: 'Erreur serveur' },
       { status: 500 }
     )
   }
 }
-
-// ===========================================
-// 🔒 MÉTHODES NON AUTORISÉES
-// ===========================================
-
-export async function GET() {
-  return NextResponse.json(
-    { error: 'Méthode non autorisée' },
-    { status: 405 }
-  )
-}
-
-export async function PUT() {
-  return NextResponse.json(
-    { error: 'Méthode non autorisée' },
-    { status: 405 }
-  )
-}
-
-export async function DELETE() {
-  return NextResponse.json(
-    { error: 'Méthode non autorisée' },
-    { status: 405 }
-  )
-} 

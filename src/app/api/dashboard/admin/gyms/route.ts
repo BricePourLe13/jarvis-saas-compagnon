@@ -205,31 +205,28 @@ export async function POST(request: NextRequest) {
     let manager_id: string | null = null
 
     if (manager_option === 'new') {
-      // Créer invitation gérant (email sera envoyé via webhook ou edge function)
-      const inviteToken = randomBytes(32).toString('hex')
-      
-      // Créer le user pending (sera activé quand il accepte l'invitation)
-      const { data: newManager, error: managerError } = await supabase
-        .from('users')
-        .insert({
-          email: manager_email,
-          full_name: manager_name,
-          role: 'gym_manager',
-          gym_id: newGym.id,
-          gym_access: [newGym.id]
-          // Note: Le mot de passe sera défini quand le gérant clique sur le lien d'invitation
+      // Envoyer invitation via API dédiée
+      try {
+        const invitationRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/invitations/send`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': request.headers.get('Cookie') || ''
+          },
+          body: JSON.stringify({
+            email: manager_email,
+            full_name: manager_name,
+            gym_id: newGym.id
+          })
         })
-        .select()
-        .single()
 
-      if (managerError) {
-        console.error('[API] Error creating manager:', managerError)
-        // Continue quand même, on peut assigner un gérant plus tard
-      } else {
-        manager_id = newManager.id
-        
-        // TODO: Envoyer email invitation via Resend
-        // await sendManagerInvitationEmail(manager_email, manager_name, inviteToken, newGym)
+        if (!invitationRes.ok) {
+          console.error('[API] Error sending manager invitation')
+          // Continue quand même, on peut renvoyer l'invitation plus tard
+        }
+      } catch (inviteError) {
+        console.error('[API] Error sending manager invitation:', inviteError)
+        // Continue quand même
       }
     } else if (manager_option === 'existing' && existing_manager_id) {
       // Assigner gérant existant à cette salle
