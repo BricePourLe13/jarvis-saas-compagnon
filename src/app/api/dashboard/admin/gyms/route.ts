@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { randomBytes } from 'crypto'
+import { Resend } from 'resend'
 
 export const dynamic = 'force-dynamic'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 /**
  * GET /api/dashboard/admin/gyms
@@ -205,28 +208,79 @@ export async function POST(request: NextRequest) {
     let manager_id: string | null = null
 
     if (manager_option === 'new') {
-      // Envoyer invitation via API dédiée
+      // Créer invitation directement (plus simple et plus fiable)
       try {
-        const invitationRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/invitations/send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cookie': request.headers.get('Cookie') || ''
-          },
-          body: JSON.stringify({
+        const token = randomBytes(32).toString('hex')
+        
+        // Créer l'invitation en BDD
+        const { data: invitation, error: invitationError } = await supabase
+          .from('manager_invitations')
+          .insert({
             email: manager_email,
             full_name: manager_name,
-            gym_id: newGym.id
+            gym_id: newGym.id,
+            token,
+            created_by: session.user.id,
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
           })
-        })
+          .select()
+          .single()
 
-        if (!invitationRes.ok) {
-          console.error('[API] Error sending manager invitation')
-          // Continue quand même, on peut renvoyer l'invitation plus tard
+        if (!invitationError && invitation) {
+          // Envoyer l'email via Resend
+          const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-group.net'}/auth/invitation/${token}`
+          
+          try {
+            await resend.emails.send({
+              from: 'JARVIS <onboarding@resend.dev>',
+              to: [manager_email],
+              subject: `Invitation à gérer ${newGym.name} avec JARVIS`,
+              html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #000 0%, #333 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+    .button { display: inline-block; padding: 14px 28px; background: #000; color: white !important; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .info-box { background: white; padding: 20px; border-left: 4px solid #000; margin: 20px 0; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 style="margin: 0;">🤖 Bienvenue sur JARVIS</h1>
+    </div>
+    <div class="content">
+      <p>Bonjour <strong>${manager_name}</strong>,</p>
+      <p>Vous avez été invité(e) à rejoindre JARVIS en tant que <strong>Gérant de salle</strong> pour :</p>
+      <div class="info-box">
+        <h3 style="margin: 0 0 10px 0;">🏋️ ${newGym.name}</h3>
+        <p style="margin: 0; color: #666;">${newGym.city}</p>
+      </div>
+      <p>Cliquez sur le bouton ci-dessous pour créer votre compte :</p>
+      <div style="text-align: center;">
+        <a href="${invitationUrl}" class="button">Créer mon compte gérant</a>
+      </div>
+      <p style="font-size: 13px; color: #666;">Lien : <a href="${invitationUrl}">${invitationUrl}</a></p>
+    </div>
+  </div>
+</body>
+</html>
+              `
+            })
+            console.log('[API] Invitation email sent to:', manager_email)
+          } catch (emailError) {
+            console.error('[API] Error sending email:', emailError)
+            // Continue quand même, l'invitation est en BDD
+          }
         }
       } catch (inviteError) {
-        console.error('[API] Error sending manager invitation:', inviteError)
-        // Continue quand même
+        console.error('[API] Error creating invitation:', inviteError)
+        // Continue quand même, on peut créer l'invitation manuellement plus tard
       }
     } else if (manager_option === 'existing' && existing_manager_id) {
       // Assigner gérant existant à cette salle
