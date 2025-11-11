@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { randomBytes } from 'crypto'
 import { Resend } from 'resend'
+import { createServiceClient } from '@/lib/supabase-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -212,8 +213,11 @@ export async function POST(request: NextRequest) {
       try {
         const token = randomBytes(32).toString('hex')
         
+        // Utiliser service client pour bypass RLS (évite récursion)
+        const serviceSupabase = createServiceClient()
+        
         // Créer l'invitation en BDD
-        const { data: invitation, error: invitationError } = await supabase
+        const { data: invitation, error: invitationError } = await serviceSupabase
           .from('manager_invitations')
           .insert({
             email: manager_email,
