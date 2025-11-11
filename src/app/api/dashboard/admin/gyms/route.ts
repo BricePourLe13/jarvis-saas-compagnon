@@ -186,6 +186,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // 4. Créer la salle
+    console.log('[API] Creating gym with data:', { name, address, city, postal_code, phone, email })
     const { data: newGym, error: gymError } = await supabase
       .from('gyms')
       .insert({
@@ -202,8 +203,10 @@ export async function POST(request: NextRequest) {
 
     if (gymError) {
       console.error('[API] Error creating gym:', gymError)
-      return NextResponse.json({ error: 'Erreur lors de la création de la salle' }, { status: 500 })
+      return NextResponse.json({ error: `Erreur création salle: ${gymError.message}` }, { status: 500 })
     }
+    
+    console.log('[API] Gym created successfully:', newGym.id)
 
     // 5. Gérer le gérant
     let manager_id: string | null = null
@@ -211,6 +214,7 @@ export async function POST(request: NextRequest) {
     if (manager_option === 'new') {
       // Créer invitation directement (plus simple et plus fiable)
       try {
+        console.log('[API] Creating invitation for:', manager_email)
         const token = randomBytes(32).toString('hex')
         
         // Utiliser service client pour bypass RLS (évite récursion)
@@ -230,7 +234,14 @@ export async function POST(request: NextRequest) {
           .select()
           .single()
 
-        if (!invitationError && invitation) {
+        if (invitationError) {
+          console.error('[API] Error creating invitation:', invitationError)
+          throw new Error(`Invitation error: ${invitationError.message}`)
+        }
+        
+        console.log('[API] Invitation created successfully')
+
+        if (invitation) {
           // Envoyer l'email via Resend
           const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-group.net'}/auth/invitation/${token}`
           
@@ -287,24 +298,36 @@ export async function POST(request: NextRequest) {
         // Continue quand même, on peut créer l'invitation manuellement plus tard
       }
     } else if (manager_option === 'existing' && existing_manager_id) {
+      console.log('[API] Assigning existing manager:', existing_manager_id)
       // Assigner gérant existant à cette salle
+      // D'abord récupérer gym_access actuel
+      const { data: currentUser } = await supabase
+        .from('users')
+        .select('gym_access')
+        .eq('id', existing_manager_id)
+        .single()
+      
+      const currentAccess = currentUser?.gym_access || []
+      const newAccess = [...currentAccess, newGym.id]
+      
       const { error: updateError } = await supabase
         .from('users')
         .update({
           gym_id: newGym.id,
-          gym_access: supabase.rpc('array_append', { 
-            array: 'gym_access', 
-            value: newGym.id 
-          })
+          gym_access: newAccess
         })
         .eq('id', existing_manager_id)
 
-      if (!updateError) {
+      if (updateError) {
+        console.error('[API] Error assigning manager:', updateError)
+      } else {
         manager_id = existing_manager_id
+        console.log('[API] Manager assigned successfully')
       }
     }
 
     // 6. Provisionner les kiosks
+    console.log('[API] Provisioning', kiosk_count, 'kiosks')
     const kiosks = []
     for (let i = 0; i < kiosk_count; i++) {
       const provisionCode = randomBytes(16).toString('hex')
@@ -320,13 +343,16 @@ export async function POST(request: NextRequest) {
         .select()
         .single()
 
-      if (!kioskError && newKiosk) {
+      if (kioskError) {
+        console.error('[API] Error provisioning kiosk:', kioskError)
+      } else if (newKiosk) {
         kiosks.push({
           id: newKiosk.id,
           name: newKiosk.name,
           provision_code: provisionCode,
           provision_url: `${process.env.NEXT_PUBLIC_APP_URL}/kiosk/provision/${provisionCode}`
         })
+        console.log('[API] Kiosk provisioned:', newKiosk.id)
       }
     }
 
