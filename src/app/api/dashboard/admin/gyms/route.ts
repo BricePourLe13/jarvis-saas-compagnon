@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { randomBytes } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -122,4 +123,185 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * POST /api/dashboard/admin/gyms
+ * Créer une nouvelle salle (avec invitation gérant + provisioning kiosks)
+ * Réservé aux super_admin
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const cookieStore = await cookies()
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+    
+    // 1. Vérifier l'auth
+    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    if (authError || !session) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
 
+    // 2. Vérifier permissions super_admin
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (profileError || !userProfile || userProfile.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Accès refusé - Super admin requis' }, { status: 403 })
+    }
+
+    // 3. Parser body
+    const body = await request.json()
+    const {
+      name,
+      address,
+      city,
+      postal_code,
+      phone,
+      email,
+      manager_option,
+      manager_email,
+      manager_name,
+      manager_phone,
+      existing_manager_id,
+      kiosk_count
+    } = body
+
+    // 4. Créer la salle
+    const { data: newGym, error: gymError } = await supabase
+      .from('gyms')
+      .insert({
+        name,
+        address,
+        city,
+        postal_code,
+        phone,
+        contact_email: email,
+        status: 'active'
+      })
+      .select()
+      .single()
+
+    if (gymError) {
+      console.error('[API] Error creating gym:', gymError)
+      return NextResponse.json({ error: 'Erreur lors de la création de la salle' }, { status: 500 })
+    }
+
+    // 5. Gérer le gérant
+    let manager_id: string | null = null
+
+    if (manager_option === 'new') {
+      // Créer invitation gérant (email sera envoyé via webhook ou edge function)
+      const inviteToken = randomBytes(32).toString('hex')
+      
+      // Créer le user pending (sera activé quand il accepte l'invitation)
+      const { data: newManager, error: managerError } = await supabase
+        .from('users')
+        .insert({
+          email: manager_email,
+          full_name: manager_name,
+          role: 'gym_manager',
+          gym_id: newGym.id,
+          gym_access: [newGym.id]
+          // Note: Le mot de passe sera défini quand le gérant clique sur le lien d'invitation
+        })
+        .select()
+        .single()
+
+      if (managerError) {
+        console.error('[API] Error creating manager:', managerError)
+        // Continue quand même, on peut assigner un gérant plus tard
+      } else {
+        manager_id = newManager.id
+        
+        // TODO: Envoyer email invitation via Resend
+        // await sendManagerInvitationEmail(manager_email, manager_name, inviteToken, newGym)
+      }
+    } else if (manager_option === 'existing' && existing_manager_id) {
+      // Assigner gérant existant à cette salle
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          gym_id: newGym.id,
+          gym_access: supabase.rpc('array_append', { 
+            array: 'gym_access', 
+            value: newGym.id 
+          })
+        })
+        .eq('id', existing_manager_id)
+
+      if (!updateError) {
+        manager_id = existing_manager_id
+      }
+    }
+
+    // 6. Provisionner les kiosks
+    const kiosks = []
+    for (let i = 0; i < kiosk_count; i++) {
+      const provisionCode = randomBytes(16).toString('hex')
+      
+      const { data: newKiosk, error: kioskError } = await supabase
+        .from('kiosks')
+        .insert({
+          gym_id: newGym.id,
+          name: `Kiosk ${i + 1}`,
+          provision_code: provisionCode,
+          status: 'provisioning'
+        })
+        .select()
+        .single()
+
+      if (!kioskError && newKiosk) {
+        kiosks.push({
+          id: newKiosk.id,
+          name: newKiosk.name,
+          provision_code: provisionCode,
+          provision_url: `${process.env.NEXT_PUBLIC_APP_URL}/kiosk/provision/${provisionCode}`
+        })
+      }
+    }
+
+    // 7. Log action (audit trail)
+    await supabase
+      .from('system_logs')
+      .insert({
+        event_type: 'gym_created',
+        user_id: session.user.id,
+        resource_type: 'gym',
+        resource_id: newGym.id,
+        metadata: {
+          gym_name: name,
+          manager_email: manager_email || null,
+          kiosk_count
+        }
+      })
+
+    return NextResponse.json({
+      success: true,
+      gym: newGym,
+      manager_id,
+      kiosks
+    })
+
+  } catch (error) {
+    console.error('[API] Unexpected error in POST /api/dashboard/admin/gyms:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}

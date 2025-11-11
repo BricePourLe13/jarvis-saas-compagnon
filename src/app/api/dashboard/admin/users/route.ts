@@ -90,8 +90,8 @@ export async function GET(request: NextRequest) {
     const metrics = {
       totalUsers: formattedUsers.length,
       superAdmins: formattedUsers.filter((u: any) => u.role === 'super_admin').length,
-      franchiseOwners: formattedUsers.filter((u: any) => u.role === 'franchise_owner').length,
       gymManagers: formattedUsers.filter((u: any) => u.role === 'gym_manager').length,
+      membersCount: formattedUsers.filter((u: any) => u.role === 'member').length,
       mfaEnabled: formattedUsers.filter((u: any) => u.is_mfa_enabled).length
     }
 

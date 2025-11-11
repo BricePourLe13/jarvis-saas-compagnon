@@ -16,13 +16,12 @@ import {
 interface User {
   id: string
   email: string
-  role: 'super_admin' | 'franchise_owner' | 'gym_manager' | 'gym_staff'
+  role: 'super_admin' | 'gym_manager' | 'member'
   name: string
   is_mfa_enabled: boolean
-  franchise_id?: string
-  franchise_name?: string
   gym_id?: string
   gym_name?: string
+  gym_access?: string[] // Multi-gym support
   last_sign_in: string
   created_at: string
 }
@@ -30,8 +29,8 @@ interface User {
 interface UsersMetrics {
   totalUsers: number
   superAdmins: number
-  franchiseOwners: number
   gymManagers: number
+  membersCount: number
   mfaEnabled: number
 }
 
@@ -41,7 +40,7 @@ export default function UsersAdminPage() {
   const [metrics, setMetrics] = useState<UsersMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'super_admin' | 'franchise_owner' | 'gym_manager'>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'super_admin' | 'gym_manager' | 'member'>('all')
 
   useEffect(() => {
     async function fetchUsers() {
@@ -96,16 +95,15 @@ export default function UsersAdminPage() {
   const getRoleBadge = (role: string) => {
     const styles = {
       super_admin: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-      franchise_owner: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
       gym_manager: 'bg-green-500/10 text-green-500 border-green-500/20',
+      member: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
       gym_staff: 'bg-gray-500/10 text-gray-500 border-gray-500/20'
     }[role] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'
 
     const labels = {
       super_admin: 'Super Admin',
-      franchise_owner: 'Franchise Owner',
-      gym_manager: 'Gym Manager',
-      gym_staff: 'Staff'
+      gym_manager: 'Gérant Salle',
+      member: 'Membre'
     }
 
     return (
@@ -148,10 +146,10 @@ export default function UsersAdminPage() {
 
           <div className="bg-card border border-border rounded-lg p-6">
             <div className="flex items-center gap-3 mb-2">
-              <Building2 className="h-5 w-5 text-blue-500" />
-              <span className="text-sm text-muted-foreground">Franchise Owners</span>
+              <Building2 className="h-5 w-5 text-green-500" />
+              <span className="text-sm text-muted-foreground">Gérants Salles</span>
             </div>
-            <p className="text-3xl font-bold text-foreground">{metrics.franchiseOwners}</p>
+            <p className="text-3xl font-bold text-foreground">{metrics.gymManagers}</p>
           </div>
 
           <div className="bg-card border border-border rounded-lg p-6">
@@ -201,16 +199,6 @@ export default function UsersAdminPage() {
             Admins
           </button>
           <button
-            onClick={() => setRoleFilter('franchise_owner')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              roleFilter === 'franchise_owner'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
-            }`}
-          >
-            Franchise
-          </button>
-          <button
             onClick={() => setRoleFilter('gym_manager')}
             className={`px-4 py-2 rounded-lg transition-colors ${
               roleFilter === 'gym_manager'
@@ -218,7 +206,17 @@ export default function UsersAdminPage() {
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            Managers
+            Gérants
+          </button>
+          <button
+            onClick={() => setRoleFilter('member')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              roleFilter === 'member'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            Membres
           </button>
         </div>
       </div>
@@ -261,7 +259,9 @@ export default function UsersAdminPage() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm text-foreground">
-                        {user.franchise_name || user.gym_name || 'N/A'}
+                        {user.gym_access && user.gym_access.length > 0 
+                          ? `${user.gym_access.length} salle(s)`
+                          : user.gym_name || 'N/A'}
                       </p>
                     </td>
                     <td className="px-6 py-4">

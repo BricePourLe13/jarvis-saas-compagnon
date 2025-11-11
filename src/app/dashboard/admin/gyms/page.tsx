@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useGymContext } from '@/contexts/GymContext'
-import { Building2, MapPin, Users, Monitor, AlertCircle, Settings, Eye, Trash2 } from 'lucide-react'
+import { Building2, MapPin, Users, Monitor, AlertCircle, Settings, Eye, Trash2, Plus } from 'lucide-react'
 import Link from 'next/link'
+import GymCreateWizard from '@/components/admin/GymCreateWizard'
 
 interface Gym {
   id: string
@@ -12,8 +13,9 @@ interface Gym {
   address: string
   postal_code: string
   status: 'active' | 'maintenance' | 'suspended'
-  franchise_id: string
-  franchise_name?: string
+  legacy_franchise_name?: string // Display only
+  manager_id?: string
+  manager_name?: string
   kiosks?: Array<{
     id: string
     name: string
@@ -37,23 +39,24 @@ export default function GymsAdminPage() {
   const [metrics, setMetrics] = useState<GymsMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'active' | 'suspended'>('all')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+
+  const fetchGyms = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/dashboard/admin/gyms')
+      const data = await response.json()
+      
+      setGyms(data.gyms || [])
+      setMetrics(data.metrics || null)
+    } catch (error) {
+      console.error('Error fetching gyms:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    async function fetchGyms() {
-      try {
-        setLoading(true)
-        const response = await fetch('/api/dashboard/admin/gyms')
-        const data = await response.json()
-        
-        setGyms(data.gyms || [])
-        setMetrics(data.metrics || null)
-      } catch (error) {
-        console.error('Error fetching gyms:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchGyms()
   }, [])
 
@@ -115,12 +118,13 @@ export default function GymsAdminPage() {
             Gestion globale des salles JARVIS
           </p>
         </div>
-        <Link
-          href="/dashboard/admin/gyms/new"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        <button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 font-medium"
         >
-          + Nouvelle Salle
-        </Link>
+          <Plus className="h-5 w-5" />
+          Créer une salle
+        </button>
       </div>
 
       {/* Metrics */}
@@ -278,6 +282,15 @@ export default function GymsAdminPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal Création Salle */}
+      <GymCreateWizard
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          fetchGyms() // Recharger la liste
+        }}
+      />
     </div>
   )
 }
