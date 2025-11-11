@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     // 2. Récupérer le profil utilisateur
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
-      .select('id, role, gym_id, franchise_id')
+      .select('id, role, gym_id, gym_access')
       .eq('id', user.id)
       .single()
 
@@ -49,77 +49,138 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 3. Déterminer le scope selon le rôle
+    // 3. Déterminer le scope selon le rôle (MVP: super_admin, gym_manager)
     let gymIds: string[] = []
     
     if (userProfile.role === 'super_admin') {
-      // Super admin : toutes les salles
       const { data: allGyms } = await supabase
         .from('gyms')
         .select('id')
-      
       gymIds = allGyms?.map(g => g.id) || []
-    } else if (userProfile.role === 'franchise_owner' || userProfile.role === 'franchise_admin') {
-      // Franchise : toutes les salles de la franchise
-      if (userProfile.franchise_id) {
-        const { data: franchiseGyms } = await supabase
-          .from('gyms')
-          .select('id')
-          .eq('franchise_id', userProfile.franchise_id)
-        
-        gymIds = franchiseGyms?.map(g => g.id) || []
-      }
-    } else if (userProfile.role === 'manager' || userProfile.role === 'staff') {
-      // Manager/Staff : uniquement sa salle
-      if (userProfile.gym_id) {
-        gymIds = [userProfile.gym_id]
-      }
+    } else if (userProfile.role === 'gym_manager') {
+      // gym_manager: accès via gym_id + gym_access[]
+      gymIds = [
+        ...(userProfile.gym_id ? [userProfile.gym_id] : []),
+        ...(userProfile.gym_access || [])
+      ]
     }
 
     if (gymIds.length === 0) {
       return NextResponse.json({
-        membres_actifs: 0,
-        sessions_mensuelles: 0,
-        revenus_mensuels: 0,
-        taux_retention: 0,
-        trends: {
-          membres: 0,
-          sessions: 0,
-          revenus: 0,
-          retention: 0
-        }
+        totalMembers: 0,
+        activeMembersToday: 0,
+        totalSessions: 0,
+        sessionsToday: 0,
+        avgSentiment: 0,
+        churnRisk: 0,
+        membersTrend: 0,
+        sessionsTrend: 0
       })
     }
 
-    // 4. Calculer les métriques
+    // 4. Calculer les métriques pour dashboard GÉRANT
     const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+    const fourteenDaysAgo = new Date(now)
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
 
-    // Membres actifs (ce mois)
-    const { count: membresActifs } = await supabase
+    // 4.1 Membres totaux (actifs)
+    const { count: totalMembers } = await supabase
       .from('gym_members_v2')
       .select('id', { count: 'exact', head: true })
       .in('gym_id', gymIds)
       .eq('is_active', true)
 
-    // Membres actifs mois dernier (pour trend)
-    const { count: membresLastMonth } = await supabase
+    // 4.2 Membres actifs aujourd'hui (ont eu une session aujourd'hui)
+    const { data: todaySessions } = await supabase
+      .from('openai_realtime_sessions')
+      .select('member_id')
+      .in('gym_id', gymIds)
+      .gte('session_start', today.toISOString())
+
+    const activeMembersToday = new Set(todaySessions?.map(s => s.member_id).filter(Boolean) || []).size
+
+    // 4.3 Sessions totales
+    const { count: totalSessions } = await supabase
+      .from('openai_realtime_sessions')
+      .select('id', { count: 'exact', head: true })
+      .in('gym_id', gymIds)
+
+    // 4.4 Sessions aujourd'hui
+    const { count: sessionsToday } = await supabase
+      .from('openai_realtime_sessions')
+      .select('id', { count: 'exact', head: true })
+      .in('gym_id', gymIds)
+      .gte('session_start', today.toISOString())
+
+    // 4.5 Sentiment moyen (dernières 30 sessions)
+    const { data: recentSessionsWithSentiment } = await supabase
+      .from('openai_realtime_sessions')
+      .select(`
+        id,
+        conversation_summaries(sentiment)
+      `)
+      .in('gym_id', gymIds)
+      .order('session_start', { ascending: false })
+      .limit(30)
+
+    const sentiments = recentSessionsWithSentiment
+      ?.flatMap(s => (s as any).conversation_summaries || [])
+      .map((cs: any) => cs.sentiment)
+      .filter((s: any) => s && typeof s === 'number') || []
+
+    const avgSentiment = sentiments.length > 0
+      ? sentiments.reduce((sum: number, s: number) => sum + s, 0) / sentiments.length
+      : 0
+
+    // 4.6 CHURN RISK DETECTION 🔥 (LA VALEUR AJOUTÉE)
+    // Critères: Membres inactifs 14+ jours
+    const { data: allActiveMembers } = await supabase
+      .from('gym_members_v2')
+      .select(`
+        id,
+        openai_realtime_sessions(session_start)
+      `)
+      .in('gym_id', gymIds)
+      .eq('is_active', true)
+
+    let churnRiskCount = 0
+    allActiveMembers?.forEach((member: any) => {
+      const sessions = member.openai_realtime_sessions || []
+      if (sessions.length === 0) {
+        // Nouveau membre sans session = pas à risque immédiat
+        return
+      }
+      
+      // Dernière session du membre
+      const lastSession = sessions.reduce((latest: any, session: any) => {
+        const sessionDate = new Date(session.session_start)
+        const latestDate = latest ? new Date(latest.session_start) : new Date(0)
+        return sessionDate > latestDate ? session : latest
+      }, null)
+
+      if (lastSession) {
+        const daysSinceLastSession = Math.floor(
+          (now.getTime() - new Date(lastSession.session_start).getTime()) / (1000 * 60 * 60 * 24)
+        )
+        if (daysSinceLastSession >= 14) {
+          churnRiskCount++
+        }
+      }
+    })
+
+    // 4.7 Trends (vs mois dernier)
+    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
+
+    const { count: membersLastMonth } = await supabase
       .from('gym_members_v2')
       .select('id', { count: 'exact', head: true })
       .in('gym_id', gymIds)
       .eq('is_active', true)
       .lte('created_at', lastDayLastMonth.toISOString())
 
-    // Sessions ce mois
-    const { count: sessionsCount } = await supabase
-      .from('openai_realtime_sessions')
-      .select('id', { count: 'exact', head: true })
-      .in('gym_id', gymIds)
-      .gte('session_start', firstDayCurrentMonth.toISOString())
-
-    // Sessions mois dernier
     const { count: sessionsLastMonth } = await supabase
       .from('openai_realtime_sessions')
       .select('id', { count: 'exact', head: true })
@@ -127,53 +188,24 @@ export async function GET(request: NextRequest) {
       .gte('session_start', firstDayLastMonth.toISOString())
       .lte('session_start', lastDayLastMonth.toISOString())
 
-    // Revenus (simulé - à adapter selon votre modèle)
-    // Ex: 50€ par membre actif par mois
-    const revenusEstimes = (membresActifs || 0) * 50
-    const revenusLastMonthEstimes = (membresLastMonth || 0) * 50
-
-    // Taux de rétention (membres qui ont fait une session dans les 30 derniers jours)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-    const { data: activeMembersWithSessions } = await supabase
-      .from('gym_members_v2')
-      .select(`
-        id,
-        openai_realtime_sessions!inner(id)
-      `)
-      .in('gym_id', gymIds)
-      .eq('is_active', true)
-      .gte('openai_realtime_sessions.session_start', thirtyDaysAgo.toISOString())
-
-    const membresAvecActivite = new Set(activeMembersWithSessions?.map(m => m.id) || []).size
-    const tauxRetention = membresActifs ? Math.round((membresAvecActivite / membresActifs) * 100) : 0
-
-    // Calculer trends (pourcentage de changement)
-    const trendMembres = membresLastMonth 
-      ? Math.round(((membresActifs || 0) - membresLastMonth) / membresLastMonth * 100)
+    const membersTrend = membersLastMonth 
+      ? Math.round((((totalMembers || 0) - membersLastMonth) / membersLastMonth) * 100)
       : 0
 
-    const trendSessions = sessionsLastMonth
-      ? Math.round(((sessionsCount || 0) - sessionsLastMonth) / sessionsLastMonth * 100)
+    const sessionsTrend = sessionsLastMonth
+      ? Math.round((((totalSessions || 0) - sessionsLastMonth) / sessionsLastMonth) * 100)
       : 0
 
-    const trendRevenus = revenusLastMonthEstimes
-      ? Math.round((revenusEstimes - revenusLastMonthEstimes) / revenusLastMonthEstimes * 100)
-      : 0
-
-    // 5. Retourner les métriques
+    // 5. Retourner les KPIs Dashboard GÉRANT
     return NextResponse.json({
-      membres_actifs: membresActifs || 0,
-      sessions_mensuelles: sessionsCount || 0,
-      revenus_mensuels: revenusEstimes,
-      taux_retention: tauxRetention,
-      trends: {
-        membres: trendMembres,
-        sessions: trendSessions,
-        revenus: trendRevenus,
-        retention: 0 // TODO: calculer trend retention
-      }
+      totalMembers: totalMembers || 0,
+      activeMembersToday: activeMembersToday,
+      totalSessions: totalSessions || 0,
+      sessionsToday: sessionsToday || 0,
+      avgSentiment: avgSentiment,
+      churnRisk: churnRiskCount,
+      membersTrend: membersTrend,
+      sessionsTrend: sessionsTrend
     })
 
   } catch (error) {
