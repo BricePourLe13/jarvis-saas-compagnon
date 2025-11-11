@@ -52,61 +52,81 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
 
-  // Navigation sections (adaptées au rôle)
-  const navigationSections: NavSection[] = [
-    {
-      title: "Dashboard",
-      items: [
-        { label: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard },
+  // Navigation sections (SÉPARÉES par rôle pour clarté)
+  const navigationSections: NavSection[] = userRole === 'super_admin' 
+    ? [
+        // ============================================
+        // SUPER ADMIN - Platform Management
+        // ============================================
+        {
+          title: "Platform Overview",
+          items: [
+            { label: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard },
+          ]
+        },
+        {
+          title: "Clients",
+          items: [
+            { label: "Salles", href: "/dashboard/admin/gyms", icon: Building2 },
+            { label: "Utilisateurs", href: "/dashboard/admin/users", icon: UserCog },
+          ]
+        },
+        {
+          title: "Configuration",
+          items: [
+            { label: "Tools JARVIS", href: "/dashboard/tools", icon: Wrench },
+          ]
+        },
+        {
+          title: "Monitoring & Système",
+          items: [
+            { label: "Monitoring", href: "/dashboard/admin/monitoring", icon: Activity },
+            { label: "Logs", href: "/dashboard/admin/logs", icon: FileText },
+          ]
+        },
+        {
+          title: "Paramètres",
+          items: [
+            { label: "Mon profil", href: "/dashboard/settings", icon: Settings },
+            { label: "Équipe JARVIS", href: "/dashboard/team", icon: Users },
+          ]
+        }
       ]
-    },
-    {
-      title: "Gestion",
-      items: [
-        { label: "Membres", href: "/dashboard/members", icon: Users },
-        { label: "Sessions JARVIS", href: "/dashboard/sessions", icon: MessageSquare },
-        { label: "Tools JARVIS", href: "/dashboard/tools", icon: Wrench },
-        { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+    : [
+        // ============================================
+        // GYM MANAGER - Business Operations
+        // ============================================
+        {
+          title: "Ma Salle",
+          items: [
+            { label: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard },
+          ]
+        },
+        {
+          title: "Gestion",
+          items: [
+            { label: "Membres", href: "/dashboard/members", icon: Users },
+            { label: "Interactions JARVIS", href: "/dashboard/sessions", icon: MessageSquare },
+            { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+          ]
+        },
+        {
+          title: "Kiosk",
+          items: [
+            { label: "Interface Kiosk", href: "/dashboard/kiosk", icon: Monitor },
+          ]
+        },
+        {
+          title: "Paramètres",
+          items: [
+            { label: "Mon profil", href: "/dashboard/settings", icon: Settings },
+            { label: "Mon équipe", href: "/dashboard/team", icon: Users },
+          ]
+        }
       ]
-    },
-    {
-      title: "Kiosk",
-      items: [
-        { label: "Interface Kiosk", href: "/dashboard/kiosk", icon: Monitor },
-      ],
-      roles: ['gym_manager', 'super_admin']
-    },
-    {
-      title: "Administration",
-      items: [
-        { label: "Salles", href: "/dashboard/admin/gyms", icon: Building2 },
-        { label: "Utilisateurs", href: "/dashboard/admin/users", icon: UserCog },
-        { label: "Monitoring", href: "/dashboard/admin/monitoring", icon: Activity },
-        { label: "Logs", href: "/dashboard/admin/logs", icon: FileText },
-      ],
-      roles: ['super_admin']
-    },
-    {
-      title: "Paramètres",
-      items: [
-        { label: "Mon profil", href: "/dashboard/settings", icon: Settings },
-        { label: "Équipe", href: "/dashboard/team", icon: Users, roles: ['super_admin'] },
-      ]
-    }
-  ]
 
-  // Filter sections by role
+  // Plus besoin de filtrer : navigation déjà séparée par rôle ci-dessus
   const filteredSections = navigationSections
-    .map(section => ({
-      ...section,
-      items: section.items.filter(item => 
-        !item.roles || (userRole && item.roles.includes(userRole))
-      )
-    }))
-    .filter(section => 
-      section.items.length > 0 && 
-      (!section.roles || (userRole && section.roles.includes(userRole)))
-    )
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
