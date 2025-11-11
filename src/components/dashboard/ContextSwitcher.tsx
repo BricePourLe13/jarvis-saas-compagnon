@@ -8,8 +8,6 @@ export function ContextSwitcher() {
     userRole,
     selectedGymId,
     availableGyms,
-    availableFranchises,
-    contextMode,
     setSelectedGymId,
     loading
   } = useGymContext()
@@ -23,8 +21,8 @@ export function ContextSwitcher() {
     )
   }
 
-  // Gym manager/staff: No switcher, just display gym name
-  if (contextMode === 'single') {
+  // Gym manager: Single gym, no switcher needed
+  if (userRole === 'gym_manager' && availableGyms.length === 1) {
     const currentGym = availableGyms[0]
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg">
@@ -36,15 +34,19 @@ export function ContextSwitcher() {
     )
   }
 
-  // Super admin or franchise owner: Dropdown selector
+  // Super admin or multi-gym manager: Dropdown selector
   const currentGym = availableGyms.find(g => g.id === selectedGymId)
   
-  // Group gyms by franchise for super_admin
-  const groupedGyms = userRole === 'super_admin' 
-    ? availableFranchises.map(franchise => ({
-        franchise,
-        gyms: availableGyms.filter(g => g.franchise_id === franchise.id)
-      }))
+  // Group gyms by legacy_franchise_name (for display only)
+  const groupedGyms = userRole === 'super_admin' && availableGyms.length > 0
+    ? availableGyms.reduce((acc, gym) => {
+        const franchiseName = gym.legacy_franchise_name || 'Salles indépendantes'
+        if (!acc[franchiseName]) {
+          acc[franchiseName] = []
+        }
+        acc[franchiseName].push(gym)
+        return acc
+      }, {} as Record<string, typeof availableGyms>)
     : null
 
   return (
@@ -75,11 +77,11 @@ export function ContextSwitcher() {
               
               <div className="h-px bg-border my-2"></div>
 
-              {/* Grouped by franchise */}
-              {groupedGyms.map(({ franchise, gyms }) => (
-                <div key={franchise.id} className="mb-2">
+              {/* Grouped by legacy franchise name */}
+              {Object.entries(groupedGyms).map(([franchiseName, gyms]) => (
+                <div key={franchiseName} className="mb-2">
                   <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase">
-                    {franchise.name}
+                    {franchiseName}
                   </div>
                   {gyms.map(gym => (
                     <button
@@ -100,7 +102,7 @@ export function ContextSwitcher() {
               ))}
             </>
           ) : (
-            /* Franchise owner: Just their gyms */
+            /* Gym manager with multiple gyms: Just their gyms */
             availableGyms.map(gym => (
               <button
                 key={gym.id}
