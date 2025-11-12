@@ -59,25 +59,25 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // 4. Créer/Mettre à jour le profil public.users (UPSERT car trigger peut avoir créé un profil vide)
-    console.log('[API ACCEPT] Upserting user profile...')
+    // 4. Mettre à jour le profil public.users (le trigger a déjà créé le profil avec auth.uid())
+    console.log('[API ACCEPT] Updating user profile...')
     console.log('[API ACCEPT] User ID:', authUser.user.id)
     console.log('[API ACCEPT] Email:', invitation.email)
     console.log('[API ACCEPT] Full name:', invitation.full_name)
     console.log('[API ACCEPT] Gym ID:', invitation.gym_id)
     
+    // Le trigger on_auth_user_created a créé le profil avec auth.uid()
+    // On UPDATE simplement ce profil existant
     const { error: profileError } = await supabase
       .from('users')
-      .upsert({
-        id: authUser.user.id,
-        email: invitation.email,
+      .update({
         full_name: invitation.full_name,
         role: 'gym_manager',
         gym_id: invitation.gym_id,
-        gym_access: [invitation.gym_id]
-      }, {
-        onConflict: 'id' // Si l'user existe déjà (trigger), on update
+        gym_access: [invitation.gym_id],
+        is_active: true
       })
+      .eq('id', authUser.user.id)
 
     if (profileError) {
       console.error('[API ACCEPT] ❌ ERROR creating user profile:', profileError)
