@@ -1,51 +1,65 @@
 /**
- * 🏗️ LAYOUT DASHBOARD V2 - CONTEXT-AWARE
- * Layout unifié avec Context Provider et navigation adaptative
- * Design aligné avec landing page (background noir, effets spatiaux)
+ * 🏗️ LAYOUT DASHBOARD MONOCHROME
+ * Design épuré, minimaliste, cohérent
+ * Palette: Blanc/Gris/Noir uniquement
+ * Sidebar rétractable avec Framer Motion
  */
 
 'use client'
 
 import { ReactNode } from 'react'
-import { GymContextProvider } from '@/contexts/GymContext'
-import { DashboardShell } from '@/components/dashboard/DashboardShell'
-import { StarsBackground } from '@/components/ui/stars-background'
-import { ShootingStars } from '@/components/ui/shooting-stars'
+import { useRouter } from 'next/navigation'
+import { GymContextProvider, useGymContext } from '@/contexts/GymContext'
+import CollapsibleSidebar from '@/components/dashboard/CollapsibleSidebar'
+import { ContextSwitcher } from '@/components/dashboard/ContextSwitcher'
+import { createClient } from '@/lib/supabase-client'
 
 interface DashboardLayoutProps {
   children: ReactNode
 }
 
+function DashboardContent({ children }: { children: ReactNode }) {
+  const router = useRouter()
+  const { userRole } = useGymContext()
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  return (
+    <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
+      {/* Sidebar Rétractable */}
+      <CollapsibleSidebar userRole={userRole} onLogout={handleLogout} />
+
+      {/* Main Content avec padding pour sidebar */}
+      <div className="lg:pl-[60px] transition-all duration-200">
+        {/* Top Bar avec Context Switcher */}
+        <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <h2 className="text-sm font-light text-neutral-600 tracking-tight">
+              {userRole === 'super_admin' ? 'Administration Plateforme' : 'Dashboard Gérant'}
+            </h2>
+          </div>
+          <ContextSwitcher />
+        </header>
+
+        {/* Page Content */}
+        <main className="p-6">
+          <div className="max-w-[1600px] mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <GymContextProvider>
-      <div className="relative min-h-screen bg-black">
-        {/* Effets de fond (comme landing page) */}
-        <div className="fixed inset-0 z-0">
-          <StarsBackground 
-            starDensity={0.0003}
-            allStarsTwinkle={true}
-            twinkleProbability={0.7}
-            minTwinkleSpeed={0.5}
-            maxTwinkleSpeed={1}
-          />
-          <ShootingStars 
-            minSpeed={10}
-            maxSpeed={30}
-            minDelay={1200}
-            maxDelay={4200}
-            starColor="#8b5cf6"
-            trailColor="#a78bfa"
-            starWidth={10}
-            starHeight={1}
-          />
-        </div>
-
-        {/* Dashboard Shell avec backdrop */}
-        <div className="relative z-10">
-          <DashboardShell>{children}</DashboardShell>
-        </div>
-      </div>
+      <DashboardContent>{children}</DashboardContent>
     </GymContextProvider>
   )
 }
