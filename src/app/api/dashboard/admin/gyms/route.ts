@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // 4. Créer la salle
-    console.log('[API] Creating gym with data:', { name, address, city, postal_code, phone, email })
+    console.log('[API] Creating gym with data:', { name, address, city, postal_code, phone })
     const { data: newGym, error: gymError } = await supabase
       .from('gyms')
       .insert({
@@ -195,7 +195,6 @@ export async function POST(request: NextRequest) {
         city,
         postal_code,
         phone,
-        contact_email: email,
         status: 'active'
       })
       .select()
