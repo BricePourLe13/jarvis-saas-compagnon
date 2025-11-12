@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { getSupabaseService } from '@/lib/supabase-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,21 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 8 caractères' }, { status: 400 })
     }
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role pour créer le user
-      {
-        cookies: {
-          getAll: () => cookieStore.getAll(),
-          setAll: (cookiesToSet) => {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
-      }
-    )
+    // UTILISER SERVICE ROLE POUR BYPASSER RLS
+    const supabase = getSupabaseService()
 
     // 1. Récupérer l'invitation
     const { data: invitation, error: invitationError } = await supabase
