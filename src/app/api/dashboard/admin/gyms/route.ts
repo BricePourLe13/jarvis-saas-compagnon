@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
           
           try {
             const emailResult = await resend.emails.send({
-              from: 'JARVIS <onboarding@resend.dev>', // TODO: Utiliser send.jarvis-group.net une fois vérifié
+              from: 'JARVIS <no-reply@jarvis-group.net>', // Domaine principal vérifié ✅
               to: [manager_email],
               subject: `Invitation à gérer ${newGym.name} avec JARVIS`,
               html: `

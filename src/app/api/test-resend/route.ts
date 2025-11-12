@@ -26,7 +26,7 @@ export async function GET() {
 
     // Tester envoi simple
     const result = await resend.emails.send({
-      from: 'JARVIS <onboarding@resend.dev>', // Domaine par défaut (vérifié)
+      from: 'JARVIS <no-reply@jarvis-group.net>', // Domaine principal vérifié ✅
       to: ['brice@jarvis-group.net'], // Email du compte Resend
       subject: '🔍 Test JARVIS - Resend Configuration',
       html: `
