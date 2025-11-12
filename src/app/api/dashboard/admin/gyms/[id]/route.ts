@@ -6,9 +6,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Next.js 15: params is now a Promise
+    const params = await props.params
+    const gymId = params.id
+
     const cookieStore = await cookies()
     
     const supabase = createServerClient(
@@ -45,8 +49,6 @@ export async function GET(
         { status: 403 }
       )
     }
-
-    const gymId = params.id
 
     // Fetch gym details
     const { data: gym, error: gymError } = await supabase
