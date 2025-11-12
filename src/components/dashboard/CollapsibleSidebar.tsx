@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -29,7 +29,19 @@ interface CollapsibleSidebarProps {
 
 export default function CollapsibleSidebar({ userRole, onLogout }: CollapsibleSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const pathname = usePathname()
+
+  // Detect mobile on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsMobile(window.innerWidth < 1024)
+      
+      const handleResize = () => setIsMobile(window.innerWidth < 1024)
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   const navItems: NavItem[] = userRole === 'super_admin' 
     ? [
@@ -73,10 +85,10 @@ export default function CollapsibleSidebar({ userRole, onLogout }: CollapsibleSi
         initial={false}
         animate={{ 
           width: isCollapsed ? '60px' : '240px',
-          x: isCollapsed && window.innerWidth < 1024 ? '-100%' : 0
+          x: isCollapsed && isMobile ? '-100%' : 0
         }}
-        onMouseEnter={() => window.innerWidth >= 1024 && setIsCollapsed(false)}
-        onMouseLeave={() => window.innerWidth >= 1024 && setIsCollapsed(true)}
+        onMouseEnter={() => !isMobile && setIsCollapsed(false)}
+        onMouseLeave={() => !isMobile && setIsCollapsed(true)}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="fixed left-0 top-0 h-screen bg-white border-r border-neutral-200 z-40 flex flex-col"
       >
