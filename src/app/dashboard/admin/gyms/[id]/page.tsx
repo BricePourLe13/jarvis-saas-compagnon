@@ -1,111 +1,84 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useGymContext } from '@/contexts/GymContext'
-import { 
-  Building2, 
-  MapPin, 
-  Users, 
-  Monitor,
-  ArrowLeft, 
-  AlertCircle,
-  Mail,
-  Phone,
-  Calendar,
-  Settings,
-  Activity,
-  TrendingUp
-} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { Building2, MapPin, User, Monitor, Users, Calendar, ArrowLeft, Activity, Clock, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
-interface Kiosk {
-  id: string
-  slug: string
-  name: string
-  status: string
-  provisioning_code: string
-  last_heartbeat: string | null
-}
-
-interface Gym {
+interface GymDetails {
   id: string
   name: string
-  address: string
   city: string
+  address: string
   postal_code: string
-  phone?: string
-  status: string
-  franchise_id: string
-  franchise_name?: string
+  status: 'active' | 'maintenance' | 'suspended'
+  legacy_franchise_name?: string
+  manager_id?: string
+  manager_name?: string
+  manager_email?: string
+  total_members?: number
+  total_kiosks?: number
+  total_sessions?: number
   created_at: string
-  kiosks: Kiosk[]
-  total_members: number
+  last_activity?: string
+  kiosks?: Array<{
+    id: string
+    name: string
+    status: string
+    last_heartbeat?: string
+  }>
 }
 
-export default function GymDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params)
+export default function GymDetailsPage() {
+  const params = useParams()
   const router = useRouter()
-  const { userRole } = useGymContext()
-  const [gym, setGym] = useState<Gym | null>(null)
+  const gymId = params.id as string
+  
+  const [gym, setGym] = useState<GymDetails | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchGym() {
+    const fetchGymDetails = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/admin/gyms/${resolvedParams.id}`)
-        
-        if (!response.ok) {
-          throw new Error('Gym not found')
-        }
-        
+        const response = await fetch(`/api/dashboard/admin/gyms/${gymId}`)
+        if (!response.ok) throw new Error('Failed to fetch gym details')
         const data = await response.json()
-        setGym(data.data)
+        setGym(data.gym)
       } catch (error) {
-        console.error('Error fetching gym:', error)
-        router.push('/dashboard/admin/gyms')
+        console.error('Error fetching gym details:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchGym()
-  }, [resolvedParams.id, router])
-
-  // Vérifier les permissions
-  if (userRole !== 'super_admin') {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-foreground mb-2">Accès refusé</h2>
-          <p className="text-muted-foreground">
-            Cette page est réservée aux super administrateurs.
-          </p>
-        </div>
-      </div>
-    )
-  }
+    if (gymId) {
+      fetchGymDetails()
+    }
+  }, [gymId])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border border-neutral-200 border-t-neutral-900"></div>
       </div>
     )
   }
 
   if (!gym) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-foreground mb-2">Salle introuvable</h2>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Building2 className="h-12 w-12 text-neutral-300 mx-auto" />
+          <div>
+            <h2 className="text-xl font-medium text-neutral-900">Salle non trouvée</h2>
+            <p className="text-sm text-neutral-500 mt-2">Cette salle n'existe pas ou a été supprimée.</p>
+          </div>
           <Link
             href="/dashboard/admin/gyms"
-            className="text-primary hover:underline mt-4 inline-block"
+            className="inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"
           >
+            <ArrowLeft className="h-4 w-4" />
             Retour aux salles
           </Link>
         </div>
@@ -113,189 +86,193 @@ export default function GymDetailPage({ params }: { params: Promise<{ id: string
     )
   }
 
+  const getStatusStyle = (status: string) => {
+    const styles = {
+      active: 'text-neutral-900 bg-neutral-50 border-neutral-200',
+      maintenance: 'text-neutral-600 bg-neutral-50 border-neutral-200',
+      suspended: 'text-neutral-400 bg-neutral-50 border-neutral-200'
+    }
+    return styles[status as keyof typeof styles] || 'text-neutral-600 bg-neutral-50 border-neutral-200'
+  }
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      active: 'Actif',
+      maintenance: 'Maintenance',
+      suspended: 'Suspendu'
+    }
+    return labels[status as keyof typeof labels] || status
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Header avec bouton retour */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/dashboard/admin/gyms"
-          className="p-2 hover:bg-muted rounded-lg transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-foreground">{gym.name}</h1>
-          <div className="flex items-center gap-2 text-muted-foreground mt-2">
-            <MapPin className="h-4 w-4" />
-            <span>{gym.address}, {gym.postal_code} {gym.city}</span>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-[1400px] mx-auto px-8 py-8 space-y-8">
+        {/* Header with back button */}
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard/admin/gyms"
+            className="p-2 hover:bg-neutral-100 rounded-md transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-neutral-600" strokeWidth={1.5} />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-2xl font-light text-neutral-900 tracking-tight">{gym.name}</h1>
+            <p className="text-sm text-neutral-500 mt-1">{gym.city} · {gym.postal_code}</p>
           </div>
-        </div>
-        <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-          gym.status === 'active'
-            ? 'bg-green-500/10 text-green-500 border border-green-500/20'
-            : 'bg-gray-500/10 text-gray-500 border border-gray-500/20'
-        }`}>
-          {gym.status === 'active' ? 'Actif' : gym.status}
-        </span>
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-4">
-        <Link
-          href={`/dashboard/admin/gyms/${gym.id}/settings`}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
-        >
-          <Settings className="h-4 w-4" />
-          Paramètres
-        </Link>
-        <Link
-          href={`/dashboard?gym_id=${gym.id}`}
-          className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors flex items-center gap-2"
-        >
-          <Activity className="h-4 w-4" />
-          Voir Analytics
-        </Link>
-      </div>
-
-      {/* Métriques */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Users className="h-5 w-5 text-blue-500" />
-            <span className="text-sm text-muted-foreground">Membres Total</span>
-          </div>
-          <p className="text-3xl font-bold text-foreground">{gym.total_members}</p>
+          <span className={`px-3 py-1.5 rounded-md text-xs font-light border ${getStatusStyle(gym.status)}`}>
+            {getStatusLabel(gym.status)}
+          </span>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Monitor className="h-5 w-5 text-purple-500" />
-            <span className="text-sm text-muted-foreground">Kiosks Actifs</span>
-          </div>
-          <p className="text-3xl font-bold text-foreground">
-            {gym.kiosks.filter(k => k.status === 'online').length} / {gym.kiosks.length}
-          </p>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Building2 className="h-5 w-5 text-green-500" />
-            <span className="text-sm text-muted-foreground">Franchise</span>
-          </div>
-          <p className="text-lg font-bold text-foreground">
-            {gym.franchise_name || 'N/A'}
-          </p>
-        </div>
-      </div>
-
-      {/* Informations contact */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h2 className="text-xl font-bold text-foreground mb-4">Informations</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          {gym.phone && (
-            <div className="flex items-center gap-3">
-              <Phone className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Téléphone</p>
-                <p className="text-foreground">{gym.phone}</p>
+        {/* Overview Cards */}
+        <div className="grid gap-4 grid-cols-4">
+          {[
+            { label: 'Membres', value: gym.total_members || 0, icon: Users, color: 'neutral' },
+            { label: 'Kiosks', value: gym.total_kiosks || 0, icon: Monitor, color: 'neutral' },
+            { label: 'Sessions JARVIS', value: gym.total_sessions || 0, icon: Activity, color: 'neutral' },
+            { label: 'Jours actifs', value: Math.floor((Date.now() - new Date(gym.created_at).getTime()) / (1000 * 60 * 60 * 24)), icon: Calendar, color: 'neutral' }
+          ].map((metric, i) => (
+            <div key={i} className="border border-neutral-100 rounded-lg p-4 hover:border-neutral-200 transition-colors">
+              <div className="flex items-center gap-2 mb-3">
+                <metric.icon className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
+                <span className="text-xs text-neutral-500 font-light">{metric.label}</span>
               </div>
+              <p className="text-2xl font-light text-neutral-900">{metric.value}</p>
             </div>
-          )}
-          <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 text-blue-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Créée le</p>
-              <p className="text-foreground">{new Date(gym.created_at).toLocaleDateString('fr-FR')}</p>
+          ))}
+        </div>
+
+        {/* Main Content - 2 columns */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Informations générales */}
+          <div className="border border-neutral-100 rounded-lg p-6 space-y-6">
+            <h2 className="text-sm font-normal text-neutral-900 uppercase tracking-wider">Informations générales</h2>
+            
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-neutral-400 mt-0.5" strokeWidth={1.5} />
+                <div className="flex-1">
+                  <p className="text-xs text-neutral-500 font-light mb-1">Adresse</p>
+                  <p className="text-sm text-neutral-900 font-light">{gym.address}</p>
+                  <p className="text-sm text-neutral-600 font-light">{gym.postal_code} {gym.city}</p>
+                </div>
+              </div>
+
+              {gym.manager_name && (
+                <div className="flex items-start gap-3">
+                  <User className="h-4 w-4 text-neutral-400 mt-0.5" strokeWidth={1.5} />
+                  <div className="flex-1">
+                    <p className="text-xs text-neutral-500 font-light mb-1">Gérant</p>
+                    <p className="text-sm text-neutral-900 font-light">{gym.manager_name}</p>
+                    {gym.manager_email && (
+                      <p className="text-sm text-neutral-600 font-light">{gym.manager_email}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-3">
+                <Calendar className="h-4 w-4 text-neutral-400 mt-0.5" strokeWidth={1.5} />
+                <div className="flex-1">
+                  <p className="text-xs text-neutral-500 font-light mb-1">Date de création</p>
+                  <p className="text-sm text-neutral-900 font-light">
+                    {new Date(gym.created_at).toLocaleDateString('fr-FR', { 
+                      day: 'numeric', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {gym.last_activity && (
+                <div className="flex items-start gap-3">
+                  <Clock className="h-4 w-4 text-neutral-400 mt-0.5" strokeWidth={1.5} />
+                  <div className="flex-1">
+                    <p className="text-xs text-neutral-500 font-light mb-1">Dernière activité</p>
+                    <p className="text-sm text-neutral-900 font-light">
+                      {new Date(gym.last_activity).toLocaleDateString('fr-FR', { 
+                        day: 'numeric', 
+                        month: 'long', 
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Liste des kiosks */}
-      <div>
-        <h2 className="text-xl font-bold text-foreground mb-4">Kiosks ({gym.kiosks.length})</h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          {gym.kiosks.length === 0 ? (
-            <div className="col-span-full bg-card border border-border rounded-lg p-12 text-center">
-              <Monitor className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Aucun kiosk associé à cette salle</p>
-              <button className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
-                + Ajouter un Kiosk
-              </button>
+          {/* Kiosks */}
+          <div className="border border-neutral-100 rounded-lg p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-normal text-neutral-900 uppercase tracking-wider">Kiosks</h2>
+              <span className="text-xs text-neutral-500 font-light">{gym.total_kiosks || 0} kiosk(s)</span>
             </div>
-          ) : (
-            gym.kiosks.map((kiosk) => (
-              <div
-                key={kiosk.id}
-                className="bg-card border border-border rounded-lg p-6 hover:shadow-lg transition-all duration-200"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      kiosk.status === 'online'
-                        ? 'bg-green-500/10'
-                        : 'bg-gray-500/10'
+
+            {gym.kiosks && gym.kiosks.length > 0 ? (
+              <div className="space-y-3">
+                {gym.kiosks.map((kiosk) => (
+                  <div key={kiosk.id} className="flex items-center gap-3 p-3 border border-neutral-100 rounded-md hover:border-neutral-200 transition-colors">
+                    <div className="w-8 h-8 rounded-md border border-neutral-200 flex items-center justify-center">
+                      <Monitor className="h-4 w-4 text-neutral-400" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-light text-neutral-900">{kiosk.name}</p>
+                      {kiosk.last_heartbeat && (
+                        <p className="text-xs text-neutral-500 font-light mt-0.5">
+                          Dernier signal: {new Date(kiosk.last_heartbeat).toLocaleDateString('fr-FR', { 
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      )}
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded border font-light ${
+                      kiosk.status === 'online' 
+                        ? 'text-neutral-900 bg-neutral-50 border-neutral-200' 
+                        : 'text-neutral-400 bg-neutral-50 border-neutral-200'
                     }`}>
-                      <Monitor className={`h-5 w-5 ${
-                        kiosk.status === 'online'
-                          ? 'text-green-500'
-                          : 'text-gray-500'
-                      }`} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground">
-                        {kiosk.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {kiosk.slug}
-                      </p>
-                    </div>
+                      {kiosk.status === 'online' ? 'En ligne' : 'Hors ligne'}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    kiosk.status === 'online'
-                      ? 'bg-green-500/10 text-green-500'
-                      : kiosk.status === 'offline'
-                      ? 'bg-red-500/10 text-red-500'
-                      : 'bg-yellow-500/10 text-yellow-500'
-                  }`}>
-                    {kiosk.status}
-                  </span>
-                </div>
-
-                <div className="space-y-2 pt-4 border-t border-border">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Code provisioning</span>
-                    <span className="font-mono font-bold text-foreground">{kiosk.provisioning_code}</span>
-                  </div>
-                  {kiosk.last_heartbeat && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Dernier signal</span>
-                      <span className="text-foreground">
-                        {new Date(kiosk.last_heartbeat).toLocaleString('fr-FR')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-border flex gap-2">
-                  <Link
-                    href={`/kiosk/${kiosk.slug}`}
-                    target="_blank"
-                    className="flex-1 px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-center text-sm"
-                  >
-                    Ouvrir Kiosk
-                  </Link>
-                  <button className="px-3 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-sm">
-                    <Settings className="h-4 w-4" />
-                  </button>
-                </div>
+                ))}
               </div>
-            ))
-          )}
+            ) : (
+              <div className="text-center py-8">
+                <Monitor className="h-8 w-8 text-neutral-300 mx-auto mb-3" strokeWidth={1.5} />
+                <p className="text-sm text-neutral-400 font-light">Aucun kiosk provisionné</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Performance Insights (placeholder pour futures métriques) */}
+        <div className="border border-neutral-100 rounded-lg p-6">
+          <h2 className="text-sm font-normal text-neutral-900 uppercase tracking-wider mb-6">Insights & Performance</h2>
+          <div className="text-center py-12">
+            <TrendingUp className="h-8 w-8 text-neutral-300 mx-auto mb-3" strokeWidth={1.5} />
+            <p className="text-sm text-neutral-400 font-light">Analytics disponibles prochainement</p>
+            <p className="text-xs text-neutral-400 font-light mt-1">Churn risk, satisfaction, utilisation JARVIS...</p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3">
+          <button className="px-4 py-2 border border-neutral-200 text-neutral-600 rounded-md hover:border-neutral-300 hover:bg-neutral-50 transition-colors text-sm font-light">
+            Éditer la salle
+          </button>
+          <button className="px-4 py-2 border border-neutral-200 text-neutral-600 rounded-md hover:border-neutral-300 hover:bg-neutral-50 transition-colors text-sm font-light">
+            Provisionner un kiosk
+          </button>
+          <button className="px-4 py-2 border border-red-200 text-red-600 rounded-md hover:border-red-300 hover:bg-red-50 transition-colors text-sm font-light">
+            Suspendre la salle
+          </button>
         </div>
       </div>
     </div>
   )
 }
-
-
