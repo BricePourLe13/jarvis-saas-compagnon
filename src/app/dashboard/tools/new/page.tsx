@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useGymContext } from '@/contexts/GymContext'
 import type { CustomToolFormData, ToolType, ToolCategory } from '@/types/custom-tools'
@@ -18,7 +18,7 @@ import { Step1BasicInfo } from '@/components/dashboard/tools/Step1BasicInfo'
 import { Step2Configuration } from '@/components/dashboard/tools/Step2Configuration'
 import { Step3TestActivate } from '@/components/dashboard/tools/Step3TestActivate'
 
-export default function NewToolPage() {
+function NewToolPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { currentGym } = useGymContext()
@@ -283,6 +283,18 @@ export default function NewToolPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function NewToolPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900"></div>
+      </div>
+    }>
+      <NewToolPageContent />
+    </Suspense>
   )
 }
 

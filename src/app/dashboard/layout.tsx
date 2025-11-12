@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { GymContextProvider, useGymContext } from '@/contexts/GymContext'
 import CollapsibleSidebar from '@/components/dashboard/CollapsibleSidebar'
 import { ContextSwitcher } from '@/components/dashboard/ContextSwitcher'
-import { createBrowserClient } from '@/lib/supabase-singleton'
+import { getSupabaseSingleton } from '@/lib/supabase-singleton'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -23,7 +23,7 @@ function DashboardContent({ children }: { children: ReactNode }) {
   const { userRole } = useGymContext()
 
   const handleLogout = async () => {
-    const supabase = createBrowserClient()
+    const supabase = getSupabaseSingleton()
     await supabase.auth.signOut()
     router.push('/login')
   }
