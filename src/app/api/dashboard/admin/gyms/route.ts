@@ -213,8 +213,14 @@ export async function POST(request: NextRequest) {
     if (manager_option === 'new') {
       // Créer invitation directement (plus simple et plus fiable)
       try {
-        console.log('[API] Creating invitation for:', manager_email)
+        console.log('[API] ===== CREATING INVITATION =====')
+        console.log('[API] Manager email:', manager_email)
+        console.log('[API] Manager name:', manager_name)
+        console.log('[API] Gym ID:', newGym.id)
+        console.log('[API] User ID (created_by):', session.user.id)
+        
         const token = randomBytes(32).toString('hex')
+        console.log('[API] Token generated:', token.substring(0, 10) + '...')
         
         // Utiliser service client pour bypass RLS (évite récursion)
         const serviceSupabase = createServiceClient()
@@ -234,18 +240,21 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (invitationError) {
-          console.error('[API] Error creating invitation:', invitationError)
+          console.error('[API] ❌ ERROR CREATING INVITATION:', invitationError)
+          console.error('[API] Supabase error details:', JSON.stringify(invitationError, null, 2))
           throw new Error(`Invitation error: ${invitationError.message}`)
         }
         
-        console.log('[API] Invitation created successfully')
+        console.log('[API] ✅ Invitation created successfully in DB, ID:', invitation.id)
 
         if (invitation) {
           // Envoyer l'email via Resend
           const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-group.net'}/auth/invitation/${token}`
+          console.log('[API] Sending invitation email to:', manager_email)
+          console.log('[API] Invitation URL:', invitationUrl)
           
           try {
-            await resend.emails.send({
+            const emailResult = await resend.emails.send({
               from: 'JARVIS <no-reply@send.jarvis-group.net>',
               to: [manager_email],
               subject: `Invitation à gérer ${newGym.name} avec JARVIS`,
@@ -286,15 +295,19 @@ export async function POST(request: NextRequest) {
 </html>
               `
             })
-            console.log('[API] Invitation email sent to:', manager_email)
+            console.log('[API] ✅ Invitation email sent successfully to:', manager_email)
+            console.log('[API] Resend result:', JSON.stringify(emailResult, null, 2))
           } catch (emailError) {
-            console.error('[API] Error sending email:', emailError)
-            // Continue quand même, l'invitation est en BDD
+            console.error('[API] ❌ ERROR SENDING EMAIL:', emailError)
+            console.error('[API] Resend error details:', JSON.stringify(emailError, null, 2))
+            // Continue quand même, l'invitation est en BDD (peut être renvoyée)
           }
         }
       } catch (inviteError) {
-        console.error('[API] Error creating invitation:', inviteError)
-        // Continue quand même, on peut créer l'invitation manuellement plus tard
+        console.error('[API] ❌ FATAL ERROR CREATING INVITATION:', inviteError)
+        console.error('[API] Stack trace:', (inviteError as Error).stack)
+        // CRITIQUE : Si invitation échoue, on doit le signaler !
+        // Mais on continue pour ne pas bloquer la création de salle
       }
     } else if (manager_option === 'existing' && existing_manager_id) {
       console.log('[API] Assigning existing manager:', existing_manager_id)
