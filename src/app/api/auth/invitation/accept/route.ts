@@ -73,26 +73,41 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // 4. Créer le profil public.users
+    // 4. Créer/Mettre à jour le profil public.users (UPSERT car trigger peut avoir créé un profil vide)
+    console.log('[API ACCEPT] Upserting user profile...')
+    console.log('[API ACCEPT] User ID:', authUser.user.id)
+    console.log('[API ACCEPT] Email:', invitation.email)
+    console.log('[API ACCEPT] Full name:', invitation.full_name)
+    console.log('[API ACCEPT] Gym ID:', invitation.gym_id)
+    
     const { error: profileError } = await supabase
       .from('users')
-      .insert({
+      .upsert({
         id: authUser.user.id,
         email: invitation.email,
         full_name: invitation.full_name,
         role: 'gym_manager',
         gym_id: invitation.gym_id,
         gym_access: [invitation.gym_id]
+      }, {
+        onConflict: 'id' // Si l'user existe déjà (trigger), on update
       })
 
     if (profileError) {
-      console.error('[API] Error creating user profile:', profileError)
+      console.error('[API ACCEPT] ❌ ERROR creating user profile:', profileError)
+      console.error('[API ACCEPT] Error code:', profileError.code)
+      console.error('[API ACCEPT] Error message:', profileError.message)
+      console.error('[API ACCEPT] Error details:', JSON.stringify(profileError, null, 2))
+      
       // Rollback : supprimer le auth user
       await supabase.auth.admin.deleteUser(authUser.user.id)
       return NextResponse.json({ 
-        error: 'Erreur lors de la création du profil utilisateur' 
+        error: `Erreur lors de la création du profil utilisateur: ${profileError.message}`,
+        code: profileError.code
       }, { status: 500 })
     }
+    
+    console.log('[API ACCEPT] ✅ User profile created successfully')
 
     // 5. Marquer l'invitation comme acceptée
     await supabase
