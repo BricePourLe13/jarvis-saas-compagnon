@@ -1,18 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
-import { getUserProfile } from '@/lib/auth-helpers'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const userProfile = await getUserProfile(supabase)
+    const cookieStore = await cookies()
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
 
-    if (!userProfile || userProfile.role !== 'super_admin') {
+    // Vérifier l'auth
+    const { data: { session }, error: authError } = await supabase.auth.getSession()
+    if (authError || !session) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
+    // Récupérer le profil utilisateur
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (profileError || !userProfile || userProfile.role !== 'super_admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Accès refusé - Super admin requis' },
         { status: 403 }
       )
     }
