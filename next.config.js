@@ -2,12 +2,12 @@ const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuration supprimée pour éviter conflit avec vercel.json
+  // ✅ BUILD CHECKS ACTIVÉS : TypeScript + ESLint obligatoires
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react']

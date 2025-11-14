@@ -188,3 +188,5 @@ async function testGA() {
 // Lancer le test
 testGA();
 
+
+
