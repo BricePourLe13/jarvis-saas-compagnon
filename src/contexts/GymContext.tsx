@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
@@ -240,47 +240,3 @@ export function useGymContext() {
   return context
 }
 
-  // ============================================
-  
-  useEffect(() => {
-    if (selectedGymId) {
-      localStorage.setItem('jarvis_selected_gym_id', selectedGymId)
-      
-      // Update currentGym when selectedGymId changes
-      const gym = availableGyms.find(g => g.id === selectedGymId)
-      if (gym) {
-        setCurrentGym(gym)
-      }
-    }
-  }, [selectedGymId, availableGyms])
-
-  // ============================================
-  // CONTEXT VALUE
-  // ============================================
-
-  const value: GymContextType = {
-    userId,
-    userRole,
-    userEmail,
-    selectedGymId,
-    currentGym,
-    availableGyms,
-    setSelectedGymId,
-    refreshGyms,
-    loading,
-  }
-
-  return <GymContext.Provider value={value}>{children}</GymContext.Provider>
-}
-
-// ============================================
-// HOOK TO USE THE CONTEXT
-// ============================================
-
-export function useGymContext() {
-  const context = useContext(GymContext)
-  if (context === undefined) {
-    throw new Error('useGymContext must be used within a GymContextProvider')
-  }
-  return context
-}
