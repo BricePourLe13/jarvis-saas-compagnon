@@ -143,8 +143,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ✅ Apply to kiosk routes and landing page with voice interface
-  if (pathname.startsWith('/kiosk/') || pathname.startsWith('/landing-client')) {
+  // ✅ Apply to kiosk routes (WebRTC, microphone access)
+  if (pathname.startsWith('/kiosk/')) {
     const response = NextResponse.next()
     
     // ✅ Browser detection for specific strategies
@@ -339,12 +339,15 @@ export const config = {
     // Auth protection
     '/dashboard/:path*',
     '/admin/:path*',
-    // Kiosk & landing
+    // Kiosk
     '/kiosk/:path*',
-    '/landing-client/:path*',
     // API routes (rate limiting)
     '/api/voice/:path*',
     '/api/conversations/:path*',
     '/api/jarvis/:path*',
   ]
 }
+
+
+
+
