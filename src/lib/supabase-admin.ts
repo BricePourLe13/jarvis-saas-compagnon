@@ -12,7 +12,7 @@ export const getEnvironmentConfig = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-group.net'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.jarvis-group.net'
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Variables d\'environnement Supabase manquantes: NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY requis')

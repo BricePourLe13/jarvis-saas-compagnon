@@ -11,7 +11,7 @@ import { createSimpleClient } from '@/lib/supabase-admin'
  * - Nettoie sessions OpenAI closed > 30 jours
  * 
  * Configuration Upstash QStash:
- * - URL: https://jarvis-group.net/api/cron/cleanup-old-data
+ * - URL: https://app.jarvis-group.net/api/cron/cleanup-old-data
  * - Schedule: 0 4 * * * (tous les jours à 4h00 AM)
  * - Method: POST
  */

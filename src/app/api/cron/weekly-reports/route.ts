@@ -12,7 +12,7 @@ import { createSimpleClient } from '@/lib/supabase-admin'
  * - (Optionnel) Envoie email au gérant via Resend
  * 
  * Configuration Upstash QStash:
- * - URL: https://jarvis-group.net/api/cron/weekly-reports
+ * - URL: https://app.jarvis-group.net/api/cron/weekly-reports
  * - Schedule: 0 6 * * 1 (tous les lundis à 6h00 AM)
  * - Method: POST
  */

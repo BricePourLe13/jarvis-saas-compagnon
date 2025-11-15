@@ -217,3 +217,35 @@ export async function GET(request: NextRequest) {
   }
 }
 
+
+      .lte('session_start', lastDayLastMonth.toISOString())
+
+    const membersTrend = membersLastMonth 
+      ? Math.round((((totalMembers || 0) - membersLastMonth) / membersLastMonth) * 100)
+      : 0
+
+    const sessionsTrend = sessionsLastMonth
+      ? Math.round((((totalSessions || 0) - sessionsLastMonth) / sessionsLastMonth) * 100)
+      : 0
+
+    // 5. Retourner les KPIs Dashboard GÉRANT
+    return NextResponse.json({
+      totalMembers: totalMembers || 0,
+      activeMembersToday: activeMembersToday,
+      totalSessions: totalSessions || 0,
+      sessionsToday: sessionsToday || 0,
+      avgSentiment: avgSentiment,
+      churnRisk: churnRiskCount,
+      membersTrend: membersTrend,
+      sessionsTrend: sessionsTrend
+    })
+
+  } catch (error) {
+    console.error('[API] Erreur stats overview:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+

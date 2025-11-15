@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
 
         if (invitation) {
           // Envoyer l'email via Resend
-          const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://jarvis-group.net'}/auth/invitation/${token}`
+          const invitationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://app.jarvis-group.net'}/auth/invitation/${token}`
           console.log('[API] Sending invitation email to:', manager_email)
           console.log('[API] Invitation URL:', invitationUrl)
           

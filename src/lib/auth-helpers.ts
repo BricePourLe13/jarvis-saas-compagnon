@@ -292,3 +292,4 @@ export function forbiddenResponse(message = 'Accès refusé') {
     { status: 403 }
   )
 }
+

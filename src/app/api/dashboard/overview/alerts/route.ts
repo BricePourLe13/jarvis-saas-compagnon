@@ -266,3 +266,110 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+      ?.filter((session: any) => {
+        const summaries = session.conversation_summaries || []
+        return summaries.some((s: any) => s.sentiment && s.sentiment < 0.3) // sentiment négatif
+      })
+      .slice(0, 5) // Top 5 most recent
+      .map((session: any) => {
+        const member = session.gym_members_v2
+        const summary = session.conversation_summaries?.[0]
+        return {
+          memberName: member ? `${member.first_name} ${member.last_name}` : 'Anonyme',
+          topic: summary?.main_topic || 'Non spécifié',
+          summary: summary?.summary_text || '',
+          date: session.session_start
+        }
+      }) || []
+
+    if (negativeInteractions.length > 0) {
+      alerts.push({
+        id: 'negative-feedbacks',
+        type: 'error',
+        title: `${negativeInteractions.length} feedback${negativeInteractions.length > 1 ? 's' : ''} négatif${negativeInteractions.length > 1 ? 's' : ''} cette semaine`,
+        message: negativeInteractions.map(f => `${f.memberName}: ${f.topic}`).slice(0, 2).join(' | '),
+        created_at: now.toISOString(),
+        metadata: {
+          negativeFeedbacks: negativeInteractions
+        },
+        actions: [
+          { label: 'Voir détails', href: '/dashboard/sessions?filter=negative' },
+          { label: 'Marquer résolu', action: 'mark_resolved' }
+        ]
+      })
+    }
+
+    // 📊 ALERTE 3 : BAISSE FRÉQUENTATION (vs semaine dernière)
+    const lastWeekStart = new Date(now)
+    lastWeekStart.setDate(now.getDate() - 14)
+    const lastWeekEnd = new Date(now)
+    lastWeekEnd.setDate(now.getDate() - 7)
+
+    const { count: sessionsLastWeek } = await supabase
+      .from('openai_realtime_sessions')
+      .select('id', { count: 'exact', head: true })
+      .in('gym_id', gymIds)
+      .gte('session_start', lastWeekStart.toISOString())
+      .lte('session_start', lastWeekEnd.toISOString())
+
+    const { count: sessionsThisWeek } = await supabase
+      .from('openai_realtime_sessions')
+      .select('id', { count: 'exact', head: true })
+      .in('gym_id', gymIds)
+      .gte('session_start', lastWeekEnd.toISOString())
+
+    if (sessionsLastWeek && sessionsThisWeek) {
+      const dropPercentage = Math.round(((sessionsLastWeek - sessionsThisWeek) / sessionsLastWeek) * 100)
+      
+      if (dropPercentage > 20) {
+        alerts.push({
+          id: 'frequency-drop',
+          type: 'warning',
+          title: `Baisse fréquentation -${dropPercentage}%`,
+          message: `${sessionsThisWeek} sessions cette semaine vs ${sessionsLastWeek} la semaine dernière`,
+          created_at: now.toISOString(),
+          actions: [
+            { label: 'Voir analytics', href: '/dashboard/analytics' }
+          ]
+        })
+      }
+    }
+
+    // ✅ ALERTE 4 : OPPORTUNITÉ D'ENGAGEMENT (membres sans JARVIS)
+    const { count: membersWithoutJarvis } = await supabase
+      .from('gym_members_v2')
+      .select('id', { count: 'exact', head: true })
+      .in('gym_id', gymIds)
+      .eq('is_active', true)
+
+    const { count: membersWithJarvis } = await supabase
+      .from('openai_realtime_sessions')
+      .select('member_id', { count: 'exact', head: true })
+      .in('gym_id', gymIds)
+
+    const unusedPotential = (membersWithoutJarvis || 0) - (membersWithJarvis || 0)
+
+    if (unusedPotential > 10) {
+      alerts.push({
+        id: 'unused-potential',
+        type: 'info',
+        title: `${unusedPotential} membres n'ont jamais utilisé JARVIS`,
+        message: 'Opportunité d\'engagement et d\'amélioration de l\'expérience',
+        created_at: now.toISOString(),
+        actions: [
+          { label: 'Campagne onboarding', action: 'send_jarvis_intro_email' }
+        ]
+      })
+    }
+
+    return NextResponse.json({ alerts })
+
+  } catch (error) {
+    console.error('[API] Erreur alerts overview:', error)
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}

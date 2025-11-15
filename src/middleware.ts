@@ -308,7 +308,8 @@ function setWebRTCOptimizationHeaders(response: NextResponse) {
 function setCORSHeaders(response: NextResponse) {
   // 🔒 CORS sécurisé - uniquement domaines autorisés
   const allowedOrigins = [
-    'https://jarvis-group.net',
+    'https://app.jarvis-group.net',
+    'https://jarvis-group.net', // Landing page
     'https://jarvis-saas-compagnon.vercel.app',
     'https://jarvis-compagnon.com',
     ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000', 'http://localhost:3001'] : [])

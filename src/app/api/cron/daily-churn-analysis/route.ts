@@ -11,7 +11,7 @@ import { createSimpleClient } from '@/lib/supabase-admin'
  * - Génère des alertes si churn risk élevé
  * 
  * Configuration Upstash QStash:
- * - URL: https://jarvis-group.net/api/cron/daily-churn-analysis
+ * - URL: https://app.jarvis-group.net/api/cron/daily-churn-analysis
  * - Schedule: 0 2 * * * (tous les jours à 2h00 AM)
  * - Method: POST
  */

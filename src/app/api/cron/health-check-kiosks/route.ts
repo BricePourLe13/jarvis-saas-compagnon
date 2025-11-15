@@ -11,7 +11,7 @@ import { createSimpleClient } from '@/lib/supabase-admin'
  * - Crée des alertes pour les kiosks problématiques
  * 
  * Configuration Upstash QStash:
- * - URL: https://jarvis-group.net/api/cron/health-check-kiosks
+ * - URL: https://app.jarvis-group.net/api/cron/health-check-kiosks
  * - Schedule: 0 3 * * * (tous les jours à 3h00 AM)
  * - Method: POST
  */
