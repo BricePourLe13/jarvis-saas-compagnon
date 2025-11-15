@@ -174,14 +174,3 @@ class ResourcePreloader {
 export const resourcePreloader = new ResourcePreloader()
 
 // Hook React simplifié
-import React from 'react'
-
-export const useResourcePreloader = () => {
-  return resourcePreloader.usePreloader()
-}
-
-// Auto-init sur import
-if (typeof window !== 'undefined') {
-  // Init après un micro-délai pour pas bloquer le parsing
-  setTimeout(() => resourcePreloader.init(), 0)
-}
