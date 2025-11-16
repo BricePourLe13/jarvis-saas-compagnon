@@ -57,6 +57,6 @@ export const metadata: Metadata = {
 export const revalidate = 3600 // 1 heure
 
 export default function HomePage() {
-  // Server-side redirect vers landing-client
-  redirect('/landing-client')
+  // Redirection vers login (landing séparé dans repo dédié)
+  redirect('/login')
 }
