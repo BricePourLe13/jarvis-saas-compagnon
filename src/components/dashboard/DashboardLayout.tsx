@@ -44,9 +44,21 @@ const NAV_ITEMS: NavItem[] = [
     adminOnly: true,
   },
   {
+    label: '⚠️ Salles à valider',
+    href: '/dashboard/admin/pending-gyms',
+    icon: AlertCircle,
+    adminOnly: true,
+  },
+  {
     label: 'Kiosks',
     href: '/dashboard/kiosks',
     icon: Monitor,
+  },
+  {
+    label: '⚠️ Kiosks à valider',
+    href: '/dashboard/admin/pending-kiosks',
+    icon: AlertCircle,
+    adminOnly: true,
   },
   {
     label: 'Adhérents',
