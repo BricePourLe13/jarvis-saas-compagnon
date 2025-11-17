@@ -1,5 +1,7 @@
 'use client'
 
+import { logger } from '@/lib/production-logger';
+
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -390,7 +392,7 @@ export default function MicrophoneDiagnostic({
       onDiagnosticComplete?.(finalResult)
 
     } catch (error) {
-      console.error('Erreur diagnostic:', error)
+      logger.error('Erreur diagnostic:', error)
     } finally {
       setIsRunning(false)
     }

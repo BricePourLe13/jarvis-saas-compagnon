@@ -3,6 +3,7 @@
  * Création de sessions OpenAI avec profils membres réels et cache
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getConfigForContext } from '@/lib/openai-config'
 import { getSupabaseService } from '@/lib/supabase-service'
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     const { gymSlug, badge_id, language = 'fr' } = await request.json()
 
-    console.log(`🎯 [SESSION] Création session pour badge: ${badge_id} sur ${gymSlug}`)
+    logger.info(`🎯 [SESSION] Création session pour badge: ${badge_id} sur ${gymSlug}`)
 
     if (!badge_id || !gymSlug) {
       return NextResponse.json(
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`✅ [SESSION] Profil récupéré: ${memberProfile.first_name} ${memberProfile.last_name}`)
+    logger.info(`✅ [SESSION] Profil récupéré: ${memberProfile.first_name} ${memberProfile.last_name}`)
 
     // Générer l'ID de session
     const sessionId = generateSessionId()
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 📡 CRÉER SESSION OPENAI
-    console.log(`📡 [SESSION] Appel OpenAI pour session: ${sessionId}`)
+    logger.info(`📡 [SESSION] Appel OpenAI pour session: ${sessionId}`)
     
     const sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
       method: 'POST',
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     if (!sessionResponse.ok) {
       const errorText = await sessionResponse.text()
-      console.error(`❌ [SESSION] Erreur OpenAI:`, errorText)
+      logger.error(`❌ [SESSION] Erreur OpenAI:`, errorText)
       
       return NextResponse.json(
         { 
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     const sessionData = await sessionResponse.json()
-    console.log(`✅ [SESSION] Session OpenAI créée: ${sessionData.id}`)
+    logger.info(`✅ [SESSION] Session OpenAI créée: ${sessionData.id}`)
 
     // 🎯 ENREGISTREMENT EN BASE AVEC RELATION FORTE
     try {
@@ -118,14 +119,14 @@ export async function POST(request: NextRequest) {
       })
 
       if (error) {
-        console.error(`❌ [SESSION] Erreur enregistrement DB:`, error)
+        logger.error(`❌ [SESSION] Erreur enregistrement DB:`, error)
         // Ne pas faire échouer la session pour ça
       } else {
-        console.log(`💾 [SESSION] Enregistré en base:`, result)
+        logger.info(`💾 [SESSION] Enregistré en base:`, result)
       }
 
     } catch (dbError) {
-      console.error(`❌ [SESSION] Erreur DB:`, dbError)
+      logger.error(`❌ [SESSION] Erreur DB:`, dbError)
       // Ne pas faire échouer la session pour ça
     }
 
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🚨 [SESSION] Erreur serveur:', error)
+    logger.error('🚨 [SESSION] Erreur serveur:', error)
     return NextResponse.json(
       { error: 'Erreur serveur', details: error.message },
       { status: 500 }

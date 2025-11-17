@@ -7,6 +7,7 @@
 
 import { AudioProcessor } from './audio-processor';
 import { EventRouter } from './event-router';
+import { logger } from '@/lib/production-logger';
 import type {
   RealtimeSessionConfig,
   RealtimeEvent,
@@ -69,7 +70,7 @@ export class RealtimeWebRTCClient {
    */
   async connect(): Promise<void> {
     if (this.status === 'connected' || this.status === 'connecting') {
-      console.warn('[RealtimeWebRTCClient] Already connected or connecting');
+      logger.warn('[RealtimeWebRTCClient] Already connected or connecting');
       return;
     }
 
@@ -357,7 +358,7 @@ export class RealtimeWebRTCClient {
 
   private log(...args: any[]): void {
     if (this.debug) {
-      console.log('[RealtimeWebRTCClient]', ...args);
+      logger.info('[RealtimeWebRTCClient]', ...args);
     }
   }
 }

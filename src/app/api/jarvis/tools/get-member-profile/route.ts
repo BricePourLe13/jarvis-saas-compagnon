@@ -3,13 +3,14 @@
  * Récupération profil membre complet avec données fraîches
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
 import { sessionContextStore } from '@/lib/voice/session-context-store'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🎯 [TOOL] get_member_profile appelé')
+    logger.info('🎯 [TOOL] get_member_profile appelé')
     
     const { 
       session_id, // ✅ Reçu depuis function call
@@ -20,10 +21,10 @@ export async function POST(request: NextRequest) {
 
     // 📝 RÉCUPÉRER CONTEXTE MEMBRE DEPUIS LE STORE SÉCURISÉ
     const memberContext = session_id ? sessionContextStore.get(session_id) : undefined
-    console.log(`🔍 [TOOL] Contexte session:`, memberContext ? 'trouvé' : 'non trouvé')
+    logger.info(`🔍 [TOOL] Contexte session:`, memberContext ? 'trouvé' : 'non trouvé')
     
     if (!memberContext?.member_id) {
-      console.error(`❌ [TOOL] Contexte membre manquant pour session: ${session_id}`)
+      logger.error(`❌ [TOOL] Contexte membre manquant pour session: ${session_id}`)
       return NextResponse.json(
         { error: 'Contexte membre non disponible. Outil appelé hors session ou session expirée.' },
         { status: 400 }
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const member_id = memberContext.member_id
-    console.log(`🎯 [TOOL] get_member_profile pour membre: ${member_id}`)
+    logger.info(`🎯 [TOOL] get_member_profile pour membre: ${member_id}`)
 
     const supabase = getSupabaseService()
 
@@ -44,14 +45,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (memberError || !member) {
-      console.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
+      logger.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
       return NextResponse.json(
         { error: 'Membre non trouvé ou inactif' },
         { status: 404 }
       )
     }
 
-    console.log(`✅ [TOOL] Profil récupéré pour ${member.first_name}`)
+    logger.info(`✅ [TOOL] Profil récupéré pour ${member.first_name}`)
 
     return NextResponse.json({
       success: true,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🚨 [TOOL] Erreur get_member_profile:', error)
+    logger.error('🚨 [TOOL] Erreur get_member_profile:', error)
     return NextResponse.json(
       { error: 'Erreur serveur', details: error.message },
       { status: 500 }

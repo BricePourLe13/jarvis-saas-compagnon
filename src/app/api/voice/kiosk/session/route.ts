@@ -16,6 +16,7 @@ import { RealtimeSessionFactory } from '@/lib/voice/core/realtime-session-factor
 import { KIOSK_CONFIG, getKioskSessionConfig } from '@/lib/voice/contexts/kiosk-config';
 import { getSupabaseService } from '@/lib/supabase-service';
 import { getOpenAIFunctionsForGym } from '@/lib/custom-tools/helpers';
+import { logger } from '@/lib/production-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (memberError || !member) {
-      console.error('❌ [KIOSK] Membre introuvable:', memberError);
+      logger.error('❌ [KIOSK] Membre introuvable:', memberError);
       return NextResponse.json(
         { error: 'Membre introuvable', details: memberError?.message },
         { status: 404 }
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (gymError || !gym) {
-      console.error('❌ [KIOSK] Gym introuvable:', gymError);
+      logger.error('❌ [KIOSK] Gym introuvable:', gymError);
       return NextResponse.json(
         { error: 'Gym introuvable', details: gymError?.message },
         { status: 404 }
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!sessionResult.success || !sessionResult.session) {
-      console.error('❌ [KIOSK] Failed to create session:', sessionResult.error);
+      logger.error('❌ [KIOSK] Failed to create session:', sessionResult.error);
       return NextResponse.json(
         { error: 'Échec création session OpenAI', details: sessionResult.error },
         { status: 500 }
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
     
     // Fusionner tools built-in + custom tools
     if (customTools.length > 0) {
-      console.log(`✨ [KIOSK] ${customTools.length} custom tools chargés pour gym ${gym.name}`);
+      logger.info(`✨ [KIOSK] ${customTools.length} custom tools chargés pour gym ${gym.name}`);
       sessionUpdateConfig.tools = [
         ...sessionUpdateConfig.tools,
         ...customTools
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
     // ============================================
     // 7. RESPONSE
     // ============================================
-    console.log('✅ [KIOSK] Session créée:', {
+    logger.info('✅ [KIOSK] Session créée:', {
       sessionId: sessionResult.session.session_id,
       memberId,
       memberName: memberContext.name,
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ [KIOSK] Erreur globale:', error);
+    logger.error('❌ [KIOSK] Erreur globale:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }

@@ -3,6 +3,7 @@
  * Enregistrement interactions importantes pour escalation gérant
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
 import { sessionContextStore } from '@/lib/voice/session-context-store'
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const member_id = memberContext.member_id
-    console.log(`📝 [TOOL] log_member_interaction - Type: ${interaction_type}, Urgence: ${urgency_level}`)
+    logger.info(`📝 [TOOL] log_member_interaction - Type: ${interaction_type}, Urgence: ${urgency_level}`)
 
     if (!interaction_type || !urgency_level || !content) {
       return NextResponse.json(
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (memberError || !member) {
-      console.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
+      logger.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
       return NextResponse.json(
         { error: 'Membre non trouvé' },
         { status: 404 }
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (logError) {
-      console.error(`❌ [TOOL] Erreur enregistrement interaction:`, logError)
+      logger.error(`❌ [TOOL] Erreur enregistrement interaction:`, logError)
       return NextResponse.json(
         { error: 'Erreur lors de l\'enregistrement' },
         { status: 500 }
@@ -156,9 +157,9 @@ export async function POST(request: NextRequest) {
           .insert(notificationData)
         
         notificationSent = true
-        console.log(`🔔 [TOOL] Notification envoyée au gérant pour interaction ${urgency_level}`)
+        logger.info(`🔔 [TOOL] Notification envoyée au gérant pour interaction ${urgency_level}`)
       } catch (notifError) {
-        console.log('ℹ️ [TOOL] Table manager_notifications non disponible, notification non envoyée')
+        logger.info('ℹ️ [TOOL] Table manager_notifications non disponible, notification non envoyée')
       }
     }
 
@@ -169,12 +170,12 @@ export async function POST(request: NextRequest) {
         p_interaction_type: interaction_type
       })
     } catch (rpcError) {
-      console.log('ℹ️ [TOOL] RPC increment_member_interaction_count non disponible')
+      logger.info('ℹ️ [TOOL] RPC increment_member_interaction_count non disponible')
     }
 
     const responseMessage = generateResponseMessage(interaction_type, urgency_level, member.first_name)
 
-    console.log(`✅ [TOOL] Interaction enregistrée: ${interaction_type} (${urgency_level}) pour ${member.first_name}`)
+    logger.info(`✅ [TOOL] Interaction enregistrée: ${interaction_type} (${urgency_level}) pour ${member.first_name}`)
 
     return NextResponse.json({
       success: true,
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🚨 [TOOL] Erreur log_member_interaction:', error)
+    logger.error('🚨 [TOOL] Erreur log_member_interaction:', error)
     return NextResponse.json(
       { error: 'Erreur serveur', details: error.message },
       { status: 500 }

@@ -3,6 +3,7 @@
  * Gestion intelligente de l'état de session (terminaison, pause, extension)
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
 import { sessionContextStore } from '@/lib/voice/session-context-store'
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { member_id, gym_slug } = memberContext
-    console.log(`🎯 [TOOL] manage_session_state - Action: ${action}, Raison: ${reason}`)
+    logger.info(`🎯 [TOOL] manage_session_state - Action: ${action}, Raison: ${reason}`)
 
     if (!action) {
       return NextResponse.json(
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (memberError || !member) {
-      console.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
+      logger.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
       return NextResponse.json(
         { error: 'Membre non trouvé' },
         { status: 404 }
@@ -200,7 +201,7 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    console.log(`✅ [TOOL] Session state géré: ${action} pour ${member.first_name}`)
+    logger.info(`✅ [TOOL] Session state géré: ${action} pour ${member.first_name}`)
 
     return NextResponse.json({
       success: true,
@@ -221,7 +222,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🚨 [TOOL] Erreur manage_session_state:', error)
+    logger.error('🚨 [TOOL] Erreur manage_session_state:', error)
     return NextResponse.json(
       { error: 'Erreur serveur', details: error.message },
       { status: 500 }

@@ -3,6 +3,7 @@
  * Mise à jour informations membre en temps réel
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
 import { sessionContextStore } from '@/lib/voice/session-context-store'
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const member_id = memberContext.member_id
-    console.log(`🔄 [TOOL] update_member_info pour membre: ${member_id}, type: ${update_type}`)
+    logger.info(`🔄 [TOOL] update_member_info pour membre: ${member_id}, type: ${update_type}`)
 
     if (!update_type || !field_name || !new_value) {
       return NextResponse.json(
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (memberError || !member) {
-      console.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
+      logger.error(`❌ [TOOL] Membre non trouvé: ${member_id}`, memberError)
       return NextResponse.json(
         { error: 'Membre non trouvé ou inactif' },
         { status: 404 }
@@ -152,17 +153,17 @@ export async function POST(request: NextRequest) {
     // 📝 MISE À JOUR EN BASE
     updateData.updated_at = new Date().toISOString()
     
-    console.log(`🔄 [TOOL] Données à mettre à jour:`, JSON.stringify(updateData, null, 2))
+    logger.info(`🔄 [TOOL] Données à mettre à jour:`, JSON.stringify(updateData, null, 2))
     
     const { error: updateError } = await supabase
       .from('gym_members_v2')
       .update(updateData)
       .eq('id', member_id)
     
-    console.log(`🔄 [TOOL] Résultat mise à jour - Erreur:`, updateError)
+    logger.info(`🔄 [TOOL] Résultat mise à jour - Erreur:`, updateError)
 
     if (updateError) {
-      console.error(`❌ [TOOL] Erreur mise à jour membre:`, updateError)
+      logger.error(`❌ [TOOL] Erreur mise à jour membre:`, updateError)
       return NextResponse.json(
         { error: 'Erreur lors de la mise à jour' },
         { status: 500 }
@@ -191,10 +192,10 @@ export async function POST(request: NextRequest) {
         .insert(logData)
     } catch (logError) {
       // Pas critique si la table n'existe pas encore
-      console.log('ℹ️ [TOOL] Table member_action_logs non disponible')
+      logger.info('ℹ️ [TOOL] Table member_action_logs non disponible')
     }
 
-    console.log(`✅ [TOOL] Profil mis à jour pour ${member.first_name} ${member.last_name}: ${updateDescription}`)
+    logger.info(`✅ [TOOL] Profil mis à jour pour ${member.first_name} ${member.last_name}: ${updateDescription}`)
 
     return NextResponse.json({
       success: true,
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🚨 [TOOL] Erreur update_member_info:', error)
+    logger.error('🚨 [TOOL] Erreur update_member_info:', error)
     return NextResponse.json(
       { error: 'Erreur serveur', details: error.message },
       { status: 500 }

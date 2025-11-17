@@ -3,6 +3,7 @@
  * Exécute un custom tool via le CustomToolExecutor
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { CustomToolExecutor } from '@/lib/custom-tools/executor'
 import { buildExecutionContext } from '@/lib/custom-tools/helpers'
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`🔧 [CUSTOM TOOL] Exécution: ${tool_name} pour member ${member_id}`)
+    logger.info(`🔧 [CUSTOM TOOL] Exécution: ${tool_name} pour member ${member_id}`)
 
     // 1. Construire le contexte d'exécution
     const context = await buildExecutionContext(member_id, gym_id, session_id)
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     )
 
     if (result.success) {
-      console.log(`✅ [CUSTOM TOOL] ${tool_name} exécuté avec succès`)
+      logger.info(`✅ [CUSTOM TOOL] ${tool_name} exécuté avec succès`)
       
       return NextResponse.json({
         success: true,
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
         execution_time_ms: result.execution_time_ms
       })
     } else {
-      console.error(`❌ [CUSTOM TOOL] ${tool_name} échoué:`, result.error)
+      logger.error(`❌ [CUSTOM TOOL] ${tool_name} échoué:`, result.error)
       
       return NextResponse.json(
         { 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       )
     }
   } catch (error: any) {
-    console.error('[API] Error executing custom tool:', error)
+    logger.error('[API] Error executing custom tool:', error)
     
     return NextResponse.json(
       { 

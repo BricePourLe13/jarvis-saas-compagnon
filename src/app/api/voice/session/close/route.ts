@@ -3,6 +3,7 @@
  * Fin de session : extraction facts + génération summary + embeddings
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
 import { extractAndSaveFacts } from '@/lib/member-facts'
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
   try {
     const { session_id, member_id, gym_id } = await request.json()
 
-    console.log(`🏁 [SESSION CLOSE] Fermeture session: ${session_id}`)
+    logger.info(`🏁 [SESSION CLOSE] Fermeture session: ${session_id}`)
 
     // Validation
     if (!session_id || !member_id || !gym_id) {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseService()
 
     // 🔍 RÉCUPÉRER LES ÉVÉNEMENTS DE LA SESSION
-    console.log(`🔍 [SESSION CLOSE] Récupération événements...`)
+    logger.info(`🔍 [SESSION CLOSE] Récupération événements...`)
     const { data: events, error: eventsError } = await supabase
       .from('conversation_events')
       .select('*')
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
       .order('timestamp', { ascending: true })
 
     if (eventsError) {
-      console.error(`❌ [SESSION CLOSE] Erreur récupération événements:`, eventsError)
+      logger.error(`❌ [SESSION CLOSE] Erreur récupération événements:`, eventsError)
       return NextResponse.json(
         { error: 'Erreur récupération événements', details: eventsError.message },
         { status: 500 }
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!events || events.length === 0) {
-      console.warn(`⚠️ [SESSION CLOSE] Aucun événement trouvé pour session ${session_id}`)
+      logger.warn(`⚠️ [SESSION CLOSE] Aucun événement trouvé pour session ${session_id}`)
       return NextResponse.json({
         success: true,
         message: 'Session fermée mais aucun événement à traiter',
@@ -50,13 +51,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`✅ [SESSION CLOSE] ${events.length} événements récupérés`)
+    logger.info(`✅ [SESSION CLOSE] ${events.length} événements récupérés`)
 
     // 📝 CONSTRUIRE LE TRANSCRIPT
     const transcript = buildTranscriptFromEvents(events as any[])
     
     if (!transcript || transcript.trim().length === 0) {
-      console.warn(`⚠️ [SESSION CLOSE] Transcript vide pour session ${session_id}`)
+      logger.warn(`⚠️ [SESSION CLOSE] Transcript vide pour session ${session_id}`)
       return NextResponse.json({
         success: true,
         message: 'Session fermée mais transcript vide',
@@ -65,32 +66,32 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`✅ [SESSION CLOSE] Transcript construit (${transcript.length} chars)`)
+    logger.info(`✅ [SESSION CLOSE] Transcript construit (${transcript.length} chars)`)
 
     // 🧠 EXTRACTION DES FACTS (background - ne pas bloquer)
     let factsCount = 0
     try {
-      console.log(`🧠 [SESSION CLOSE] Extraction facts...`)
+      logger.info(`🧠 [SESSION CLOSE] Extraction facts...`)
       factsCount = await extractAndSaveFacts(member_id, session_id, transcript)
-      console.log(`✅ [SESSION CLOSE] ${factsCount} facts extraits et sauvegardés`)
+      logger.info(`✅ [SESSION CLOSE] ${factsCount} facts extraits et sauvegardés`)
     } catch (factsError: any) {
-      console.error(`⚠️ [SESSION CLOSE] Erreur extraction facts:`, factsError)
+      logger.error(`⚠️ [SESSION CLOSE] Erreur extraction facts:`, factsError)
       // Continue même si facts extraction échoue
     }
 
     // 📊 GÉNÉRATION SUMMARY + EMBEDDING (background - ne pas bloquer)
     let summaryId: string | null = null
     try {
-      console.log(`📊 [SESSION CLOSE] Génération summary + embedding...`)
+      logger.info(`📊 [SESSION CLOSE] Génération summary + embedding...`)
       summaryId = await generateAndSaveSummary({
         sessionId: session_id,
         memberId: member_id,
         gymId: gym_id,
         events: events as any[]
       })
-      console.log(`✅ [SESSION CLOSE] Summary généré: ${summaryId}`)
+      logger.info(`✅ [SESSION CLOSE] Summary généré: ${summaryId}`)
     } catch (summaryError: any) {
-      console.error(`⚠️ [SESSION CLOSE] Erreur génération summary:`, summaryError)
+      logger.error(`⚠️ [SESSION CLOSE] Erreur génération summary:`, summaryError)
       // Continue même si summary génération échoue
     }
 
@@ -106,10 +107,10 @@ export async function POST(request: NextRequest) {
         .eq('session_id', session_id)
 
       if (updateError) {
-        console.error(`⚠️ [SESSION CLOSE] Erreur mise à jour session:`, updateError)
+        logger.error(`⚠️ [SESSION CLOSE] Erreur mise à jour session:`, updateError)
       }
     } catch (updateError: any) {
-      console.error(`⚠️ [SESSION CLOSE] Erreur mise à jour session:`, updateError)
+      logger.error(`⚠️ [SESSION CLOSE] Erreur mise à jour session:`, updateError)
     }
 
     // 📈 OPTIONNEL : Trigger analytics calculation (background job)
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🚨 [SESSION CLOSE] Erreur serveur:', error)
+    logger.error('🚨 [SESSION CLOSE] Erreur serveur:', error)
     return NextResponse.json(
       { 
         error: 'Erreur serveur', 

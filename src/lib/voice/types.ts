@@ -14,7 +14,7 @@ export type OutputModality = 'audio' | 'text';
 
 export type AudioFormat = 'audio/pcm' | 'audio/pcmu' | 'audio/pcma';
 
-export type SessionContext = 'vitrine' | 'kiosk';
+export type SessionContext = 'kiosk';
 
 // ============================================
 // SESSION CONFIGURATION
@@ -202,12 +202,6 @@ export interface RealtimeTool {
 // CONTEXT CONFIG
 // ============================================
 
-export interface VitrineContext {
-  context: 'vitrine';
-  maxDurationSeconds: number;
-  rateLimitPerIP: number;
-}
-
 export interface KioskContext {
   context: 'kiosk';
   memberId: string;
@@ -216,7 +210,7 @@ export interface KioskContext {
   gymName: string;
 }
 
-export type RealtimeContext = VitrineContext | KioskContext;
+export type RealtimeContext = KioskContext;
 
 // ============================================
 // SESSION FACTORY RESPONSE
@@ -235,3 +229,4 @@ export interface SessionFactoryResponse {
   error?: string;
   remainingCredits?: number;
 }
+

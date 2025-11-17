@@ -3,6 +3,7 @@
  * Endpoint de test pour vérifier la fermeture des sessions
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseSingleton } from '@/lib/supabase-singleton'
 import { OPENAI_CONFIG } from '@/lib/openai-config'
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`🧪 [TEST] Session test créée: ${testSessionId}`)
+    logger.info(`🧪 [TEST] Session test créée: ${testSessionId}`)
 
     // 2. Tester la fermeture
     const { data, error } = await supabase.rpc('close_realtime_session', {
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
       .eq('session_id', testSessionId)
       .single()
 
-    console.log(`🧪 [TEST] Session fermée:`, closedSession)
+    logger.info(`🧪 [TEST] Session fermée:`, closedSession)
 
     // 4. Nettoyer la session de test
     await supabase
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🧪 [TEST] Erreur:', error)
+    logger.error('🧪 [TEST] Erreur:', error)
     return NextResponse.json(
       { error: 'Erreur test', details: error.message },
       { status: 500 }

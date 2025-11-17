@@ -10,6 +10,7 @@
  * @date 2025-01-XX
  */
 
+import { logger } from '@/lib/production-logger';
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   VoiceRealtimeCoreConfig,
@@ -118,7 +119,7 @@ export function useVoiceRealtimeCore(
    */
   const initializeWebRTC = useCallback(async (
     session: { client_secret: { value: string } | string; session_id: string },
-    realtimeContext: 'production' | 'vitrine' = 'production'
+    realtimeContext: 'production' = 'production'
   ): Promise<void> => {
     try {
       // 1. Vérifier support WebRTC
@@ -143,7 +144,7 @@ export function useVoiceRealtimeCore(
       // ✅ GESTION ERREURS ICE (connexion WebRTC)
       pc.oniceconnectionstatechange = () => {
         const state = pc.iceConnectionState
-        console.log(`🔌 [WebRTC] ICE Connection State: ${state}`)
+        logger.info(`🔌 [WebRTC] ICE Connection State: ${state}`)
         
         switch (state) {
           case 'failed':
@@ -152,13 +153,13 @@ export function useVoiceRealtimeCore(
             // Tentative de récupération automatique
             setTimeout(() => {
               if (peerConnectionRef.current?.iceConnectionState === 'failed') {
-                console.log('🔄 [WebRTC] Tentative récupération connexion...')
+                logger.info('🔄 [WebRTC] Tentative récupération connexion...')
                 // Le core hook gérera la reconnexion si nécessaire
               }
             }, 2000)
             break
           case 'disconnected':
-            console.log('⚠️ [WebRTC] Connexion interrompue')
+            logger.info('⚠️ [WebRTC] Connexion interrompue')
             updateStatus('error')
             config.onError?.(new Error('Connexion interrompue'))
             break
@@ -176,11 +177,11 @@ export function useVoiceRealtimeCore(
 
       // ✅ GESTION ERREURS ICE CANDIDATES
       pc.onicecandidateerror = (event) => {
-        console.error('❌ [WebRTC] Erreur ICE candidate:', event)
+        logger.error('❌ [WebRTC] Erreur ICE candidate:', event)
         // Ne pas bloquer la connexion pour erreurs mineures
         if (event.errorCode === 701 || event.errorCode === 702) {
           // Erreurs STUN/TURN - continuer quand même
-          console.warn('⚠️ [WebRTC] Erreur STUN/TURN (non bloquant)')
+          logger.warn('⚠️ [WebRTC] Erreur STUN/TURN (non bloquant)')
         } else {
           config.onError?.(new Error(`Erreur réseau: ${event.errorText || 'Erreur inconnue'}`))
         }
@@ -401,8 +402,8 @@ export function useVoiceRealtimeCore(
       // 1. Créer session via factory
       const session = await config.sessionFactory.createSession()
       
-      // 2. Déterminer le contexte (production ou vitrine)
-      const realtimeContext = config.context === 'vitrine' ? 'vitrine' : 'production'
+      // 2. Initialiser WebRTC avec contexte production
+      const realtimeContext = 'production'
       
       // 3. Initialiser WebRTC
       await initializeWebRTC(session, realtimeContext)
@@ -474,6 +475,7 @@ export function useVoiceRealtimeCore(
     getSessionId: () => sessionRef.current?.session_id || null
   }
 }
+
 
 
 

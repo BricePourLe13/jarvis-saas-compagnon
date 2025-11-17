@@ -3,12 +3,13 @@
  * Endpoint pour diagnostiquer les problèmes de fermeture de session
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
 
 export async function GET() {
   try {
-    console.log('🔍 [DIAGNOSTIC] Démarrage diagnostic complet...')
+    logger.info('🔍 [DIAGNOSTIC] Démarrage diagnostic complet...')
 
     // 1. Vérifier les variables d'environnement
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -22,7 +23,7 @@ export async function GET() {
       nodeEnv: process.env.NODE_ENV
     }
 
-    console.log('🔍 [DIAGNOSTIC] Variables d\'environnement:', envCheck)
+    logger.info('🔍 [DIAGNOSTIC] Variables d\'environnement:', envCheck)
 
     // 2. Tester la connexion Supabase
     let supabaseTest = { connected: false, error: null }
@@ -45,7 +46,7 @@ export async function GET() {
       }
     }
 
-    console.log('🔍 [DIAGNOSTIC] Test connexion Supabase:', supabaseTest)
+    logger.info('🔍 [DIAGNOSTIC] Test connexion Supabase:', supabaseTest)
 
     // 3. Vérifier l'existence de la fonction RPC
     let rpcCheck = { exists: false, error: null }
@@ -67,7 +68,7 @@ export async function GET() {
       }
     }
 
-    console.log('🔍 [DIAGNOSTIC] Test fonction RPC:', rpcCheck)
+    logger.info('🔍 [DIAGNOSTIC] Test fonction RPC:', rpcCheck)
 
     // 4. Lister les sessions actives récentes
     let sessionsCheck = { count: 0, recent: [], error: null }
@@ -92,7 +93,7 @@ export async function GET() {
       }
     }
 
-    console.log('🔍 [DIAGNOSTIC] Sessions récentes:', sessionsCheck)
+    logger.info('🔍 [DIAGNOSTIC] Sessions récentes:', sessionsCheck)
 
     // 5. Test complet avec session réelle si possible
     let fullTest = { success: false, steps: [], error: null }
@@ -145,7 +146,7 @@ export async function GET() {
       fullTest.error = err.message
     }
 
-    console.log('🔍 [DIAGNOSTIC] Test complet:', fullTest)
+    logger.info('🔍 [DIAGNOSTIC] Test complet:', fullTest)
 
     return NextResponse.json({
       success: true,
@@ -160,7 +161,7 @@ export async function GET() {
     })
 
   } catch (error: any) {
-    console.error('🚨 [DIAGNOSTIC] Erreur:', error)
+    logger.error('🚨 [DIAGNOSTIC] Erreur:', error)
     return NextResponse.json(
       { error: 'Erreur diagnostic', details: error.message },
       { status: 500 }

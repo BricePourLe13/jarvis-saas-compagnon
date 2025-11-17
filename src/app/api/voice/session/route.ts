@@ -3,6 +3,7 @@
  * Création de sessions OpenAI avec profils membres réels et cache
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseService } from '@/lib/supabase-service'
 import { getMinimalSessionConfig, getConfigForContext, getFullSessionUpdate } from '@/lib/openai-config'
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
   try {
     const { gymSlug, badge_id, language = 'fr' } = await request.json()
 
-    console.log(`🎯 [SESSION] Création session pour badge: ${badge_id} sur ${gymSlug}`)
+    logger.info(`🎯 [SESSION] Création session pour badge: ${badge_id} sur ${gymSlug}`)
 
     if (!badge_id || !gymSlug) {
       return NextResponse.json(
@@ -73,13 +74,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`✅ [SESSION] Profil récupéré: ${memberProfile.first_name} ${memberProfile.last_name}`)
+    logger.info(`✅ [SESSION] Profil récupéré: ${memberProfile.first_name} ${memberProfile.last_name}`)
 
     // Générer l'ID de session
     const sessionId = generateSessionId()
 
     // 🧠 RÉCUPÉRER CONTEXTE ENRICHI (RAG + Facts)
-    console.log(`🧠 [SESSION] Récupération contexte enrichi pour ${memberProfile.id}`)
+    logger.info(`🧠 [SESSION] Récupération contexte enrichi pour ${memberProfile.id}`)
     
     // 1. Facts persistants (goals, injuries, preferences)
     const memberFacts = await getMemberFacts(memberProfile.id, {
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       limit: 10
     })
     const factsPrompt = formatFactsForPrompt(memberFacts)
-    console.log(`✅ [SESSION] ${memberFacts.length} facts récupérés`)
+    logger.info(`✅ [SESSION] ${memberFacts.length} facts récupérés`)
 
     // 2. Contexte conversations précédentes (RAG)
     const conversationContext = await getConversationContext(
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       'résumé général pour nouvelle session',
       { matchThreshold: 0.7, matchCount: 3 }
     )
-    console.log(`✅ [SESSION] Contexte RAG récupéré (${conversationContext ? 'oui' : 'non'})`)
+    logger.info(`✅ [SESSION] Contexte RAG récupéré (${conversationContext ? 'oui' : 'non'})`)
 
     // 🎭 PERSONNALISATION JARVIS VIA TOOLS UNIQUEMENT
     // Plus de données hardcodées - tout via tools dynamiques
@@ -230,8 +231,8 @@ export async function POST(request: NextRequest) {
     // 🔑 ÉTAPE 1 : Créer ephemeral token avec config MINIMALE
     const minimalConfig = getMinimalSessionConfig('production')
 
-    console.log(`🔑 [SESSION] Création ephemeral token pour ${memberProfile.first_name}`)
-    console.log(`📡 [DEBUG] Config minimale:`, {
+    logger.info(`🔑 [SESSION] Création ephemeral token pour ${memberProfile.first_name}`)
+    logger.info(`📡 [DEBUG] Config minimale:`, {
       model: minimalConfig.model,
       voice: minimalConfig.audio.output.voice
     })
@@ -258,9 +259,9 @@ export async function POST(request: NextRequest) {
 
     if (!sessionResponse.ok) {
       const errorText = await sessionResponse.text()
-      console.error(`❌ [SESSION] Erreur OpenAI:`, errorText)
-      console.error(`❌ [DEBUG] Status: ${sessionResponse.status}`)
-      console.error(`❌ [DEBUG] Headers:`, Object.fromEntries(sessionResponse.headers.entries()))
+      logger.error(`❌ [SESSION] Erreur OpenAI:`, errorText)
+      logger.error(`❌ [DEBUG] Status: ${sessionResponse.status}`)
+      logger.error(`❌ [DEBUG] Headers:`, Object.fromEntries(sessionResponse.headers.entries()))
       
       return NextResponse.json(
         { 
@@ -274,8 +275,8 @@ export async function POST(request: NextRequest) {
 
     const sessionData = await sessionResponse.json()
     
-    console.log(`✅ [SESSION] Ephemeral token créé pour ${memberProfile.first_name}`)
-    console.log(`✅ [DEBUG] Token:`, {
+    logger.info(`✅ [SESSION] Ephemeral token créé pour ${memberProfile.first_name}`)
+    logger.info(`✅ [DEBUG] Token:`, {
       session_id: sessionId,
       tokenPrefix: sessionData.value?.substring(0, 10) + '...',
       model: minimalConfig.model,
@@ -288,7 +289,7 @@ export async function POST(request: NextRequest) {
     const instructions = generateEnrichedInstructions(memberProfile, gymSlug, factsPrompt, conversationContext)
     const sessionUpdateConfig = getFullSessionUpdate(baseConfig, instructions, jarvisTools, baseConfig.voice)
 
-    console.log(`📋 [SESSION] Config complète préparée (${instructions.length} chars, ${jarvisTools.length} tools)`)
+    logger.info(`📋 [SESSION] Config complète préparée (${instructions.length} chars, ${jarvisTools.length} tools)`)
 
     // 🎯 ENREGISTREMENT EN BASE AVEC RELATION FORTE
     try {
@@ -304,14 +305,14 @@ export async function POST(request: NextRequest) {
       })
 
       if (error) {
-        console.error(`❌ [SESSION] Erreur enregistrement DB:`, error)
+        logger.error(`❌ [SESSION] Erreur enregistrement DB:`, error)
         // Ne pas faire échouer la session pour ça
       } else {
-        console.log(`💾 [SESSION] Enregistré en base:`, result)
+        logger.info(`💾 [SESSION] Enregistré en base:`, result)
       }
 
     } catch (dbError) {
-      console.error(`❌ [SESSION] Erreur DB:`, dbError)
+      logger.error(`❌ [SESSION] Erreur DB:`, dbError)
       // Ne pas faire échouer la session pour ça
     }
 
@@ -346,7 +347,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('🚨 [SESSION] Erreur serveur:', error)
+    logger.error('🚨 [SESSION] Erreur serveur:', error)
     return NextResponse.json(
       { error: 'Erreur serveur', details: error.message },
       { status: 500 }
@@ -528,7 +529,7 @@ CRITIQUES:
 
 Commence par : "Salut ${first_name} ! Comment ça va aujourd'hui ?"`
 
-  console.log(`🎯 [PROMPT] Taille: ${instructions.length} chars pour ${first_name}`)
+  logger.info(`🎯 [PROMPT] Taille: ${instructions.length} chars pour ${first_name}`)
 
   return instructions
 }

@@ -1,9 +1,11 @@
+'use client'
+
 /**
  * 🎯 SIMULATEUR RFID PRODUCTION
  * Simulation du scan de badge avec vrais profils membres
  */
 
-'use client'
+import { logger } from '@/lib/production-logger';
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
@@ -51,7 +53,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
       await new Promise(resolve => setTimeout(resolve, 800))
       
       // 🔥 APPEL API RÉELLE POUR RÉCUPÉRER LE PROFIL
-      console.log(`🎯 [RFID] Scan badge: ${badge_id} pour ${memberName}`)
+      logger.info(`🎯 [RFID] Scan badge: ${badge_id} pour ${memberName}`)
       
       const apiSlug = gymSlug || 'gym-yatblc8h'
       const response = await fetch(`/api/kiosk/${apiSlug}/members/${badge_id}`)
@@ -59,7 +61,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
       
       if (result.found && result.member) {
         // ✅ Profil membre trouvé en base
-        console.log(`✅ [RFID] Profil récupéré:`, result.member)
+        logger.info(`✅ [RFID] Profil récupéré:`, result.member)
         
         toast({
           title: `Badge scanné !`,
@@ -69,7 +71,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
         onMemberScanned(result.member)
       } else {
         // ❌ Badge non trouvé
-        console.error(`❌ [RFID] Badge non trouvé: ${badge_id}`)
+        logger.error(`❌ [RFID] Badge non trouvé: ${badge_id}`)
         
         toast({
           title: 'Badge non reconnu',
@@ -79,7 +81,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
       }
       
     } catch (error) {
-      console.error('❌ [RFID] Erreur scan:', error)
+      logger.error('❌ [RFID] Erreur scan:', error)
       
       toast({
         title: 'Erreur de scan',

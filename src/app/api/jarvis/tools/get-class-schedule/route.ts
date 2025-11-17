@@ -4,6 +4,7 @@
  * Récupère les horaires des cours pour une gym spécifique
  */
 
+import { logger } from '@/lib/production-logger';
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { sessionId, gymId, className, date, dayOfWeek } = requestSchema.parse(body)
     
-    console.log(`🔧 [TOOL] get_class_schedule appelé pour gym ${gymId}`)
+    logger.info(`🔧 [TOOL] get_class_schedule appelé pour gym ${gymId}`)
     
     // Déterminer la date à query
     const queryDate = date || new Date().toISOString().split('T')[0]
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     const { data: classes, error } = await query
     
     if (error) {
-      console.error('❌ [TOOL] Erreur DB:', error)
+      logger.error('❌ [TOOL] Erreur DB:', error)
       return NextResponse.json({
         success: false,
         error: 'Erreur récupération horaires',
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
         }
       })
     
-    console.log(`✅ [TOOL] get_class_schedule: ${classesCount} cours trouvés`)
+    logger.info(`✅ [TOOL] get_class_schedule: ${classesCount} cours trouvés`)
     
     return NextResponse.json({
       success: true,
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error('❌ [TOOL] get_class_schedule error:', error)
+    logger.error('❌ [TOOL] get_class_schedule error:', error)
     
     if (error instanceof z.ZodError) {
       return NextResponse.json({

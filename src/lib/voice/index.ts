@@ -11,12 +11,6 @@ export { RealtimeSessionFactory, createSessionWithRetry } from './core/realtime-
 export { RealtimeWebRTCClient } from './core/realtime-webrtc-client';
 
 // Contexts
-export { 
-  VITRINE_CONFIG,
-  getVitrineSessionConfig,
-  checkVitrineRateLimit
-} from './contexts/vitrine-config';
-
 export {
   KIOSK_CONFIG,
   KIOSK_TOOLS,
@@ -25,5 +19,6 @@ export {
 
 // Types
 export type * from './types';
+
 
 

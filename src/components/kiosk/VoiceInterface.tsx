@@ -1,4 +1,6 @@
 "use client"
+
+import { logger } from '@/lib/production-logger';
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -104,7 +106,7 @@ export default function VoiceInterface({
     
     if (currentBadge && currentBadge !== prevBadgeRef.current) {
       // NOUVEAU membre différent détecté
-      console.log(`🔄 [VOICE] Nouveau membre détecté: ${currentBadge} - Reset hasDetectedGoodbye`)
+      logger.info(`🔄 [VOICE] Nouveau membre détecté: ${currentBadge} - Reset hasDetectedGoodbye`)
       setHasDetectedGoodbye(false) // 🚀 FORCE RESET du flag au revoir
       
       if (isConnected) {
@@ -148,7 +150,7 @@ export default function VoiceInterface({
   // 🚨 NOUVEAU: Reset automatique si plus de membre
   useEffect(() => {
     if (!currentMember && hasDetectedGoodbye) {
-      console.log(`🔄 [VOICE] Aucun membre + au revoir détecté - Reset pour nouveau scan`)
+      logger.info(`🔄 [VOICE] Aucun membre + au revoir détecté - Reset pour nouveau scan`)
       // Garder hasDetectedGoodbye=true tant qu'aucun nouveau membre
       kioskLogger.session('Aucun membre actif - Garde au revoir actif', 'info')
     }
