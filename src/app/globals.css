@@ -3,98 +3,73 @@
 @tailwind utilities;
 
 /* ============================================================================
-   DESIGN SYSTEM - JARVIS Dashboard Enterprise (Kestra-Inspired)
-   Dark Mode par défaut - Moderne, Professionnel
+   JARVIS SaaS - Design System v2.0
+   Light Mode - Monochrome + Accents Subtils
+   Professional B2B Dashboard
    ============================================================================ */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --card-hover: 0 0% 98%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
-    --info: 199 89% 48%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    /* Backgrounds - Pure monochrome */
-    --background: 0 0% 0%;            /* #000000 - Pure black */
-    --foreground: 0 0% 100%;          /* #ffffff - Pure white */
+    /* Backgrounds - Pure white base */
+    --background: 0 0% 100%;              /* #ffffff */
+    --foreground: 0 0% 9%;                /* #171717 - Almost black */
     
-    /* Cards - Subtle gray glassmorphism */
-    --card: 0 0% 7%;                  /* #121212 - Very dark gray */
-    --card-foreground: 0 0% 98%;      /* #fafafa - Almost white */
-    --card-hover: 0 0% 10%;           /* #1a1a1a - Slightly lighter on hover */
+    /* Cards - Very light gray */
+    --card: 0 0% 100%;                    /* #ffffff */
+    --card-foreground: 0 0% 9%;           /* #171717 */
     
     /* Popover */
-    --popover: 0 0% 7%;               /* #121212 */
-    --popover-foreground: 0 0% 98%;   /* #fafafa */
+    --popover: 0 0% 100%;                 /* #ffffff */
+    --popover-foreground: 0 0% 9%;        /* #171717 */
     
-    /* Primary - SUBTLE violet (barely visible) */
-    --primary: 262 50% 50%;           /* #6b46c1 - More muted violet */
-    --primary-foreground: 0 0% 100%;  /* #ffffff */
-    --primary-hover: 262 55% 55%;     /* #7c5fd1 */
+    /* Primary - Bleu subtil (actions principales) */
+    --primary: 217 91% 60%;               /* #3b82f6 - Bleu standard */
+    --primary-foreground: 0 0% 100%;      /* #ffffff */
     
-    /* Secondary - Pure monochrome */
-    --secondary: 0 0% 12%;            /* #1f1f1f */
-    --secondary-foreground: 0 0% 100%; /* #ffffff */
+    /* Secondary - Gris clair */
+    --secondary: 0 0% 96%;                /* #f5f5f5 */
+    --secondary-foreground: 0 0% 9%;      /* #171717 */
     
-    /* Muted - Gray scale */
-    --muted: 0 0% 15%;                /* #262626 */
-    --muted-foreground: 0 0% 60%;     /* #999999 - Medium gray */
+    /* Muted - Gris très clair */
+    --muted: 0 0% 96%;                    /* #f5f5f5 */
+    --muted-foreground: 0 0% 45%;         /* #737373 - Gris moyen */
     
-    /* Accent - Very subtle violet */
-    --accent: 262 30% 50%;            /* Barely visible violet */
-    --accent-foreground: 0 0% 100%;   /* #ffffff */
+    /* Accent - Bleu très subtil */
+    --accent: 217 91% 95%;                /* Bleu très clair */
+    --accent-foreground: 217 91% 60%;     /* Bleu standard */
     
-    /* Destructive/Error */
-    --destructive: 0 84% 60%;         /* #ef4444 */
-    --destructive-foreground: 210 40% 98%; /* #f8fafc */
+    /* Destructive - Rouge (erreurs/churn HIGH) */
+    --destructive: 0 84% 60%;             /* #ef4444 */
+    --destructive-foreground: 0 0% 100%;  /* #ffffff */
     
-    /* Success */
-    --success: 142 76% 36%;           /* #10b981 */
-    --success-light: 142 76% 45%;     /* #22c55e */
+    /* Success - Vert (succès/statuts OK) */
+    --success: 142 76% 36%;               /* #059669 */
+    --success-foreground: 0 0% 100%;      /* #ffffff */
     
-    /* Warning */
-    --warning: 38 92% 50%;            /* #f59e0b */
-    --warning-light: 48 96% 53%;      /* #fbbf24 */
+    /* Warning - Orange (warnings/churn MEDIUM) */
+    --warning: 25 95% 53%;                /* #f97316 */
+    --warning-foreground: 0 0% 100%;      /* #ffffff */
     
-    /* Info */
-    --info: 199 89% 48%;              /* #0ea5e9 */
+    /* Info - Bleu (informations) */
+    --info: 199 89% 48%;                  /* #0ea5e9 */
+    --info-foreground: 0 0% 100%;         /* #ffffff */
     
-    /* Borders - Pure gray, no violet */
-    --border: 0 0% 20%;               /* #333333 - Dark gray */
-    --input: 0 0% 20%;                /* #333333 */
+    /* Borders - Gris très clair */
+    --border: 0 0% 90%;                   /* #e5e5e5 */
+    --input: 0 0% 90%;                    /* #e5e5e5 */
     
-    /* Ring */
-    --ring: 262 83% 58%;              /* #8b5cf6 */
+    /* Ring (focus) */
+    --ring: 217 91% 60%;                  /* #3b82f6 */
     
-    /* Radius */
-    --radius: 0.5rem;
+    /* Border Radius */
+    --radius: 0.5rem;                     /* 8px */
     
-    /* Churn Risk Colors (Gym Specific) */
-    --churn-low: 142 76% 36%;         /* Vert */
-    --churn-medium: 38 92% 50%;       /* Orange */
-    --churn-high: 0 84% 60%;          /* Rouge */
+    /* Chart colors (monochrome + accents subtils) */
+    --chart-1: 217 91% 60%;               /* Bleu */
+    --chart-2: 142 76% 36%;               /* Vert */
+    --chart-3: 25 95% 53%;                /* Orange */
+    --chart-4: 0 0% 45%;                  /* Gris */
+    --chart-5: 0 84% 60%;                 /* Rouge */
   }
 }
 
@@ -104,61 +79,48 @@
   }
   
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
   }
   
-  /* Scrollbar Custom (Dark Theme) */
+  /* Scrollbar Custom (Light Theme) */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
   
   ::-webkit-scrollbar-track {
-    @apply bg-background;
+    @apply bg-muted;
   }
   
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted rounded-full hover:bg-muted-foreground/50;
+    @apply bg-border rounded-full hover:bg-muted-foreground transition-colors;
   }
 }
 
 /* ============================================================================
-   UTILITY CLASSES - Dashboard Components
+   UTILITY CLASSES - Dashboard Monochrome + Accents
    ============================================================================ */
 
 @layer components {
-  /* Card Variants - Monochrome glassmorphism */
-  .card-gradient {
-    background: linear-gradient(135deg, rgba(18, 18, 18, 0.6) 0%, rgba(26, 26, 26, 0.4) 100%);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-  
-  .card-hover {
-    @apply transition-all duration-200;
-  }
-  
-  .card-hover:hover {
-    background: rgba(26, 26, 26, 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-  }
-  
-  /* KPI Card */
+  /* KPI Cards */
   .kpi-card {
-    @apply bg-card border border-border rounded-lg p-6 transition-all duration-200 hover:shadow-lg;
+    @apply bg-white border border-border rounded-lg p-6 transition-all duration-200;
   }
   
   .kpi-card:hover {
-    background-color: hsl(var(--card-hover));
+    @apply shadow-sm border-primary/20;
   }
   
-  /* Metric Number */
+  /* Metric Values */
   .metric-value {
-    @apply text-4xl font-bold text-foreground mb-2;
+    @apply text-3xl font-semibold text-foreground tracking-tight;
   }
   
-  /* Trend Indicator */
+  .metric-label {
+    @apply text-sm text-muted-foreground font-normal;
+  }
+  
+  /* Trend Indicators (accents subtils) */
   .trend-up {
     color: hsl(var(--success));
   }
@@ -167,116 +129,83 @@
     color: hsl(var(--destructive));
   }
   
-  /* Chart Container */
-  .chart-container {
-    @apply bg-card border border-border rounded-lg p-6;
+  .trend-neutral {
+    @apply text-muted-foreground;
   }
   
-  /* Table Row Hover */
-  .table-row-hover {
-    @apply hover:bg-card-hover transition-colors cursor-pointer;
-  }
-  
-  /* Badge Variants */
+  /* Status Badges (accents subtils) */
   .badge-success {
-    @apply bg-success/10 text-success border border-success/20;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+    background-color: hsl(var(--success) / 0.1);
+    color: hsl(var(--success));
+    border-color: hsl(var(--success) / 0.2);
   }
   
   .badge-warning {
-    @apply bg-warning/10 text-warning border border-warning/20;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+    background-color: hsl(var(--warning) / 0.1);
+    color: hsl(var(--warning));
+    border-color: hsl(var(--warning) / 0.2);
   }
   
   .badge-error {
-    @apply bg-destructive/10 text-destructive border border-destructive/20;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+    background-color: hsl(var(--destructive) / 0.1);
+    color: hsl(var(--destructive));
+    border-color: hsl(var(--destructive) / 0.2);
   }
   
   .badge-info {
-    @apply bg-info/10 text-info border border-info/20;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+    background-color: hsl(var(--info) / 0.1);
+    color: hsl(var(--info));
+    border-color: hsl(var(--info) / 0.2);
   }
   
-  /* Sidebar */
+  .badge-neutral {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border;
+  }
+  
+  /* Table Rows (hover subtil) */
+  .table-row {
+    @apply border-b border-border transition-colors;
+  }
+  
+  .table-row:hover {
+    @apply bg-muted/50;
+  }
+  
+  /* Sidebar (monochrome) */
   .sidebar {
-    @apply bg-card border-r border-border;
+    @apply bg-white border-r border-border;
   }
   
   .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors;
+    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer;
   }
   
   .sidebar-item-active {
-    @apply bg-primary/10 text-primary border-l-2 border-primary;
+    @apply bg-primary/5 text-primary font-medium;
   }
   
   /* Header */
   .dashboard-header {
-    @apply bg-card border-b border-border;
+    @apply bg-white border-b border-border;
   }
   
-  /* Animation */
+  /* Fade-in animation */
   .fade-in {
-    animation: fadeIn 0.3s ease-in;
+    animation: fadeIn 0.2s ease-out;
   }
   
   @keyframes fadeIn {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
-  /* Gradient Text */
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
-  }
-  
-  /* Glow Effect */
-  .glow {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
-  }
-}
-
-/* ============================================================================
-   RECHARTS CUSTOMIZATION (Dark Theme)
-   ============================================================================ */
-
-.recharts-cartesian-grid-horizontal line,
-.recharts-cartesian-grid-vertical line {
-  stroke: hsl(var(--border));
-}
-
-.recharts-text {
-  fill: hsl(var(--muted-foreground));
-}
-
-.recharts-legend-wrapper {
-  color: hsl(var(--foreground));
-}
-
-/* ============================================================================
-   ANIMATIONS
-   ============================================================================ */
-
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.animate-shimmer {
-  animation: shimmer 2s infinite linear;
-  background: linear-gradient(
-    to right,
-    hsl(var(--muted)) 0%,
-    hsl(var(--muted-foreground) / 0.1) 20%,
-    hsl(var(--muted)) 40%,
-    hsl(var(--muted)) 100%
-  );
-  background-size: 1000px 100%;
 }
