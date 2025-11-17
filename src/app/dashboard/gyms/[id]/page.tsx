@@ -240,6 +240,9 @@ export default async function GymDetailPage({
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Dernière activité
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -266,6 +269,18 @@ export default async function GymDetailPage({
                             ? new Date(kiosk.last_heartbeat).toLocaleString('fr-FR')
                             : 'Jamais'}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <Link
+                          href={`/kiosk/${kiosk.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant="outline" size="sm">
+                            <Monitor className="mr-2 h-4 w-4" />
+                            Ouvrir kiosk
+                          </Button>
+                        </Link>
                       </td>
                     </tr>
                   ))}

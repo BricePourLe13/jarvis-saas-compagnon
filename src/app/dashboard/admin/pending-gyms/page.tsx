@@ -68,7 +68,11 @@ export default async function PendingGymsPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      userRole={userProfile.role as 'super_admin' | 'gym_manager'}
+      userName={user.user_metadata?.full_name || user.email || 'Utilisateur'}
+      userEmail={user.email || ''}
+    >
       <PageHeader
         title="Salles en attente d'approbation"
         description="Gérez les nouvelles salles créées par les gérants."

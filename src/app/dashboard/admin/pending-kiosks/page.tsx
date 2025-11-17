@@ -73,7 +73,11 @@ export default async function PendingKiosksPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout
+      userRole={userProfile.role as 'super_admin' | 'gym_manager'}
+      userName={user.user_metadata?.full_name || user.email || 'Utilisateur'}
+      userEmail={user.email || ''}
+    >
       <PageHeader
         title="Kiosks en attente d'approbation"
         description="Validez les kiosks provisionnés par les gérants."

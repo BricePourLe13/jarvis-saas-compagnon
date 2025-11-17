@@ -61,6 +61,12 @@ const NAV_ITEMS: NavItem[] = [
     adminOnly: true,
   },
   {
+    label: 'Invitations',
+    href: '/dashboard/admin/invitations',
+    icon: Users,
+    adminOnly: true,
+  },
+  {
     label: 'Adhérents',
     href: '/dashboard/members',
     icon: Users,
