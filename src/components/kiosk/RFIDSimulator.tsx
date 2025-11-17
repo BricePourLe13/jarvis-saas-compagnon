@@ -6,7 +6,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Box, VStack, HStack, Button, Text, Badge, Spinner, useToast } from '@chakra-ui/react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Loader2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import { GymMember } from '@/types/kiosk'
 
 interface RFIDSimulatorProdProps {
@@ -28,15 +31,14 @@ const PRODUCTION_BADGES = [
 export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }: RFIDSimulatorProdProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [lastScannedBadge, setLastScannedBadge] = useState<string | null>(null)
-  const toast = useToast()
+  const { toast } = useToast()
 
   const simulateBadgeScan = async (badge_id: string, memberName: string) => {
     if (isActive) {
       toast({
         title: 'Session active',
         description: 'Une session est déjà en cours. Terminez-la avant de scanner un nouveau badge.',
-        status: 'warning',
-        duration: 3000
+        variant: 'destructive'
       })
       return
     }
@@ -61,9 +63,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
         
         toast({
           title: `Badge scanné !`,
-          description: `Bienvenue ${result.member.first_name} ${result.member.last_name}`,
-          status: 'success',
-          duration: 2000
+          description: `Bienvenue ${result.member.first_name} ${result.member.last_name}`
         })
         
         onMemberScanned(result.member)
@@ -74,8 +74,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
         toast({
           title: 'Badge non reconnu',
           description: `Le badge ${badge_id} n'est pas enregistré dans cette salle.`,
-          status: 'error',
-          duration: 4000
+          variant: 'destructive'
         })
       }
       
@@ -85,8 +84,7 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
       toast({
         title: 'Erreur de scan',
         description: 'Impossible de lire le badge. Réessayez.',
-        status: 'error',
-        duration: 4000
+        variant: 'destructive'
       })
     }
     
@@ -95,100 +93,94 @@ export default function RFIDSimulatorProd({ onMemberScanned, isActive, gymSlug }
 
   const getBadgeColor = (type: string) => {
     switch (type) {
-      case 'Elite': return 'purple'
-      case 'Premium': return 'blue'
-      case 'Standard': return 'green'
-      default: return 'gray'
+      case 'Elite': return 'bg-purple-100 text-purple-700 border-purple-200'
+      case 'Premium': return 'bg-blue-100 text-blue-700 border-blue-200'
+      case 'Standard': return 'bg-green-100 text-green-700 border-green-200'
+      default: return 'bg-gray-100 text-gray-700 border-gray-200'
     }
   }
 
   return (
-    <Box 
-      position="relative" 
-      w="full" 
-      p={6} 
-      bg="white" 
-      borderRadius="xl" 
-      shadow="lg"
-      border="2px solid"
-      borderColor={isActive ? "red.200" : "gray.200"}
+    <div 
+      className={`relative w-full p-6 bg-white rounded-xl shadow-lg border-2 ${
+        isActive ? 'border-red-200' : 'border-gray-200'
+      }`}
     >
-      <VStack spacing={4} align="stretch">
+      <div className="flex flex-col gap-4">
         
         {/* Header */}
-        <HStack justify="space-between" align="center">
-          <Text fontSize="lg" fontWeight="bold" color="gray.700">
+        <div className="flex justify-between items-center">
+          <p className="text-lg font-bold text-gray-700">
             📱 Simulateur Badge RFID
-          </Text>
+          </p>
           {isActive && (
-            <Badge colorScheme="red" variant="solid">
+            <Badge variant="destructive">
               Session Active
             </Badge>
           )}
-        </HStack>
+        </div>
 
         {/* Instructions */}
-        <Text fontSize="sm" color="gray.600" textAlign="center">
+        <p className="text-sm text-gray-600 text-center">
           {isActive 
             ? "⚠️ Terminez la session en cours avant de scanner un nouveau badge"
             : "Cliquez sur un badge pour simuler le scan RFID"
           }
-        </Text>
+        </p>
 
         {/* Badges Grid */}
-        <VStack spacing={3} align="stretch">
+        <div className="flex flex-col gap-3">
           {PRODUCTION_BADGES.map((badge) => (
             <Button
               key={badge.badge_id}
               onClick={() => simulateBadgeScan(badge.badge_id, badge.name)}
-              isDisabled={isActive || isScanning}
-              isLoading={isScanning && lastScannedBadge === badge.badge_id}
-              loadingText="Scan en cours..."
+              disabled={isActive || isScanning}
               size="lg"
               variant="outline"
-              colorScheme={getBadgeColor(badge.type)}
-              justifyContent="flex-start"
-              leftIcon={<Text fontSize="xl">{badge.emoji}</Text>}
-              _hover={{ 
-                transform: isActive ? 'none' : 'translateY(-2px)',
-                shadow: isActive ? 'none' : 'md'
-              }}
-              transition="all 0.2s"
+              className={`justify-start h-auto py-4 ${getBadgeColor(badge.type)} hover:-translate-y-0.5 hover:shadow-md transition-all ${
+                (isActive || isScanning) && 'opacity-50 cursor-not-allowed hover:translate-y-0 hover:shadow-none'
+              }`}
             >
-              <HStack spacing={3} w="full" justify="space-between">
-                <VStack align="start" spacing={0}>
-                  <Text fontWeight="bold">{badge.name}</Text>
-                  <Text fontSize="xs" opacity={0.8}>
-                    {badge.badge_id} • {badge.level}
-                  </Text>
-                </VStack>
-                <Badge 
-                  colorScheme={getBadgeColor(badge.type)} 
-                  variant="subtle"
-                  fontSize="xs"
-                >
-                  {badge.type}
-                </Badge>
-              </HStack>
+              {isScanning && lastScannedBadge === badge.badge_id ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Scan en cours...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between w-full gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{badge.emoji}</span>
+                    <div className="flex flex-col items-start">
+                      <span className="font-bold">{badge.name}</span>
+                      <span className="text-xs opacity-80">
+                        {badge.badge_id} • {badge.level}
+                      </span>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {badge.type}
+                  </Badge>
+                </div>
+              )}
             </Button>
           ))}
-        </VStack>
+        </div>
 
         {/* Status */}
         {isScanning && (
-          <HStack justify="center" spacing={2} py={2}>
-            <Spinner size="sm" color="blue.500" />
-            <Text fontSize="sm" color="blue.600">
+          <div className="flex justify-center items-center gap-2 py-2">
+            <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+            <p className="text-sm text-blue-600">
               Lecture du badge {lastScannedBadge}...
-            </Text>
-          </HStack>
+            </p>
+          </div>
         )}
 
         {/* Info */}
-        <Text fontSize="xs" color="gray.500" textAlign="center" mt={2}>
+        <p className="text-xs text-gray-500 text-center mt-2">
           💡 En production, un vrai lecteur RFID remplacera ce simulateur
-        </Text>
-      </VStack>
-    </Box>
+        </p>
+      </div>
+    </div>
   )
 }

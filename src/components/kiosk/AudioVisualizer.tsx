@@ -1,6 +1,4 @@
 "use client"
-import { useEffect, useState } from 'react'
-import { Box } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 
 interface AudioVisualizerProps {
@@ -47,13 +45,13 @@ export default function AudioVisualizer({
   }
 
   return (
-    <Box
-      width={`${config.width}px`}
-      height={`${config.height}px`}
-      display="flex"
-      alignItems="end"
-      justifyContent="center"
-      gap="2px"
+    <div
+      className="flex items-end justify-center"
+      style={{
+        width: `${config.width}px`,
+        height: `${config.height}px`,
+        gap: '2px'
+      }}
     >
       {staticBars.map((baseHeight, index) => (
         <motion.div
@@ -81,6 +79,6 @@ export default function AudioVisualizer({
           }}
         />
       ))}
-    </Box>
+    </div>
   )
 } 

@@ -1,7 +1,8 @@
 "use client"
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Box, Button, Text, VStack, HStack, Spinner } from '@chakra-ui/react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
 import { useVoiceChat } from '@/hooks/useVoiceChat'
 import AudioVisualizer from './AudioVisualizer'
 import { kioskLogger } from '@/lib/kiosk-logger'
@@ -216,11 +217,11 @@ export default function VoiceInterface({
   }
 
   return (
-    <Box position="relative">
+    <div className="relative">
       {/* Interface principale */}
-      <VStack spacing={4}>
+      <div className="flex flex-col gap-4">
         {isConnected && (
-          <HStack spacing={4}>
+          <div className="flex flex-row gap-4">
             <AudioVisualizer 
               isActive={isConnected}
               isListening={status === 'listening'}
@@ -229,65 +230,59 @@ export default function VoiceInterface({
               size="sm"
               style="bars"
             />
-            <VStack spacing={1} align="start">
-              <Text color="white" fontSize="sm">
+            <div className="flex flex-col gap-1 items-start">
+              <p className="text-white text-sm">
                 Status: {getJarvisStatus()}
-              </Text>
+              </p>
               {/* 🎯 [OPENAI REALTIME] Détection "au revoir" intégrée */}
-              <Text 
-                color="green.300" 
-                fontSize="xs" 
-                display="flex" 
-                alignItems="center" 
-                gap={1}
-              >
+              <p className="text-green-300 text-xs flex items-center gap-1">
                 🎯 Détection "au revoir" via OpenAI Realtime
-              </Text>
-            </VStack>
-          </HStack>
+              </p>
+            </div>
+          </div>
         )}
         
         {currentTranscript && (
-          <Text color="white" fontSize="sm" bg="rgba(0,0,0,0.5)" p={2} borderRadius="md">
+          <p className="text-white text-sm bg-black/50 p-2 rounded-md">
             "{currentTranscript}"
-          </Text>
+          </p>
         )}
         
         {status === 'connecting' && (
-          <VStack spacing={2}>
-            <Text color="blue.300" fontSize="sm" textAlign="center">
+          <div className="flex flex-col gap-2">
+            <p className="text-blue-300 text-sm text-center">
               🎤 Connexion à JARVIS...
-            </Text>
-            <HStack spacing={1}>
-              <Spinner size="xs" color="blue.400" />
-              <Text color="blue.400" fontSize="xs">
+            </p>
+            <div className="flex flex-row gap-1">
+              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+              <p className="text-blue-400 text-xs">
                 Initialisation de l'IA
-              </Text>
-            </HStack>
-          </VStack>
+              </p>
+            </div>
+          </div>
         )}
         
         {!isConnected && status !== 'connecting' && status !== 'error' && (
-          <Text color="gray.400" fontSize="sm" textAlign="center">
+          <p className="text-gray-400 text-sm text-center">
             Prêt à se connecter...
-          </Text>
+          </p>
         )}
         
         {status === 'error' && (
-          <VStack spacing={2}>
-            <Text color="red.300" fontSize="sm" textAlign="center">
+          <div className="flex flex-col gap-2">
+            <p className="text-red-300 text-sm text-center">
               ❌ Erreur de connexion audio
-            </Text>
+            </p>
             <Button
               size="sm"
-              colorScheme="blue"
               onClick={forceReconnect}
+              className="bg-blue-600 hover:bg-blue-700"
             >
               🔄 Réessayer
             </Button>
-          </VStack>
+          </div>
         )}
-      </VStack>
-    </Box>
+      </div>
+    </div>
   )
 } 

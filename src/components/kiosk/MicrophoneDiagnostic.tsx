@@ -1,21 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { 
-  Box, 
-  VStack, 
-  HStack, 
-  Text, 
-  Progress, 
-  Icon, 
-  Badge,
-  Button,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  useColorModeValue
-} from '@chakra-ui/react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { 
   CheckCircle, 
   XCircle, 
@@ -64,9 +53,6 @@ export default function MicrophoneDiagnostic({
     { id: 'openai', name: 'Connectivité OpenAI', status: 'pending' }
   ])
   const [result, setResult] = useState<DiagnosticResult | null>(null)
-
-  const bgColor = useColorModeValue('white', 'gray.800')
-  const borderColor = useColorModeValue('gray.200', 'gray.600')
 
   // 🔍 Test des permissions
   const checkPermissions = async (): Promise<DiagnosticStep> => {
@@ -431,148 +417,138 @@ export default function MicrophoneDiagnostic({
   // Couleur selon le statut
   const getStatusColor = (status: DiagnosticStep['status']) => {
     switch (status) {
-      case 'success': return 'green'
-      case 'error': return 'red'
-      case 'warning': return 'orange'
-      case 'running': return 'blue'
-      default: return 'gray'
+      case 'success': return 'text-green-500'
+      case 'error': return 'text-red-500'
+      case 'warning': return 'text-orange-500'
+      case 'running': return 'text-blue-500'
+      default: return 'text-gray-500'
+    }
+  }
+
+  const getStatusBadgeVariant = (status: DiagnosticStep['status']): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'success': return 'default'
+      case 'error': return 'destructive'
+      case 'warning': return 'secondary'
+      default: return 'outline'
     }
   }
 
   return (
-    <Box
-      bg={bgColor}
-      borderRadius="xl"
-      border="1px solid"
-      borderColor={borderColor}
-      p={6}
-      maxW="500px"
-      w="full"
-    >
-      <VStack spacing={6} align="stretch">
+    <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-[500px] w-full">
+      <div className="flex flex-col gap-6">
         {/* Header */}
-        <HStack justify="space-between">
-          <Text fontSize="lg" fontWeight="bold">
+        <div className="flex justify-between items-center">
+          <p className="text-lg font-bold">
             Diagnostic Microphone
-          </Text>
+          </p>
           {!isRunning && (
             <Button
               size="sm"
-              leftIcon={<Icon as={RefreshCw} />}
               onClick={runDiagnostic}
-              colorScheme="blue"
               variant="outline"
+              className="gap-2"
             >
+              <RefreshCw className="w-4 h-4" />
               Relancer
             </Button>
           )}
-        </HStack>
+        </div>
 
         {/* Progress */}
         {isRunning && (
-          <Box>
-            <Text fontSize="sm" mb={2} color="gray.600">
+          <div>
+            <p className="text-sm mb-2 text-gray-600">
               Étape {currentStep}/4
-            </Text>
-            <Progress 
-              value={(currentStep / 4) * 100} 
-              colorScheme="blue" 
-              size="sm"
-              borderRadius="full"
-            />
-          </Box>
+            </p>
+            <Progress value={(currentStep / 4) * 100} className="h-2" />
+          </div>
         )}
 
         {/* Steps */}
-        <VStack spacing={3} align="stretch">
-          {steps.map((step, index) => (
-            <HStack key={step.id} spacing={3} align="flex-start">
-              <Icon
-                as={getStatusIcon(step.status)}
-                color={`${getStatusColor(step.status)}.500`}
-                className={step.status === 'running' ? 'animate-spin' : ''}
-              />
-              <VStack align="flex-start" spacing={1} flex={1}>
-                <HStack justify="space-between" w="full">
-                  <Text fontWeight="medium">{step.name}</Text>
-                  <Badge 
-                    colorScheme={getStatusColor(step.status)}
-                    variant="subtle"
-                  >
-                    {step.status === 'running' ? 'En cours...' : 
-                     step.status === 'success' ? 'OK' :
-                     step.status === 'error' ? 'Erreur' :
-                     step.status === 'warning' ? 'Attention' : 'En attente'}
-                  </Badge>
-                </HStack>
-                {step.message && (
-                  <Text fontSize="sm" color="gray.600">
-                    {step.message}
-                  </Text>
-                )}
-                {step.details && (
-                  <Text fontSize="xs" color="gray.500">
-                    {step.details}
-                  </Text>
-                )}
-              </VStack>
-            </HStack>
-          ))}
-        </VStack>
+        <div className="flex flex-col gap-3">
+          {steps.map((step) => {
+            const StatusIcon = getStatusIcon(step.status)
+            return (
+              <div key={step.id} className="flex gap-3 items-start">
+                <StatusIcon
+                  className={`w-5 h-5 ${getStatusColor(step.status)} ${
+                    step.status === 'running' ? 'animate-spin' : ''
+                  }`}
+                />
+                <div className="flex flex-col gap-1 flex-1">
+                  <div className="flex justify-between items-center w-full">
+                    <p className="font-medium">{step.name}</p>
+                    <Badge variant={getStatusBadgeVariant(step.status)}>
+                      {step.status === 'running' ? 'En cours...' : 
+                       step.status === 'success' ? 'OK' :
+                       step.status === 'error' ? 'Erreur' :
+                       step.status === 'warning' ? 'Attention' : 'En attente'}
+                    </Badge>
+                  </div>
+                  {step.message && (
+                    <p className="text-sm text-gray-600">
+                      {step.message}
+                    </p>
+                  )}
+                  {step.details && (
+                    <p className="text-xs text-gray-500">
+                      {step.details}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
         {/* Résultat final */}
         {result && !isRunning && (
-          <Alert
-            status={result.overall === 'success' ? 'success' : 
-                   result.overall === 'warning' ? 'warning' : 'error'}
-            borderRadius="md"
-          >
-            <AlertIcon />
-            <Box>
-              <AlertTitle>
-                {result.overall === 'success' ? 'Diagnostic réussi !' :
-                 result.overall === 'warning' ? 'Problèmes mineurs détectés' :
-                 'Problèmes critiques détectés'}
-              </AlertTitle>
-              {result.recommendations && (
-                <AlertDescription mt={2}>
-                  <VStack align="flex-start" spacing={1}>
-                    {result.recommendations.map((rec, index) => (
-                      <Text key={index} fontSize="sm">
-                        • {rec}
-                      </Text>
-                    ))}
-                  </VStack>
-                </AlertDescription>
-              )}
-            </Box>
+          <Alert variant={result.overall === 'error' ? 'destructive' : 'default'}>
+            <AlertTitle>
+              {result.overall === 'success' ? 'Diagnostic réussi !' :
+               result.overall === 'warning' ? 'Problèmes mineurs détectés' :
+               'Problèmes critiques détectés'}
+            </AlertTitle>
+            {result.recommendations && (
+              <AlertDescription>
+                <div className="flex flex-col gap-1 mt-2">
+                  {result.recommendations.map((rec, index) => (
+                    <p key={index} className="text-sm">
+                      • {rec}
+                    </p>
+                  ))}
+                </div>
+              </AlertDescription>
+            )}
           </Alert>
         )}
 
         {/* Actions */}
         {result && !isRunning && result.overall !== 'success' && (
-          <HStack spacing={3}>
+          <div className="flex gap-3">
             <Button
               size="sm"
               onClick={runDiagnostic}
-              leftIcon={<Icon as={RefreshCw} />}
               variant="outline"
+              className="gap-2"
             >
+              <RefreshCw className="w-4 h-4" />
               Réessayer
             </Button>
             {onRetry && (
               <Button
                 size="sm"
                 onClick={onRetry}
-                colorScheme="blue"
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 Continuer quand même
               </Button>
             )}
-          </HStack>
+          </div>
         )}
-      </VStack>
-    </Box>
+      </div>
+    </div>
   )
 }
 

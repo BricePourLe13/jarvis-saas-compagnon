@@ -1,21 +1,11 @@
 "use client"
 import { useState, useEffect } from 'react'
-import { 
-  Box, 
-  VStack, 
-  HStack,
-  Heading, 
-  Text, 
-  PinInput,
-  PinInputField,
-  Button,
-  Alert,
-  AlertIcon,
-  Icon,
-  Progress,
-  useToast,
-  Spinner
-} from '@chakra-ui/react'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/use-toast'
+import { Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Wifi, 
@@ -63,7 +53,7 @@ export default function ProvisioningInterface({
   })
   const [testProgress, setTestProgress] = useState(0)
   const [currentCode, setCurrentCode] = useState('')
-  const toast = useToast()
+  const { toast } = useToast()
 
   // Vérifier le statut réseau au chargement
   useEffect(() => {
@@ -210,10 +200,7 @@ export default function ProvisioningInterface({
       setStep('complete')
       toast({
         title: "Kiosk activé !",
-        description: "Le kiosk JARVIS est maintenant opérationnel",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
+        description: "Le kiosk JARVIS est maintenant opérationnel"
       })
 
       setTimeout(() => {
