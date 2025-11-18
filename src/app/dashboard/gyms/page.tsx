@@ -43,7 +43,12 @@ async function getUser() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'super_admin') {
+  if (!profile) {
+    redirect('/login')
+  }
+
+  // Super admin seulement (pour l'instant)
+  if (profile.role !== 'super_admin') {
     redirect('/dashboard')
   }
 
@@ -75,7 +80,7 @@ async function getGymsData() {
   )
 
   // Fetch all active gyms (exclude pending)
-  const { data: allGyms } = await supabase
+  const { data: allGyms, error: allGymsError } = await supabase
     .from('gyms')
     .select(`
       id,
@@ -96,6 +101,12 @@ async function getGymsData() {
     `)
     .neq('status', 'pending_approval')
     .order('created_at', { ascending: false })
+
+  if (allGymsError) {
+    console.error('❌ [GYMS] Error fetching all gyms:', allGymsError)
+  } else {
+    console.log('✅ [GYMS] Fetched gyms:', allGyms?.length || 0)
+  }
 
   // Fetch pending gyms
   const { data: pendingGyms } = await supabase

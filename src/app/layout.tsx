@@ -12,6 +12,10 @@ const inter = Inter({
 export const metadata = {
   title: 'JARVIS SaaS - Agent Vocal IA pour Salles de Sport',
   description: 'Dashboard professionnel de gestion pour l\'agent vocal JARVIS',
+  icons: {
+    icon: '/images/logo_jarvis.png',
+    apple: '/images/logo_jarvis.png',
+  }
 }
 
 export default function RootLayout({

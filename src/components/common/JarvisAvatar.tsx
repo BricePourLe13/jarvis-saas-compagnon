@@ -68,7 +68,7 @@ const JarvisAvatar = ({
   const animationProps = getAnimationProps()
 
   return (
-    <Flex align="center" justify="center" h="full" position="relative">
+    <Flex align="center" justify="flex-start" h="full" position="relative" pt="20vh">
       <VStack spacing={variant === 'minimal' ? 4 : 8}>
         {/* Avatar JARVIS avec animation */}
         <Box position="relative">

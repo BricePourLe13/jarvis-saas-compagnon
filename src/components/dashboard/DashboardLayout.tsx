@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { 
   LayoutDashboard, 
   Building2, 
@@ -131,8 +132,14 @@ export default function DashboardLayout({
           <div className="flex flex-col h-full">
             {/* Desktop Logo */}
             <div className="hidden lg:flex items-center gap-3 px-6 py-6 border-b border-border">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                <span className="text-primary font-bold text-lg">J</span>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                <Image
+                  src="/images/logo_jarvis.png"
+                  alt="JARVIS Logo"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
               </div>
               <div>
                 <p className="font-semibold text-foreground">JARVIS</p>
