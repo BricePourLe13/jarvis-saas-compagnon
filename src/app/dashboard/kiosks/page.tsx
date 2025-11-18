@@ -3,10 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import PageHeader from '@/components/dashboard/PageHeader'
-import EmptyState from '@/components/dashboard/EmptyState'
-import { Button } from '@/components/ui/button'
-import { Monitor } from 'lucide-react'
-import Link from 'next/link'
+import KiosksTabsContent from '@/components/dashboard/KiosksTabsContent'
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -53,7 +50,7 @@ async function getUser() {
   return { user, profile }
 }
 
-async function getKiosks(userRole: string, gymId: string | null) {
+async function getKiosksData(userRole: string, gymId: string | null) {
   const cookieStore = await cookies()
 
   const supabase = createServerClient(
@@ -77,61 +74,61 @@ async function getKiosks(userRole: string, gymId: string | null) {
     }
   )
 
-  let query = supabase
+  let baseQuery = supabase
     .from('kiosks')
     .select(`
       *,
-      gyms (name)
+      gyms (
+        name,
+        manager_id,
+        users!gyms_manager_id_fkey (
+          full_name,
+          email
+        )
+      )
     `)
-    .order('created_at', { ascending: false })
 
   if (userRole !== 'super_admin' && gymId) {
-    query = query.eq('gym_id', gymId)
+    baseQuery = baseQuery.eq('gym_id', gymId)
   }
 
-  const { data: kiosks, error } = await query
+  // Fetch all kiosks
+  const { data: allKiosks } = await baseQuery
+    .neq('status', 'pending_approval')
+    .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching kiosks:', error)
-    return []
+  // Fetch pending kiosks (super admin only)
+  let pendingKiosks: any[] = []
+  if (userRole === 'super_admin') {
+    const { data } = await supabase
+      .from('kiosks')
+      .select(`
+        *,
+        gyms (
+          name,
+          city,
+          manager_id,
+          users!gyms_manager_id_fkey (
+            full_name,
+            email
+          )
+        )
+      `)
+      .eq('status', 'pending_approval')
+      .order('created_at', { ascending: false })
+    
+    pendingKiosks = data || []
   }
 
-  return kiosks || []
+  return {
+    allKiosks: allKiosks || [],
+    pendingKiosks
+  }
 }
 
 export default async function KiosksPage() {
   const { profile } = await getUser()
-  const kiosks = await getKiosks(profile.role, profile.gym_id)
-
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'online':
-        return 'badge-success'
-      case 'offline':
-        return 'badge-error'
-      case 'provisioning':
-        return 'badge-info'
-      case 'maintenance':
-        return 'badge-warning'
-      default:
-        return 'badge-neutral'
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'online':
-        return 'En ligne'
-      case 'offline':
-        return 'Hors ligne'
-      case 'provisioning':
-        return 'Provisioning'
-      case 'maintenance':
-        return 'Maintenance'
-      default:
-        return status
-    }
-  }
+  const { allKiosks, pendingKiosks } = await getKiosksData(profile.role, profile.gym_id)
 
   return (
     <DashboardLayout
@@ -141,98 +138,18 @@ export default async function KiosksPage() {
     >
       <PageHeader
         title="Kiosks JARVIS"
-        description="Gérez et surveillez vos kiosks JARVIS"
+        description="Gérez et surveillez vos kiosks JARVIS."
       />
 
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          {kiosks.length === 0 ? (
-            <EmptyState
-              icon={Monitor}
-              title="Aucun kiosk"
-              description="Les kiosks JARVIS seront listés ici une fois déployés"
-            />
-          ) : (
-            <div className="bg-white border border-border rounded-lg overflow-hidden">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Nom
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Slug
-                    </th>
-                    {profile.role === 'super_admin' && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Salle
-                      </th>
-                    )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Statut
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Dernière activité
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {kiosks.map((kiosk: any) => (
-                    <tr key={kiosk.id} className="table-row">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-foreground">
-                          {kiosk.name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">
-                          {kiosk.slug}
-                        </div>
-                      </td>
-                      {profile.role === 'super_admin' && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-muted-foreground">
-                            {kiosk.gyms?.name || 'N/A'}
-                          </div>
-                        </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={getStatusBadgeClass(kiosk.status)}>
-                          {getStatusLabel(kiosk.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">
-                          {kiosk.last_heartbeat
-                            ? new Date(kiosk.last_heartbeat).toLocaleString('fr-FR')
-                            : 'Jamais'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <Link
-                          href={`/kiosk/${kiosk.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button variant="outline" size="sm">
-                            <Monitor className="mr-2 h-4 w-4" />
-                            Ouvrir
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <KiosksTabsContent
+            allKiosks={allKiosks}
+            pendingKiosks={pendingKiosks}
+            userRole={profile.role}
+          />
         </div>
       </div>
     </DashboardLayout>
   )
 }
-
-

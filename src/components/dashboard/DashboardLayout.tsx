@@ -44,27 +44,9 @@ const NAV_ITEMS: NavItem[] = [
     adminOnly: true,
   },
   {
-    label: '⚠️ Salles à valider',
-    href: '/dashboard/admin/pending-gyms',
-    icon: AlertCircle,
-    adminOnly: true,
-  },
-  {
     label: 'Kiosks',
     href: '/dashboard/kiosks',
     icon: Monitor,
-  },
-  {
-    label: '⚠️ Kiosks à valider',
-    href: '/dashboard/admin/pending-kiosks',
-    icon: AlertCircle,
-    adminOnly: true,
-  },
-  {
-    label: 'Invitations',
-    href: '/dashboard/admin/invitations',
-    icon: Users,
-    adminOnly: true,
   },
   {
     label: 'Adhérents',
@@ -80,6 +62,11 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Insights',
     href: '/dashboard/insights',
     icon: AlertCircle,
+  },
+  {
+    label: 'Paramètres',
+    href: '/dashboard/settings',
+    icon: Settings,
   },
 ]
 
