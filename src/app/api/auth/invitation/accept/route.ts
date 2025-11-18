@@ -62,7 +62,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Créer le compte Supabase Auth
+    // 3. Vérifier si l'email existe déjà
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .eq('email', invitation.email)
+      .single()
+
+    if (existingUser) {
+      logger.warn('❌ [INVITATION] Email déjà utilisé', { email: invitation.email }, { component: 'API:InvitationAccept' })
+      return NextResponse.json(
+        { error: 'Un compte existe déjà avec cet email. Veuillez vous connecter.' },
+        { status: 409 }
+      )
+    }
+
+    // 4. Créer le compte Supabase Auth
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
       email: invitation.email,
       password,
@@ -90,7 +105,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Créer l'entrée dans la table users
+    // 5. Créer l'entrée dans la table users
     const { error: userError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -114,7 +129,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 5. Marquer l'invitation comme acceptée
+    // 6. Marquer l'invitation comme acceptée
     const { error: updateError } = await supabaseAdmin
       .from('manager_invitations')
       .update({

@@ -154,7 +154,14 @@ export default function InvitationPage() {
       <div className="max-w-md w-full bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🤖 Bienvenue sur JARVIS</h1>
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/images/logo_jarvis.png" 
+              alt="JARVIS Logo" 
+              className="h-16 w-16 object-contain"
+            />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Bienvenue sur JARVIS</h1>
           <p className="text-gray-600">Créez votre compte gérant</p>
         </div>
 
