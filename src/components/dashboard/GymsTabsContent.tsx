@@ -17,6 +17,7 @@ import Link from 'next/link'
 import EmptyState from './EmptyState'
 import GymApprovalActions from './GymApprovalActions'
 import InviteManagerDialog from './InviteManagerDialog'
+import { InvitationActions } from './InvitationActions'
 
 interface GymsTabsContentProps {
   allGyms: any[]
@@ -299,6 +300,7 @@ export default function GymsTabsContent({ allGyms, pendingGyms, invitations }: G
                       <TableHead>Statut</TableHead>
                       <TableHead>Envoyée le</TableHead>
                       <TableHead>Expire le</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -333,6 +335,14 @@ export default function GymsTabsContent({ allGyms, pendingGyms, invitations }: G
                               <Clock className="h-3 w-3" />
                               {new Date(invitation.expires_at).toLocaleDateString('fr-FR')}
                             </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <InvitationActions
+                              invitationId={invitation.id}
+                              email={invitation.email}
+                              status={invitation.status}
+                              onUpdate={() => window.location.reload()}
+                            />
                           </TableCell>
                         </TableRow>
                       )

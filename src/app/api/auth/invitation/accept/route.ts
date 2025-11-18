@@ -62,19 +62,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Vérifier si l'email existe déjà
+    // 3. Vérifier si l'email existe déjà (TABLE USERS + AUTH)
     const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('id, email')
       .eq('email', invitation.email)
       .single()
 
+    // Si user dans DB, vérifier s'il existe aussi dans Auth
     if (existingUser) {
-      logger.warn('❌ [INVITATION] Email déjà utilisé', { email: invitation.email }, { component: 'API:InvitationAccept' })
-      return NextResponse.json(
-        { error: 'Un compte existe déjà avec cet email. Veuillez vous connecter.' },
-        { status: 409 }
-      )
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
+      const existingAuthUser = authUsers?.users?.find(u => u.email === invitation.email)
+      
+      if (existingAuthUser) {
+        // Compte complet existe déjà
+        logger.warn('❌ [INVITATION] Email déjà utilisé (Auth + DB)', { email: invitation.email }, { component: 'API:InvitationAccept' })
+        return NextResponse.json(
+          { error: 'Un compte existe déjà avec cet email. Veuillez vous connecter.' },
+          { status: 409 }
+        )
+      } else {
+        // Nettoyage orphelin: user dans DB mais pas dans Auth (rollback incomplet)
+        logger.warn('🧹 [INVITATION] Nettoyage compte orphelin (DB sans Auth)', { userId: existingUser.id, email: invitation.email }, { component: 'API:InvitationAccept' })
+        await supabaseAdmin.from('users').delete().eq('id', existingUser.id)
+        // Continuer la création
+      }
     }
 
     // 4. Créer le compte Supabase Auth

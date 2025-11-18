@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, use } from 'react'
 // 🔇 Nettoyage logs production automatique
 import '@/lib/production-log-cleaner'
-import { Box, Text, VStack, HStack, Badge, Spinner } from '@chakra-ui/react'
+// Chakra UI remplacé par Tailwind CSS + composants custom
+import { Box, VStack, HStack, Text, Badge, Spinner } from '@/components/kiosk/ChakraCompat'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
 import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
