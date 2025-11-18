@@ -191,7 +191,7 @@ export default function GymsTabsContent({ allGyms, pendingGyms, invitations }: G
                 </TableHeader>
                 <TableBody>
                   {pendingGyms.map((gym) => {
-                    const manager = Array.isArray(gym.users) ? gym.users[0] : gym.users
+                    const manager = gym.manager
                     return (
                       <TableRow key={gym.id} className="table-row">
                         <TableCell className="font-medium">

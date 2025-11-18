@@ -92,7 +92,7 @@ async function getGymsData() {
       status,
       created_at,
       manager_id,
-      users!gyms_manager_id_fkey(
+      manager:users!manager_id(
         id,
         full_name,
         email
@@ -120,7 +120,7 @@ async function getGymsData() {
       phone,
       created_at,
       manager_id,
-      users!gyms_manager_id_fkey(
+      manager:users!manager_id(
         id,
         full_name,
         email

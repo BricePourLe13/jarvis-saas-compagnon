@@ -82,7 +82,7 @@ async function getKiosksData(userRole: string, gymId: string | null) {
       gyms (
         name,
         manager_id,
-        users!gyms_manager_id_fkey (
+        manager:users!manager_id (
           full_name,
           email
         )
@@ -108,7 +108,7 @@ async function getKiosksData(userRole: string, gymId: string | null) {
           name,
           city,
           manager_id,
-          users!gyms_manager_id_fkey (
+          manager:users!manager_id (
             full_name,
             email
           )
