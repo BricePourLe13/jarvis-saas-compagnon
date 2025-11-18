@@ -346,8 +346,13 @@ export default function LoginPage() {
           .eq('id', data.user.id)
           .single()
 
-        const isAdmin = userProfile?.role === 'super_admin' || userProfile?.role === 'franchise_owner' || userProfile?.role === 'franchise_admin'
-        if (isAdmin) {
+        // 2FA obligatoire pour super_admin ET gym_manager
+        const requires2FA = userProfile?.role === 'super_admin' || 
+                           userProfile?.role === 'franchise_owner' || 
+                           userProfile?.role === 'franchise_admin' ||
+                           userProfile?.role === 'gym_manager'
+        
+        if (requires2FA) {
           try {
             // @ts-ignore
             const factors = await (supabase.auth as any).mfa?.listFactors?.()
