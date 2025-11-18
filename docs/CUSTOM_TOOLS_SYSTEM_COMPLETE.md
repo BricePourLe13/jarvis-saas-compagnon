@@ -594,3 +594,4 @@ Permettre à des systèmes externes de déclencher des actions JARVIS
 **🚀 Le système Custom Tools transforme JARVIS d'un assistant fixe en une plateforme extensible à l'infini !**
 
 
+

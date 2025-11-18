@@ -185,3 +185,4 @@ export default function GymApprovalActions({ gymId, gymName }: GymApprovalAction
   )
 }
 
+

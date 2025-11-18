@@ -37,7 +37,12 @@ export default async function InvitationsPage() {
     redirect('/login')
   }
 
-  const { data: userProfile } = await supabase.from('users').select('role').eq('id', user.id).single()
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('role, full_name, email')
+    .eq('id', user.id)
+    .single()
+    
   if (userProfile?.role !== 'super_admin') {
     redirect('/dashboard')
   }
@@ -89,8 +94,8 @@ export default async function InvitationsPage() {
   return (
     <DashboardLayout
       userRole={userProfile.role as 'super_admin' | 'gym_manager'}
-      userName={user.user_metadata?.full_name || user.email || 'Utilisateur'}
-      userEmail={user.email || ''}
+      userName={userProfile.full_name || userProfile.email || 'Utilisateur'}
+      userEmail={userProfile.email || ''}
     >
       <PageHeader
         title="Invitations Gérants"
@@ -206,4 +211,5 @@ export default async function InvitationsPage() {
     </DashboardLayout>
   )
 }
+
 

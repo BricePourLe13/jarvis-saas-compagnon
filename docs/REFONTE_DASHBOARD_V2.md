@@ -872,3 +872,4 @@ Vercel déploie automatiquement sur `app.jarvis-group.net`
 
 **FIN DU PLAN - PRÊT À EXÉCUTER 🚀**
 
+

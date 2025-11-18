@@ -4,13 +4,17 @@ interface PageHeaderProps {
   title: string
   description?: string
   actions?: ReactNode
+  children?: ReactNode // Support children as alias for actions
 }
 
 export default function PageHeader({
   title,
   description,
-  actions
+  actions,
+  children
 }: PageHeaderProps) {
+  const headerActions = children || actions
+  
   return (
     <div className="dashboard-header px-6 py-6">
       <div className="max-w-7xl mx-auto flex items-start justify-between">
@@ -24,13 +28,14 @@ export default function PageHeader({
             </p>
           )}
         </div>
-        {actions && (
+        {headerActions && (
           <div className="flex items-center gap-3">
-            {actions}
+            {headerActions}
           </div>
         )}
       </div>
     </div>
   )
 }
+
 

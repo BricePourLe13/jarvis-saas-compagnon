@@ -4,7 +4,9 @@ import { createServerClient } from '@supabase/ssr'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import PageHeader from '@/components/dashboard/PageHeader'
 import EmptyState from '@/components/dashboard/EmptyState'
+import { Button } from '@/components/ui/button'
 import { Monitor } from 'lucide-react'
+import Link from 'next/link'
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -172,6 +174,9 @@ export default async function KiosksPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Dernière activité
                     </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -206,6 +211,18 @@ export default async function KiosksPage() {
                             : 'Jamais'}
                         </div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <Link
+                          href={`/kiosk/${kiosk.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant="outline" size="sm">
+                            <Monitor className="mr-2 h-4 w-4" />
+                            Ouvrir
+                          </Button>
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -217,4 +234,5 @@ export default async function KiosksPage() {
     </DashboardLayout>
   )
 }
+
 

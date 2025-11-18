@@ -119,3 +119,4 @@ export default function KioskApprovalActions({ kioskId, kioskName }: KioskApprov
   )
 }
 
+

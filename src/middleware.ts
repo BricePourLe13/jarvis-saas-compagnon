@@ -22,8 +22,18 @@ export async function middleware(request: NextRequest) {
   // ­ƒöÉ PROTECTION AUTH : /dashboard et /admin
   // ============================================================================
   
+  // Routes publiques (pas de protection auth)
+  const publicPaths = ['/kiosk/', '/landing-client', '/auth/invitation']
+  const isPublicRoute = publicPaths.some(path => pathname.startsWith(path))
+  
   const protectedPaths = ['/dashboard', '/admin']
   const isProtectedRoute = protectedPaths.some(path => pathname.startsWith(path))
+
+  // Skip auth pour routes publiques
+  if (isPublicRoute) {
+    logger.debug(`Route publique, skip auth`, { pathname }, { component: 'Middleware' })
+    return NextResponse.next()
+  }
 
   if (isProtectedRoute) {
     try {

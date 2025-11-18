@@ -238,3 +238,4 @@ FROM gyms LIMIT 5;
 **Tests exécutés via MCP Supabase**  
 **Validation : Claude Sonnet 4.5**
 
+
