@@ -63,11 +63,6 @@ const NAV_ITEMS: NavItem[] = [
     href: '/dashboard/insights',
     icon: AlertCircle,
   },
-  {
-    label: 'Paramètres',
-    href: '/dashboard/settings',
-    icon: Settings,
-  },
 ]
 
 export default function DashboardLayout({

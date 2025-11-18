@@ -74,7 +74,7 @@ async function getGymsData() {
     }
   )
 
-  // Fetch all gyms
+  // Fetch all active gyms (exclude pending)
   const { data: allGyms } = await supabase
     .from('gyms')
     .select(`
@@ -94,6 +94,7 @@ async function getGymsData() {
       ),
       kiosks(count)
     `)
+    .neq('status', 'pending_approval')
     .order('created_at', { ascending: false })
 
   // Fetch pending gyms

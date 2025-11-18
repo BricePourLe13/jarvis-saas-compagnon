@@ -74,7 +74,8 @@ async function getKiosksData(userRole: string, gymId: string | null) {
     }
   )
 
-  let baseQuery = supabase
+  // Fetch all kiosks (not pending)
+  let allKiosksQuery = supabase
     .from('kiosks')
     .select(`
       *,
@@ -87,15 +88,14 @@ async function getKiosksData(userRole: string, gymId: string | null) {
         )
       )
     `)
-
-  if (userRole !== 'super_admin' && gymId) {
-    baseQuery = baseQuery.eq('gym_id', gymId)
-  }
-
-  // Fetch all kiosks
-  const { data: allKiosks } = await baseQuery
     .neq('status', 'pending_approval')
     .order('created_at', { ascending: false })
+
+  if (userRole !== 'super_admin' && gymId) {
+    allKiosksQuery = allKiosksQuery.eq('gym_id', gymId)
+  }
+
+  const { data: allKiosks } = await allKiosksQuery
 
   // Fetch pending kiosks (super admin only)
   let pendingKiosks: any[] = []

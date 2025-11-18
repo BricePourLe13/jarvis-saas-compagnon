@@ -25,7 +25,9 @@ interface GymsTabsContentProps {
 }
 
 export default function GymsTabsContent({ allGyms, pendingGyms, invitations }: GymsTabsContentProps) {
-  const activeGyms = allGyms.filter(g => g.status === 'active')
+  // allGyms contient déjà uniquement les gyms non-pending (filtrées en SQL)
+  const activeGyms = allGyms
+  
   const pendingInvitations = invitations.filter(inv => 
     inv.status === 'pending' && new Date(inv.expires_at) > new Date()
   )
