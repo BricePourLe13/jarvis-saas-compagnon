@@ -106,23 +106,23 @@ export default function InvitationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
       </div>
     )
   }
 
   if (error && !invitation) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black p-4">
-        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-xl p-8 backdrop-blur-xl">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-4">
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
           <div className="text-center">
             <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">Invitation invalide</h1>
-            <p className="text-white/60 mb-6">{error}</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Invitation invalide</h1>
+            <p className="text-gray-600 mb-6">{error}</p>
             <button
               onClick={() => router.push('/')}
-              className="px-6 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-white transition-colors"
+              className="px-6 py-2 bg-gray-900 hover:bg-gray-800 rounded-lg text-white transition-colors"
             >
               Retour à l'accueil
             </button>
@@ -134,15 +134,15 @@ export default function InvitationPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black p-4">
-        <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-xl p-8 backdrop-blur-xl">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-4">
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
           <div className="text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">Compte créé !</h1>
-            <p className="text-white/60 mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Compte créé !</h1>
+            <p className="text-gray-600 mb-6">
               Redirection vers la page de connexion...
             </p>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
           </div>
         </div>
       </div>
@@ -150,25 +150,25 @@ export default function InvitationPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-black p-4">
-      <div className="max-w-md w-full bg-white/5 border border-white/10 rounded-xl p-8 backdrop-blur-xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-4">
+      <div className="max-w-md w-full bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">🤖 Bienvenue sur JARVIS</h1>
-          <p className="text-white/60">Créez votre compte gérant</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">🤖 Bienvenue sur JARVIS</h1>
+          <p className="text-gray-600">Créez votre compte gérant</p>
         </div>
 
         {/* Invitation Info */}
         {invitation && (
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-6">
-            <p className="text-sm text-white/60 mb-2">Vous avez été invité(e) pour gérer :</p>
-            <p className="text-lg font-semibold text-white">{invitation.gym_name}</p>
-            <p className="text-sm text-white/60">{invitation.gym_city}</p>
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <p className="text-sm text-white/80">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-600 mb-2">Vous avez été invité(e) pour gérer :</p>
+            <p className="text-lg font-semibold text-gray-900">{invitation.gym_name}</p>
+            <p className="text-sm text-gray-600">{invitation.gym_city}</p>
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-sm text-gray-700">
                 <strong>Email :</strong> {invitation.email}
               </p>
-              <p className="text-sm text-white/80">
+              <p className="text-sm text-gray-700">
                 <strong>Nom :</strong> {invitation.full_name}
               </p>
             </div>
@@ -179,7 +179,7 @@ export default function InvitationPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Mot de passe *
             </label>
             <div className="relative">
@@ -190,12 +190,12 @@ export default function InvitationPage() {
                 placeholder="Minimum 8 caractères"
                 required
                 minLength={8}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/80"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -204,7 +204,7 @@ export default function InvitationPage() {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Confirmer le mot de passe *
             </label>
             <input
@@ -214,13 +214,13 @@ export default function InvitationPage() {
               placeholder="Retapez votre mot de passe"
               required
               minLength={8}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+              className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             />
           </div>
 
           {/* Error */}
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {error}
             </div>
           )}
@@ -229,7 +229,7 @@ export default function InvitationPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full px-6 py-3 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-6 py-3 bg-gray-900 text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
@@ -243,13 +243,14 @@ export default function InvitationPage() {
         </form>
 
         {/* Footer */}
-        <p className="text-xs text-white/40 text-center mt-6">
+        <p className="text-xs text-gray-500 text-center mt-6">
           En créant votre compte, vous acceptez les conditions d'utilisation de JARVIS.
         </p>
       </div>
     </div>
   )
 }
+
 
 
 
