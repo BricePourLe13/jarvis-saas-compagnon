@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // 1. Récupérer toutes les gyms actives
     const { data: gyms, error: gymsError } = await supabase
       .from('gyms')
-      .select('id, name, franchise_id')
+      .select('id, name')
       .eq('status', 'active')
 
     if (gymsError) {

@@ -17,8 +17,6 @@ interface Gym {
   id: string
   name: string
   city: string
-  franchise_id: string
-  franchise_name: string
   manager_id: string | null
   status: string
 }
@@ -75,19 +73,15 @@ export async function GET(): Promise<NextResponse<ApiResponse<Gym[]>>> {
       )
     }
 
-    // Récupérer toutes les salles avec infos franchise
+    // Récupérer toutes les salles
     const { data: gyms, error } = await supabase
       .from('gyms')
       .select(`
         id,
         name,
         city,
-        franchise_id,
         manager_id,
-        status,
-        franchises!inner(
-          name
-        )
+        status
       `)
       .order('name')
 
@@ -104,8 +98,6 @@ export async function GET(): Promise<NextResponse<ApiResponse<Gym[]>>> {
       id: gym.id,
       name: gym.name,
       city: gym.city,
-      franchise_id: gym.franchise_id,
-      franchise_name: gym.franchises.name,
       manager_id: gym.manager_id,
       status: gym.status
     })) || []
