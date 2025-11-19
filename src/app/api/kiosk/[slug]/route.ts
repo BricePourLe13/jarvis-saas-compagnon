@@ -20,10 +20,8 @@ export async function GET(
 
     console.log(`[KIOSK API] Step 1: Validating slug: ${slug}`)
 
-    // Chercher le kiosk par slug
-    // NOTE: On retire le filtre .eq('gyms.status', 'active') de la requête SQL
-    // pour éviter les erreurs de jointure PostgREST (400 Bad Request)
-    // et on filtre en JS ensuite.
+    // ✅ SOLUTION: 2 requêtes séparées au lieu d'une jointure (évite PGRST116)
+    // Étape 1: Chercher le kiosk par slug
     const { data: kiosk, error: kioskError } = await supabase
       .from('kiosks')
       .select(`
@@ -38,17 +36,12 @@ export async function GET(
         language,
         openai_model,
         hardware_info,
-        location_in_gym,
-        gyms!inner(
-          id,
-          name,
-          status
-        )
+        location_in_gym
       `)
       .eq('slug', slug)
       .single()
 
-    console.log(`[KIOSK API] Step 2: Query result:`, { 
+    console.log(`[KIOSK API] Step 2: Kiosk query result:`, { 
       found: !!kiosk, 
       error: kioskError?.message,
       errorCode: kioskError?.code 
@@ -66,13 +59,22 @@ export async function GET(
       )
     }
 
-    console.log(`[KIOSK API] Step 4: Kiosk found, checking gym status`)
+    console.log(`[KIOSK API] Step 4: Kiosk found, fetching gym`)
 
-    // Vérification manuelle du statut de la salle
-    // @ts-ignore - gyms est un objet unique grâce à !inner et single()
-    const gym = kiosk.gyms
+    // Étape 2: Récupérer la gym associée
+    const { data: gym, error: gymError } = await supabase
+      .from('gyms')
+      .select('id, name, status')
+      .eq('id', kiosk.gym_id)
+      .single()
+
+    console.log(`[KIOSK API] Step 5: Gym query result:`, {
+      found: !!gym,
+      error: gymError?.message,
+      gymStatus: gym?.status
+    })
     
-    if (!gym) {
+    if (gymError || !gym) {
       return NextResponse.json(
         { valid: false, error: 'Gym associée non trouvée' },
         { status: 404 }
@@ -85,6 +87,8 @@ export async function GET(
         { status: 403 } // Forbidden au lieu de 404 pour debugging plus clair
       )
     }
+
+    console.log(`[KIOSK API] Step 6: All checks passed, returning kiosk config`)
 
     // ❌ DEPRECATED: franchise_id n'existe plus dans gyms (supprimé en Nov 2025)
     // Les configs de branding sont maintenant au niveau gym directement
