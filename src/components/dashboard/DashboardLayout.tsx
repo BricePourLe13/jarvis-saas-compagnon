@@ -131,12 +131,12 @@ export default function DashboardLayout({
         {/* Sidebar - Fixed Desktop, Slide-in Mobile */}
         <aside className={`
           sidebar fixed lg:static inset-y-0 left-0 z-40
-          w-64 flex-shrink-0
+          w-64 flex-shrink-0 min-h-screen
           transition-transform duration-300 ease-in-out
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${mobileMenuOpen ? 'top-0' : 'top-16 lg:top-0'}
         `}>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full min-h-screen">
             {/* Desktop Logo */}
             <div className="hidden lg:flex items-center gap-3 px-6 py-6 border-b border-border">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center">

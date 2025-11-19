@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSimpleClient } from '@/lib/supabase-admin'
 
+/**
+ * 🏥 API KIOSK VALIDATION
+ * GET /api/kiosk/[slug]
+ * 
+ * Valide qu'un kiosk existe et que sa gym est active.
+ * Public (pas d'auth requise - Middleware l'exclut).
+ * Redéployé le 19/11/2025 pour fix cache.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -8,6 +16,8 @@ export async function GET(
   try {
     const { slug } = await params
     const supabase = createSimpleClient()
+
+    console.log(`[KIOSK API] Validating slug: ${slug}`)
 
     // Chercher le kiosk par slug
     // NOTE: On retire le filtre .eq('gyms.status', 'active') de la requête SQL
