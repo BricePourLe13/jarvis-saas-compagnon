@@ -23,6 +23,7 @@ interface DashboardLayoutProps {
   userRole: 'super_admin' | 'gym_manager'
   userName: string
   userEmail: string
+  gymName?: string // Nom de la salle (pour gym_manager uniquement)
 }
 
 interface NavItem {
@@ -72,7 +73,8 @@ export default function DashboardLayout({
   children,
   userRole,
   userName,
-  userEmail
+  userEmail,
+  gymName
 }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -194,6 +196,11 @@ export default function DashboardLayout({
                   <p className="text-xs text-muted-foreground truncate">
                     {userEmail}
                   </p>
+                  {gymName && userRole === 'gym_manager' && (
+                    <p className="text-xs text-primary/70 truncate mt-0.5 font-medium">
+                      📍 {gymName}
+                    </p>
+                  )}
                 </div>
               </div>
 

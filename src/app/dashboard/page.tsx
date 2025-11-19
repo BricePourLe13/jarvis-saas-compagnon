@@ -1,61 +1,10 @@
-import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import PageHeader from '@/components/dashboard/PageHeader'
 import KPICard from '@/components/dashboard/KPICard'
 import { Users, Monitor, Activity, TrendingUp } from 'lucide-react'
-
-async function getUser() {
-  const cookieStore = await cookies()
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Server Component, ignore
-          }
-        },
-      },
-    }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Fetch user profile with role
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role, full_name, email, gym_id')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || !profile.role) {
-    redirect('/login')
-  }
-
-  // ✅ ONBOARDING CHECK : Si manager sans salle -> Redirection création
-  if (profile.role === 'gym_manager' && !profile.gym_id) {
-    redirect('/dashboard/onboarding')
-  }
-
-  return { user, profile }
-}
+import { getDashboardUser } from '@/lib/dashboard-user'
 
 async function getOverviewStats(userId: string, userRole: string, gymId: string | null) {
   const cookieStore = await cookies()
@@ -141,7 +90,7 @@ async function getOverviewStats(userId: string, userRole: string, gymId: string 
 }
 
 export default async function DashboardPage() {
-  const { user, profile } = await getUser()
+  const { user, profile, gymName } = await getDashboardUser()
   const stats = await getOverviewStats(
     user.id,
     profile.role,
@@ -155,6 +104,7 @@ export default async function DashboardPage() {
       userRole={profile.role}
       userName={profile.full_name || 'Utilisateur'}
       userEmail={profile.email}
+      gymName={gymName || undefined}
     >
       <PageHeader
         title="Vue d'ensemble"

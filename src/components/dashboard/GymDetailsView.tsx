@@ -27,9 +27,10 @@ interface GymDetailsViewProps {
   }
   kiosks: any[]
   members: any[] // Initial members
+  manager?: any // Manager info
 }
 
-export default function GymDetailsView({ gym, stats, kiosks, members }: GymDetailsViewProps) {
+export default function GymDetailsView({ gym, stats, kiosks, members, manager }: GymDetailsViewProps) {
   const [activeTab, setActiveTab] = useState('overview')
 
   const getKioskStatusBadge = (status: string) => {
@@ -63,6 +64,7 @@ export default function GymDetailsView({ gym, stats, kiosks, members }: GymDetai
             <TabsList className="mb-4">
               <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
               <TabsTrigger value="kiosks">Kiosks ({kiosks.length})</TabsTrigger>
+              <TabsTrigger value="manager">Gérant</TabsTrigger>
               <TabsTrigger value="members">Adhérents ({stats.members})</TabsTrigger>
             </TabsList>
 
@@ -162,6 +164,76 @@ export default function GymDetailsView({ gym, stats, kiosks, members }: GymDetai
                   </tbody>
                 </table>
               </div>
+            </TabsContent>
+
+            {/* ONGLET GÉRANT */}
+            <TabsContent value="manager">
+              {manager ? (
+                <div className="space-y-6">
+                  {/* Profil Gérant */}
+                  <div className="bg-white border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Informations Gérant</h3>
+                    <div className="flex items-start gap-6">
+                      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-primary font-semibold text-2xl">
+                          {(manager.full_name || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1 grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Nom complet</p>
+                          <p className="text-sm font-medium">{manager.full_name || 'Non renseigné'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Email</p>
+                          <p className="text-sm font-medium">{manager.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Téléphone</p>
+                          <p className="text-sm font-medium">{manager.phone || 'Non renseigné'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Statut</p>
+                          <Badge variant={manager.is_active ? 'default' : 'secondary'}>
+                            {manager.is_active ? 'Actif' : 'Inactif'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Admin */}
+                  <div className="bg-white border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Actions administrateur</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <Button variant="outline" size="sm">
+                        Réinitialiser mot de passe
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        Forcer activation 2FA
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-yellow-600 border-yellow-300 hover:bg-yellow-50">
+                        Suspendre compte
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-red-600 border-red-300 hover:bg-red-50">
+                        Désactiver compte
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Activité Récente (Placeholder) */}
+                  <div className="bg-white border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Activité récente</h3>
+                    <p className="text-sm text-muted-foreground">
+                      📋 Feature à implémenter : Timeline des actions du gérant (connexions, modifications, etc.)
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white border border-border rounded-lg p-8 text-center">
+                  <p className="text-muted-foreground">Aucun gérant assigné à cette salle.</p>
+                </div>
+              )}
             </TabsContent>
 
             {/* ONGLET MEMBRES */}

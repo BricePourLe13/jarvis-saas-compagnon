@@ -1,81 +1,56 @@
-import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import PageHeader from '@/components/dashboard/PageHeader'
-import EmptyState from '@/components/dashboard/EmptyState'
-import { Settings } from 'lucide-react'
-
-async function getUser() {
-  const cookieStore = await cookies()
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Server Component, ignore
-          }
-        },
-      },
-    }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role, full_name, email')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || !profile.role) {
-    redirect('/login')
-  }
-
-  return { user, profile }
-}
+import { getDashboardUser } from '@/lib/dashboard-user'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import ProfileSettings from '@/components/dashboard/settings/ProfileSettings'
+import SecuritySettings from '@/components/dashboard/settings/SecuritySettings'
+import NotificationSettings from '@/components/dashboard/settings/NotificationSettings'
 
 export default async function SettingsPage() {
-  const { profile } = await getUser()
+  const { user, profile, gymName } = await getDashboardUser()
 
   return (
     <DashboardLayout
       userRole={profile.role}
       userName={profile.full_name || 'Utilisateur'}
       userEmail={profile.email}
+      gymName={gymName || undefined}
     >
       <PageHeader
         title="Paramètres"
-        description="Configurez votre compte et vos préférences"
+        description="Gérez votre profil, sécurité et préférences"
       />
 
-      <div className="px-6 py-6">
-        <div className="max-w-7xl mx-auto">
-          <EmptyState
-            icon={Settings}
-            title="Page en développement"
-            description="Les paramètres de compte, notifications et préférences seront bientôt disponibles"
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="bg-white border border-border">
+          <TabsTrigger value="profile">Profil</TabsTrigger>
+          <TabsTrigger value="security">Sécurité</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="profile">
+          <ProfileSettings
+            user={user}
+            profile={profile}
+            gymName={gymName}
           />
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <SecuritySettings
+            userId={user.id}
+            userRole={profile.role}
+          />
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <NotificationSettings
+            userId={user.id}
+            userEmail={profile.email}
+          />
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   )
 }
-
 

@@ -74,10 +74,10 @@ async function getGymDetails(gymId: string) {
     }
   )
 
-  // Fetch gym
+  // Fetch gym avec informations manager complètes
   const { data: gym, error: gymError } = await supabase
     .from('gyms')
-    .select('*, manager:users!manager_id(email, full_name)')
+    .select('*, manager:users!manager_id(id, email, full_name, phone, is_active, created_at)')
     .eq('id', gymId)
     .single()
 
@@ -153,6 +153,7 @@ export default async function GymDetailPage({
         stats={stats}
         kiosks={kiosks}
         members={members}
+        manager={gym.manager || null}
       />
     </DashboardLayout>
   )
