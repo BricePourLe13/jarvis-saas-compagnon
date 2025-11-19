@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSimpleClient } from '@/lib/supabase-admin'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { logger } from '@/lib/production-logger'
 
 /**
@@ -8,6 +8,8 @@ import { logger } from '@/lib/production-logger'
  * Vérifie le statut d'un code d'appairage.
  * Utilisé par l'écran pour "poll" et savoir s'il a été activé par un Admin.
  * PUBLIC (pas d'auth - l'écran ne peut pas s'authentifier avant d'être appairé)
+ * 
+ * IMPORTANT : Utilise createAdminClient() pour bypass RLS sur les tables gyms/kiosks
  */
 
 export async function GET(
@@ -16,7 +18,7 @@ export async function GET(
 ) {
   try {
     const { code } = await params
-    const supabase = createSimpleClient()
+    const supabase = createAdminClient() // Service Role (bypass RLS)
 
     // Récupérer le code
     const { data: pairingCode, error } = await supabase
@@ -30,13 +32,13 @@ export async function GET(
         paired_kiosk_id,
         device_token_plain,
         token_retrieved_at,
-        kiosks!device_pairing_codes_paired_kiosk_id_fkey (
+        kiosks:kiosks!device_pairing_codes_paired_kiosk_id_fkey (
           id,
           slug,
           name,
           device_token_hash,
           gym_id,
-          gyms!inner (
+          gyms (
             id,
             name,
             city
