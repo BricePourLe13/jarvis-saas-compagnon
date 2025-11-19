@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
+import { Box, VStack, HStack, Text } from '@/components/kiosk/ChakraCompat'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Wifi, 

@@ -1,6 +1,5 @@
 'use client'
 
-import { Box, VStack, Flex, Heading, Text } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
 import Avatar3D from '@/components/kiosk/Avatar3D'
 
@@ -68,10 +67,10 @@ const JarvisAvatar = ({
   const animationProps = getAnimationProps()
 
   return (
-    <Flex align="center" justify="flex-start" h="full" position="relative" pt="20vh">
-      <VStack spacing={variant === 'minimal' ? 4 : 8}>
+    <div className="flex flex-col items-center justify-center h-full w-full relative">
+      <div className={`flex flex-col items-center ${variant === 'minimal' ? 'gap-4' : 'gap-8'}`}>
         {/* Avatar JARVIS avec animation */}
-        <Box position="relative">
+        <div className="relative">
           <motion.div {...animationProps}>
             <Avatar3D 
               status={status}
@@ -79,7 +78,7 @@ const JarvisAvatar = ({
               eyeScale={eyeScale}
             />
           </motion.div>
-        </Box>
+        </div>
         
         {/* Texte descriptif optionnel */}
         {showText && (
@@ -88,28 +87,22 @@ const JarvisAvatar = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1 }}
           >
-            <VStack spacing={variant === 'minimal' ? 2 : 3} textAlign="center">
-              <Heading 
-                size={variant === 'minimal' ? 'md' : 'lg'} 
-                color="#374151" 
-                fontWeight="700"
-              >
+            <div className={`flex flex-col items-center text-center ${variant === 'minimal' ? 'gap-2' : 'gap-3'}`}>
+              <h3 className={`font-bold text-gray-700 ${variant === 'minimal' ? 'text-lg' : 'text-2xl'}`}>
                 {title}
-              </Heading>
+              </h3>
               {description && variant !== 'minimal' && (
-                <Text 
-                  color="#6b7280" 
-                  fontSize={variant === 'compact' ? 'md' : 'lg'} 
-                  maxW={variant === 'compact' ? '250px' : '300px'}
+                <p 
+                  className={`text-gray-500 font-medium ${variant === 'compact' ? 'text-base max-w-[250px]' : 'text-lg max-w-[350px]'}`}
                 >
                   {description}
-                </Text>
+                </p>
               )}
-            </VStack>
+            </div>
           </motion.div>
         )}
-      </VStack>
-    </Flex>
+      </div>
+    </div>
   )
 }
 
