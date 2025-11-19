@@ -2,94 +2,81 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '@/lib/production-logger'
 
-// ============================================================================
-// API: Accepter invitation et créer compte gérant
-// Architecture: Utilise trigger Supabase natif (auth.users → public.users)
-// Pattern: Officiel Supabase (zero-rollback, atomique par design)
-// ============================================================================
-
 export async function POST(request: NextRequest) {
   try {
     const { token, password } = await request.json()
 
-    // 1. Validation input
     if (!token || !password) {
-      return NextResponse.json(
-        { error: 'Token et mot de passe requis' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Token et mot de passe requis' }, { status: 400 })
     }
 
     if (password.length < 8) {
-      return NextResponse.json(
-        { error: 'Le mot de passe doit contenir au moins 8 caractères' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 8 caractères' }, { status: 400 })
     }
 
-    // Utiliser service role pour bypass RLS
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 2. Vérifier l'invitation (status + expiration)
+    // 1. Vérifier le token d'invitation
     const { data: invitation, error: invitError } = await supabaseAdmin
       .from('manager_invitations')
       .select('*')
       .eq('token', token)
-      .eq('status', 'pending')
       .single()
 
     if (invitError || !invitation) {
-      logger.warn('❌ [INVITATION] Token invalide ou déjà utilisé', { token: token.substring(0, 10) })
-      return NextResponse.json(
-        { error: 'Invitation invalide ou déjà utilisée' },
-        { status: 404 }
-      )
+      logger.warn('❌ [INVITATION] Token invalide ou non trouvé', { token: token.substring(0, 10) })
+      return NextResponse.json({ error: 'Invitation non trouvée' }, { status: 404 })
     }
 
-    // Vérifier expiration
+    if (invitation.status !== 'pending') {
+      return NextResponse.json({ error: `Invitation déjà ${invitation.status === 'accepted' ? 'acceptée' : 'révoquée'}` }, { status: 400 })
+    }
+
     const now = new Date()
     const expiresAt = new Date(invitation.expires_at)
-
     if (expiresAt < now) {
-      return NextResponse.json(
-        { error: 'Invitation expirée' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invitation expirée' }, { status: 400 })
     }
 
-    // 3. Créer Auth user (trigger auto-crée users entry via handle_new_user)
+    // 2. Créer le compte Supabase Auth
+    // Le trigger DB handle_new_user() s'occupera d'insérer dans public.users
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
       email: invitation.email,
       password,
-      email_confirm: true, // Auto-confirmer l'email
+      email_confirm: true,
       user_metadata: {
         full_name: invitation.full_name,
         role: 'gym_manager',
-        gym_id: invitation.gym_id, // Trigger lira cette valeur
+        gym_id: invitation.gym_id,
       }
     })
 
-    if (signUpError || !authData.user) {
-      logger.error('❌ [INVITATION] Erreur création compte Auth', { error: signUpError })
+    // GESTION D'ERREUR SPÉCIFIQUE
+    if (signUpError) {
+      const errorMsg = signUpError.message?.toLowerCase() || ''
       
-      // Si email déjà utilisé
-      if (signUpError?.message?.includes('already registered') || signUpError?.message?.includes('already exists')) {
+      // Cas : Email déjà utilisé (422 Unprocessable Entity)
+      if (errorMsg.includes('already registered') || errorMsg.includes('email address already exists') || signUpError.status === 422) {
+        logger.warn('❌ [INVITATION] Email déjà existant', { email: invitation.email })
         return NextResponse.json(
-          { error: 'Un compte existe déjà avec cet email. Veuillez vous connecter.' },
-          { status: 409 }
+          { error: 'Un compte existe déjà avec cet email. Veuillez vous connecter ou demander une nouvelle invitation.' }, 
+          { status: 409 } // 409 Conflict est plus approprié que 422 ou 500
         )
       }
 
-      return NextResponse.json(
-        { error: 'Erreur lors de la création du compte' },
-        { status: 500 }
-      )
+      // Autres erreurs
+      logger.error('❌ [INVITATION] Erreur création compte Auth', { error: signUpError.message })
+      return NextResponse.json({ error: `Erreur création compte: ${signUpError.message}` }, { status: 500 })
     }
 
-    // 4. Marquer l'invitation comme acceptée
+    if (!authData.user) {
+      return NextResponse.json({ error: 'Erreur inattendue: Utilisateur non créé' }, { status: 500 })
+    }
+
+    // 3. Marquer l'invitation comme acceptée
     const { error: updateError } = await supabaseAdmin
       .from('manager_invitations')
       .update({
@@ -99,10 +86,11 @@ export async function POST(request: NextRequest) {
       .eq('token', token)
 
     if (updateError) {
-      logger.error('❌ [INVITATION] Erreur update invitation', { error: updateError })
+      logger.error('❌ [INVITATION] Erreur update invitation', { error: updateError.message })
+      // On ne bloque pas la réponse car le compte est créé
     }
 
-    logger.success('✅ [INVITATION] Compte créé via trigger', {
+    logger.success('✅ [INVITATION] Compte gérant créé via invitation', {
       userId: authData.user.id,
       email: invitation.email,
       gymId: invitation.gym_id
@@ -118,10 +106,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    logger.error('❌ [INVITATION] Erreur serveur', { error: error.message })
-    return NextResponse.json(
-      { error: 'Erreur serveur' },
-      { status: 500 }
-    )
+    logger.error('❌ [INVITATION] Erreur serveur inattendue', { error: error.message, stack: error.stack })
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }
 }

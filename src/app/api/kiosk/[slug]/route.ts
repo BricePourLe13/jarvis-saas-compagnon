@@ -9,7 +9,10 @@ export async function GET(
     const { slug } = await params
     const supabase = createSimpleClient()
 
-    // Chercher le kiosk par slug dans la nouvelle table dédiée
+    // Chercher le kiosk par slug
+    // NOTE: On retire le filtre .eq('gyms.status', 'active') de la requête SQL
+    // pour éviter les erreurs de jointure PostgREST (400 Bad Request)
+    // et on filtre en JS ensuite.
     const { data: kiosk, error: kioskError } = await supabase
       .from('kiosks')
       .select(`
@@ -33,25 +36,23 @@ export async function GET(
         )
       `)
       .eq('slug', slug)
-      .eq('gyms.status', 'active')
       .single()
 
     if (kioskError || !kiosk) {
       return NextResponse.json(
         { 
           valid: false, 
-          error: 'Kiosk non trouvé ou inactif',
-          debug: {
-            slug,
-            errorDetails: kioskError?.message
-          }
+          error: 'Kiosk non trouvé',
+          debug: { slug, errorDetails: kioskError?.message }
         },
         { status: 404 }
       )
     }
 
-    // Vérifier que le gym existe
+    // Vérification manuelle du statut de la salle
+    // @ts-ignore - gyms est un objet unique grâce à !inner et single()
     const gym = kiosk.gyms
+    
     if (!gym) {
       return NextResponse.json(
         { valid: false, error: 'Gym associée non trouvée' },
@@ -59,22 +60,31 @@ export async function GET(
       )
     }
 
+    if (gym.status !== 'active') {
+      return NextResponse.json(
+        { valid: false, error: 'La salle de sport n\'est pas active' },
+        { status: 403 } // Forbidden au lieu de 404 pour debugging plus clair
+      )
+    }
+
     // Essayer de récupérer la franchise séparément (peut échouer à cause de RLS)
     let franchiseName = 'Franchise'
     let franchiseConfig: any = {}
     try {
-      const { data: franchise } = await supabase
-        .from('franchises')
-        .select('name, jarvis_config')
-        .eq('id', gym.franchise_id)
-        .single()
-      
-      if (franchise) {
-        franchiseName = franchise.name
-        franchiseConfig = franchise.jarvis_config || {}
+      if (gym.franchise_id) {
+        const { data: franchise } = await supabase
+          .from('franchises')
+          .select('name, jarvis_config')
+          .eq('id', gym.franchise_id)
+          .single()
+        
+        if (franchise) {
+          franchiseName = franchise.name
+          franchiseConfig = franchise.jarvis_config || {}
+        }
       }
     } catch (e) {
-      // RLS peut bloquer l'accès franchise
+      // Ignorer erreur franchise
     }
 
     // Déterminer si le kiosk est provisionné (online = provisionné)
@@ -128,37 +138,18 @@ export async function GET(
 
     return NextResponse.json(response)
 
-  } catch (error) {
-    // Log supprimé pour production
+  } catch (error: any) {
     return NextResponse.json(
       { 
         valid: false, 
         error: 'Erreur serveur lors de la validation du kiosk',
-        message: error instanceof Error ? error.message : 'Erreur inconnue'
+        message: error.message
       },
       { status: 500 }
     )
   }
 }
 
-// Gérer les autres méthodes HTTP
-export async function POST() {
-  return NextResponse.json(
-    { error: 'Méthode non autorisée sur cet endpoint' },
-    { status: 405 }
-  )
-}
-
-export async function PUT() {
-  return NextResponse.json(
-    { error: 'Méthode non autorisée sur cet endpoint' },
-    { status: 405 }
-  )
-}
-
-export async function DELETE() {
-  return NextResponse.json(
-    { error: 'Méthode non autorisée sur cet endpoint' },
-    { status: 405 }
-  )
-} 
+export async function POST() { return NextResponse.json({ error: 'Method not allowed' }, { status: 405 }) }
+export async function PUT() { return NextResponse.json({ error: 'Method not allowed' }, { status: 405 }) }
+export async function DELETE() { return NextResponse.json({ error: 'Method not allowed' }, { status: 405 }) }

@@ -312,3 +312,5 @@ BEGIN
   RAISE NOTICE '✅ MIGRATION COMPLÉTÉE AVEC SUCCÈS!';
   RAISE NOTICE 'Franchises supprimées, colonnes franchise_id retirées, users migrés vers gym_manager';
 END $$;
+
+

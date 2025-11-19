@@ -48,3 +48,137 @@ export function GymContextProvider({ children }: { children: ReactNode }) {
   const [currentGym, setCurrentGym] = useState<Gym | null>(null)
   const [availableGyms, setAvailableGyms] = useState<Gym[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Initialize context on mount
+  useEffect(() => {
+    async function initializeContext() {
+      try {
+        // Get current user
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session) {
+          router.push('/login')
+          return
+        }
+
+        setUserId(session.user.id)
+        setUserEmail(session.user.email || null)
+
+        // Get user profile from public.users
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .select('role, gym_id, franchise_id, gym_access, franchise_access')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profileError) {
+          console.error('[GymContext] Error fetching user profile:', profileError)
+          setLoading(false)
+          return
+        }
+
+        const role = userProfile.role as UserRole
+        setUserRole(role)
+
+        // Load context based on role
+        if (role === 'super_admin') {
+          // Super admin: load all franchises and gyms
+          setContextMode('all')
+          
+          const [franchisesRes, gymsRes] = await Promise.all([
+            supabase.from('franchises').select('id, name, city').order('name'),
+            supabase.from('gyms').select('id, franchise_id, name, city, status').order('name')
+          ])
+
+          if (franchisesRes.data) setAvailableFranchises(franchisesRes.data)
+          if (gymsRes.data) setAvailableGyms(gymsRes.data)
+
+          // Restore last selected context from localStorage
+          const savedGymId = localStorage.getItem('jarvis_selected_gym_id')
+          if (savedGymId && gymsRes.data?.some(g => g.id === savedGymId)) {
+            setSelectedGymId(savedGymId)
+          } else if (gymsRes.data && gymsRes.data.length > 0) {
+            setSelectedGymId(gymsRes.data[0].id)
+          }
+
+        } else if (role === 'franchise_owner') {
+          // Franchise owner: load their franchise and gyms
+          setContextMode('franchise')
+          setSelectedFranchiseId(userProfile.franchise_id)
+
+          const { data: gyms } = await supabase
+            .from('gyms')
+            .select('id, franchise_id, name, city, status')
+            .eq('franchise_id', userProfile.franchise_id)
+            .order('name')
+
+          if (gyms) {
+            setAvailableGyms(gyms)
+            // Default to first gym
+            const savedGymId = localStorage.getItem('jarvis_selected_gym_id')
+            if (savedGymId && gyms.some(g => g.id === savedGymId)) {
+              setSelectedGymId(savedGymId)
+            } else if (gyms.length > 0) {
+              setSelectedGymId(gyms[0].id)
+            }
+          }
+
+        } else if (role === 'gym_manager' || role === 'gym_staff') {
+          // Gym manager/staff: only their gym
+          setContextMode('single')
+          setSelectedGymId(userProfile.gym_id)
+
+          const { data: gym } = await supabase
+            .from('gyms')
+            .select('id, franchise_id, name, city, status')
+            .eq('id', userProfile.gym_id)
+            .single()
+
+          if (gym) {
+            setAvailableGyms([gym])
+          }
+        }
+
+      } catch (error) {
+        console.error('[GymContext] Initialization error:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initializeContext()
+  }, [supabase, router])
+
+  // Save selected gym to localStorage when it changes
+  useEffect(() => {
+    if (selectedGymId && contextMode !== 'single') {
+      localStorage.setItem('jarvis_selected_gym_id', selectedGymId)
+    }
+  }, [selectedGymId, contextMode])
+
+  const value: GymContextType = {
+    userId,
+    userRole,
+    userEmail,
+    selectedGymId,
+    selectedFranchiseId,
+    contextMode,
+    availableGyms,
+    availableFranchises,
+    setSelectedGymId,
+    setSelectedFranchiseId,
+    loading,
+  }
+
+  return <GymContext.Provider value={value}>{children}</GymContext.Provider>
+}
+
+// Hook to use the context
+export function useGymContext() {
+  const context = useContext(GymContext)
+  if (context === undefined) {
+    throw new Error('useGymContext must be used within a GymContextProvider')
+  }
+  return context
+}
+
