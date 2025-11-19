@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import PageHeader from '@/components/dashboard/PageHeader'
 import KiosksTabsContent from '@/components/dashboard/KiosksTabsContent'
+import PairDeviceDialog from '@/components/dashboard/PairDeviceDialog'
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -130,6 +131,9 @@ export default async function KiosksPage() {
   const { profile } = await getUser()
   const { allKiosks, pendingKiosks } = await getKiosksData(profile.role, profile.gym_id)
 
+  // Liste des kiosks disponibles pour l'appairage (non encore appairés)
+  const availableKiosks = allKiosks.filter(k => !k.device_token_hash)
+
   return (
     <DashboardLayout
       userRole={profile.role}
@@ -139,7 +143,12 @@ export default async function KiosksPage() {
       <PageHeader
         title="Kiosks JARVIS"
         description="Gérez et surveillez vos kiosks JARVIS."
-      />
+      >
+        <PairDeviceDialog
+          kiosks={availableKiosks}
+          userRole={profile.role}
+        />
+      </PageHeader>
 
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">

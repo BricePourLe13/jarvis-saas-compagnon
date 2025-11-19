@@ -253,3 +253,7 @@ export function getKioskSessionConfig(member: {
   };
 }
 
+
+
+
+
