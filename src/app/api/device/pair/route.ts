@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         device_paired_at: now,
         device_last_seen: now,
         device_fingerprint: pairingCode.device_fingerprint,
-        status: 'active', // Activer le kiosk immédiatement
+        status: 'online', // Activer le kiosk immédiatement
       })
       .eq('id', kiosk_id)
 
