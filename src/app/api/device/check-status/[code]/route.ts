@@ -29,6 +29,7 @@ export async function GET(
         paired_at,
         paired_kiosk_id,
         device_token_plain,
+        token_retrieved_at,
         kiosks!device_pairing_codes_paired_kiosk_id_fkey (
           id,
           slug,
@@ -82,11 +83,12 @@ export async function GET(
 
       logger.info('✅ [DEVICE] Code appairé vérifié', { code, kioskId: kiosk.id }, { component: 'DeviceCheckStatus' })
 
-      // Nettoyer le token en clair après récupération (sécurité)
-      if (pairingCode.device_token_plain) {
+      // Marquer le token comme récupéré (sera nettoyé par le cron job après 5 min)
+      // On ne le nettoie pas immédiatement pour éviter les problèmes de cache/polling
+      if (pairingCode.device_token_plain && !pairingCode.token_retrieved_at) {
         await supabase
           .from('device_pairing_codes')
-          .update({ device_token_plain: null })
+          .update({ token_retrieved_at: new Date().toISOString() })
           .eq('code', code)
       }
 
