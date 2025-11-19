@@ -28,6 +28,7 @@ export async function GET(
         expires_at,
         paired_at,
         paired_kiosk_id,
+        device_token_plain,
         kiosks!device_pairing_codes_paired_kiosk_id_fkey (
           id,
           slug,
@@ -81,6 +82,14 @@ export async function GET(
 
       logger.info('✅ [DEVICE] Code appairé vérifié', { code, kioskId: kiosk.id }, { component: 'DeviceCheckStatus' })
 
+      // Nettoyer le token en clair après récupération (sécurité)
+      if (pairingCode.device_token_plain) {
+        await supabase
+          .from('device_pairing_codes')
+          .update({ device_token_plain: null })
+          .eq('code', code)
+      }
+
       return NextResponse.json({
         status: 'paired',
         message: 'Écran activé avec succès !',
@@ -88,7 +97,7 @@ export async function GET(
           id: kiosk.id,
           slug: kiosk.slug,
           name: kiosk.name,
-          device_token: kiosk.device_token_hash, // Le device l'enregistrera en cookie
+          device_token: pairingCode.device_token_plain || kiosk.device_token_hash, // Token en clair si disponible
           gym: {
             id: gym.id,
             name: gym.name,

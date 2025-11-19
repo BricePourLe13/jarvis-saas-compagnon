@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mettre à jour le code
+    // Mettre à jour le code (avec le token en clair pour que l'écran puisse le récupérer)
     const { error: updateCodeError } = await supabaseAdmin
       .from('device_pairing_codes')
       .update({
@@ -164,6 +164,7 @@ export async function POST(request: NextRequest) {
         paired_at: now,
         paired_by: user.id,
         paired_kiosk_id: kiosk_id,
+        device_token_plain: deviceToken, // Token en clair (temporaire, sera nettoyé après récupération)
       })
       .eq('code', code)
 
