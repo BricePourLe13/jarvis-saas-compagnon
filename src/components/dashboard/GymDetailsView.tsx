@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import PageHeader from '@/components/dashboard/PageHeader'
 import KPICard from '@/components/dashboard/KPICard'
 import { Badge } from '@/components/ui/badge'
+import CreateKioskDialog from '@/components/dashboard/CreateKioskDialog'
 
 interface GymDetailsViewProps {
   gym: any
@@ -121,7 +122,7 @@ export default function GymDetailsView({ gym, stats, kiosks, members }: GymDetai
               <div className="bg-white border border-border rounded-lg overflow-hidden">
                 <div className="px-6 py-4 border-b border-border flex justify-between items-center">
                   <h3 className="text-lg font-medium text-foreground">Kiosks</h3>
-                  <Button size="sm">Nouveau Kiosk</Button>
+                  <CreateKioskDialog gymId={gym.id} gymName={gym.name} />
                 </div>
                 <table className="min-w-full divide-y divide-border">
                   <thead className="bg-muted/50">

@@ -346,11 +346,9 @@ export default function LoginPage() {
           .eq('id', data.user.id)
           .single()
 
-        // 2FA obligatoire pour super_admin ET gym_manager
-        const requires2FA = userProfile?.role === 'super_admin' || 
-                           userProfile?.role === 'franchise_owner' || 
-                           userProfile?.role === 'franchise_admin' ||
-                           userProfile?.role === 'gym_manager'
+        // 2FA obligatoire UNIQUEMENT pour super_admin (MVP)
+        // TODO: Activer pour gym_manager après amélioration du flow setup
+        const requires2FA = userProfile?.role === 'super_admin'
         
         if (requires2FA) {
           try {
