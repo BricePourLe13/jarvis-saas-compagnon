@@ -66,11 +66,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Vérifier que l'utilisateur est gym_manager
-    const { data: userProfile } = await supabase
+    const { data: userProfile, error: profileError } = await supabase
       .from('users')
       .select('id, role, email, full_name, gym_id')
       .eq('id', user.id)
       .single()
+
+    logger.info('🔍 [MANAGER] User profile fetched', { 
+      userId: user.id, 
+      userProfile, 
+      profileError: profileError?.message 
+    }, { component: 'ManagerGymCreate' })
 
     if (!userProfile || userProfile.role !== 'gym_manager') {
       return NextResponse.json(
@@ -131,6 +137,11 @@ export async function POST(request: NextRequest) {
       status: 'pending_approval' // ⚠️ Admin doit approuver
     }
 
+    logger.info('🔧 [MANAGER] Attempting to insert gym', { 
+      gymData, 
+      authUid: user.id 
+    }, { component: 'ManagerGymCreate' })
+
     const { data: gym, error: gymError } = await supabase
       .from('gyms')
       .insert(gymData)
@@ -138,12 +149,23 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (gymError) {
-      logger.error('Erreur création gym (manager)', { error: gymError, manager_id: userProfile.id }, { component: 'ManagerGymCreate' })
+      logger.error('❌ [MANAGER] Erreur création gym', { 
+        error: gymError, 
+        gymError: JSON.stringify(gymError),
+        manager_id: userProfile.id,
+        gym_id_was_null: userProfile.gym_id === null
+      }, { component: 'ManagerGymCreate' })
+      
       return NextResponse.json(
         { 
           success: false, 
           error: 'Erreur lors de la création de la salle',
-          details: gymError.message 
+          details: gymError.message,
+          debug: {
+            code: gymError.code,
+            hint: gymError.hint,
+            userHasGymId: userProfile.gym_id !== null
+          }
         },
         { status: 500 }
       )
@@ -248,5 +270,6 @@ export async function GET() {
     { status: 405 }
   )
 }
+
 
 

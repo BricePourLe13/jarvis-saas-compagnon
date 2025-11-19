@@ -7,7 +7,8 @@ import { createSimpleClient } from '@/lib/supabase-admin'
  * 
  * Valide qu'un kiosk existe et que sa gym est active.
  * Public (pas d'auth requise - Middleware l'exclut).
- * Redéployé le 19/11/2025 pour fix cache.
+ * 
+ * REDÉPLOYÉ LE 19/11/2025 15:30 (Force rebuild #3)
  */
 export async function GET(
   request: NextRequest,
