@@ -56,15 +56,28 @@ async function getGymDetails(gymId: string) {
   // car nous avons déjà validé que l'utilisateur est super_admin dans getUser()
   const supabase = createAdminClient()
 
-  // Fetch gym avec informations manager complètes
+  // Fetch gym
   const { data: gym, error: gymError } = await supabase
     .from('gyms')
-    .select('*, manager:users!manager_id(id, email, full_name, phone, is_active, created_at)')
+    .select('*')
     .eq('id', gymId)
     .single()
 
   if (gymError || !gym) {
+    console.error('❌ [GYM DETAILS] Gym fetch error:', gymError)
     redirect('/dashboard/gyms')
+  }
+
+  // Fetch manager séparément (si manager_id existe)
+  let manager = null
+  if (gym.manager_id) {
+    const { data: managerData } = await supabase
+      .from('users')
+      .select('id, email, full_name, phone, is_active, created_at')
+      .eq('id', gym.manager_id)
+      .single()
+    
+    manager = managerData
   }
 
   // Fetch stats
@@ -105,6 +118,7 @@ async function getGymDetails(gymId: string) {
 
   return {
     gym,
+    manager,
     stats: {
       members: membersCount || 0,
       kiosks: kiosksCount || 0,
@@ -122,7 +136,7 @@ export default async function GymDetailPage({
 }) {
   const { profile } = await getUser()
   const resolvedParams = await params
-  const { gym, stats, kiosks, members } = await getGymDetails(resolvedParams.id)
+  const { gym, manager, stats, kiosks, members } = await getGymDetails(resolvedParams.id)
 
   return (
     <DashboardLayout
@@ -135,7 +149,7 @@ export default async function GymDetailPage({
         stats={stats}
         kiosks={kiosks}
         members={members}
-        manager={gym.manager || null}
+        manager={manager}
       />
     </DashboardLayout>
   )
