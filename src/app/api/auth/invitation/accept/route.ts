@@ -4,11 +4,15 @@ import { logger } from '@/lib/production-logger'
 
 // ============================================================================
 // API: Accepter invitation et créer compte gérant
+// Architecture: Utilise trigger Supabase natif (auth.users → public.users)
+// Pattern: Officiel Supabase (zero-rollback, atomique par design)
 // ============================================================================
+
 export async function POST(request: NextRequest) {
   try {
     const { token, password } = await request.json()
 
+    // 1. Validation input
     if (!token || !password) {
       return NextResponse.json(
         { error: 'Token et mot de passe requis' },
@@ -29,29 +33,23 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 1. Vérifier le token
+    // 2. Vérifier l'invitation (status + expiration)
     const { data: invitation, error: invitError } = await supabaseAdmin
       .from('manager_invitations')
       .select('*')
       .eq('token', token)
+      .eq('status', 'pending')
       .single()
 
     if (invitError || !invitation) {
-      logger.warn('❌ [INVITATION] Token invalide', { token: token.substring(0, 10) })
+      logger.warn('❌ [INVITATION] Token invalide ou déjà utilisé', { token: token.substring(0, 10) })
       return NextResponse.json(
-        { error: 'Invitation non trouvée' },
+        { error: 'Invitation invalide ou déjà utilisée' },
         { status: 404 }
       )
     }
 
-    // 2. Vérifier statut et expiration
-    if (invitation.status !== 'pending') {
-      return NextResponse.json(
-        { error: `Invitation déjà ${invitation.status === 'accepted' ? 'acceptée' : 'révoquée'}` },
-        { status: 400 }
-      )
-    }
-
+    // Vérifier expiration
     const now = new Date()
     const expiresAt = new Date(invitation.expires_at)
 
@@ -62,34 +60,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Vérifier si l'email existe déjà (TABLE USERS + AUTH)
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id, email')
-      .eq('email', invitation.email)
-      .single()
-
-    // Si user dans DB, vérifier s'il existe aussi dans Auth
-    if (existingUser) {
-      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers()
-      const existingAuthUser = authUsers?.users?.find(u => u.email === invitation.email)
-      
-      if (existingAuthUser) {
-        // Compte complet existe déjà
-        logger.warn('❌ [INVITATION] Email déjà utilisé (Auth + DB)', { email: invitation.email }, { component: 'API:InvitationAccept' })
-        return NextResponse.json(
-          { error: 'Un compte existe déjà avec cet email. Veuillez vous connecter.' },
-          { status: 409 }
-        )
-      } else {
-        // Nettoyage orphelin: user dans DB mais pas dans Auth (rollback incomplet)
-        logger.warn('🧹 [INVITATION] Nettoyage compte orphelin (DB sans Auth)', { userId: existingUser.id, email: invitation.email }, { component: 'API:InvitationAccept' })
-        await supabaseAdmin.from('users').delete().eq('id', existingUser.id)
-        // Continuer la création
-      }
-    }
-
-    // 4. Créer le compte Supabase Auth
+    // 3. Créer Auth user (trigger auto-crée users entry via handle_new_user)
     const { data: authData, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
       email: invitation.email,
       password,
@@ -97,6 +68,7 @@ export async function POST(request: NextRequest) {
       user_metadata: {
         full_name: invitation.full_name,
         role: 'gym_manager',
+        gym_id: invitation.gym_id, // Trigger lira cette valeur
       }
     })
 
@@ -104,9 +76,9 @@ export async function POST(request: NextRequest) {
       logger.error('❌ [INVITATION] Erreur création compte Auth', { error: signUpError })
       
       // Si email déjà utilisé
-      if (signUpError?.message?.includes('already registered')) {
+      if (signUpError?.message?.includes('already registered') || signUpError?.message?.includes('already exists')) {
         return NextResponse.json(
-          { error: 'Un compte existe déjà avec cet email' },
+          { error: 'Un compte existe déjà avec cet email. Veuillez vous connecter.' },
           { status: 409 }
         )
       }
@@ -117,31 +89,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 5. Créer l'entrée dans la table users
-    const { error: userError } = await supabaseAdmin
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email: invitation.email,
-        full_name: invitation.full_name,
-        role: 'gym_manager',
-        gym_id: invitation.gym_id, // Peut être null si pas de gym pré-assignée
-        is_active: true,
-      })
-
-    if (userError) {
-      logger.error('❌ [INVITATION] Erreur création user DB', { error: userError })
-      
-      // Rollback: supprimer le compte Auth créé
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-
-      return NextResponse.json(
-        { error: 'Erreur lors de la création du profil' },
-        { status: 500 }
-      )
-    }
-
-    // 6. Marquer l'invitation comme acceptée
+    // 4. Marquer l'invitation comme acceptée
     const { error: updateError } = await supabaseAdmin
       .from('manager_invitations')
       .update({
@@ -154,7 +102,7 @@ export async function POST(request: NextRequest) {
       logger.error('❌ [INVITATION] Erreur update invitation', { error: updateError })
     }
 
-    logger.success('✅ [INVITATION] Compte créé', {
+    logger.success('✅ [INVITATION] Compte créé via trigger', {
       userId: authData.user.id,
       email: invitation.email,
       gymId: invitation.gym_id
