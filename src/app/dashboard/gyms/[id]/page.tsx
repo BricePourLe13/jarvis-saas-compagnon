@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { createAdminClient } from '@/lib/supabase-admin'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import GymDetailsView from '@/components/dashboard/GymDetailsView'
 
@@ -51,28 +52,9 @@ async function getUser() {
 }
 
 async function getGymDetails(gymId: string) {
-  const cookieStore = await cookies()
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Server Component, ignore
-          }
-        },
-      },
-    }
-  )
+  // Utilisation du client Admin pour contourner les RLS sur la table users (manager)
+  // car nous avons déjà validé que l'utilisateur est super_admin dans getUser()
+  const supabase = createAdminClient()
 
   // Fetch gym avec informations manager complètes
   const { data: gym, error: gymError } = await supabase
