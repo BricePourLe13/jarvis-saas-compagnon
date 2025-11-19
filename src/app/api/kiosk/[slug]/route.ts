@@ -20,6 +20,18 @@ export async function GET(
 
     console.log(`[KIOSK API] Step 1: Validating slug: ${slug}`)
 
+    // 🔒 SÉCURITÉ: Vérifier le device token
+    const deviceToken = request.headers.get('X-Device-Token')
+    const kioskId = request.headers.get('X-Kiosk-ID')
+
+    if (!deviceToken || !kioskId) {
+      console.log(`[KIOSK API] ❌ Device token manquant`)
+      return NextResponse.json(
+        { valid: false, error: 'Device token manquant' },
+        { status: 401 }
+      )
+    }
+
     // ✅ SOLUTION: 2 requêtes séparées au lieu d'une jointure (évite PGRST116)
     // Étape 1: Chercher le kiosk par slug
     const { data: kiosk, error: kioskError } = await supabase
@@ -36,7 +48,8 @@ export async function GET(
         language,
         openai_model,
         hardware_info,
-        location_in_gym
+        location_in_gym,
+        device_token_hash
       `)
       .eq('slug', slug)
       .single()
@@ -58,6 +71,20 @@ export async function GET(
         { status: 404 }
       )
     }
+
+    // 🔒 SÉCURITÉ: Valider le device token (hash)
+    const crypto = require('crypto')
+    const deviceTokenHash = crypto.createHash('sha256').update(deviceToken).digest('hex')
+
+    if (kiosk.device_token_hash !== deviceTokenHash) {
+      console.log(`[KIOSK API] ❌ Device token invalide`)
+      return NextResponse.json(
+        { valid: false, error: 'Device token invalide' },
+        { status: 403 }
+      )
+    }
+
+    console.log(`[KIOSK API] ✅ Device token validé`)
 
     console.log(`[KIOSK API] Step 4: Kiosk found, fetching gym`)
 

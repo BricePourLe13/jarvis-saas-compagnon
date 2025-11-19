@@ -436,7 +436,33 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   useEffect(() => {
     const validateKiosk = async () => {
       try {
-        const response = await fetch(`/api/kiosk/${slug}`)
+        // 🔒 SÉCURITÉ: Vérifier le device token en localStorage
+        const deviceToken = localStorage.getItem('jarvis_device_token')
+        const kioskId = localStorage.getItem('jarvis_kiosk_id')
+        
+        if (!deviceToken || !kioskId) {
+          // Pas de token → Rediriger vers /setup pour appairage
+          kioskLogger.system('❌ Device token manquant - Redirection vers /setup', 'error')
+          window.location.href = '/setup'
+          return
+        }
+        
+        // Envoyer le token dans les headers pour validation côté serveur
+        const response = await fetch(`/api/kiosk/${slug}`, {
+          headers: {
+            'X-Device-Token': deviceToken,
+            'X-Kiosk-ID': kioskId,
+          }
+        })
+        
+        if (response.status === 401 || response.status === 403) {
+          // Token invalide → Nettoyer localStorage et rediriger vers /setup
+          localStorage.removeItem('jarvis_device_token')
+          localStorage.removeItem('jarvis_kiosk_id')
+          kioskLogger.system('❌ Device token invalide - Redirection vers /setup', 'error')
+          window.location.href = '/setup'
+          return
+        }
         
         if (!response.ok) {
           throw new Error(`Kiosk non trouvé: ${response.status}`)
