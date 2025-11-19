@@ -42,7 +42,6 @@ export async function GET(
         gyms!inner(
           id,
           name,
-          franchise_id,
           status
         )
       `)
@@ -87,25 +86,10 @@ export async function GET(
       )
     }
 
-    // Essayer de récupérer la franchise séparément (peut échouer à cause de RLS)
-    let franchiseName = 'Franchise'
-    let franchiseConfig: any = {}
-    try {
-      if (gym.franchise_id) {
-        const { data: franchise } = await supabase
-          .from('franchises')
-          .select('name, jarvis_config')
-          .eq('id', gym.franchise_id)
-          .single()
-        
-        if (franchise) {
-          franchiseName = franchise.name
-          franchiseConfig = franchise.jarvis_config || {}
-        }
-      }
-    } catch (e) {
-      // Ignorer erreur franchise
-    }
+    // ❌ DEPRECATED: franchise_id n'existe plus dans gyms (supprimé en Nov 2025)
+    // Les configs de branding sont maintenant au niveau gym directement
+    const franchiseName = gym.name
+    const franchiseConfig: any = {}
 
     // Déterminer si le kiosk est provisionné (online = provisionné)
     const isProvisioned = kiosk.status === 'online'
@@ -143,14 +127,12 @@ export async function GET(
       gym: {
         id: gym.id,
         name: gym.name,
-        franchise_id: gym.franchise_id,
         address: '',
         franchise_name: franchiseName
       },
       // Section data pour compatibilité avec le tracking
       data: {
         id: gym.id,
-        franchise_id: gym.franchise_id,
         name: gym.name,
         kiosk_id: kiosk.id
       }

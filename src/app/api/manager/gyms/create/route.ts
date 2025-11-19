@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { createSimpleClient } from '@/lib/supabase-admin'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { cookies } from 'next/headers'
 import { logger } from '@/lib/production-logger'
 
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     }, { component: 'ManagerGymCreate' })
 
     // ✅ UTILISER SERVICE ROLE pour bypass RLS (permissions vérifiées manuellement ci-dessus)
-    const supabaseAdmin = createSimpleClient()
+    const supabaseAdmin = createAdminClient()
 
     const { data: gym, error: gymError } = await supabaseAdmin
       .from('gyms')
