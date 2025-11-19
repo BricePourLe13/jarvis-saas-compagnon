@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSimpleClient } from '@/lib/supabase-admin'
+import { createAdminClient } from '@/lib/supabase-admin'
 
 /**
  * 🏥 API KIOSK VALIDATION
@@ -8,7 +8,7 @@ import { createSimpleClient } from '@/lib/supabase-admin'
  * Valide qu'un kiosk existe et que sa gym est active.
  * Public (pas d'auth requise - Middleware l'exclut).
  * 
- * REDÉPLOYÉ LE 19/11/2025 15:30 (Force rebuild #3)
+ * IMPORTANT : Utilise createAdminClient() pour bypass RLS sur gyms/kiosks
  */
 export async function GET(
   request: NextRequest,
@@ -16,7 +16,7 @@ export async function GET(
 ) {
   try {
     const { slug } = await params
-    const supabase = createSimpleClient()
+    const supabase = createAdminClient() // Service Role (bypass RLS)
 
     console.log(`[KIOSK API] Step 1: Validating slug: ${slug}`)
 
