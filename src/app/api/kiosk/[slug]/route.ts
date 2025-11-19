@@ -18,7 +18,7 @@ export async function GET(
     const { slug } = await params
     const supabase = createSimpleClient()
 
-    console.log(`[KIOSK API] Validating slug: ${slug}`)
+    console.log(`[KIOSK API] Step 1: Validating slug: ${slug}`)
 
     // Chercher le kiosk par slug
     // NOTE: On retire le filtre .eq('gyms.status', 'active') de la requête SQL
@@ -49,16 +49,25 @@ export async function GET(
       .eq('slug', slug)
       .single()
 
+    console.log(`[KIOSK API] Step 2: Query result:`, { 
+      found: !!kiosk, 
+      error: kioskError?.message,
+      errorCode: kioskError?.code 
+    })
+
     if (kioskError || !kiosk) {
+      console.log(`[KIOSK API] Step 3: RETURNING 404 - Kiosk not found`)
       return NextResponse.json(
         { 
           valid: false, 
           error: 'Kiosk non trouvé',
-          debug: { slug, errorDetails: kioskError?.message }
+          debug: { slug, errorDetails: kioskError?.message, errorCode: kioskError?.code }
         },
         { status: 404 }
       )
     }
+
+    console.log(`[KIOSK API] Step 4: Kiosk found, checking gym status`)
 
     // Vérification manuelle du statut de la salle
     // @ts-ignore - gyms est un objet unique grâce à !inner et single()

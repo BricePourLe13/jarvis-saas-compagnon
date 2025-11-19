@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createSimpleClient } from '@/lib/supabase-admin'
 import { cookies } from 'next/headers'
 import { logger } from '@/lib/production-logger'
 
@@ -142,7 +143,10 @@ export async function POST(request: NextRequest) {
       authUid: user.id 
     }, { component: 'ManagerGymCreate' })
 
-    const { data: gym, error: gymError } = await supabase
+    // ✅ UTILISER SERVICE ROLE pour bypass RLS (permissions vérifiées manuellement ci-dessus)
+    const supabaseAdmin = createSimpleClient()
+
+    const { data: gym, error: gymError } = await supabaseAdmin
       .from('gyms')
       .insert(gymData)
       .select()
@@ -192,7 +196,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: kiosk, error: kioskError } = await supabase
+    const { data: kiosk, error: kioskError } = await supabaseAdmin
       .from('kiosks')
       .insert(kioskData)
       .select()
@@ -200,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     if (kioskError) {
       // Rollback gym si kiosk fail
-      await supabase.from('gyms').delete().eq('id', gym.id)
+      await supabaseAdmin.from('gyms').delete().eq('id', gym.id)
       
       logger.error('Erreur création kiosk (manager)', { error: kioskError, gym_id: gym.id }, { component: 'ManagerGymCreate' })
       return NextResponse.json(
@@ -214,7 +218,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Mettre à jour le profil user avec gym_id
-    const { error: updateUserError } = await supabase
+    const { error: updateUserError } = await supabaseAdmin
       .from('users')
       .update({ gym_id: gym.id })
       .eq('id', userProfile.id)
