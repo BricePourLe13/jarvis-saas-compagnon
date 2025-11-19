@@ -29,7 +29,8 @@ interface NavItem {
   label: string
   href: string
   icon: typeof LayoutDashboard
-  adminOnly?: boolean
+  adminOnly?: boolean   // Visible uniquement par Super Admin
+  managerOnly?: boolean // Visible uniquement par Manager (caché au Super Admin)
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -53,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Adhérents',
     href: '/dashboard/members',
     icon: Users,
+    managerOnly: true, // Caché au Super Admin qui passe par "Salles"
   },
   {
     label: 'Sessions',
@@ -82,9 +84,14 @@ export default function DashboardLayout({
     router.push('/login')
   }
 
-  const filteredNavItems = NAV_ITEMS.filter(
-    item => !item.adminOnly || userRole === 'super_admin'
-  )
+  const filteredNavItems = NAV_ITEMS.filter(item => {
+    if (userRole === 'super_admin') {
+      // Super Admin voit tout sauf ce qui est réservé aux managers
+      return !item.managerOnly
+    }
+    // Manager ne voit pas ce qui est réservé aux admins
+    return !item.adminOnly
+  })
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -219,4 +226,3 @@ export default function DashboardLayout({
     </div>
   )
 }
-

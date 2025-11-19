@@ -49,6 +49,11 @@ async function getUser() {
     redirect('/login')
   }
 
+  // ✅ ONBOARDING CHECK : Si manager sans salle -> Redirection création
+  if (profile.role === 'gym_manager' && !profile.gym_id) {
+    redirect('/dashboard/onboarding')
+  }
+
   return { user, profile }
 }
 
@@ -208,5 +213,3 @@ export default async function DashboardPage() {
     </DashboardLayout>
   )
 }
-
-

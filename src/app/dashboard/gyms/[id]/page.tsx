@@ -2,11 +2,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
-import PageHeader from '@/components/dashboard/PageHeader'
-import KPICard from '@/components/dashboard/KPICard'
-import { Button } from '@/components/ui/button'
-import { Users, Monitor, Activity, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import GymDetailsView from '@/components/dashboard/GymDetailsView'
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -81,7 +77,7 @@ async function getGymDetails(gymId: string) {
   // Fetch gym
   const { data: gym, error: gymError } = await supabase
     .from('gyms')
-    .select('*')
+    .select('*, manager:users!manager_id(email, full_name)')
     .eq('id', gymId)
     .single()
 
@@ -117,6 +113,14 @@ async function getGymDetails(gymId: string) {
     .eq('gym_id', gymId)
     .order('created_at', { ascending: false })
 
+  // Fetch members (Initial load - 20 latest)
+  const { data: members } = await supabase
+    .from('gym_members_v2')
+    .select('*')
+    .eq('gym_id', gymId)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
   return {
     gym,
     stats: {
@@ -125,6 +129,7 @@ async function getGymDetails(gymId: string) {
       sessions: sessionsCount || 0,
     },
     kiosks: kiosks || [],
+    members: members || [],
   }
 }
 
@@ -135,37 +140,7 @@ export default async function GymDetailPage({
 }) {
   const { profile } = await getUser()
   const resolvedParams = await params
-  const { gym, stats, kiosks } = await getGymDetails(resolvedParams.id)
-
-  const getKioskStatusBadge = (status: string) => {
-    switch (status) {
-      case 'online':
-        return 'badge-success'
-      case 'offline':
-        return 'badge-error'
-      case 'provisioning':
-        return 'badge-info'
-      case 'maintenance':
-        return 'badge-warning'
-      default:
-        return 'badge-neutral'
-    }
-  }
-
-  const getKioskStatusLabel = (status: string) => {
-    switch (status) {
-      case 'online':
-        return 'En ligne'
-      case 'offline':
-        return 'Hors ligne'
-      case 'provisioning':
-        return 'Provisioning'
-      case 'maintenance':
-        return 'Maintenance'
-      default:
-        return status
-    }
-  }
+  const { gym, stats, kiosks, members } = await getGymDetails(resolvedParams.id)
 
   return (
     <DashboardLayout
@@ -173,124 +148,12 @@ export default async function GymDetailPage({
       userName={profile.full_name || 'Admin'}
       userEmail={profile.email}
     >
-      <PageHeader
-        title={gym.name}
-        description={`${gym.address}, ${gym.postal_code} ${gym.city}`}
-        actions={
-          <Link href="/dashboard/gyms">
-            <Button variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Retour
-            </Button>
-          </Link>
-        }
+      <GymDetailsView
+        gym={gym}
+        stats={stats}
+        kiosks={kiosks}
+        members={members}
       />
-
-      <div className="px-6 py-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KPICard
-              label="Adhérents"
-              value={stats.members}
-              icon={Users}
-              description="Adhérents actifs"
-            />
-            <KPICard
-              label="Kiosks"
-              value={stats.kiosks}
-              icon={Monitor}
-              description="Kiosks déployés"
-            />
-            <KPICard
-              label="Sessions (30j)"
-              value={stats.sessions}
-              icon={Activity}
-              description="Sessions vocales"
-            />
-          </div>
-
-          {/* Kiosks List */}
-          <div className="bg-white border border-border rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-border">
-              <h3 className="text-lg font-medium text-foreground">
-                Kiosks JARVIS
-              </h3>
-            </div>
-            {kiosks.length === 0 ? (
-              <div className="p-8 text-center">
-                <Monitor className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground">
-                  Aucun kiosk déployé pour cette salle
-                </p>
-              </div>
-            ) : (
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Nom
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Slug
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Statut
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Dernière activité
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {kiosks.map((kiosk: any) => (
-                    <tr key={kiosk.id} className="table-row">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-foreground">
-                          {kiosk.name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">
-                          {kiosk.slug}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={getKioskStatusBadge(kiosk.status)}>
-                          {getKioskStatusLabel(kiosk.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">
-                          {kiosk.last_heartbeat
-                            ? new Date(kiosk.last_heartbeat).toLocaleString('fr-FR')
-                            : 'Jamais'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <Link
-                          href={`/kiosk/${kiosk.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button variant="outline" size="sm">
-                            <Monitor className="mr-2 h-4 w-4" />
-                            Ouvrir kiosk
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      </div>
     </DashboardLayout>
   )
 }
-
