@@ -758,6 +758,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     <>
       <Box
         h="100vh"
+        w="100vw"
         position="relative"
         overflow="hidden"
         bg="linear-gradient(135deg, var(--chakra-colors-gray-50) 0%, var(--chakra-colors-gray-200) 50%, var(--chakra-colors-gray-300) 100%)"
@@ -1175,32 +1176,32 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         <div
           className="h-screen w-screen flex flex-col items-center justify-center relative z-10 pb-20 overflow-hidden"
         >
-          {/* 🏢 INFOS GYM (Haut discret) */}
+          {/* 🏢 INFOS GYM (Haut gauche, à côté de la sphère) */}
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
-            className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 max-w-[90%] pointer-events-none"
+            className="absolute top-[50vh] -translate-y-1/2 left-8 flex flex-col items-start gap-3 max-w-[280px] pointer-events-none"
           >
             <p 
-              className="text-lg text-gray-800 font-semibold tracking-widest uppercase text-center truncate max-w-full"
+              className="text-xl text-gray-800 font-semibold tracking-wide uppercase"
             >
               {kioskData.gym.name}
             </p>
             
             {/* Status indicator */}
-            <div className="flex items-center gap-2 bg-gray-800/10 px-3 py-1 rounded-full backdrop-blur-sm">
+            <div className="flex items-center gap-2 bg-gray-800/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
               <div
-                className={`w-1.5 h-1.5 rounded-full ${voiceActive ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-500"}`}
+                className={`w-2 h-2 rounded-full ${voiceActive ? "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.7)]" : "bg-gray-500"}`}
               />
-              <span className="text-xs text-gray-700 font-medium">
-                {voiceActive ? "EN ÉCOUTE" : "DISPONIBLE"}
+              <span className="text-sm text-gray-700 font-medium">
+                {voiceActive ? "En écoute" : "Disponible"}
               </span>
             </div>
 
             {/* Prewarm status */}
             {prewarmStatus === 'warming' && (
-               <span className="text-xs text-purple-400">Connexion IA...</span>
+               <span className="text-xs text-purple-600 font-medium">Connexion IA...</span>
             )}
           </motion.div>
 

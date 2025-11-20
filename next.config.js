@@ -29,6 +29,25 @@ const nextConfig = {
     ]
   },
   
+  // 🎤 HEADERS HTTP : Permissions microphone pour kiosks
+  async headers() {
+    return [
+      {
+        source: '/kiosk/:slug',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'microphone=(self), camera=(self), display-capture=(self), autoplay=(self), encrypted-media=(self), fullscreen=(self), picture-in-picture=(self)',
+          },
+          {
+            key: 'Feature-Policy',
+            value: "microphone 'self'; camera 'self'; display-capture 'self'; autoplay 'self'; encrypted-media 'self'; fullscreen 'self'; picture-in-picture 'self'",
+          },
+        ],
+      },
+    ]
+  },
+  
   // 🎯 CHUNK SPLITTING INTELLIGENT
   webpack: (config, { isServer, dev }) => {
     if (!isServer && !dev) {
