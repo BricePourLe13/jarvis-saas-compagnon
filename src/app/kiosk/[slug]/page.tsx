@@ -1196,17 +1196,17 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-full pointer-events-none"
           >
             <p 
-              className="text-lg text-white/90 font-semibold tracking-widest uppercase"
+              className="text-lg text-gray-800 font-semibold tracking-widest uppercase"
             >
               {kioskData.gym.name}
             </p>
             
             {/* Status indicator */}
-            <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full backdrop-blur-sm">
+            <div className="flex items-center gap-2 bg-gray-800/10 px-3 py-1 rounded-full backdrop-blur-sm">
               <div
-                className={`w-1.5 h-1.5 rounded-full ${voiceActive ? "bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-400"}`}
+                className={`w-1.5 h-1.5 rounded-full ${voiceActive ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-500"}`}
               />
-              <span className="text-xs text-white/60 font-medium">
+              <span className="text-xs text-gray-700 font-medium">
                 {voiceActive ? "EN ÉCOUTE" : "DISPONIBLE"}
               </span>
             </div>
@@ -1264,7 +1264,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                     <Spinner size="sm" />
                   )}
                   <Text 
-                    className="text-3xl font-light tracking-wide leading-tight text-center text-white"
+                    className="text-3xl font-light tracking-wide leading-tight text-center text-gray-900"
                   >
                     {getStatusMessage()}
                   </Text>
@@ -1279,7 +1279,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                         style={{ width: `${loadingProgress}%` }}
                       />
                     </div>
-                    <Text className="text-xs text-white/50">Initialisation...</Text>
+                    <Text className="text-xs text-gray-600">Initialisation...</Text>
                   </div>
                 )}
 
@@ -1292,10 +1292,10 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
                       <div
-                        className="px-6 py-3 bg-white/5 border border-white/10 rounded-full backdrop-blur-md"
+                        className="px-6 py-3 bg-gray-100/80 border border-gray-300 rounded-full backdrop-blur-md"
                       >
-                        <Text className="text-sm text-white/70">
-                          Dites <strong style={{color: 'white'}}>Au revoir</strong> pour terminer
+                        <Text className="text-sm text-gray-700">
+                          Dites <strong style={{color: '#1f2937'}}>Au revoir</strong> pour terminer
                         </Text>
                       </div>
                     </motion.div>
@@ -1319,7 +1319,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                   <Button 
                     onClick={retrySessionCreation}
                     variant="outline" 
-                    className="bg-white/5 border-white/20 text-white hover:bg-white/10 mt-4"
+                    className="bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200 mt-4"
                   >
                     🔄 Réessayer
                   </Button>

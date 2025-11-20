@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis - Pitch Deck (Light)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+/* 1. CORE SETUP & LIGHT MONOCHROME THEME */
+* {
+  box-sizing: border-box;
+}
+body {
+  background-color: #f4f4f9; /* Soft Light Grey Background */
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 1fr;
+  margin: 0;
+  min-height: 100vh;
+  padding: 20px 0;
+  place-items: center;
+  font-family: 'Inter', sans-serif;
+}
+.slide-container {
+  align-items: flex-start;
+  background-color: #ffffff; /* Pure White Slide Background */
+  border-radius: 0;
+  border: 1px solid #e0e0e0; /* Light Grey Border */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: 720px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 60px;
+  position: relative;
+  width: 1280px;
+}
+
+/* 2. TYPOGRAPHY */
+.slide-container h1,
+.slide-container h2,
+.slide-container h3,
+.slide-container h4 {
+  color: #111111; /* Almost Black */
+  font-family: 'Space Grotesk', sans-serif;
+  margin: 0;
+  letter-spacing: -1px;
+}
+.slide-container h1 {
+  font-size: 80px;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+.slide-title {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  width: 100%;
+  color: #111;
+}
+.slide-container p,
+.slide-container li {
+  color: #555555; /* Medium Dark Grey text */
+  font-size: 20px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+.subtitle {
+  font-size: 24px;
+  color: #777777; /* Medium Grey */
+  margin-top: 20px;
+  font-weight: 300;
+}
+
+/* 3. LAYOUT UTILITIES */
+.content-area {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: center;
+  width: 100%;
+}
+.two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+}
+
+/* 4. SPECIFIC COMPONENTS */
+/* Tiles */
+.tiled-content {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+}
+.tile {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    padding: 40px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.tile .icon {
+    font-size: 40px;
+    color: #111111;
+    margin-bottom: 20px;
+}
+.tile h3 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    color: #111;
+}
+
+/* Highlight Numbers */
+.highlight-numbers-layout {
+    display: flex;
+    gap: 40px;
+    width: 100%;
+    justify-content: space-between;
+}
+.highlight-box {
+    text-align: center;
+    flex: 1;
+    border-right: 1px solid #e0e0e0;
+}
+.highlight-box:last-child { border-right: none; }
+.highlight-number {
+    font-size: 90px;
+    font-weight: 700;
+    color: #111111;
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1;
+}
+.highlight-label {
+    font-size: 20px;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 10px;
+}
+
+/* Bleed Layout */
+.slide-container.bleed-image-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0;
+    align-items: start;
+}
+.slide-container.bleed-image-layout .content-container {
+    padding: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    background: #ffffff;
+}
+.slide-container.bleed-image-layout .image-container {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f4f4f9;
+}
+.slide-container.bleed-image-layout img.bleed-image-side {
+    width: 100%;
+    height: 720px;
+    object-fit: cover;
+    filter: grayscale(100%);
+}
+
+/* Timeline */
+.timeline-layout {
+    position: relative;
+    width: 100%;
+    margin-top: 40px;
+}
+.timeline-line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #e0e0e0;
+    z-index: 0;
+}
+.timeline-items {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+}
+.timeline-item {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    padding: 30px;
+    width: 45%;
+    position: relative;
+}
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    background: #111;
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+/* 2025 on Left */
+.timeline-item:first-child { margin-right: auto; }
+.timeline-item:first-child::before { right: -60px; }
+/* 2026 on Right */
+.timeline-item:last-child { margin-left: auto; }
+.timeline-item:last-child::before { left: -60px; }
+
+/* Full Background & Overlay */
+.full-bg-image {
+    background-size: cover;
+    background-position: center;
+}
+.overlay {
+    background: rgba(255,255,255,0.85);
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+}
+.full-bg-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 800px;
+}
+
+/* Lists */
+ul.styled-list {
+    list-style: none;
+    padding: 0;
+}
+ul.styled-list li {
+    margin-bottom: 20px;
+    padding-left: 30px;
+    position: relative;
+    color: #555;
+}
+ul.styled-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: #111;
+}
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<div class="slide-container full-bg-image" id="slide1" style="background-image: url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');">
+    <div class="overlay"></div>
+    <div class="full-bg-content">
+        <h4 style="letter-spacing: 4px; margin-bottom: 20px; color: #777;">PITCH DECK</h4>
+        <h1 style="color: #111;">JARVIS</h1>
+        <p class="subtitle" style="color: #555; opacity: 1; font-size: 28px;">Transformez chaque interaction en données utiles et en valeur business.</p>
+        <div style="margin-top: 60px; border-top: 1px solid #ccc; padding-top: 20px; display: flex; justify-content: space-between; color: #777; font-size: 16px;">
+            <span>Brice — Ingénieur SI</span>
+            <span>Jarvis Group</span>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 2: The Problem -->
+<div class="slide-container bleed-image-layout" id="slide2">
+    <div class="content-container">
+        <h2 style="font-size: 50px; margin-bottom: 30px;">LE CHURN SILENCIEUX</h2>
+        <p style="margin-bottom: 40px;">Les salles de sport perdent des adhérents chaque jour sans savoir pourquoi avant qu'il ne soit trop tard.</p>
+        
+        <div style="margin-bottom: 30px;">
+            <h3 style="font-size: 60px; color: #111; font-weight: 700;">50%</h3>
+            <p style="margin: 0; color: #777;">Des nouveaux inscrits abandonnent dans les 6 premiers mois.</p>
+        </div>
+        
+        <ul class="styled-list">
+            <li>Absence de suivi personnalisé</li>
+            <li>Impossible d'identifier les adhérents "à risque"</li>
+            <li>Staff débordé par des tâches répétitives</li>
+        </ul>
+    </div>
+    <div class="image-container">
+        <img class="bleed-image-side" src="https://images.unsplash.com/photo-1570829460005-c840387bb1ca?q=80&w=1632&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Salle de sport vide noir et blanc">
+    </div>
+</div>
+
+<!-- SLIDE 3: Market Opportunity -->
+<div class="slide-container" id="slide3">
+    <h2 class="slide-title">L'OPPORTUNITÉ DE MARCHÉ</h2>
+    <div class="content-area">
+        <p style="margin-bottom: 50px; font-size: 24px; max-width: 800px; color: #555;">Le marché du fitness est en pleine mutation technologique. Les salles qui n'adoptent pas l'IA pour fidéliser seront dépassées.</p>
+        
+        <div class="highlight-numbers-layout">
+            <div class="highlight-box">
+                <div class="highlight-number">6k+</div>
+                <div class="highlight-label">Salles en France</div>
+            </div>
+            <div class="highlight-box">
+                <div class="highlight-number">2Md€</div>
+                <div class="highlight-label">CA Annuel (FR)</div>
+            </div>
+            <div class="highlight-box">
+                <div class="highlight-number">35%</div>
+                <div class="highlight-label">Croissance IA Sport</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 50px; background: #f0f0f0; padding: 20px; border-left: 4px solid #111;">
+            <p style="margin: 0; color: #333;"><strong>Insight :</strong> Il n'existe aucune solution IA vocale clé en main dédiée spécifiquement au marché français aujourd'hui.</p>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 4: Solution - IMAGE MIROIR JARVIS -->
+<div class="slide-container bleed-image-layout" id="slide4">
+    <div class="image-container">
+        <img class="bleed-image-side" src="./public/images/mirroir.png" alt="Miroir digital Jarvis" style="object-fit: contain; filter: none; max-width: 90%; max-height: 90%;">
+    </div>
+    <div class="content-container">
+        <h2 style="font-size: 50px; margin-bottom: 20px;">LA SOLUTION JARVIS</h2>
+        <p class="subtitle" style="margin-bottom: 40px; color: #777;">Un miroir digital avec IA vocale en temps réel.</p>
+        
+        <ul class="styled-list" style="font-size: 22px;">
+            <li><strong style="color: #111;">Conversation naturelle :</strong> Parlez à Jarvis comme à un coach.</li>
+            <li><strong style="color: #111;">Analyse émotionnelle :</strong> Détection de la frustration ou de la motivation.</li>
+            <li><strong style="color: #111;">Tutoriels instantanés :</strong> Vidéos d'exercices à la demande.</li>
+            <li><strong style="color: #111;">Data Actionnable :</strong> Chaque mot est analysé pour améliorer le service.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- SLIDE 5: Use Case -->
+<div class="slide-container" id="slide5">
+    <h2 class="slide-title">L'EXPÉRIENCE ADHÉRENT</h2>
+    <div class="content-area">
+        <div class="tiled-content">
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-id-card"></i></div>
+                <h3>1. Identification</h3>
+                <p>L'adhérent scanne son badge. Jarvis récupère instantanément son profil, son historique et ses objectifs.</p>
+            </div>
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-microphone-lines"></i></div>
+                <h3>2. Interaction</h3>
+                <p><em>"Jarvis, il y a trop de monde aux poids libres."</em> L'IA comprend, empathise et propose une alternative cardio.</p>
+            </div>
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-bolt"></i></div>
+                <h3>3. Action</h3>
+                <p>Jarvis alerte le manager (problème d'affluence) et note un risque de churn potentiel pour cet adhérent.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 6: Tech Stack -->
+<div class="slide-container" id="slide6">
+    <h2 class="slide-title">ARCHITECTURE & SÉCURITÉ</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div>
+                <ul class="styled-list">
+                    <li><strong>Interface Vocale :</strong> OpenAI Realtime API (<500ms latence).</li>
+                    <li><strong>Backend :</strong> Supabase (PostgreSQL) pour une gestion robuste des données.</li>
+                    <li><strong>Frontend :</strong> Vercel Edge Streaming pour une réactivité maximale.</li>
+                    <li><strong>Sécurité :</strong> Isolation stricte des données par salle (RLS Multi-tenant).</li>
+                </ul>
+                <p style="margin-top: 30px; font-size: 16px; color: #777;">Une architecture "Scale-Ready" conçue pour être déployée en quelques clics.</p>
+            </div>
+            <div style="height: 400px; overflow: hidden; border: 1px solid #e0e0e0;">
+                <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" style="width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%);" alt="Architecture serveur abstraite">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 7: Dashboard -->
+<div class="slide-container bleed-image-layout" id="slide7">
+    <div class="content-container">
+        <h2 style="font-size: 40px;">LE COCKPIT GÉRANT</h2>
+        <p style="margin-bottom: 30px;">Transformez les conversations informelles en tableau de bord stratégique.</p>
+        
+        <div style="display: grid; gap: 20px;">
+            <div style="background: #f9f9f9; padding: 15px; border-left: 2px solid #111;">
+                <h4 style="font-size: 18px; color: #111;">Alertes "Risque de Churn"</h4>
+                <p style="font-size: 16px; margin:0; color: #555;">Liste prioritaire des membres à recontacter aujourd'hui.</p>
+            </div>
+            <div style="background: #f9f9f9; padding: 15px; border-left: 2px solid #111;">
+                <h4 style="font-size: 18px; color: #111;">Maintenance Prédictive</h4>
+                <p style="font-size: 16px; margin:0; color: #555;">Signalement automatique des machines HS.</p>
+            </div>
+            <div style="background: #f9f9f9; padding: 15px; border-left: 2px solid #111;">
+                <h4 style="font-size: 18px; color: #111;">Heatmap de Satisfaction</h4>
+                <p style="font-size: 16px; margin:0; color: #555;">Visualisez l'humeur globale de votre salle en temps réel.</p>
+            </div>
+        </div>
+    </div>
+    <div class="image-container">
+        <img class="bleed-image-side" src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=1415&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Dashboard interface claire">
+    </div>
+</div>
+
+<!-- SLIDE 8: Business Model -->
+<div class="slide-container" id="slide8">
+    <h2 class="slide-title">MODÈLE ÉCONOMIQUE</h2>
+    <div class="content-area">
+        <div class="two-column" style="align-items: stretch;">
+            <div style="background: #ffffff; padding: 40px; border: 1px solid #111; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                <h3 style="border-bottom: 1px solid #eee; padding-bottom: 20px; margin-bottom: 20px; color: #111;">OFFRE B2B</h3>
+                <ul class="styled-list">
+                    <li>Installation Matériel (One-off)</li>
+                    <li>Abonnement SaaS Mensuel</li>
+                    <li>Formation & Onboarding</li>
+                </ul>
+                <p style="margin-top: auto; font-size: 14px; color: #777;">Modèle récurrent stable avec engagement.</p>
+            </div>
+            <div style="background: #f4f4f9; padding: 40px; border: 1px solid #d0d0d0;">
+                <h3 style="border-bottom: 1px solid #ccc; padding-bottom: 20px; margin-bottom: 20px; color: #555;">REVENUS ADDITIONNELS</h3>
+                <ul class="styled-list">
+                    <li style="color: #555;">Publicité Contextuelle (Nutrition, Équipement)</li>
+                    <li style="color: #555;">Partage de revenus avec la salle</li>
+                    <li style="color: #555;">Modules "Upsell" (Programmes IA Premium)</li>
+                </ul>
+                <p style="margin-top: auto; font-size: 14px; color: #777;">Monétisation de l'attention captive.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 9: Roadmap -->
+<div class="slide-container" id="slide9">
+    <h2 class="slide-title">TRAJECTOIRE & ROADMAP</h2>
+    <div class="content-area">
+        <div class="timeline-layout">
+            <div class="timeline-line"></div>
+            <div class="timeline-items">
+                <div class="timeline-item">
+                    <h3 style="color: #111; font-size: 36px;">2025</h3>
+                    <h4 style="color: #777; margin-bottom: 20px;">CONCEPTION & R&D</h4>
+                    <ul style="font-size: 16px; list-style: none; padding: 0;">
+                        <li style="margin-bottom: 10px; color: #555;">— Développement Architecture V1</li>
+                        <li style="margin-bottom: 10px; color: #555;">— Intégration OpenAI Realtime</li>
+                        <li style="margin-bottom: 10px; color: #555;">— Dashboard Manager (Alpha)</li>
+                    </ul>
+                </div>
+                <div class="timeline-item" style="text-align: right;">
+                    <h3 style="color: #111; font-size: 36px;">2026</h3>
+                    <h4 style="color: #777; margin-bottom: 20px;">MVP & PILOTE</h4>
+                    <ul style="font-size: 16px; list-style: none; padding: 0;">
+                        <li style="margin-bottom: 10px; color: #555;">Déploiement 1er miroir (Salle Pilote) —</li>
+                        <li style="margin-bottom: 10px; color: #555;">Mesure churn & satisfaction —</li>
+                        <li style="margin-bottom: 10px; color: #555;">Commercialisation Régionale —</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 10: Impact & Value -->
+<div class="slide-container" id="slide10">
+    <h2 class="slide-title">CRÉATION DE VALEUR</h2>
+    <div class="content-area">
+        <div class="tiled-content">
+            <div class="tile" style="text-align: center; align-items: center;">
+                <h3 style="font-size: 60px; font-weight: 700; color: #111;">-20%</h3>
+                <p>Réduction estimée du Churn grâce à l'intervention précoce.</p>
+            </div>
+            <div class="tile" style="text-align: center; align-items: center;">
+                <h3 style="font-size: 60px; font-weight: 700; color: #111;">X3</h3>
+                <p>Volume de feedbacks collectés vs méthodes traditionnelles.</p>
+            </div>
+            <div class="tile" style="text-align: center; align-items: center;">
+                <h3 style="font-size: 60px; font-weight: 700; color: #111;">100%</h3>
+                <p>Digitalisation des interactions physiques.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 11: The Ask -->
+<div class="slide-container" id="slide11">
+    <div class="content-area" style="text-align: center; max-width: 900px; margin: 0 auto;">
+        <i class="fa-solid fa-rocket" style="font-size: 60px; color: #111; margin-bottom: 40px;"></i>
+        <h2 style="font-size: 60px; line-height: 1.1; margin-bottom: 40px;">NOUS CHERCHONS UN PARTENAIRE POUR ACCÉLÉRER.</h2>
+        <div style="text-align: left; display: inline-block;">
+            <p style="font-size: 24px; margin-bottom: 15px; color: #555;"><i class="fa-solid fa-check" style="margin-right: 15px; color: #111;"></i> Hébergement & Écosystème tech</p>
+            <p style="font-size: 24px; margin-bottom: 15px; color: #555;"><i class="fa-solid fa-check" style="margin-right: 15px; color: #111;"></i> Accompagnement MVP & Structuration</p>
+            <p style="font-size: 24px; margin-bottom: 15px; color: #555;"><i class="fa-solid fa-check" style="margin-right: 15px; color: #111;"></i> Mise en relation Salles Pilotes</p>
+        </div>
+    </div>
+</div>
+
+<!-- SLIDE 12: Contact - SANS PHOTO -->
+<div class="slide-container" id="slide12">
+    <div class="content-area" style="text-align: center; max-width: 900px; margin: 0 auto;">
+        <h1 style="font-size: 80px; margin-bottom: 40px; color: #111;">DISCUTONS.</h1>
+        <p style="font-size: 36px; color: #111; margin-bottom: 20px; font-weight: 700;">Brice</p>
+        <p style="font-size: 24px; margin-bottom: 60px; color: #555;">Ingénieur SI — Fondateur Jarvis Group</p>
+        
+        <div style="background: #f0f0f0; padding: 30px 50px; display: inline-block; border: 2px solid #111;">
+            <p style="margin: 0; color: #111; font-family: 'Space Grotesk'; font-size: 28px; font-weight: 600;">jarvis-group.net</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+

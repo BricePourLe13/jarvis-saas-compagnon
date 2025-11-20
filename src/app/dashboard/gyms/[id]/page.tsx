@@ -71,7 +71,7 @@ async function getGymDetails(gymId: string) {
   // 2. Fetch manager details separately if manager_id exists
   let manager = null
   if (gym.manager_id) {
-    logger.info(`🔍 [GYM_DETAILS] Recherche manager pour gym ${gym.name} (ID: ${gym.manager_id})`, {}, { component: 'GymDetailsPage' })
+    console.log(`🔍 [GYM_DETAILS] Recherche manager pour gym ${gym.name} (ID: ${gym.manager_id})`)
     
     const { data: managerData, error: managerError } = await supabaseAdmin
       .from('users')
@@ -80,12 +80,15 @@ async function getGymDetails(gymId: string) {
       .single()
 
     if (managerError) {
+      console.error(`⚠️ [GYM_DETAILS] Erreur fetching manager ${gym.manager_id}:`, managerError)
       logger.warn(`⚠️ [GYM_DETAILS] Erreur fetching manager ${gym.manager_id}:`, { error: managerError?.message }, { component: 'GymDetailsPage' })
     } else {
       manager = managerData
+      console.log(`✅ [GYM_DETAILS] Manager trouvé:`, managerData)
       logger.info(`✅ [GYM_DETAILS] Manager trouvé: ${managerData.email}`, {}, { component: 'GymDetailsPage' })
     }
   } else {
+    console.warn(`⚠️ [GYM_DETAILS] Aucun manager_id défini pour la gym ${gym.name}`)
     logger.warn(`⚠️ [GYM_DETAILS] Aucun manager_id défini pour la gym ${gym.name}`, {}, { component: 'GymDetailsPage' })
   }
 

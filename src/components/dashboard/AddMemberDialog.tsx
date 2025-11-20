@@ -56,16 +56,14 @@ export default function AddMemberDialog({ gymId, onSuccess }: AddMemberDialogPro
     try {
       // On réutilise l'API d'import qui gère déjà l'insertion sécurisée
       // On envoie un tableau avec un seul membre
-      const response = await fetch('/api/manager/members/import', {
+      const response = await fetch('/api/manager/members/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          members: [{
-            prenom: formData.firstName,
-            nom: formData.lastName,
-            email: formData.email || undefined,
-            badge_id: formData.badgeId
-          }]
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email || undefined,
+          badge_id: formData.badgeId
         })
       })
 
