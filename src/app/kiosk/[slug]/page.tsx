@@ -1185,63 +1185,41 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         </Box>
 
         {/* 🎭 LAYOUT CENTRÉ & ÉPURÉ */}
-        <Box
-          h="100vh"
-          display="flex"
-          flexDirection="column"
-          alignItems="center"
-          justifyContent="center"
-          position="relative"
-          zIndex={10}
-          pb={20} // Espace pour les badges en bas
+        <div
+          className="h-screen flex flex-col items-center justify-center relative z-10 pb-20"
         >
           {/* 🏢 INFOS GYM (Haut discret) */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            style={{
-              position: 'absolute',
-              top: '40px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px'
-            }}
+            className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-full pointer-events-none"
           >
-            <Text 
-              fontSize="lg" 
-              color="rgba(255,255,255,0.9)"
-              fontWeight="600"
-              letterSpacing="0.05em"
-              style={{ textTransform: 'uppercase' }}
+            <p 
+              className="text-lg text-white/90 font-semibold tracking-widest uppercase"
             >
               {kioskData.gym.name}
-            </Text>
+            </p>
             
             {/* Status indicator */}
-            <HStack spacing={2} bg="rgba(255,255,255,0.05)" px={3} py={1} borderRadius="full" backdropFilter="blur(4px)">
-              <Box
-                w="6px"
-                h="6px"
-                borderRadius="50%"
-                bg={voiceActive ? "green.400" : "gray.400"}
-                boxShadow={voiceActive ? "0 0 8px rgba(34, 197, 94, 0.6)" : "none"}
+            <div className="flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full backdrop-blur-sm">
+              <div
+                className={`w-1.5 h-1.5 rounded-full ${voiceActive ? "bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]" : "bg-gray-400"}`}
               />
-              <Text fontSize="xs" color="rgba(255,255,255,0.6)" fontWeight="500">
+              <span className="text-xs text-white/60 font-medium">
                 {voiceActive ? "EN ÉCOUTE" : "DISPONIBLE"}
-              </Text>
-            </HStack>
+              </span>
+            </div>
 
             {/* Prewarm status */}
             {prewarmStatus === 'warming' && (
-               <Text fontSize="xs" color="purple.400">Connexion IA...</Text>
+               <span className="text-xs text-purple-400">Connexion IA...</span>
             )}
           </motion.div>
 
 
           {/* 🤖 AVATAR CENTRAL (Cœur de l'interface) */}
-          <Box position="relative" mb={12}>
+          <div className="relative mb-12">
             <motion.div
               style={{
                 position: 'absolute',
@@ -1276,41 +1254,33 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5 }}
+              className="w-full flex justify-center" // Centrer le conteneur
             >
-              <VStack spacing={6} align="center" textAlign="center" maxW="600px">
+              <div className="flex flex-col gap-6 items-center text-center max-w-[600px]">
                 
                 {/* Message Principal */}
-                <HStack spacing={3} justify="center">
+                <div className="flex items-center gap-3 justify-center">
                   {sessionLoading && (
-                    <Spinner size="sm" color="white" thickness="2px" />
+                    <Spinner size="sm" />
                   )}
                   <Text 
-                    fontSize="3xl" 
-                    color={sessionError ? "red.400" : "white"}
-                    fontWeight="300"
-                    letterSpacing="0.02em"
-                    lineHeight="1.2"
-                    textAlign="center"
+                    className="text-3xl font-light tracking-wide leading-tight text-center text-white"
                   >
                     {getStatusMessage()}
                   </Text>
-                </HStack>
+                </div>
 
                 {/* Barre de progression (si loading) */}
                 {sessionLoading && !sessionError && (
-                  <VStack spacing={2} w="240px">
-                    <Box w="full" h="2px" bg="rgba(255,255,255,0.1)" borderRadius="full" overflow="hidden">
-                      <Box 
-                        h="full" 
-                        bg="linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)"
-                        borderRadius="full"
-                        w={`${loadingProgress}%`}
-                        transition="width 0.5s ease-in-out"
-                        boxShadow="0 0 10px rgba(59, 130, 246, 0.5)"
+                  <div className="flex flex-col gap-2 w-[240px]">
+                    <div className="w-full h-[2px] bg-white/10 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 rounded-full transition-all duration-500 ease-in-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                        style={{ width: `${loadingProgress}%` }}
                       />
-                    </Box>
-                    <Text fontSize="xs" color="rgba(255,255,255,0.5)">Initialisation...</Text>
-                  </VStack>
+                    </div>
+                    <Text className="text-xs text-white/50">Initialisation...</Text>
+                  </div>
                 )}
 
                 {/* Instructions contextuelles */}
@@ -1321,18 +1291,13 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                     >
-                      <Box
-                        px={6}
-                        py={3}
-                        bg="rgba(255, 255, 255, 0.05)"
-                        border="1px solid rgba(255, 255, 255, 0.1)"
-                        borderRadius="full"
-                        backdropFilter="blur(10px)"
+                      <div
+                        className="px-6 py-3 bg-white/5 border border-white/10 rounded-full backdrop-blur-md"
                       >
-                        <Text fontSize="sm" color="rgba(255, 255, 255, 0.7)">
-                          Dites <strong style={{color: 'white'}}>"Au revoir"</strong> pour terminer
+                        <Text className="text-sm text-white/70">
+                          Dites <strong style={{color: 'white'}}>Au revoir</strong> pour terminer
                         </Text>
-                      </Box>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1343,9 +1308,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <Box px={5} py={2} bg="rgba(249, 115, 22, 0.2)" borderRadius="full" border="1px solid rgba(249, 115, 22, 0.4)">
-                      <Text fontSize="sm" color="orange.200">⏰ {sessionWarning.message}</Text>
-                    </Box>
+                    <div className="px-5 py-2 bg-orange-500/20 rounded-full border border-orange-500/40">
+                      <Text className="text-sm text-orange-200">⏰ {sessionWarning.message}</Text>
+                    </div>
                   </motion.div>
                 )}
 
@@ -1359,12 +1324,12 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                     🔄 Réessayer
                   </Button>
                 )}
-              </VStack>
+              </div>
             </motion.div>
           </AnimatePresence>
 
           {/* Interface vocale cachée (logique only) */}
-          <Box display="none">
+          <div className="hidden">
             <VoiceInterface
               gymSlug={slug}
               currentMember={currentMember}
@@ -1383,18 +1348,15 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               }}
               onTranscriptUpdate={handleTranscriptUpdate}
             />
-          </Box>
+          </div>
 
-        </Box>
-
-
-        {/* 🏷️ MEMBER BADGES - Adhérents cliquables en bas */}
-        <MemberBadges
-          gymSlug={slug}
-          onMemberScanned={handleMemberScanned}
-          isActive={voiceActive}
-        />
-      </Box>
+          {/* 🏷️ MEMBER BADGES - Adhérents cliquables en bas */}
+          <MemberBadges
+            gymSlug={slug}
+            onMemberScanned={handleMemberScanned}
+            isActive={voiceActive}
+          />
+        </div>
     </>
   )
 } 
