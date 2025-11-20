@@ -441,9 +441,9 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         const kioskId = localStorage.getItem('jarvis_kiosk_id')
         
         if (!deviceToken || !kioskId) {
-          // Pas de token → Rediriger vers /setup pour appairage
-          kioskLogger.system('❌ Device token manquant - Redirection vers /setup', 'error')
-          window.location.href = '/setup'
+          // Pas de token → Afficher erreur 403 (pas de redirection pour ne pas exposer /setup)
+          kioskLogger.system('❌ Device token manquant - Accès refusé', 'error')
+          setError('Accès refusé : Cet écran n\'est pas autorisé à accéder à ce kiosk.')
           return
         }
         
@@ -456,11 +456,11 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         })
         
         if (response.status === 401 || response.status === 403) {
-          // Token invalide → Nettoyer localStorage et rediriger vers /setup
+          // Token invalide → Nettoyer localStorage et afficher erreur
           localStorage.removeItem('jarvis_device_token')
           localStorage.removeItem('jarvis_kiosk_id')
-          kioskLogger.system('❌ Device token invalide - Redirection vers /setup', 'error')
-          window.location.href = '/setup'
+          kioskLogger.system('❌ Device token invalide - Accès refusé', 'error')
+          setError('Accès refusé : Authentification invalide. Cet écran n\'est pas autorisé.')
           return
         }
         
