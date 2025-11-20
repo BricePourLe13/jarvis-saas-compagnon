@@ -1243,7 +1243,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
               status={getJarvisStatus()}
               eyeScale={1}
             />
-          </Box>
+          </div>
 
 
           {/* 💬 MESSAGES & INSTRUCTIONS (Sous l'avatar) */}
