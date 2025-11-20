@@ -14,7 +14,6 @@ import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, H
 import { useSoundEffects } from '@/hooks/useSoundEffects'
 // 💓 Import du hook de heartbeat pour le statut temps réel
 import { useKioskHeartbeat } from '@/hooks/useKioskHeartbeat'
-import Head from 'next/head'
 import dynamic from 'next/dynamic'
 import ModernFluidShapes from '@/components/common/ModernFluidShapes'
 import MicrophoneDiagnostic from '@/components/kiosk/MicrophoneDiagnostic'
@@ -757,18 +756,6 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
   return (
     <>
-      <Head>
-        {/* ✅ SOLUTION 1: BigBlueButton Method - Allow Attributes */}
-        <meta httpEquiv="Permissions-Policy" content="microphone=(self), camera=(self), display-capture=(self), autoplay=(self), encrypted-media=(self), fullscreen=(self), picture-in-picture=(self)" />
-        <meta httpEquiv="Feature-Policy" content="microphone 'self'; camera 'self'; display-capture 'self'; autoplay 'self'; encrypted-media 'self'; fullscreen 'self'; picture-in-picture 'self'" />
-        
-        {/* ✅ Ensure secure context */}
-        <meta httpEquiv="Content-Security-Policy" content="upgrade-insecure-requests" />
-        
-        {/* ✅ User Agent specific hints */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-      </Head>
-      
       <Box
         h="100vh"
         position="relative"
@@ -1186,17 +1173,17 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
 
         {/* 🎭 LAYOUT CENTRÉ & ÉPURÉ */}
         <div
-          className="h-screen flex flex-col items-center justify-center relative z-10 pb-20"
+          className="h-screen w-screen flex flex-col items-center justify-center relative z-10 pb-20 overflow-hidden"
         >
           {/* 🏢 INFOS GYM (Haut discret) */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-full pointer-events-none"
+            className="absolute top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 max-w-[90%] pointer-events-none"
           >
             <p 
-              className="text-lg text-gray-800 font-semibold tracking-widest uppercase"
+              className="text-lg text-gray-800 font-semibold tracking-widest uppercase text-center truncate max-w-full"
             >
               {kioskData.gym.name}
             </p>

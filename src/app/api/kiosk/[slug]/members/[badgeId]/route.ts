@@ -1,220 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-
-interface MemberLookupParams {
-  params: Promise<{
-    slug: string
-    badgeId: string
-  }>
-}
+import { createAdminClient } from '@/lib/supabase-admin'
+import { logger } from '@/lib/production-logger'
 
 export async function GET(
-  request: NextRequest,
-  { params }: MemberLookupParams
-) {
-  try {
-    const { slug, badgeId } = await params
-    
-    // 1. Initialiser Supabase
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
-
-    // Log supprimé pour production
-    // Log supprimé pour production
-    // Log supprimé pour production
-
-    // 2. Trouver la salle par slug
-    const { data: gym, error: gymError } = await supabase
-      .from('gyms')
-      .select('id, name')
-      .eq('kiosk_config->>kiosk_url_slug', slug)
-      .single()
-
-    if (gymError || !gym) {
-      // Log supprimé pour production
-      return NextResponse.json({
-        found: false,
-        error: 'Salle introuvable'
-      }, { status: 404 })
-    }
-
-    // 3. Chercher le membre par badge dans cette salle
-    const { data: member, error: memberError } = await supabase
-      .from('gym_members_v2')
-      .select(`
-        id,
-        badge_id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        membership_type,
-        member_since,
-        member_preferences,
-        total_visits,
-        last_visit,
-        is_active
-      `)
-      .eq('badge_id', badgeId)
-      .eq('gym_id', gym.id)
-      .eq('is_active', true)
-      .single()
-
-    if (memberError || !member) {
-      // Log supprimé pour production
-      return NextResponse.json({
-        found: false,
-        error: 'Badge non reconnu'
-      }, { status: 404 })
-    }
-
-    // 4. Enregistrer la visite et mettre à jour les stats
-    try {
-      // Utiliser la fonction SQL créée précédemment
-      const { data: visitResult } = await supabase
-        .rpc('log_member_visit', {
-          p_badge_id: badgeId,
-          p_gym_slug: slug
-        })
-
-      // Log supprimé pour production
-    } catch (visitError) {
-      // Log supprimé pour production
-      // Ne pas faire échouer la requête pour cette erreur
-    }
-
-    // 5. Calculer contexte additionnel
-    const lastVisitDaysAgo = member.last_visit 
-      ? Math.floor((Date.now() - new Date(member.last_visit).getTime()) / (1000 * 60 * 60 * 24))
-      : null
-
-    // 6. Retourner les données complètes
-    return NextResponse.json({
-      found: true,
-      member: {
-        id: member.id,
-        gym_id: gym.id,
-        badge_id: member.badge_id,
-        first_name: member.first_name,
-        last_name: member.last_name,
-        email: member.email,
-        phone: member.phone,
-        membership_type: member.membership_type,
-        member_since: member.member_since,
-        member_preferences: member.member_preferences,
-        total_visits: member.total_visits,
-        last_visit: member.last_visit,
-        is_active: member.is_active,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-              context: {
-        source: 'database',
-        gym_name: gym.name,
-        last_visit_days_ago: lastVisitDaysAgo,
-        visit_count_today: 1, // TODO: Calculer le vrai nombre
-        can_use_jarvis: true // Par défaut true pour MVP
-      }
-    })
-
-  } catch (error) {
-    // Log supprimé pour production
-    return NextResponse.json({
-      found: false,
-      error: 'Erreur serveur lors de la recherche membre'
-    }, { status: 500 })
-  }
-}
-
-// POST endpoint pour créer un nouveau membre (si le badge n'existe pas)
-export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string; badgeId: string }> }
 ) {
   try {
     const { slug, badgeId } = await params
-    const body = await request.json()
-         const cookieStore = await cookies()
-     const supabase = createServerClient(
-       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-       {
-         cookies: {
-           get(name: string) {
-             return cookieStore.get(name)?.value
-           },
-         },
-       }
-     )
+    const supabase = createAdminClient()
 
-    // Valider le kiosk
-    const { data: gym, error: gymError } = await supabase
-      .from('gyms')
-      .select('id')
-      .eq('kiosk_config->>kiosk_url_slug', slug)
+    // 1. Récupérer le kiosk et sa gym
+    const { data: kiosk, error: kioskError } = await supabase
+      .from('kiosks')
+      .select('id, gym_id')
+      .eq('slug', slug)
       .single()
 
-    if (gymError || !gym) {
-      return NextResponse.json(
-        { error: 'Kiosk non trouvé' },
-        { status: 404 }
-      )
+    if (kioskError || !kiosk) {
+      logger.warn(`❌ [KIOSK_MEMBER] Kiosk non trouvé: ${slug}`, { error: kioskError?.message }, { component: 'KioskMemberAPI' })
+      return NextResponse.json({ error: 'Kiosk non trouvé' }, { status: 404 })
     }
 
-    // Créer le nouveau membre
-    const { data: newMember, error: createError } = await supabase
+    // 2. Récupérer le membre par badge_id et gym_id
+    const { data: member, error: memberError } = await supabase
       .from('gym_members_v2')
-      .insert({
-        gym_id: gym.id,
-        badge_id: badgeId,
-        first_name: body.first_name,
-        last_name: body.last_name,
-        email: body.email,
-        phone: body.phone,
-        membership_type: body.membership_type || 'standard',
-        member_preferences: body.member_preferences || {
-          language: 'fr',
-          goals: [],
-          dietary_restrictions: [],
-          favorite_activities: [],
-          notification_preferences: {
-            email: true,
-            sms: false
-          }
-        }
-      })
-      .select()
+      .select('*')
+      .eq('gym_id', kiosk.gym_id)
+      .eq('badge_id', badgeId)
+      .eq('is_active', true)
       .single()
 
-    if (createError) {
-      // Log supprimé pour production
-      return NextResponse.json(
-        { error: 'Erreur lors de la création du membre' },
-        { status: 500 }
-      )
+    if (memberError || !member) {
+      logger.info(`⚠️ [KIOSK_MEMBER] Membre non trouvé pour badge ${badgeId} (gym: ${kiosk.gym_id})`, {}, { component: 'KioskMemberAPI' })
+      return NextResponse.json({ error: 'Badge non reconnu' }, { status: 404 })
     }
 
-    return NextResponse.json({
-      success: true,
-      member: newMember
-    })
+    logger.info(`✅ [KIOSK_MEMBER] Membre trouvé: ${member.first_name} ${member.last_name} (badge: ${badgeId})`, {}, { component: 'KioskMemberAPI' })
 
-  } catch (error) {
-    // Log supprimé pour production
-    return NextResponse.json(
-      { error: 'Erreur serveur' },
-      { status: 500 }
-    )
+    return NextResponse.json({ member })
+
+  } catch (error: any) {
+    logger.error('❌ [KIOSK_MEMBER] Erreur serveur', { error: error.message }, { component: 'KioskMemberAPI' })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
-} 
+}

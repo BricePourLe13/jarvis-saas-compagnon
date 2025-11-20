@@ -48,21 +48,9 @@ export function useKioskHeartbeat({
 
   // Vérifier périodiquement la version de configuration et appliquer entre sessions
   const checkConfigVersion = async () => {
-    if (!gymIdRef.current) return // Attendre que le gym_id soit récupéré
-    
-    try {
-      const res = await fetch(`/api/admin/gyms/${gymIdRef.current}`)
-      if (!res.ok) return
-      const json = await res.json()
-      const version = Number((json?.data?.kiosk_config?.config_version) || 0)
-      if (version > lastKnownConfigVersionRef.current) {
-        lastKnownConfigVersionRef.current = version
-        // Log supprimé pour production
-        // Ici on pourrait déclencher un callback global (ex: event bus) pour recharger config quand idle
-      }
-    } catch (e) {
-      // silencieux
-    }
+    // TODO: Réactiver quand la route `/api/admin/gyms/[id]` sera créée
+    // Pour l'instant, on skip cette vérification pour éviter les 404
+    return
   }
 
   // Gérer la visibilité de la page
