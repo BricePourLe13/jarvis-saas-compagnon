@@ -1184,356 +1184,207 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
           </Box>
         </Box>
 
-        {/* 🎭 LAYOUT MODERNE AVEC GRID */}
+        {/* 🎭 LAYOUT CENTRÉ & ÉPURÉ */}
         <Box
           h="100vh"
-          display="grid"
-          gridTemplateColumns="2fr 3fr 2fr"
-          gridTemplateRows="1fr 3fr 1fr"
-          gap={0}
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
           position="relative"
           zIndex={10}
+          pb={20} // Espace pour les badges en bas
         >
-          {/* Zone message - Gauche Centre */}
-          <Box
-            gridColumn="1"
-            gridRow="2"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            px={8}
+          {/* 🏢 INFOS GYM (Haut discret) */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            style={{
+              position: 'absolute',
+              top: '40px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px'
+            }}
           >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={getStatusMessage()}
-                initial={{ opacity: 0, x: -40, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: -40, scale: 0.95 }}
-                transition={{ 
-                  duration: 0.8, 
-                  ease: [0.4, 0, 0.2, 1],
-                  type: "spring",
-                  damping: 25,
-                  stiffness: 300
-                }}
-              >
-                <VStack spacing={4} align="center" textAlign="center">
-                  <Box 
-                    fontSize="2xl" 
-                    color="rgba(255, 255, 255, 0.95)"
+            <Text 
+              fontSize="lg" 
+              color="rgba(255,255,255,0.9)"
+              fontWeight="600"
+              letterSpacing="0.05em"
+              style={{ textTransform: 'uppercase' }}
+            >
+              {kioskData.gym.name}
+            </Text>
+            
+            {/* Status indicator */}
+            <HStack spacing={2} bg="rgba(255,255,255,0.05)" px={3} py={1} borderRadius="full" backdropFilter="blur(4px)">
+              <Box
+                w="6px"
+                h="6px"
+                borderRadius="50%"
+                bg={voiceActive ? "green.400" : "gray.400"}
+                boxShadow={voiceActive ? "0 0 8px rgba(34, 197, 94, 0.6)" : "none"}
+              />
+              <Text fontSize="xs" color="rgba(255,255,255,0.6)" fontWeight="500">
+                {voiceActive ? "EN ÉCOUTE" : "DISPONIBLE"}
+              </Text>
+            </HStack>
+
+            {/* Prewarm status */}
+            {prewarmStatus === 'warming' && (
+               <Text fontSize="xs" color="purple.400">Connexion IA...</Text>
+            )}
+          </motion.div>
+
+
+          {/* 🤖 AVATAR CENTRAL (Cœur de l'interface) */}
+          <Box position="relative" mb={12}>
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 520,
+                height: 520,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 45%, rgba(0,0,0,0) 70%)',
+                filter: 'blur(20px)',
+                pointerEvents: 'none'
+              }}
+              animate={{ opacity: [0.5, 0.8, 0.5], scale: [1, 1.05, 1] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <JarvisAvatar
+              size={420}
+              showText={false}
+              variant="default"
+              status={getJarvisStatus()}
+              eyeScale={1}
+            />
+          </Box>
+
+
+          {/* 💬 MESSAGES & INSTRUCTIONS (Sous l'avatar) */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={getStatusMessage()}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+            >
+              <VStack spacing={6} align="center" textAlign="center" maxW="600px">
+                
+                {/* Message Principal */}
+                <HStack spacing={3} justify="center">
+                  {sessionLoading && (
+                    <Spinner size="sm" color="white" thickness="2px" />
+                  )}
+                  <Text 
+                    fontSize="3xl" 
+                    color={sessionError ? "red.400" : "white"}
                     fontWeight="300"
                     letterSpacing="0.02em"
-                    lineHeight="1.3"
-                    maxW="400px"
-                    filter="drop-shadow(0 0 30px rgba(255,255,255,0.1))"
-                    position="relative"
+                    lineHeight="1.2"
+                    textAlign="center"
                   >
-                    <VStack spacing={4} justify="center" align="center">
-                      {/* Messages et progression */}
-                      <HStack spacing={3} justify="center">
-                        {sessionLoading && (
-                          <Spinner size="sm" color="white" thickness="2px" />
-                        )}
-                        <Text 
-                          fontSize="2xl" 
-        color={sessionError ? "red.500" : "text.default"}
-                          fontWeight="500"
-                          letterSpacing="0.02em"
-                          lineHeight="1.3"
-                          textAlign="center"
-                        >
-                          {getStatusMessage()}
-                        </Text>
-                      </HStack>
+                    {getStatusMessage()}
+                  </Text>
+                </HStack>
 
-                      {/* Barre de progression JARVIS */}
-                      {sessionLoading && !sessionError && (
-                        <VStack spacing={2} w="full" maxW="300px">
-                          <Box w="full" h="2px" bg="rgba(255,255,255,0.1)" borderRadius="full" overflow="hidden">
-                            <Box 
-                              h="full" 
-        bg="linear-gradient(90deg, var(--chakra-colors-blue-500), var(--chakra-colors-purple-500), var(--chakra-colors-cyan-500))"
-                              borderRadius="full"
-                              w={`${loadingProgress}%`}
-                              transition="width 0.5s ease-in-out"
-                              boxShadow="0 0 10px rgba(59, 130, 246, 0.5)"
-                            />
-                          </Box>
-                          <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
-                            {loadingProgress}% - Patientez quelques instants...
-                          </Text>
-                        </VStack>
-                      )}
+                {/* Barre de progression (si loading) */}
+                {sessionLoading && !sessionError && (
+                  <VStack spacing={2} w="240px">
+                    <Box w="full" h="2px" bg="rgba(255,255,255,0.1)" borderRadius="full" overflow="hidden">
+                      <Box 
+                        h="full" 
+                        bg="linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)"
+                        borderRadius="full"
+                        w={`${loadingProgress}%`}
+                        transition="width 0.5s ease-in-out"
+                        boxShadow="0 0 10px rgba(59, 130, 246, 0.5)"
+                      />
+                    </Box>
+                    <Text fontSize="xs" color="rgba(255,255,255,0.5)">Initialisation...</Text>
+                  </VStack>
+                )}
 
-                      {/* Indicateur de fin de session en attente */}
-                      {pendingSessionEnd && !sessionError && !sessionLoading && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                          transition={{ duration: 0.3, ease: "easeOut" }}
-                        >
-                          <VStack spacing={2} maxW="300px">
-                            <Box
-                              px={4}
-                              py={3}
-                              bg="rgba(139, 92, 246, 0.2)"
-                              border="1px solid rgba(139, 92, 246, 0.4)"
-                              borderRadius="12px"
-                              backdropFilter="blur(10px)"
-                            >
-                              <VStack spacing={1}>
-                                <Text fontSize="sm" color="purple.200" textAlign="center" fontWeight="600">
-                                  👋 JARVIS termine sa réponse...
-                                </Text>
-                                <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
-                                  Fin de session dans quelques instants
-                                </Text>
-                              </VStack>
-                            </Box>
-                          </VStack>
-                        </motion.div>
-                      )}
-
-                      {/* Warning d'expiration de session */}
-                      {sessionWarning && !sessionError && !sessionLoading && !pendingSessionEnd && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                          transition={{ duration: 0.3, ease: "easeOut" }}
-                        >
-                          <VStack spacing={2} maxW="300px">
-                            <Box
-                              px={4}
-                              py={3}
-                              bg="rgba(251, 146, 60, 0.2)"
-                              border="1px solid rgba(251, 146, 60, 0.4)"
-                              borderRadius="12px"
-                              backdropFilter="blur(10px)"
-                            >
-                              <VStack spacing={1}>
-                                <Text fontSize="sm" color="orange.200" textAlign="center" fontWeight="600">
-                                  ⏰ {sessionWarning.message}
-                                </Text>
-                                <Text fontSize="xs" color="rgba(255,255,255,0.6)" textAlign="center">
-                                  Dites quelque chose pour continuer
-                                </Text>
-                              </VStack>
-                            </Box>
-                          </VStack>
-                        </motion.div>
-                      )}
-
-                      {/* Message d'erreur détaillé avec retry */}
-                      {sessionError && (
-                        <VStack spacing={3} maxW="320px">
-                          <Text fontSize="sm" color="red.300" textAlign="center" fontWeight="400">
-                            {getErrorMessage()}
-                          </Text>
-                          <VStack spacing={2}>
-                            <Box
-                              as="button"
-                              onClick={retrySessionCreation}
-                              px={4}
-                              py={2}
-                              bg="rgba(59, 130, 246, 0.2)"
-                              border="1px solid rgba(59, 130, 246, 0.3)"
-                              borderRadius="8px"
-                              color="white"
-                              fontSize="sm"
-                              fontWeight="500"
-                              cursor="pointer"
-                              transition="all 0.2s ease"
-                              _hover={{
-                                bg: "rgba(59, 130, 246, 0.3)",
-                                borderColor: "rgba(59, 130, 246, 0.5)"
-                              }}
-                              _active={{
-                                transform: "scale(0.98)"
-                              }}
-                            >
-                              🔄 Réessayer
-                            </Box>
-                            <Text fontSize="xs" color="rgba(255,255,255,0.4)" textAlign="center">
-                              Ou présentez à nouveau votre badge
-                            </Text>
-                          </VStack>
-                        </VStack>
-                      )}
-                    </VStack>
-                  </Box>
-                  
-                  {currentMember && (
+                {/* Instructions contextuelles */}
+                <AnimatePresence>
+                  {voiceActive && !sessionLoading && !sessionError && !pendingSessionEnd && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
                     >
-                      <Text 
-                        fontSize="sm" 
-                        color="rgba(255, 255, 255, 0.6)"
-                        fontWeight="400"
-                        letterSpacing="0.01em"
+                      <Box
+                        px={6}
+                        py={3}
+                        bg="rgba(255, 255, 255, 0.05)"
+                        border="1px solid rgba(255, 255, 255, 0.1)"
+                        borderRadius="full"
+                        backdropFilter="blur(10px)"
                       >
-                        Membre reconnu
-                      </Text>
+                        <Text fontSize="sm" color="rgba(255, 255, 255, 0.7)">
+                          Dites <strong style={{color: 'white'}}>"Au revoir"</strong> pour terminer
+                        </Text>
+                      </Box>
                     </motion.div>
                   )}
-                </VStack>
-              </motion.div>
-            </AnimatePresence>
-          </Box>
+                </AnimatePresence>
 
-          {/* Avatar central */}
-          <Box
-            gridColumn="2"
-            gridRow="2"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            flexDirection="column"
-          >
-            <Box position="relative">
-              <motion.div
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: 480,
-                  height: 480,
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 45%, rgba(0,0,0,0) 70%)',
-                  filter: 'blur(6px)',
-                  pointerEvents: 'none'
-                }}
-                animate={{ opacity: [0.7, 0.9, 0.7], scale: [1, 1.02, 1] }}
-                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <JarvisAvatar
-                size={420}
-                showText={false}
-                variant="default"
-                status={getJarvisStatus()}
-                eyeScale={1}
-              />
-            </Box>
-
-            {/* 👋 Indication de fin de session */}
-            <AnimatePresence>
-              {voiceActive && !sessionLoading && !sessionError && !pendingSessionEnd && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                  transition={{ delay: 1, duration: 0.8, ease: "easeOut" }}
-                >
-                  <Box
-                    mt={6}
-                    px={4}
-                    py={2}
-                    bg="rgba(255, 255, 255, 0.08)"
-                    border="1px solid rgba(255, 255, 255, 0.12)"
-                    borderRadius="12px"
-                    backdropFilter="blur(10px)"
-                    maxW="280px"
+                {/* Warning d'expiration */}
+                {sessionWarning && !sessionError && !sessionLoading && !pendingSessionEnd && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                   >
-                    <Text 
-                      fontSize="sm" 
-                      color="rgba(255, 255, 255, 0.7)"
-                      textAlign="center"
-                      fontWeight="400"
-                      letterSpacing="0.01em"
-                    >
-                      💬 Dites <strong style={{color: 'rgba(255, 255, 255, 0.9)', fontWeight: '600'}}>"Au revoir"</strong> pour terminer
-                    </Text>
-                  </Box>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Box>
+                    <Box px={5} py={2} bg="rgba(249, 115, 22, 0.2)" borderRadius="full" border="1px solid rgba(249, 115, 22, 0.4)">
+                      <Text fontSize="sm" color="orange.200">⏰ {sessionWarning.message}</Text>
+                    </Box>
+                  </motion.div>
+                )}
 
-          {/* Interface vocale cachée */}
+                {/* Bouton Retry si erreur */}
+                {sessionError && (
+                  <Button 
+                    onClick={retrySessionCreation}
+                    variant="outline" 
+                    className="bg-white/5 border-white/20 text-white hover:bg-white/10 mt-4"
+                  >
+                    🔄 Réessayer
+                  </Button>
+                )}
+              </VStack>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Interface vocale cachée (logique only) */}
           <Box display="none">
             <VoiceInterface
               gymSlug={slug}
               currentMember={currentMember}
               isActive={voiceActive}
               onActivate={() => {
-                // 🚀 FORCE ACTIVATION - Reset goodbye flag si nécessaire
-                console.log('🔄 [KIOSK] Activation manuelle - Reset au revoir forcé')
+                console.log('🔄 [KIOSK] Activation manuelle')
                 setVoiceActive(true)
               }}
               onDeactivate={() => {
-                console.log('🔄 [KIOSK] Déactivation session - Reset complet')
+                console.log('🔄 [KIOSK] Déactivation session')
                 setVoiceActive(false)
-                setCurrentMember(null) // Reset membre après au revoir
-                setSessionError(null) // Reset erreurs
-                setSessionLoading(false) // Reset loading
-                setKioskState(prev => ({ ...prev, status: 'idle' })) // Reset état
+                setCurrentMember(null)
+                setSessionError(null)
+                setSessionLoading(false)
+                setKioskState(prev => ({ ...prev, status: 'idle' }))
               }}
               onTranscriptUpdate={handleTranscriptUpdate}
             />
           </Box>
 
-          {/* Informations subtiles - Droite */}
-          <Box
-            gridColumn="3"
-            gridRow="2"
-            display="flex"
-            alignItems="flex-end"
-            justifyContent="flex-start"
-            pl={8}
-            pb={16}
-          >
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 1 }}
-            >
-              <VStack spacing={3} align="flex-start">
-                <Text 
-                  fontSize="sm" 
-        color="text.default"
-                  fontWeight="500"
-                  letterSpacing="0.02em"
-                >
-                  {kioskData.gym.name}
-                </Text>
-                <HStack spacing={2}>
-                  <Box
-                    w="4px"
-                    h="4px"
-                    borderRadius="50%"
-                    bg={voiceActive ? "green.400" : "gray.400"}
-                    boxShadow={voiceActive ? "0 0 8px rgba(34, 197, 94, 0.6)" : "none"}
-                  />
-                  <Text 
-                    fontSize="xs" 
-        color="text.muted"
-                    fontWeight="500"
-                  >
-                    {voiceActive ? "En écoute" : "Disponible"}
-                  </Text>
-                </HStack>
-                
-                {/* Indicateur pre-warming discret */}
-                {prewarmStatus === 'warming' && (
-                  <HStack spacing={1} opacity={0.9}>
-        <Spinner size="xs" color="purple.500" thickness="2px" />
-        <Text fontSize="xs" color="purple.600">Optimisation...</Text>
-                  </HStack>
-                )}
-                {prewarmStatus === 'ready' && (
-                  <HStack spacing={1} opacity={0.9}>
-                    <Box w="4px" h="4px" borderRadius="50%" bg="green.500" />
-        <Text fontSize="xs" color="green.800">Optimisé</Text>
-                  </HStack>
-                )}
-              </VStack>
-            </motion.div>
-          </Box>
         </Box>
 
 

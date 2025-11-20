@@ -92,7 +92,15 @@ export default function MemberBadges({ gymSlug, onMemberScanned, isActive }: Mem
   }
 
   if (members.length === 0) {
-    return null // Pas d'adhérents, pas d'affichage
+    return (
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+        <div className="bg-black/40 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
+          <span className="text-xs text-white/60 font-medium">
+            Aucun adhérent trouvé. Ajoutez-en via le dashboard.
+          </span>
+        </div>
+      </div>
+    )
   }
 
   return (
