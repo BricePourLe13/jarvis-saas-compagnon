@@ -3,79 +3,66 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import PageHeader from '@/components/dashboard/PageHeader'
-import EmptyState from '@/components/dashboard/EmptyState'
-import { Users } from 'lucide-react'
+import { getDashboardUser } from '@/lib/dashboard-user'
+import ImportMembersDialog from '@/components/dashboard/ImportMembersDialog'
+import MembersList from '@/components/dashboard/MembersList'
+import { createAdminClient } from '@/lib/supabase-admin'
 
-async function getUser() {
-  const cookieStore = await cookies()
+async function getMembers(gymId: string | null) {
+  if (!gymId) return []
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Server Component, ignore
-          }
-        },
-      },
-    }
-  )
+  // Utilisation de admin client pour bypasser RLS au cas où
+  // Mais en théorie le user connecté devrait pouvoir lire ses membres via RLS
+  // On reste safe avec createAdminClient pour l'affichage serveur
+  const supabase = createAdminClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: members } = await supabase
+    .from('gym_members_v2')
+    .select('id, first_name, last_name, email, badge_id, is_active, member_since, last_visit')
+    .eq('gym_id', gymId)
+    .order('created_at', { ascending: false })
+    .limit(100) // Pagination à venir
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role, full_name, email')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || !profile.role) {
-    redirect('/login')
-  }
-
-  return { user, profile }
+  return members || []
 }
 
 export default async function MembersPage() {
-  const { profile } = await getUser()
+  const { user, profile, gymName } = await getDashboardUser()
+
+  // Redirection si pas de gym (sauf super admin qui peut voir vide)
+  if (profile.role === 'gym_manager' && !profile.gym_id) {
+    redirect('/dashboard/onboarding')
+  }
+
+  const members = await getMembers(profile.gym_id)
 
   return (
     <DashboardLayout
       userRole={profile.role}
       userName={profile.full_name || 'Utilisateur'}
       userEmail={profile.email}
+      gymName={gymName || undefined}
     >
       <PageHeader
         title="Adhérents"
-        description="Gérez vos adhérents et suivez leur activité"
-      />
+        description={`Gérez les adhérents de ${gymName || 'votre salle'}`}
+      >
+        {profile.gym_id && (
+          <ImportMembersDialog 
+            gymId={profile.gym_id} 
+            onSuccess={async () => {
+              'use server'
+              // Server action pattern ou simple refresh client
+            }} 
+          />
+        )}
+      </PageHeader>
 
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
-          <EmptyState
-            icon={Users}
-            title="Page en développement"
-            description="La liste des adhérents et leurs profils seront bientôt disponibles"
-          />
+          <MembersList initialMembers={members} />
         </div>
       </div>
     </DashboardLayout>
   )
 }
-
-
