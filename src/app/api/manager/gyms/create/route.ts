@@ -228,6 +228,21 @@ export async function POST(request: NextRequest) {
       // Non bloquant, on continue
     }
 
+    // 7.5 Mettre à jour l'invitation avec gym_id (si elle existe)
+    const { error: updateInvitationError } = await supabaseAdmin
+      .from('manager_invitations')
+      .update({ gym_id: gym.id })
+      .eq('email', userProfile.email)
+      .eq('status', 'accepted')
+      .is('gym_id', null) // Seulement si pas déjà assignée
+
+    if (updateInvitationError) {
+      logger.warn('⚠️ [MANAGER] Erreur mise à jour invitation avec gym_id', { error: updateInvitationError.message }, { component: 'ManagerGymCreate' })
+      // Non bloquant
+    } else {
+      logger.info('✅ [MANAGER] Invitation liée à la gym créée', { email: userProfile.email, gymId: gym.id }, { component: 'ManagerGymCreate' })
+    }
+
     logger.info('Salle créée par gérant (pending approval)', { 
       gym_id: gym.id, 
       gym_name: gym.name, 

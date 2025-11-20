@@ -12,10 +12,10 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table'
-import { Monitor, ExternalLink, AlertCircle, Calendar, MapPin } from 'lucide-react'
-import Link from 'next/link'
+import { Monitor, AlertCircle, Calendar, MapPin } from 'lucide-react'
 import EmptyState from './EmptyState'
 import KioskApprovalActions from './KioskApprovalActions'
+import KioskActions from './KioskActions'
 
 interface KiosksTabsContentProps {
   allKiosks: any[]
@@ -121,16 +121,8 @@ export default function KiosksTabsContent({ allKiosks, pendingKiosks, userRole }
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link
-                          href={`/kiosk/${kiosk.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button variant="outline" size="sm">
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            Ouvrir
-                          </Button>
-                        </Link>
+                        {/* Actions kiosk : copier lien, supprimer */}
+                        <KioskActions kioskId={kiosk.id} kioskSlug={kiosk.slug} kioskName={kiosk.name} />
                       </TableCell>
                     </TableRow>
                   ))}
