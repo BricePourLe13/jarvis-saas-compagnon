@@ -1,72 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createAdminClient } from '@/lib/supabase-admin'
 
-export const dynamic = 'force-dynamic'
-
+/**
+ * 👥 GET /api/kiosk/[slug]/members
+ * 
+ * Récupère la liste des adhérents actifs de la gym associée au kiosk
+ * PUBLIC (pas d'auth) - utilisé pour afficher les badges adhérents
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const { slug } = await params
-    const { searchParams } = new URL(request.url)
-    const q = (searchParams.get('q') || '').trim()
-    const page = Math.max(1, Number(searchParams.get('page') || '1'))
-    const pageSizeParam = searchParams.get('pageSize') || '20'
-    const isAll = pageSizeParam === 'all'
-    const pageSize = isAll ? 100000 : Math.max(1, Math.min(1000, Number(pageSizeParam)))
-    const from = (page - 1) * pageSize
-    const to = from + pageSize - 1
+    const supabase = createAdminClient()
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-        },
-      }
-    )
+    // 1. Récupérer le kiosk pour obtenir le gym_id
+    const { data: kiosk, error: kioskError } = await supabase
+      .from('kiosks')
+      .select('gym_id')
+      .eq('slug', slug)
+      .single()
 
-    // Trouver l'id de la salle via le slug
-    const { data: gym } = await supabase
-      .from('gyms')
-      .select('id')
-      .eq('kiosk_config->>kiosk_url_slug', slug)
-      .maybeSingle()
-
-    if (!gym?.id) {
-      return NextResponse.json({ error: 'Salle introuvable' }, { status: 404 })
+    if (kioskError || !kiosk) {
+      return NextResponse.json(
+        { members: [], error: 'Kiosk non trouvé' },
+        { status: 404 }
+      )
     }
 
-    let query = supabase
+    // 2. Récupérer les membres actifs de cette gym
+    const { data: members, error: membersError } = await supabase
       .from('gym_members_v2')
-      .select('id,badge_id,first_name,last_name,email,membership_type,total_visits,last_visit,member_preferences')
-      .eq('gym_id', gym.id)
-      .order('last_visit', { ascending: false })
-    if (!isAll) {
-      query = (query as any).range(from, to)
+      .select('*')
+      .eq('gym_id', kiosk.gym_id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (membersError) {
+      return NextResponse.json(
+        { members: [], error: 'Erreur récupération membres' },
+        { status: 500 }
+      )
     }
 
-    if (q) {
-      query = query.or(
-        `first_name.ilike.%${q}%,last_name.ilike.%${q}%,badge_id.ilike.%${q}%`
-      ) as any
-    }
+    return NextResponse.json({
+      members: members || [],
+      count: members?.length || 0
+    })
 
-    const { data: members, error } = await query
-    if (error) {
-      return NextResponse.json({ error: 'Erreur récupération membres' }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, members, page, pageSize: isAll ? 'all' : pageSize })
-  } catch (e) {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  } catch (error) {
+    console.error('[KIOSK MEMBERS API] Erreur:', error)
+    return NextResponse.json(
+      { members: [], error: 'Erreur serveur' },
+      { status: 500 }
+    )
   }
 }
-
-

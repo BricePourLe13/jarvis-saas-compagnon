@@ -7,10 +7,9 @@ import '@/lib/production-log-cleaner'
 import { Box, VStack, HStack, Text, Badge, Spinner } from '@/components/kiosk/ChakraCompat'
 import { motion, AnimatePresence } from 'framer-motion'
 import VoiceInterface from '@/components/kiosk/VoiceInterface'
-import RFIDSimulator from '@/components/kiosk/RFIDSimulator'
+import MemberBadges from '@/components/kiosk/MemberBadges'
 import JarvisAvatar from '@/components/common/JarvisAvatar'
 // Removed BrowserPermissionsFallback - conflicts with MicrophoneManager
-import ProvisioningInterface from '@/components/kiosk/ProvisioningInterface'
 import { KioskValidationResponse, GymMember, MemberLookupResponse, KioskState, HardwareStatus, ExtendedKioskValidationResponse } from '@/types/kiosk'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
 // 💓 Import du hook de heartbeat pour le statut temps réel
@@ -76,7 +75,6 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   const [error, setError] = useState<string | null>(null)
   const [voiceActive, setVoiceActive] = useState(false)
   const [currentMember, setCurrentMember] = useState<GymMember | null>(null)
-  const [showAdminMenu, setShowAdminMenu] = useState(false) // 🔧 Fermé par défaut pour interface propre
   const [sessionLoading, setSessionLoading] = useState(false)
   
   // États pour la progression de chargement
@@ -472,11 +470,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         setKioskData(data)
         
         // Vérifier si le kiosk nécessite un provisioning
-        if (!data.kiosk?.is_provisioned) {
-          // Log supprimé pour production
-          setNeedsProvisioning(true)
-          return
-        }
+        // Provisioning check supprimé - géré par device_token via /setup
         
         // Log supprimé pour production
         
@@ -682,9 +676,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
   // ✅ SOLUTION 3: Browser permissions fallback state
   // Removed showPermissionsFallback - handled by MicrophoneManager
   const [permissionError, setPermissionError] = useState<string | null>(null)
-  
-  // État pour le provisioning
-  const [needsProvisioning, setNeedsProvisioning] = useState(false)
+  // Provisioning géré via /setup (Device Flow)
 
   // ✅ Console interceptor automatiquement activé (logging via OpenAI Realtime)
 
@@ -733,20 +725,7 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
     )
   }
 
-  // Afficher l'interface de provisioning si nécessaire
-  if (needsProvisioning) {
-    return (
-      <ProvisioningInterface
-        kioskSlug={slug}
-        gymName={kioskData?.gym?.name}
-        onProvisioningComplete={() => {
-          setNeedsProvisioning(false)
-          // Revalider le kiosk après provisioning
-          window.location.reload()
-        }}
-      />
-    )
-  }
+  // Provisioning géré via /setup (Device Flow) - Plus besoin de ce composant
 
   if (!kioskData) {
     return (
@@ -1221,8 +1200,8 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
             gridRow="2"
             display="flex"
             alignItems="center"
-            justifyContent="flex-end"
-            pr={12}
+            justifyContent="center"
+            px={8}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -1238,26 +1217,15 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
                   stiffness: 300
                 }}
               >
-                <VStack spacing={4} align="flex-end" textAlign="right">
+                <VStack spacing={4} align="center" textAlign="center">
                   <Box 
                     fontSize="2xl" 
                     color="rgba(255, 255, 255, 0.95)"
                     fontWeight="300"
                     letterSpacing="0.02em"
                     lineHeight="1.3"
-                    maxW="280px"
+                    maxW="400px"
                     filter="drop-shadow(0 0 30px rgba(255,255,255,0.1))"
-                    _before={{
-                      content: '""',
-                      position: 'absolute',
-                      right: '-16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '1px',
-                      height: '24px',
-                      background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
-                      borderRadius: '0.5px'
-                    }}
                     position="relative"
                   >
                     <VStack spacing={4} justify="center" align="center">
@@ -1569,113 +1537,12 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
         </Box>
 
 
-        {/* 🔧 BOUTON ADMIN DISCRET */}
-        {!showAdminMenu && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              zIndex: 100
-            }}
-          >
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowAdminMenu(true)}
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: 'rgba(255, 255, 255, 0.7)'
-              }}
-            >
-              ⚙️
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* 🛠️ PANNEAU ADMIN MODERNE */}
-        <AnimatePresence>
-          {showAdminMenu && (
-            <motion.div
-              initial={{ opacity: 0, x: 320, scale: 0.95 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 320, scale: 0.95 }}
-              transition={{ 
-                type: "spring", 
-                damping: 30, 
-                stiffness: 300,
-                mass: 0.8
-              }}
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '320px', // 🔧 Largeur augmentée pour plus d'espace
-                height: '100vh', // 🔧 Hauteur viewport complète
-                background: 'rgba(0, 0, 0, 0.92)',
-                backdropFilter: 'blur(40px)',
-                borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '20px',
-                zIndex: 1000,
-                fontFamily: 'SF Pro Display, -apple-system, system-ui',
-                overflowY: 'auto', // 🔧 Scroll si contenu déborde
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <VStack spacing={4} align="stretch" flex="1" minH="0"> {/* 🔧 Flex pour occuper l'espace */}
-                <HStack justify="space-between" mb={2}> {/* 🔧 Margin réduite */}
-                  <Text color="white" fontWeight="600" fontSize="md">Admin</Text> {/* 🔧 Titre simplifié */}
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    style={{
-                      cursor: 'pointer',
-                      padding: '4px',
-                      borderRadius: '6px'
-                    }}
-                    onClick={() => setShowAdminMenu(false)}
-                  >
-                    <Text color="gray.400" fontSize="lg" _hover={{ color: "white" }}>✕</Text>
-                  </motion.div>
-                </HStack>
-                
-                <Box>
-                  <Text color="gray.300" fontSize="sm" mb={2} fontWeight="500">Simulateur:</Text> {/* 🔧 Titre simplifié */}
-                  <RFIDSimulator 
-                    onMemberScanned={handleMemberScanned} 
-                    isActive={false}
-                    gymSlug={slug}
-                  />
-                </Box>
-
-                {/* 🔧 Infos système minimales */}
-                {currentMember && (
-                  <Box>
-                    <Text color="gray.300" fontSize="xs" mb={1}>Membre connecté:</Text>
-                    <Text color="purple.300" fontSize="sm" fontWeight="500">
-                      {currentMember.first_name}
-                    </Text>
-                  </Box>
-                )}
-              </VStack>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Removed BrowserPermissionsFallback - permissions handled by MicrophoneManager */}
+        {/* 🏷️ MEMBER BADGES - Adhérents cliquables en bas */}
+        <MemberBadges
+          gymSlug={slug}
+          onMemberScanned={handleMemberScanned}
+          isActive={voiceActive}
+        />
       </Box>
     </>
   )
