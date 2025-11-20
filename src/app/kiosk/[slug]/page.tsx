@@ -1354,9 +1354,10 @@ export default function KioskPage(props: { params: Promise<{ slug: string }> }) 
           <MemberBadges
             gymSlug={slug}
             onMemberScanned={handleMemberScanned}
-            isActive={voiceActive}
-          />
-        </div>
+          isActive={voiceActive}
+        />
+      </div>
+    </Box>
     </>
   )
-} 
+}
